@@ -12,18 +12,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
-import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,11 +25,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.antmedia.FFmpegUtilities;
+import io.antmedia.rest.RestServiceBase;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
@@ -70,7 +60,7 @@ import org.springframework.core.io.Resource;
 
 import io.antmedia.AppSettings;
 import io.vertx.core.Vertx;
-import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
+import io.vertx.core.impl.ConcurrentHashSet;
 
 /**
  * PLEASE READ HERE BEFORE YOU IMPLEMENT A MUXER THAT INHERITS THIS CLASS
@@ -93,6 +83,11 @@ import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
  *
  */
 public abstract class Muxer {
+	
+	public static final String BITSTREAM_FILTER_HEVC_MP4TOANNEXB = "hevc_mp4toannexb";
+
+	public static final String BITSTREAM_FILTER_H264_MP4TOANNEXB = "h264_mp4toannexb";
+
 
 	private long currentVoDTimeStamp = 0;
 
@@ -131,14 +126,20 @@ public abstract class Muxer {
 	/**
 	 * Bitstream filter name that will be applied to packets
 	 */
-	protected String bsfVideoName = null;
+	protected Set<String> bsfVideoNames = new ConcurrentHashSet<>();
+	
+	
+	private Set<String> bsfAudioNames = new ConcurrentHashSet<>();
+
 
 	protected String streamId = null;
 
 	protected Map<Integer, AVRational> inputTimeBaseMap = new ConcurrentHashMap<>();
 
 
-	protected AVBSFContext videoBsfFilterContext = null;
+	protected List<AVBSFContext> bsfFilterContextList = new ArrayList<>();
+	
+	protected Set<AVBSFContext> bsfAudioFilterContextList = new ConcurrentHashSet<>();
 
 	protected int videoWidth;
 	protected int videoHeight;
@@ -165,6 +166,9 @@ public abstract class Muxer {
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
 
+	/**
+	 * height of the resolution
+	 */
 	private int resolution;
 
 	public  static final AVRational avRationalTimeBase;
@@ -174,6 +178,85 @@ public abstract class Muxer {
 		avRationalTimeBase.den(1);
 	}
 
+	protected String subFolder = null;
+
+	/**
+	 * This class is used generally to send direct video buffer to muxer
+	 * @author mekya
+	 *
+	 */
+	public static class VideoBuffer {
+		
+		
+		private ByteBuffer encodedVideoFrame;
+		/**
+		 * DTS and PTS may be normalized values according to the audio
+		 * This is why there is {@link #originalFrameTimeMs} exists
+		 */
+		private long dts;
+		private long pts; 
+		
+		private long firstFrameTimeStamp;
+		
+		private long originalFrameTimeMs;
+		private int frameRotation;
+		private int streamIndex;
+		private boolean keyFrame;
+		
+	
+		public void setEncodedVideoFrame(ByteBuffer encodedVideoFrame) {
+			this.encodedVideoFrame = encodedVideoFrame;
+		}
+		
+		public void setTimeStamps(long dts, long pts, long firstFrameTimeStamp, long originalFrameTimeMs) {
+			this.dts = dts;
+			this.pts = pts;
+			this.firstFrameTimeStamp = firstFrameTimeStamp;
+			this.originalFrameTimeMs = originalFrameTimeMs;
+		}
+		
+		public void setFrameRotation(int frameRotation) {
+			this.frameRotation = frameRotation;
+		}
+		
+		public void setStreamIndex(int streamIndex) {
+			this.streamIndex = streamIndex;
+		}
+		
+		public void setKeyFrame(boolean isKeyFrame) {
+			this.keyFrame = isKeyFrame;
+		}
+		
+		public ByteBuffer getEncodedVideoFrame() {
+			return encodedVideoFrame;
+		}
+		
+		public long getDts() {
+			return dts;
+		}
+		public long getPts() {
+			return pts;
+		}
+		public long getFirstFrameTimeStamp() {
+			return firstFrameTimeStamp;
+		}
+		
+		public int getFrameRotation() {
+			return frameRotation;
+		}
+		public int getStreamIndex() {
+			return streamIndex;
+		}
+		
+		public boolean isKeyFrame() {
+			return keyFrame;
+		}
+		
+		public long getOriginalFrameTimeMs() {
+			return originalFrameTimeMs;
+		}
+		
+	}
 	/**
 	 * By default first video key frame are not checked, so it's true.
 	 *
@@ -183,6 +266,19 @@ public abstract class Muxer {
 	private long lastPts;
 
 	protected AVDictionary optionDictionary = new AVDictionary(null);
+
+	private long firstPacketDtsMs = -1;
+
+	private long audioNotWrittenCount;
+
+	private long videoNotWrittenCount;
+	
+	private long totalSizeInBytes;
+	private long startTimeInSeconds;
+	private long currentTimeInSeconds;
+
+	private int videoCodecId;
+
 
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
@@ -383,10 +479,10 @@ public abstract class Muxer {
 			audioPkt = null;
 		}
 
-		if (videoBsfFilterContext != null) {
+		for (AVBSFContext videoBsfFilterContext: bsfFilterContextList) {
 			av_bsf_free(videoBsfFilterContext);
-			videoBsfFilterContext = null;
 		}
+		bsfFilterContextList.clear();
 
 		/* close output */
 		if (outputFormatContext != null &&
@@ -424,7 +520,7 @@ public abstract class Muxer {
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) 
 		{
-			logPacketIssue("Not writing packet1 for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
+			logPacketIssue("Not writing packet1 for {} - Is running:{} or stream index({}) is registered: {} to {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()), getOutputURL());
 			return;
 		}
 
@@ -440,7 +536,7 @@ public abstract class Muxer {
 	}
 	
 	public void logPacketIssue(String format, Object... arguments) {
-		if (time2log  % 100 == 0) {
+		if (time2log % 200 == 0) {
 			logger.warn(format, arguments);
 			time2log = 0;
 		}
@@ -451,7 +547,7 @@ public abstract class Muxer {
 	/**
 	 * Write packets to the output. This function is used in transcoding.
 	 * Previously, It's the replacement of {link {@link #writePacket(AVPacket)}
-	 * @param avpacket
+	 * @param pkt
 	 * @param codecContext
 	 */
 	public synchronized void writePacket(AVPacket pkt, AVCodecContext codecContext) {
@@ -486,13 +582,24 @@ public abstract class Muxer {
 		return byteBuffer;
 	}
 
+	public void setAudioBitreamFilter(String bsfName) {
+		bsfAudioNames.add(bsfName);
+	}
+	
+	public Set<String> getBsfAudioNames() {
+		return bsfAudioNames;
+	}
 
 	public void setBitstreamFilter(String bsfName) {
-		this.bsfVideoName = bsfName;
+		bsfVideoNames.add(bsfName);
 	}
 	
 	public String getBitStreamFilter() {
-		return bsfVideoName;
+		if(!bsfVideoNames.isEmpty())
+		{
+			return bsfVideoNames.iterator().next();
+		}
+		return null;
 	}
 
 	public File getFile() {
@@ -531,17 +638,13 @@ public abstract class Muxer {
 	 * sample naming -> stream1-yyyy-MM-dd_HH-mm_480p_500kbps.mp4 if datetime is added
 	 * stream1_480p.mp4 if no datetime
 	 *
+	 * @param name,           name of the stream
 	 * @param scope
-	 * @param name,
-	 *            name of the stream
-	 * @param resolution
-	 *            height of the stream, if it is zero, then no resolution will
-	 *            be added to resource name
-	 * @param overrideIfExist
-	 *            whether override if a file exists with the same name
-	 * @param bitrate
-	 * 			  bitrate of the stream, if it is zero, no bitrate will
-	 * 			  be added to resource name
+	 * @param resolution      height of the stream, if it is zero, then no resolution will
+	 *                        be added to resource name
+	 * @param overrideIfExist whether override if a file exists with the same name
+	 * @param bitrate         bitrate of the stream, if it is zero, no bitrate will
+	 *                        be added to resource name
 	 */
 	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate) {
 		if (!isInitialized) {
@@ -550,14 +653,12 @@ public abstract class Muxer {
 			this.resolution = resolution;
 
 			//Refactor: Getting AppSettings smells here
-			IContext context = this.scope.getContext();
-			ApplicationContext appCtx = context.getApplicationContext();
-			AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+			AppSettings appSettings = getAppSettings();
 
 			initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate, appSettings.getFileNameFormat());
 
-
-			file = getResourceFile(scope, initialResourceNameWithoutExtension, extension, subFolder);
+			setSubfolder(subFolder);
+			file = getResourceFile(scope, initialResourceNameWithoutExtension, extension, this.subFolder);
 
 			File parentFile = file.getParentFile();
 
@@ -567,14 +668,14 @@ public abstract class Muxer {
 			} else {
 				// if parent file exists,
 				// check overrideIfExist and file.exists
-				File tempFile = getResourceFile(scope, initialResourceNameWithoutExtension, extension+TEMP_EXTENSION, subFolder);
+				File tempFile = getResourceFile(scope, initialResourceNameWithoutExtension, extension+TEMP_EXTENSION, this.subFolder);
 
 				if (!overrideIfExist && (file.exists() || tempFile.exists())) {
 					String tmpName = initialResourceNameWithoutExtension;
 					int i = 1;
 					do {
-						tempFile = getResourceFile(scope, tmpName, extension+TEMP_EXTENSION, subFolder);
-						file = getResourceFile(scope, tmpName, extension, subFolder);
+						tempFile = getResourceFile(scope, tmpName, extension+TEMP_EXTENSION, this.subFolder);
+						file = getResourceFile(scope, tmpName, extension, this.subFolder);
 						tmpName = initialResourceNameWithoutExtension + "_" + i;
 						i++;
 					} while (file.exists() || tempFile.exists());
@@ -592,41 +693,77 @@ public abstract class Muxer {
 
 		}
 	}
-	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat){
-		// set default name
-		String resourceName = name;
-		int bitrateKbps = bitrate / 1000;
-		
-		// added before the if statement because of if addDateTimeToResourceName parameter return false, currentVoDTimeStamp returns 0
-		LocalDateTime ldt =  LocalDateTime.now();
-		currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
-		// add date time parameter to resource name if it is set
-		if (addDateTimeToResourceName) 
-		{
-			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
-			if (logger.isInfoEnabled()) {
-				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
+	public void setSubfolder(String subFolder) {
+		this.subFolder = subFolder;
+	}
+
+	public AppSettings getAppSettings() {
+		IContext context = this.scope.getContext();
+		ApplicationContext appCtx = context.getApplicationContext();
+		return (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+	}
+
+	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat) {
+		StringBuilder result = new StringBuilder(name);
+		int bitrateKbps = bitrate / 1000;
+
+		// Extract custom text from the format string (text between {} brackets)
+		String customText = extractCustomText(fileNameFormat);
+
+		// Replace the custom text placeholder with %c for easier processing
+		String format = fileNameFormat.replaceAll("\\{.*?}", "%c");
+
+		// Add date-time to the resource name if the flag is set
+		if (addDateTimeToResourceName) {
+			LocalDateTime ldt = LocalDateTime.now();
+			result.append("-").append(ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
+			currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+		}
+
+		// Process the format string if it's not empty
+		if (!format.isEmpty()) {
+			result.append("_");
+			for (char c : format.toCharArray()) {
+				if (c == '%') {
+					continue; // Skip the '%' character
+				}
+				switch (c) {
+					case 'r':
+						// Append resolution if it's non-zero
+						if (resolution != 0) {
+							result.append(resolution).append("p");
+						}
+						break;
+					case 'b':
+						// Append bitrate if it's non-zero
+						if (bitrateKbps != 0) {
+							result.append(bitrateKbps).append("kbps");
+						}
+						break;
+					case 'c':
+						// Append custom text if it's not empty
+						result.append(customText);
+						break;
+				}
 			}
+		} else if (resolution != 0) {
+			// If format is empty and resolution is non-zero, append only resolution
+			result.append("_").append(resolution).append("p");
 		}
-		String lowerCaseFormat = fileNameFormat.toLowerCase();
-		// add resolution height parameter if it is different than 0
-		if (resolution != 0 && lowerCaseFormat.contains("%r") && bitrateKbps != 0 && lowerCaseFormat.contains("%b"))
-		{
-			resourceName += (lowerCaseFormat.indexOf("r") > lowerCaseFormat.indexOf("b")) ?  "_" + bitrateKbps + "kbps" + resolution + "p" : "_" + resolution + "p" + bitrateKbps + "kbps";
+
+		// Remove trailing underscore if present
+		if (result.charAt(result.length() - 1) == '_') {
+			result.setLength(result.length() - 1);
 		}
-		else if(resolution != 0 && lowerCaseFormat.contains("%r") && (bitrateKbps == 0 || !lowerCaseFormat.contains("%b"))){
-			resourceName += "_" + resolution + "p" ;
-		}
-		else if((resolution == 0 || !lowerCaseFormat.contains("%r")) && bitrateKbps != 0 && lowerCaseFormat.contains("%b")){
-			resourceName += "_" + bitrateKbps + "kbps" ;
-		}
-		else if( (!lowerCaseFormat.contains("%r") && !lowerCaseFormat.contains("%b")) && resolution != 0){
-			logger.info("No identifier found for file name, adding resolution");
-			resourceName += "_" + resolution + "p" ;
-			
-		}
-		return resourceName;
+
+		return result.toString();
+	}
+
+	private String extractCustomText(String fileNameFormat) {
+		int start = fileNameFormat.indexOf('{');
+		int end = fileNameFormat.indexOf('}');
+		return (start != -1 && end != -1 && end > start) ? fileNameFormat.substring(start + 1, end) : "";
 	}
 
 	public File getResourceFile(IScope scope, String name, String extension, String subFolder) {
@@ -675,6 +812,7 @@ public abstract class Muxer {
 			inputOutputStreamIndexMap.put(streamIndex, outStream.index());
 			videoWidth = width;
 			videoHeight = height;
+			videoCodecId = codecId;
 			result = true;
 		}
 		return result;
@@ -750,22 +888,33 @@ public abstract class Muxer {
 			//if it's not running add to the list
 			registeredStreamIndexList.add(streamIndex);
 
-			if (bsfVideoName != null && codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
-			{
-				AVBSFContext videoBitstreamFilter = initVideoBitstreamFilter(codecParameters, timebase);
-				if (videoBitstreamFilter != null) 
-				{
-					codecParameters = videoBitstreamFilter.par_out();
-					timebase = videoBitstreamFilter.time_base_out();
-				}
-
-			}
-			String codecType = "audio";
-			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
+			String codecType;
+			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
 			{
 				codecType = "video";
+				for (String bsfVideoName: bsfVideoNames) {
+					AVBSFContext videoBitstreamFilter = initVideoBitstreamFilter(bsfVideoName, codecParameters, timebase);
+					if (videoBitstreamFilter != null)
+					{
+						codecParameters = videoBitstreamFilter.par_out();
+						timebase = videoBitstreamFilter.time_base_out();
+					}
+				}
 				videoWidth = codecParameters.width();
 				videoHeight = codecParameters.height();
+				videoCodecId = codecParameters.codec_id();
+			}
+			else 
+			{
+				codecType = "audio";
+				for (String bsfAudioName : bsfAudioNames) {
+					AVBSFContext audioBitstreamFilter = initAudioBitstreamFilter(bsfAudioName, codecParameters,
+							timebase);
+					if (audioBitstreamFilter != null) {
+						codecParameters = audioBitstreamFilter.par_out();
+						timebase = audioBitstreamFilter.time_base_out();
+					}
+				}
 			}
 
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
@@ -778,8 +927,10 @@ public abstract class Muxer {
 			result = true;
 
 		}
-		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
-			if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) {
+		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) 
+		{
+			if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) 
+			{
 				AVStream outStream = avNewStream(outputContext);
 				registeredStreamIndexList.add(streamIndex);
 
@@ -797,35 +948,68 @@ public abstract class Muxer {
 		}
 		return result;
 	}
+	
+	public AVBSFContext initAudioBitstreamFilter(String bsfAudioName, AVCodecParameters codecParameters, AVRational timebase) {
+		AVBSFContext audioBsfFilterContext =initBitstreamFilter(bsfAudioName, codecParameters, timebase);
+		
+		if (audioBsfFilterContext != null) {
+			bsfAudioFilterContextList.add(audioBsfFilterContext);
+		}
+		return audioBsfFilterContext;
+		
+	}
 
-	public AVBSFContext initVideoBitstreamFilter(AVCodecParameters codecParameters, AVRational timebase) {
+	public AVBSFContext initVideoBitstreamFilter(String bsfVideoName, AVCodecParameters codecParameters, AVRational timebase) {
+		AVBSFContext videoBsfFilterContext = initBitstreamFilter(bsfVideoName, codecParameters, timebase);
+
+		if (videoBsfFilterContext != null) {
+			bsfFilterContextList.add(videoBsfFilterContext);
+		}
+		return videoBsfFilterContext;
+	}
+
+	private AVBSFContext initBitstreamFilter(String bsfVideoName, AVCodecParameters codecParameters,
+			AVRational timebase) {
 		AVBitStreamFilter bsfilter = av_bsf_get_by_name(bsfVideoName);
-		videoBsfFilterContext = new AVBSFContext(null);
+		if (bsfilter == null) {
+			logger.error("cannot find bit stream filter for {}", bsfVideoName);
+			return null;
+		}
+		AVBSFContext videoBsfFilterContext = new AVBSFContext(null);
 		int ret = av_bsf_alloc(bsfilter, videoBsfFilterContext);
 
 		if (ret < 0) {
-			logger.info("cannot allocate bsf context for {}", getOutputURL());
+			logger.error("cannot allocate bsf context for {}", getOutputURL());
 			return null;
 		}
 
 		ret = avcodec_parameters_copy(videoBsfFilterContext.par_in(), codecParameters);
 		if (ret < 0) {
-			logger.info("cannot copy input codec parameters for {}", getOutputURL());
+			logger.error("cannot copy input codec parameters for {}", getOutputURL());
 			return null;
 		}
 
 		videoBsfFilterContext.time_base_in(timebase);
 		ret = av_bsf_init(videoBsfFilterContext);
 		if (ret < 0) {
-			logger.info("cannot init bit stream filter context for {}", getOutputURL());
+			logger.error("cannot init bit stream filter context for {}", getOutputURL());
 			return null;
 		}
-
 		return videoBsfFilterContext;
 	}
 
-
 	public synchronized void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
+		VideoBuffer videoBuffer = new VideoBuffer();
+		videoBuffer.setEncodedVideoFrame(encodedVideoFrame);
+		videoBuffer.setTimeStamps(dts, pts, firstFrameTimeStamp, pts);
+		videoBuffer.setFrameRotation(frameRotation);
+		videoBuffer.setStreamIndex(streamIndex);
+		videoBuffer.setKeyFrame(isKeyFrame);
+		writeVideoBuffer(videoBuffer);
+	}
+	
+
+	public synchronized void writeVideoBuffer(VideoBuffer buffer) {
 		/*
 		 * this control is necessary to prevent server from a native crash
 		 * in case of initiation and preparation takes long.
@@ -841,17 +1025,17 @@ public abstract class Muxer {
 		 * Rotation field is used add metadata to the mp4.
 		 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
 		 */
-		this.rotation = frameRotation;
-		videoPkt.stream_index(streamIndex);
-		videoPkt.pts(pts);
-		videoPkt.dts(dts);
-		if(isKeyFrame) {
+		this.rotation = buffer.getFrameRotation();
+		videoPkt.stream_index(buffer.getStreamIndex());
+		videoPkt.pts(buffer.getPts());
+		videoPkt.dts(buffer.getDts());
+		if(buffer.isKeyFrame()) {
 			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 		}
 
-		encodedVideoFrame.rewind();
-		videoPkt.data(new BytePointer(encodedVideoFrame));
-		videoPkt.size(encodedVideoFrame.limit());
+		buffer.getEncodedVideoFrame().rewind();
+		videoPkt.data(new BytePointer(buffer.getEncodedVideoFrame()));
+		videoPkt.size(buffer.getEncodedVideoFrame().limit());
 		videoPkt.position(0);
 		writePacket(videoPkt, (AVCodecContext)null);
 
@@ -907,8 +1091,16 @@ public abstract class Muxer {
 	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
 		if (!firstKeyFrameReceived && codecType == AVMEDIA_TYPE_VIDEO) 
 		{
-			if(firstVideoDts == -1) {
+			if(firstPacketDtsMs == -1) {
 				firstVideoDts = pkt.dts();
+				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimeBaseMap.get(pkt.stream_index()), MuxAdaptor.TIME_BASE_FOR_MS);
+			}
+			else 
+			if (firstVideoDts == -1) {
+				firstVideoDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimeBaseMap.get(pkt.stream_index()));
+				if ((pkt.dts() - firstVideoDts) < 0) {
+					firstVideoDts = pkt.dts();
+				}
 			}
 
 			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
@@ -938,6 +1130,18 @@ public abstract class Muxer {
 	public int getVideoHeight() {
 		return videoHeight;
 	}
+	
+	
+	public long getAverageBitrate() {
+
+		long duration = (currentTimeInSeconds - startTimeInSeconds) ;
+
+		if (duration > 0)
+		{
+			return (totalSizeInBytes / duration) * 8;
+		}
+		return 0;
+	}
 
 	/**
 	 * All other writePacket functions call this function to make the job
@@ -962,12 +1166,33 @@ public abstract class Muxer {
 
 		pkt.duration(av_rescale_q(pkt.duration(), inputTimebase, outputTimebase));
 		pkt.pos(-1);
+		
+		totalSizeInBytes += pkt.size();
+		
+		currentTimeInSeconds = av_rescale_q(pkt.dts(), inputTimebase, avRationalTimeBase);
+		if (startTimeInSeconds == 0) {
+			startTimeInSeconds = currentTimeInSeconds;
+		}
 
 		if (codecType == AVMEDIA_TYPE_AUDIO)
 		{
-			if(firstAudioDts == -1) {
+			//removing firstAudioDTS is required when recording/muxing has started on the fly
+			if(firstPacketDtsMs == -1) {
 				firstAudioDts = pkt.dts();
+				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimeBaseMap.get(pkt.stream_index()), MuxAdaptor.TIME_BASE_FOR_MS);
+				logger.debug("The first incoming packet is audio and its packet dts:{}ms streamId:{} ", firstPacketDtsMs, streamId);
 			}
+			else 
+			if (firstAudioDts == -1) {
+				firstAudioDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimeBaseMap.get(pkt.stream_index()));
+				logger.debug("First packetDtsMs:{}ms is already received calculated the firstAudioDts:{} and incoming packet dts:{} streamId:{}", 
+								firstPacketDtsMs, firstAudioDts, pkt.dts(), streamId);
+				
+				if ((pkt.dts() - firstAudioDts) < 0) {
+					firstAudioDts = pkt.dts();
+				}
+			}
+			
 			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
@@ -983,6 +1208,7 @@ public abstract class Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_VIDEO)
 		{
+			//removing firstVideoDts is required when recording/muxing has started on the fly
 			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
@@ -1059,27 +1285,24 @@ public abstract class Muxer {
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
 		int ret;
 		
-		if (videoBsfFilterContext != null) 
+		for(AVBSFContext videoBsfFilterContext : bsfFilterContextList)
 		{
 			ret = av_bsf_send_packet(videoBsfFilterContext, pkt);
 			if (ret < 0) {
 				logger.warn("Cannot send packet to bit stream filter for stream:{}", streamId);
 				return;
 			}
-			while (av_bsf_receive_packet(videoBsfFilterContext, pkt) == 0)
-			{
-				ret = av_write_frame(context, tmpPacket);
-				if (ret < 0 && logger.isWarnEnabled()) {
-					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
-				}
-			}
+			av_bsf_receive_packet(videoBsfFilterContext, pkt);
 		}
-		else 
-		{
-			ret = av_write_frame(context, pkt);
-			if (ret < 0 && logger.isWarnEnabled()) {
-				//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
-				//WebRTCVideoForwarder#getVideoTime. Fix this problem when upgrading the webrtc stack
+		
+
+		logger.trace("write video packet pts:{} dts:{}", pkt.pts(), pkt.dts());
+		ret = av_write_frame(context, pkt);
+		if (ret < 0) {
+			videoNotWrittenCount++;
+			//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
+			//WebRTCVideoForwarder#getVideoTime. Fix this problem when upgrading the webrtc stack
+			if (logger.isWarnEnabled()) {
 				logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
 			}
 		}
@@ -1087,31 +1310,65 @@ public abstract class Muxer {
 
 	protected void writeAudioFrame(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
 			AVFormatContext context, long dts) {
+		
 		int ret;
-		ret = av_write_frame(context, tmpPacket);
-		if (ret < 0 && logger.isInfoEnabled()) {
-			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), getErrorDefinition(ret));
+		for (AVBSFContext audioBsfFilterContext : bsfAudioFilterContextList) {
+			ret = av_bsf_send_packet(audioBsfFilterContext, pkt);
+			if (ret < 0) {
+				logger.warn("Cannot send packet to bit stream filter for stream:{}", streamId);
+				return;
+			}
+			av_bsf_receive_packet(audioBsfFilterContext, pkt);
+		}
+		logger.trace("write audio packet pts:{} dts:{}", pkt.pts(), pkt.dts());
+		ret = av_write_frame(context, pkt);
+		if (ret < 0) {
+			audioNotWrittenCount++;
+			if (logger.isWarnEnabled()) {
+				logger.warn("cannot write audio frame to muxer({}).Pts: {} dts:{}. Error is {} ", file.getName(), pkt.pts(), pkt.dts(),
+						getErrorDefinition(ret));
+			}
 		}
 	}
-
+	
 	public static long getDurationInMs(File f, String streamId) {
+		return getDurationInMs(f.getAbsolutePath(), streamId);
+	}
+	
+
+	/**
+	 * 
+	 * @param url
+	 * @param streamId
+	 * @return 
+	 * -1 if duration is not available in the stream
+	 * -2 if input is not opened
+	 * -3 if stream info is not found
+	 *  
+	 */
+	public static long getDurationInMs(String url, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
 		if (streamId != null) {
-			streamId = streamId.replaceAll("[\n\r\t]", "_");
+			streamId = RestServiceBase.replaceCharsForSecurity(streamId);
 		}
-		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) 
+		
+		if (url != null) {
+			url = RestServiceBase.replaceCharsForSecurity(url);
+		}
+		
+		if (avformat_open_input(inputFormatContext, url, null, (AVDictionary)null) < 0) 
 		{
-			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, f.getName());
+			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, url);
 			avformat_close_input(inputFormatContext);
-			return -1L;
+			return -2L;
 		}
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
 		if (ret < 0) {
-			loggerStatic.info("Could not find stream information for stream: {} for file:{}", streamId, f.getName());
+			loggerStatic.info("Could not find stream information for stream: {} for file:{}", streamId, url);
 			avformat_close_input(inputFormatContext);
-			return -1L;
+			return -3L;
 		}
 		long durationInMS = -1;
 		if (inputFormatContext.duration() != AV_NOPTS_VALUE)
@@ -1196,4 +1453,33 @@ public abstract class Muxer {
 	public int getResolution() {
 		return resolution;
 	}
+
+	public long getLastPts() {
+		return lastPts;
+	}
+	
+	public static String replaceDoubleSlashesWithSingleSlash(String url) {
+		return url.replaceAll("(?<!:)//", "/");
+	}
+	
+	public long getVideoNotWrittenCount() {
+		return videoNotWrittenCount;
+	}
+
+	public long getAudioNotWrittenCount() {
+        return audioNotWrittenCount;
+    }
+
+	public void writeMetaData(String data, long dts) {
+		//some subclasses may override this method such as HLS
+	}
+	
+	public int getVideoCodecId() {
+		return videoCodecId;
+	}
+	
+	public String getSubFolder() {
+		return subFolder;
+	}
+
 }

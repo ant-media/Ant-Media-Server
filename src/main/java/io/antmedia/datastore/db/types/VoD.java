@@ -13,13 +13,13 @@ import dev.morphia.utils.IndexType;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Schema.AccessMode;
 
 
 @Entity("vod")
 @Indexes({ @Index(fields = @Field("vodId")), @Index(fields = @Field("vodName")), @Index(fields = @Field("streamId")), @Index(fields = @Field("streamName")) })
-@ApiModel(value="VoD", description="The recorded video-on-demand object class")
+@Schema(description = "The recorded video-on-demand object class")
 public class VoD implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -40,42 +40,76 @@ public class VoD implements Serializable {
 	 */
 	public static final String UPLOADED_VOD = "uploadedVod";
 	
+	
+	public static final String PROCESS_STATUS_INQUEUE = "inqueue";
+	
+	public static final String PROCESS_STATUS_PROCESSING = "processing";
+	
+	public static final String PROCESS_STATUS_FINISHED = "finished";
+	
+	public static final String PROCESS_STATUS_FAILED = "failed";
+	
+	
 	@JsonIgnore
 	@Id
-	private ObjectId dbId;
-	@ApiModelProperty(value = "the object id of the VoD")
-	private String streamName;
-	
-	@ApiModelProperty(value = "the name of the VoD")
-	private String vodName;
-	
-	@ApiModelProperty(value = "the stream id of the VoD")
-	private String streamId;
-	
-	@ApiModelProperty(value = "the creation of the VoD")
-	private long creationDate;
-	
-	@ApiModelProperty(value = "the time when the VoD is being started to get recorded in milliseconds(UTC- Unix epoch)")
-	private long startTime;
+    private ObjectId dbId;
 
-	@ApiModelProperty(value = "the duration of the VoD")
-	private long duration;
-	
-	@ApiModelProperty(value = "the size of the VoD file in bytes")
-	private long fileSize;
-	
-	@ApiModelProperty(value = "the path of the VoD")
-	private String filePath;
-	
-	@ApiModelProperty(value = "the id of the VoD")
-	private String vodId;
-	
-	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
-	private String type;
+    @Schema(description = "The object id of the VoD")
+    private String streamName;
 
-	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
-	private String previewFilePath;
-	
+    @Schema(description = "The name of the VoD")
+    private String vodName;
+
+    @Schema(description = "The stream id of the VoD")
+    private String streamId;
+
+    @Schema(description = "The creation date of the VoD")
+    private long creationDate;
+
+    @Schema(description = "The start time of the VoD recording in milliseconds (UTC- Unix epoch)")
+    private long startTime;
+
+    @Schema(description = "The duration of the VoD")
+    private long duration;
+
+    @Schema(description = "The size of the VoD file in bytes")
+    private long fileSize;
+
+    @Schema(description = "The path of the VoD")
+    private String filePath;
+
+    @Schema(description = "The id of the VoD")
+    private String vodId;
+
+    @Schema(description = "The type of the VoD, such as userVod, streamVod, uploadedVod")
+    private String type;
+
+    @Schema(description = "The file path for the preview of the VoD")
+    private String previewFilePath;
+    
+    @Schema(description = "The status of the VoD processing. It can be inqueue, processing, finished, failed")
+    private String processStatus;
+    
+    @Schema(description = "The start time of the VoD processing in milliseconds (UTC- Unix epoch)", accessMode = AccessMode.READ_ONLY)
+    private long processStartTime;
+    
+    @Schema(description = "The end time of the VoD processing in milliseconds", accessMode = AccessMode.READ_ONLY)
+    private long processEndTime;
+
+	@Schema(description = "The description of the VoD.")
+	private String description;
+
+	@Schema(description = "The metadata of the VoD.")
+	private String metadata;
+
+	@Schema(description = "The latitude of the VoD.")
+	private String latitude;
+
+	@Schema(description = "The longitude of the VoD.")
+	private String longitude;
+
+	@Schema(description = "The altitude of the VoD.")
+	private String altitude;
 
 	public VoD() {
 		//default constructor is used to return not found vod in rest service 
@@ -186,5 +220,118 @@ public class VoD implements Serializable {
 	public void setPreviewFilePath(String previewFilePath) {
 		this.previewFilePath = previewFilePath;
 	}
+
+	/**
+	 * @return the processStatus
+	 */
+	public String getProcessStatus() {
+		return processStatus;
+	}
+
+	/**
+	 * @param processStatus the processStatus to set
+	 */
+	public void setProcessStatus(String processStatus) {
+		this.processStatus = processStatus;
+	}
+
+	/**
+	 * @return the description
+	 */
+	public String getDescription() {
+		return description;
+	}
+
+	/**
+	 * @param description the description to set
+	 */
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	/**
+	 * @return the metadata
+	 */
+	public String getMetadata() {
+		return metadata;
+	}
+
+	/**
+	 * @param metadata the metadata to set
+	 */
+	public void setMetadata(String metadata) {
+		this.metadata = metadata;
+	}
+
+	/**
+	 * @return the altitude
+	 */
+	public String getAltitude() {
+		return altitude;
+	}
+
+	/**
+	 * @param altitude the altitude to set
+	 */
+	public void setAltitude(String altitude) {
+		this.altitude = altitude;
+	}
+
+	/**
+	 * @param latitude the latitude to set
+	 */
+	public void setLatitude(String latitude) {
+		this.latitude = latitude;
+	}
+
+	/**
+	 * @return the latitude
+	 */
+	public String getLatitude() {
+		return latitude;
+	}
+
+	/**
+	 * @return the longitude
+	 */
+	public String getLongitude() {
+		return longitude;
+	}
+
+	/**
+	 * @param longitude the longitude to set
+	 */
+	public void setLongitude(String longitude) {
+		this.longitude = longitude;
+	}
+
+	/**
+	 * @return the processStartTime
+	 */
+	public long getProcessStartTime() {
+		return processStartTime;
+	}
+
+	/**
+	 * @param processStartTime the processStartTime to set
+	 */
+	public void setProcessStartTime(long processStartTime) {
+		this.processStartTime = processStartTime;
+	}
+
+	/**
+	 * @return the processEndTime
+	 */
+	public long getProcessEndTime() {
+		return processEndTime;
+	}
+
+	/**
+	 * @param processEndTime the processEndTime to set
+	 */
+	public void setProcessEndTime(long processEndTime) {
+		this.processEndTime = processEndTime;
+	}
+
 
 }

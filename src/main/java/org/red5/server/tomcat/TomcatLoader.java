@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.lang.management.ManagementFactory;
 import java.net.BindException;
+import java.net.URL;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,6 +79,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.component.AppConfig;
 
 /**
  * Red5 loader for Tomcat.
@@ -170,8 +174,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	/**
 	 * Cluster
 	 */
-	@Autowired(required=false)
-	private Cluster cluster;
+	private IClusterNotifier clusterNotifier;
 
 	/**
 	 * Valves
@@ -307,9 +310,6 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		// set the default host for our engine
 		engine.setDefaultHost(host.getName());
 
-		if (cluster != null) {
-			engine.setCluster(cluster);
-		}
 		// set the webapp folder if not already specified
 		if (webappFolder == null) {
 			// Use default webapps directory
@@ -516,7 +516,10 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 									appctx = (ConfigurableWebApplicationContext) clazz.newInstance();
 									// set the root webapp ctx attr on the each servlet context so spring can find it later
 									servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
-									appctx.setConfigLocations(new String[] { contextConfigLocation });
+									
+									URL internalAppConfig = this.getClass().getClassLoader().getResource(AppConfig.INTERNAL_APP_CONFIG_LOCATION);
+																		
+									appctx.setConfigLocations(new String[] { contextConfigLocation, internalAppConfig.toString() });
 									appctx.setServletContext(servletContext);
 									// set parent context or use current app context
 									if (parentContext != null) {
@@ -576,33 +579,36 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		boolean result = false;
 		//get a reference to the current threads classloader
 		final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
-		log.debug("Webapp root: {}", webappFolder);
-		if (webappFolder == null) {
-			// Use default webapps directory
-			webappFolder = System.getProperty("red5.root") + "/webapps";
-		}
-		System.setProperty("red5.webapp.root", webappFolder);
-		log.info("Application root: {}", webappFolder);
-		// application directory
-		String contextName = '/' + applicationName;
-		Container ctx = null;
-		// Root applications directory
-		File appDirBase = new File(webappFolder);
-		// check if the context already exists for the host
-		if ((ctx = host.findChild(contextName)) == null) {
-			log.debug("Context did not exist in host");
-			String webappContextDir = FileUtil.formatPath(appDirBase.getAbsolutePath(), applicationName);
-			log.debug("Webapp context directory (full path): {}", webappContextDir);
-			// set the newly created context as the current container
-			ctx = addContext(contextName, webappContextDir);
-		} else {
-			log.debug("Context already exists in host");
-		}
-		final ServletContext servletContext = ((Context) ctx).getServletContext();
-		log.debug("Context initialized: {}", servletContext.getContextPath());
-		String prefix = servletContext.getRealPath("/");
-		log.debug("Path: {}", prefix);
+
 		try {
+			log.debug("Webapp root: {}", webappFolder);
+			if (webappFolder == null) {
+				// Use default webapps directory
+				webappFolder = System.getProperty("red5.root") + "/webapps";
+			}
+			System.setProperty("red5.webapp.root", webappFolder);
+			log.info("Application root: {}", webappFolder);
+			// application directory
+			String contextName = '/' + applicationName;
+			Container ctx = null;
+			// Root applications directory
+			File appDirBase = new File(webappFolder);
+			// check if the context already exists for the host
+			if ((ctx = host.findChild(contextName)) == null) {
+				log.debug("Context did not exist in host");
+				String webappContextDir = FileUtil.formatPath(appDirBase.getAbsolutePath(), applicationName);
+				log.debug("Webapp context directory (full path): {}", webappContextDir);
+				// set the newly created context as the current container
+				ctx = addContext(contextName, webappContextDir);
+			} else {
+				log.debug("Context already exists in host");
+			}
+			final ServletContext servletContext = ((Context) ctx).getServletContext();
+			log.debug("Context initialized: {}", servletContext.getContextPath());
+			String prefix = servletContext.getRealPath("/");
+
+			log.debug("Path: {}", prefix);
+
 			Loader cldr = ((Context) ctx).getLoader();
 			log.debug("Loader delegate: {} type: {}", cldr.getDelegate(), cldr.getClass().getName());
 			if (cldr instanceof WebappLoader) {
@@ -628,7 +634,10 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 					// create a spring web application context
 					XmlWebApplicationContext appctx = new XmlWebApplicationContext();
 					appctx.setClassLoader(webClassLoader);
-					appctx.setConfigLocations(new String[] { contextConfigLocation });
+					
+					URL internalAppConfig = this.getClass().getClassLoader().getResource(AppConfig.INTERNAL_APP_CONFIG_LOCATION);
+					
+					appctx.setConfigLocations(new String[] { contextConfigLocation, internalAppConfig.toString() });
 					// check for red5 context bean
 					ApplicationContext parentAppCtx = null;
 					if (applicationContext.containsBean(defaultParentContextKey)) {
@@ -661,7 +670,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 							}
 						}
 					}
-					
+
 					// add the servlet context
 					appctx.setServletContext(servletContext);
 					// set the root webapp ctx attr on the each servlet context so spring can find it later
@@ -675,7 +684,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 			thread.start();
 			result = true;
 		} catch (Throwable t) {
-			log.error("Error setting up context: {} due to: {}", servletContext.getContextPath(), t.getMessage());
+			log.error("Error setting up context: {} due to: {}", applicationName, t.getMessage());
 			log.error(ExceptionUtils.getStackTrace(t));
 		} finally {
 			//reset the classloader
@@ -900,24 +909,24 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		return "TomcatLoader [serviceEngineName=" + serviceEngineName + "]";
 	}
 
-	/**
-	 * Get cluster
-	 * @return cluster object
-	 */
-	public Cluster getCluster() {
-		return cluster;
-	}
 
-	/**
-	 * Set cluster
-	 * @param cluster object
-	 */
-	public void setCluster(Cluster cluster) {
-		this.cluster = cluster;
-	}
 	
 	public List<TomcatConnector> getConnectors() {
 		return connectors;
+	}
+
+	/**
+	 * @return the clusterNotifier
+	 */
+	public IClusterNotifier getClusterNotifier() {
+		return clusterNotifier;
+	}
+
+	/**
+	 * @param clusterNotifier the clusterNotifier to set
+	 */
+	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
+		this.clusterNotifier = clusterNotifier;
 	}
 
 }

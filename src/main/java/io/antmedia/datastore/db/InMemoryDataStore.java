@@ -9,20 +9,29 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nonnull;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.ConferenceRoom;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
+import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -38,7 +47,8 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
-	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
+	private Map<String, Queue<ConnectionEvent>> connectionEvents = new LinkedHashMap<>();
+	private Map<String, SubscriberMetadata> subscriberMetadataMap = new LinkedHashMap<>();
 	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
 
@@ -101,18 +111,6 @@ public class InMemoryDataStore extends DataStore {
 				broadcast.setWebRTCViewerCount(0);
 				broadcast.setHlsViewerCount(0);
 			}
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
-	}
-
-	@Override
-	public boolean updateDuration(String id, long duration) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null) {
-			broadcast.setDuration(duration);
 			broadcastMap.put(id, broadcast);
 			result = true;
 		}
@@ -183,6 +181,24 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 
+	public long getLocalLiveBroadcastCount(String hostAddress) {
+		return getActiveBroadcastCount();
+	}
+
+	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
+	{
+		List<Broadcast> broadcastList = new ArrayList<>();
+		Collection<Broadcast> values = broadcastMap.values();
+		for (Broadcast broadcast : values) {
+			String status = broadcast.getStatus();
+			if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)) {
+				broadcastList.add(broadcast);
+			}
+		}
+		return broadcastList;
+	}
+
+
 	@Override
 	public boolean delete(String id) {
 		Broadcast broadcast = broadcastMap.get(id);
@@ -195,11 +211,11 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
-		
+
 		Collection<Broadcast> values = broadcastMap.values();
 
 		ArrayList<Broadcast> list = new ArrayList<>();
-		
+
 		if(type != null && !type.isEmpty()) {
 			for (Broadcast broadcast : values) 
 			{
@@ -274,21 +290,39 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
+	public boolean updateVoDProcessStatus(String id, String status) {
+		VoD vod = vodMap.get(id);
+		if (vod != null) {
+			vod.setProcessStatus(status);
+			if (VoD.PROCESS_STATUS_PROCESSING.equals(status)) {
+				vod.setProcessStartTime(System.currentTimeMillis());
+			}
+			else if (VoD.PROCESS_STATUS_FAILED.equals(status) || VoD.PROCESS_STATUS_FINISHED.equals(status)) {
+				vod.setProcessEndTime(System.currentTimeMillis());
+			}
+			vodMap.put(id, vod);
+			return true;
+		}
+
+		return false;
+	}
+
+	@Override
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search)
 	{
 		ArrayList<VoD> vods = null;
-		
+
 		if (filterStreamId != null && !filterStreamId.isEmpty()) 
 		{
 			vods = new ArrayList<>();
-			
+
 			for (VoD vod : vodMap.values()) 
 			{
 				if(vod.getStreamId().equals(filterStreamId)) {
 					vods.add(vod);
 				}
 			}
-			
+
 		}
 		else {
 			vods = new ArrayList<>(vodMap.values());
@@ -359,7 +393,7 @@ public class InMemoryDataStore extends DataStore {
 					long unixTime = System.currentTimeMillis();
 
 					String filePath = file.getPath();
-					
+
 					String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
 					String relativePath= "streams/" + subDirs[subDirs.length-2] +'/' +subDirs[subDirs.length-1];
@@ -377,26 +411,6 @@ public class InMemoryDataStore extends DataStore {
 		return numberOfSavedFiles;
 	}
 
-
-
-
-	@Override
-	public boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketSize) {
-		boolean result = false;
-		if (id != null) {
-			Broadcast broadcast = broadcastMap.get(id);
-			if (broadcast != null) {
-				if (quality != null) {
-					broadcast.setQuality(quality);
-				}
-				broadcast.setSpeed(speed);
-				broadcast.setPendingPacketSize(pendingPacketSize);
-				broadcastMap.replace(id, broadcast);
-				result = true;
-			}
-		}
-		return result;
-	}
 
 	@Override
 	public long getTotalBroadcastNumber() {
@@ -484,7 +498,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {		
+	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {		
 		boolean result = false;
 		try {
 			Broadcast oldBroadcast = get(streamId);
@@ -519,7 +533,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public synchronized boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
@@ -737,15 +751,58 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
+		
+		String key = Subscriber.getDBKey(streamId, subscriberId);
+		
+		
+		List<ConnectionEvent> list = new ArrayList<>();		
+		if (key != null) {
+			Collection<ConnectionEvent> values = connectionEvents.get(key);
+			if (values != null) {
+				list = getConnectionEventListFromCollection(values, null);
+			}
+		}
+		else {
+			Collection<Queue<ConnectionEvent>> values = connectionEvents.values();
+			for (Queue<ConnectionEvent> queue : values) {
+				list.addAll(getConnectionEventListFromCollection(queue, streamId));
+			}
+		}
+		return MapBasedDataStore.getReturningConnectionEventsList(offset, size, list);
+	}
+	
+	@Override
+	public boolean addConnectionEvent(ConnectionEvent connectionEvent) {
+		boolean result = false;
+		if (connectionEvent != null && StringUtils.isNoneBlank(connectionEvent.getStreamId(), connectionEvent.getSubscriberId())) {
+			try {
+				String key = Subscriber.getDBKey(connectionEvent.getStreamId(), connectionEvent.getSubscriberId());
+				if (!connectionEvents.containsKey(key)) {
+					connectionEvents.put(key, new ConcurrentLinkedQueue<ConnectionEvent>());
+				}
+				connectionEvents.get(key).add(connectionEvent);
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+	}
 
 	@Override
 	public boolean deleteSubscriber(String streamId, String subscriberId) {
-		
+
 		boolean result = false;
 		if(streamId != null && subscriberId != null) {
 			try {
-				 Subscriber sub = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId));
+				Subscriber sub = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId));
 				result = sub != null;
+				connectionEvents.keySet().removeIf(key -> key.equals(Subscriber.getDBKey(streamId, subscriberId)));
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -793,17 +850,19 @@ public class InMemoryDataStore extends DataStore {
 				iterator.remove();
 				subscriberMap.remove(subscriber.getSubscriberKey());
 			}
+			connectionEvents.keySet().removeIf(key -> key.startsWith(streamId+ "-"));
+
 			result = true;
 
 		}
 		return result;
 	}
-	
+
 	@Override
 	public Subscriber getSubscriber(String streamId, String subscriberId) {
 		return subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
 	}
-	
+
 	@Override
 	public boolean resetSubscribersConnectedStatus() {
 		for(Subscriber subscriber: subscriberMap.values()) {
@@ -838,7 +897,7 @@ public class InMemoryDataStore extends DataStore {
 
 		return result;
 	}
-	
+
 	@Override
 	public boolean setWebMMuxing(String streamId, int enabled) {
 		boolean result = false;
@@ -858,66 +917,6 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
-	}
-
-	@Override
-	public boolean createConferenceRoom(ConferenceRoom room) {
-
-		boolean result = false;
-
-		if (room != null && room.getRoomId() != null) {
-			roomMap.put(room.getRoomId(), room);
-			result = true;
-		}
-
-		return result;
-	}
-
-	@Override
-	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
-
-		boolean result = false;
-
-		if (room != null && room.getRoomId() != null) {
-			return roomMap.replace(roomId, room) != null;
-		}
-		return result;
-	}
-
-	@Override
-	public boolean deleteConferenceRoom(String roomName) {
-
-		boolean result = false;
-
-		if (roomName != null && roomName.length() > 0 ) {
-			roomMap.remove(roomName);
-			result = true;
-		}
-		return result;
-
-	}
-	@Override
-	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search) {
-		Collection<ConferenceRoom> values = roomMap.values();
-
-		ArrayList<ConferenceRoom> list = new ArrayList<>();
-
-
-		for (ConferenceRoom room : values)
-		{
-			list.add(room);
-		}
-
-		if(search != null && !search.isEmpty()){
-			logger.info("server side search called for Conference Room = {}", search);
-			list = searchOnServerConferenceRoom(list, search);
-		}
-		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
-	}
-
-	@Override
-	public ConferenceRoom getConferenceRoom(String roomName) {
-		return roomMap.get(roomName);
 	}
 
 	@Override
@@ -958,13 +957,19 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast mainTrack = broadcastMap.get(mainTrackId);
 		if (mainTrack != null && subTrackId != null) {
 			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+
 			if (subTracks == null) {
 				subTracks = new ArrayList<>();
 			}
-			subTracks.add(subTrackId);
-			mainTrack.setSubTrackStreamIds(subTracks);
-			broadcastMap.put(mainTrackId, mainTrack);
+
+			if (!subTracks.contains(subTrackId)) 
+			{
+				subTracks.add(subTrackId);
+				mainTrack.setSubTrackStreamIds(subTracks);
+				broadcastMap.put(mainTrackId, mainTrack);
+			}
 			result = true;
+
 		}
 		return result;
 	}
@@ -983,11 +988,11 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-  
+
 	@Override
 	public int resetBroadcasts(String hostAddress) {
 		Set<Entry<String,Broadcast>> entrySet = broadcastMap.entrySet();
-		
+
 		Iterator<Entry<String, Broadcast>> iterator = entrySet.iterator();
 		int i = 0;
 		while (iterator.hasNext()) {
@@ -1006,8 +1011,8 @@ public class InMemoryDataStore extends DataStore {
 				i++;
 			}
 		}
-		
-		
+
+
 		return i;
 	}
 
@@ -1055,7 +1060,7 @@ public class InMemoryDataStore extends DataStore {
 		webRTCViewerMap.remove(viewerId);
 		return true;
 	}
-	
+
 	@Override
 	public boolean updateStreamMetaData(String streamId, String metaData) {
 		Broadcast broadcast = broadcastMap.get(streamId);
@@ -1066,5 +1071,101 @@ public class InMemoryDataStore extends DataStore {
 			result = true;
 		}
 		return result;
+	}
+
+	@Override
+	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
+		return subscriberMetadataMap.get(subscriberId);
+	}
+
+	@Override
+	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata subscriberMetadata) {
+		subscriberMetadata.setSubscriberId(subscriberId);
+		subscriberMetadataMap.put(subscriberId, subscriberMetadata);
+	}
+
+	@Override
+	public void migrateConferenceRoomsToBroadcasts() {
+		//no need to implement
+	}
+
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
+		return getSubtracks(mainTrackId, offset, size, role, null);
+	}
+
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
+		List<Broadcast> subtracks = new ArrayList<>();
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (StringUtils.isBlank(status) || status.equals(broadcast.getStatus()))) {
+				subtracks.add(broadcast);
+			}
+		}
+		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
+	}
+
+	@Override
+	public long getSubtrackCount(@Nonnull String mainTrackId, String role, String status) {
+		int count = 0;
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (StringUtils.isBlank(status) || status.equals(broadcast.getStatus()))) 
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+
+	@Override
+	public long getActiveSubtracksCount(String mainTrackId, String role) {
+		int count = 0;
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast))) 
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+
+	@Override
+	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) 
+	{
+		List<Broadcast> subtracks = new ArrayList<>();
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast))) 
+			{
+				subtracks.add(broadcast);
+			}
+		}
+		return subtracks;
+	}
+
+	@Override
+	public boolean hasSubtracks(String streamId) {
+
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (streamId.equals(broadcast.getMainTrackStreamId()) ) 
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }

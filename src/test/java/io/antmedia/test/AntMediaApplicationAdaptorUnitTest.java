@@ -7,9 +7,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -17,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -25,17 +31,21 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.awaitility.Awaitility;
 import org.json.simple.JSONObject;
@@ -48,11 +58,22 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.messaging.BatchResponse;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MulticastMessage;
+import com.google.firebase.messaging.SendResponse;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -64,6 +85,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
@@ -74,6 +96,7 @@ import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -147,6 +170,89 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
+	
+	public void testFirebase() throws IOException, FirebaseMessagingException {
+		FileInputStream serviceAccount =
+				new FileInputStream("path/to/serviceAccountKey.json");
+
+				FirebaseOptions options = new FirebaseOptions.Builder()
+				  .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+				  .build();
+
+				FirebaseApp.initializeApp(options);
+				
+				{
+				String registrationToken = "YOUR_REGISTRATION_TOKEN";
+
+				// See documentation on defining a message payload.
+				Message message = Message.builder()
+				    .putData("score", "850")
+				    .putData("time", "2:45")
+				    .setToken(registrationToken)
+				    .build();
+
+				// Send a message to the device corresponding to the provided
+				// registration token.
+				String response = FirebaseMessaging.getInstance().send(message);
+				// Response is a message ID string.
+				System.out.println("Successfully sent message: " + response);
+				}
+				
+				{
+				
+				
+				List<String> registrationTokens = Arrays.asList(
+					    "YOUR_REGISTRATION_TOKEN_1",
+					    // ...
+					    "YOUR_REGISTRATION_TOKEN_n"
+					);
+
+					MulticastMessage message = MulticastMessage.builder()
+					    .putData("score", "850")
+					    .putData("time", "2:45")
+					    .addAllTokens(registrationTokens)
+					    .build();
+					BatchResponse response = FirebaseMessaging.getInstance().sendMulticast(message);
+					
+					if (response.getFailureCount() > 0) {
+						  List<SendResponse> responses = response.getResponses();
+						  List<String> failedTokens = new ArrayList<>();
+						  for (int i = 0; i < responses.size(); i++) {
+						    if (!responses.get(i).isSuccessful()) {
+						      // The order of responses corresponds to the order of the registration tokens.
+						      failedTokens.add(registrationTokens.get(i));
+						    }
+						  }
+
+						  System.out.println("List of tokens that caused failures: " + failedTokens);
+					}
+				}
+				
+	}
+	
+	@Test
+	public void testEndpointReachable() {
+		boolean endpointReachable = AntMediaApplicationAdapter.isEndpointReachable("http://antmedia.io/not_exist");
+		//it should be true because we're just checking if it's reachable
+		assertTrue(endpointReachable);
+		
+		endpointReachable = AntMediaApplicationAdapter.isEndpointReachable("http://antmedia.io:45454/not_exist");
+		assertFalse(endpointReachable);
+		
+		boolean instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("antmedia.io", null, 80, "");
+		assertTrue(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("antmedia.io", null, 4545, "");
+		assertFalse(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("", null, 4545, "");
+		assertTrue(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("localhost", "localhost", 4545, "");
+		assertTrue(instanceAlive);
+
+	}
+	
 	@Test
 	public void testIsIncomingTimeValid() {
 		AppSettings newSettings = new AppSettings();
@@ -166,22 +272,23 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		newSettings = new AppSettings();
 
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertFalse(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		newSettings.setUpdateTime(1000);
-
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		appSettings.setUpdateTime(900);
-
-		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		appSettings.setUpdateTime(2000);
-
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		newSettings.setUpdateTime(3000);
-		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
+		
+		appSettings.setUpdateTime(3000);
+		assertFalse(spyAdapter.isIncomingSettingsDifferent(newSettings));
+
 
 
 
@@ -317,9 +424,35 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 
-		settings.setUpdateTime(1000);
+		settings.setUpdateTime(900);
 		newSettings.setUpdateTime(900);
 		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
+
+		newSettings.setUpdateTime(1000);
+		assertTrue(spyAdapter.updateSettings(newSettings, false, true));
+
+
+		newSettings.setPlayJwtControlEnabled(true);
+		newSettings.setPlayTokenControlEnabled(true);
+		newSettings.setEnableTimeTokenForPlay(true);
+
+		assertFalse(spyAdapter.updateSettings(newSettings, false, false));
+
+		newSettings.setPlayJwtControlEnabled(false);
+		newSettings.setPlayTokenControlEnabled(false);
+
+
+		assertTrue(spyAdapter.updateSettings(newSettings, false, false));
+
+		newSettings.setEnableTimeTokenForPublish(true);
+		newSettings.setPublishTokenControlEnabled(true);
+		newSettings.setPublishJwtControlEnabled(true);
+
+		assertFalse(spyAdapter.updateSettings(newSettings, false, false));
+		newSettings.setEnableTimeTokenForPublish(false);
+		newSettings.setPublishJwtControlEnabled(false);
+
+		assertTrue(spyAdapter.updateSettings(newSettings, false, false));
 
 	}
 
@@ -467,6 +600,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		File realPath = new File("src/test/resources");
 		assertTrue(realPath.exists());
+		
+		File[] listFiles = realPath.listFiles();
+		int numberOfFiles = 0;
+		for (File file : listFiles) {
+			String extension = FilenameUtils.getExtension(file.getName());
+			if (file.isFile() && ("mp4".equals(extension) || "flv".equals(extension) || "mkv".equals(extension))) {
+				numberOfFiles++;
+			}
+		}
 
 		String linkFilePath = streamsFolder.getAbsolutePath() + "/resources";
 		File linkFile = new File(linkFilePath);
@@ -477,6 +619,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
 
 		boolean result = spyAdapter.synchUserVoDFolder(null, realPath.getAbsolutePath());
 		assertTrue(result);
@@ -490,7 +633,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//high_profile_delayed_video.flv
 		//test_video_360p_pcm_audio.mkv
 		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		assertEquals(7, vodList.size());
+		assertEquals(numberOfFiles, vodList.size());
 
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/" + voD.getVodName(), voD.getFilePath());
@@ -606,6 +749,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 	public void testSendPost() {
 		try {
 			AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+			AppSettings appSettings = new AppSettings();
+			spyAdaptor.setAppSettings(appSettings);
 
 			CloseableHttpClient httpClient = Mockito.mock(CloseableHttpClient.class);
 			Mockito.doReturn(httpClient).when(spyAdaptor).getHttpClient();
@@ -615,19 +760,64 @@ public class AntMediaApplicationAdaptorUnitTest {
 			Mockito.when(httpResponse.getStatusLine()).thenReturn(Mockito.mock(StatusLine.class));
 
 			Mockito.when(httpResponse.getEntity()).thenReturn(null);
-			StringBuilder response = spyAdaptor.sendPOST("http://any_url", new HashMap());
-			assertNull(response);
+
+			spyAdaptor.sendPOST("http://any_url", new JSONObject(), appSettings.getWebhookRetryCount(), null);
+
+			Mockito.verify(spyAdaptor, Mockito.times(0)).retrySendPostWithDelay(any(), any(), anyInt(), anyString());
+
 
 			HttpEntity entity = Mockito.mock(HttpEntity.class);
 			InputStream is = new ByteArrayInputStream(ByteBuffer.allocate(10).array());
 			Mockito.when(entity.getContent()).thenReturn(is);
 			Mockito.when(httpResponse.getEntity()).thenReturn(entity);
-			HashMap map = new HashMap();
-			map.put("action", "action_any");
-			response = spyAdaptor.sendPOST("http://any_url", map);
-			assertNotNull(response);
-			assertEquals(10, response.length());
+			JSONObject jsonPayload = new JSONObject();
+			jsonPayload.put("action", "action_any");
+			spyAdaptor.sendPOST("http://any_url", jsonPayload, appSettings.getWebhookRetryCount(), null);
 
+			Mockito.verify(spyAdaptor, Mockito.times(0)).retrySendPostWithDelay(any(), any(), anyInt(), anyString());
+
+			appSettings.setWebhookRetryCount(1);
+
+			HttpEntity entity2 = Mockito.mock(HttpEntity.class);
+			InputStream is2 = new ByteArrayInputStream(ByteBuffer.allocate(10).array());
+			Mockito.when(entity2.getContent()).thenReturn(is2);
+			Mockito.when(httpResponse.getEntity()).thenReturn(entity2);
+
+			StatusLine statusLine = Mockito.mock(StatusLine.class);
+
+			Mockito.when(httpResponse.getStatusLine()).thenReturn(statusLine);
+			Mockito.when(statusLine.getStatusCode()).thenReturn(404);
+
+			spyAdaptor.sendPOST("http://any_url", jsonPayload, appSettings.getWebhookRetryCount(), null);
+
+			verify(spyAdaptor).retrySendPostWithDelay(
+					ArgumentMatchers.eq("http://any_url"),
+					ArgumentMatchers.eq(jsonPayload),
+					ArgumentMatchers.eq(appSettings.getWebhookRetryCount() - 1), 
+					isNull(String.class)
+			);
+
+			Mockito.when(statusLine.getStatusCode()).thenReturn(200);
+			spyAdaptor.sendPOST("http://any_url", jsonPayload, appSettings.getWebhookRetryCount(), null);
+
+			when(httpClient.execute(any())).thenThrow(new IOException("Simulated IOException"));
+			spyAdaptor.sendPOST("http://any_url", jsonPayload, appSettings.getWebhookRetryCount(), null);
+
+			appSettings.setWebhookRetryCount(0);
+			spyAdaptor.sendPOST("http://any_url", jsonPayload, appSettings.getWebhookRetryCount(), null);
+			Mockito.verify(spyAdaptor, Mockito.times(2)).retrySendPostWithDelay(any(), any(), anyInt(), any());
+			ArgumentCaptor<HttpPost> httpPostCaptor = ArgumentCaptor.forClass(HttpPost.class);
+			Mockito.verify(httpClient, times(6)).execute(httpPostCaptor.capture());
+            assertTrue(httpPostCaptor.getValue().getEntity() instanceof StringEntity);
+			
+			appSettings.setWebhookRetryCount(1);
+			spyAdaptor.sendPOST("http://any_url", jsonPayload, appSettings.getWebhookRetryCount(), ContentType.APPLICATION_FORM_URLENCODED.getMimeType());
+			Mockito.verify(spyAdaptor, Mockito.times(3)).retrySendPostWithDelay(any(), any(), anyInt(), any());
+
+			Mockito.verify(httpClient, times(7)).execute(httpPostCaptor.capture());
+			
+			assertTrue(httpPostCaptor.getValue().getEntity() instanceof UrlEncodedFormEntity);
+			
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -650,8 +840,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertEquals(hookURL, spyAdaptor.getListenerHookURL(broadcast));
 
-
 		spyAdaptor = Mockito.spy(adapter);
+		Mockito.doNothing().when(spyAdaptor).resetHLSStats(Mockito.anyString());
+		Mockito.doNothing().when(spyAdaptor).resetDASHStats(Mockito.anyString());
 		appSettings = new AppSettings();
 		spyAdaptor.setServerSettings(new ServerSettings());
 		spyAdaptor.setAppSettings(appSettings);
@@ -683,17 +874,58 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(5)).getListenerHookURL(broadcast);
 
 	}
+	
+	
+	@Test
+	public void testNotifyHookJSON() {
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookRetryCount(2);
+		spyAdaptor.setAppSettings(appSettings);
+		
+		String webhookUrl = "https://webhook.site/f7056013-4d98-450c-8141-9d792138ead1";
+		
+		String streamId = "stream123";
+		
+		{
+			JSONObject metadata = new JSONObject();
+			metadata.put("key1", "value1");
+			
+			spyAdaptor.notifyHook(webhookUrl, streamId, null, "action", null, null, null, null, metadata.toString(), null);
+			
+			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
+			
+			Mockito.verify(spyAdaptor, timeout(5000).times(1)).sendPOST(Mockito.any(), variables.capture(), Mockito.anyInt(), Mockito.anyString());
+	
+			assertTrue(variables.getValue().get("metadata") instanceof JSONObject);
+		}
+		
+		{
+			String metadata = "metadata";
+			spyAdaptor.notifyHook(webhookUrl, streamId, null, "action", null, null, null, null, metadata, null);
+			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
+			
+			Mockito.verify(spyAdaptor, timeout(5000).times(2)).sendPOST(Mockito.any(), variables.capture(), Mockito.anyInt(), Mockito.anyString());
+
+			assertTrue(variables.getValue().get("metadata") instanceof String);
+		}
+		
+	}
+	
 
 	@Test
 	public void testNotifyHook() {
 
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookRetryCount(2);
+		spyAdaptor.setAppSettings(appSettings);
 
-		StringBuilder notifyHook = spyAdaptor.notifyHook(null, null, null, null, null, null, null, null);
-		assertNull(notifyHook);
+		spyAdaptor.notifyHook(null, null, null, null, null, null, null, null, null, null);
+		Mockito.verify(spyAdaptor, timeout(5000).times(1)).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt(), Mockito.anyString());
 
-		notifyHook = spyAdaptor.notifyHook("", null, null, null, null, null, null, null);
-		assertNull(notifyHook);
+		spyAdaptor.notifyHook("", null, null, null, null, null, null, null, null, null);
+		Mockito.verify(spyAdaptor, timeout(5000).times(2)).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt(), Mockito.anyString());
 
 
 		String id = String.valueOf((Math.random() * 10000));
@@ -705,51 +937,47 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String vodId = String.valueOf((Math.random() * 10000));
 
 		String url = "this is url";
-		notifyHook = spyAdaptor.notifyHook(url, id, action, streamName, category, vodName, vodId, null);
-		assertNull(notifyHook);
+		spyAdaptor.notifyHook(url, id, null, action, streamName, category, vodName, vodId, null, null);
+		Mockito.verify(spyAdaptor, timeout(5000).times(3)).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt(), Mockito.anyString());
 
-		try {
-			ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
-			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
-			Mockito.verify(spyAdaptor).sendPOST(captureUrl.capture(), variables.capture());
-			assertEquals(url, captureUrl.getValue());
+		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
+		ArgumentCaptor<Integer> retryAttempts = ArgumentCaptor.forClass(Integer.class);
+		ArgumentCaptor<String> contentType = ArgumentCaptor.forClass(String.class);
 
-			Map variablesMap = variables.getValue();
-			assertEquals(id, variablesMap.get("id"));
-			assertEquals(action, variablesMap.get("action"));
-			assertEquals(streamName, variablesMap.get("streamName"));
-			assertEquals(category, variablesMap.get("category"));
-			assertEquals(vodName, variablesMap.get("vodName"));
-			assertEquals(vodId, variablesMap.get("vodId"));
+		Mockito.verify(spyAdaptor,  timeout(5000).times(3)).sendPOST(captureUrl.capture(), variables.capture(), retryAttempts.capture(), contentType.capture());
+		assertEquals(url, captureUrl.getValue());
 
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
+		Map<String, String> map = variables.getValue();
+		assertEquals(id, map.get("id"));
+		assertEquals(action, map.get("action"));
+		assertEquals(streamName, map.get("streamName"));
+		assertEquals(category, map.get("category"));
+		assertEquals(vodName, map.get("vodName"));
+		assertEquals(vodId, map.get("vodId"));
+		assertNotNull(map.get("timestamp"));
 
 		url = "this is second  url";
-		notifyHook = spyAdaptor.notifyHook(url, id, null, null, null, null, null, null);
-		assertNull(notifyHook);
+		spyAdaptor.notifyHook(url, id, null, null, null, null, null, null, null, null);
 
-		try {
-			ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
-			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
-			Mockito.verify(spyAdaptor, Mockito.times(2)).sendPOST(captureUrl.capture(), variables.capture());
-			assertEquals(url, captureUrl.getValue());
 
-			Map variablesMap = variables.getValue();
-			assertEquals(id, variablesMap.get("id"));
-			assertNull(variablesMap.get("action"));
-			assertNull(variablesMap.get("streamName"));
-			assertNull(variablesMap.get("category"));
-			assertNull(variablesMap.get("vodName"));
-			assertNull(variablesMap.get("vodId"));
+		ArgumentCaptor<String> captureUrl2 = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<Map> variables2 = ArgumentCaptor.forClass(Map.class);
 
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		ArgumentCaptor<Integer> retryAttempts2 = ArgumentCaptor.forClass(Integer.class);
+
+		Mockito.verify(spyAdaptor, timeout(5000).times(4)).sendPOST(captureUrl2.capture(), variables2.capture(), retryAttempts2.capture(), contentType.capture());
+		assertEquals(url, captureUrl2.getValue());
+
+		map = variables2.getValue();
+		assertEquals(id, map.get("id"));
+		assertNull(map.get("action"));
+		assertNull(map.get("streamName"));
+		assertNull(map.get("category"));
+		assertNull(map.get("vodName"));
+		assertNull(map.get("vodId"));
+		assertNotNull(map.get("timestamp"));
+
 
 	}
 	@Test
@@ -777,12 +1005,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureId = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureMainTrackId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureAction = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureStreamName = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureCategory = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureVodName = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureMetadata = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> subscriberId = ArgumentCaptor.forClass(String.class);
+
 
 		/*
 		 * PUBLISH TIMEOUT ERROR
@@ -795,8 +1026,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 			try {
 
 				//verify that notifyHook is called 1 time
-				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture());
+				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -821,8 +1052,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 			try {
 
 				//verify that notifyHook is called 1 time
-				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture());
+				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -846,8 +1077,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 			try {
 
 				//verify that notifyHook is called 1 time
-				verify(spyAdaptor, times(3)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture());
+				verify(spyAdaptor, times(3)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -897,12 +1128,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureId = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureMainTrackId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureAction = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureStreamName = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureCategory = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureVodName = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureMetadata = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> subscriberId = ArgumentCaptor.forClass(String.class);
+
 
 
 
@@ -910,8 +1144,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
 
 		//verify that notifyHook is never called
-		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
-				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture());
+		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
+				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
 
 
 		/*
@@ -920,13 +1154,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 */
 
 		//define hook URL for stream specific
+		
 		broadcast.setListenerHookURL("listenerHookURL");
-
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setListenerHookURL(broadcast.getListenerHookURL());
 		//(Changed due to a bug) In this scenario broadcast name should be irrelevant for the hook to work so setting it to null tests if it is dependent or not.
 		broadcast.setName(null);
+		update.setName(null);
 
 		//update broadcast
-		dataStore.updateBroadcastFields(streamId, broadcast);
+		dataStore.updateBroadcastFields(streamId, update);
 
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
@@ -936,8 +1173,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 			try {
 
 				//verify that notifyHook is called 1 time
-				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture());
+				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -970,8 +1207,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 			try {
 
 				//verify that no new notifyHook is called 
-				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture());
+				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
 
 				called = true;
 			}
@@ -999,8 +1236,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 			try {
 
 				//verify that notifyHook is called 2 times
-				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture());
+				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -1047,6 +1284,40 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testWaitUntilLiveStreamsStopped() {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("test");
+		adapter.setScope(scope);
+
+		IContext context = mock(IContext.class);
+		when(scope.getContext()).thenReturn(context);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+
+
+		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
+		
+		adapter.setDataStore(new InMemoryDataStore("testWaitUntilLiveStreamsStopped"));
+		
+		int numberOfCall = (int)(Math.random()*999);
+		
+		for (int i=0; i < numberOfCall; i++) 
+		{
+			Broadcast stream = new Broadcast();
+			stream.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+			
+			adapter.getDataStore().save(stream);
+		}
+		
+		assertEquals(numberOfCall, adapter.getDataStore().getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		
+		adapter.waitUntilLiveStreamsStopped();
+		
+		
+		assertEquals(0, adapter.getDataStore().getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+
 	}
 
 	@Test
@@ -1103,9 +1374,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2, scope, vertx);
 
 
-		Queue<StreamFetcher> sfQueue = new ConcurrentLinkedQueue<StreamFetcher>();
-		sfQueue.add(streamFetcher);
-		sfQueue.add(streamFetcher2);
+		Map<String, StreamFetcher> sfQueue = new ConcurrentHashMap<>();
+		sfQueue.put(stream.getStreamId(), streamFetcher);
+		sfQueue.put(stream2.getStreamId(), streamFetcher2);
 
 		fetcherManager.setStreamFetcherList(sfQueue);
 		adapter.setStreamFetcherManager(fetcherManager);
@@ -1157,17 +1428,17 @@ public class AntMediaApplicationAdaptorUnitTest {
 	@Test
 	public void testCloseStreamFetchers() {
 
-		Queue<StreamFetcher> streamFetcherList= new ConcurrentLinkedQueue<>();
+		Map<String, StreamFetcher> streamFetcherList= new ConcurrentHashMap<>();
 
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher3 = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher4 = mock(StreamFetcher.class);
 
-		streamFetcherList.add(streamFetcher);
-		streamFetcherList.add(streamFetcher2);
-		streamFetcherList.add(streamFetcher3);
-		streamFetcherList.add(streamFetcher4);
+		streamFetcherList.put("streamFetcher", streamFetcher);
+		streamFetcherList.put("streamFetcher2", streamFetcher2);
+		streamFetcherList.put("streamFetcher3", streamFetcher3);
+		streamFetcherList.put("streamFetcher4", streamFetcher4);
 
 		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
 		when(fetcherManager.getStreamFetcherList()).thenReturn(streamFetcherList);
@@ -1497,13 +1768,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
-		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
-		verify(streamFetcherManager, times(1)).startStreams(broadcastListCaptor.capture());
+		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
+		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture());
 
 		broadcast = dataStore.get(broadcast.getStreamId());
-		assertEquals(1,  broadcastListCaptor.getValue().size());
-		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().get(0).getStreamId());
-		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().get(0).getStatus());
+		assertNotNull(broadcastListCaptor.getValue());
+		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().getStreamId());
+		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().getStatus());
 	}
 
 	@Test
@@ -1620,8 +1891,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
-		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
-		verify(streamFetcherManager, never()).startStreams(broadcastListCaptor.capture());
+		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
+		verify(streamFetcherManager, never()).startStreaming(broadcastListCaptor.capture());
 	}
 	
 	
@@ -1765,6 +2036,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 
 		Broadcast subTrack2 = new Broadcast();
 		try {
@@ -1774,6 +2046,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 
 		Broadcast mainTrack = new Broadcast();
+		mainTrack.setListenerHookURL("url");
 		try {
 			mainTrack.setStreamId("maintrack");
 		} catch (Exception e) {
@@ -1782,20 +2055,27 @@ public class AntMediaApplicationAdaptorUnitTest {
 		mainTrack.setZombi(true);
 
 		subTrack1.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack1.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subTrack1.setUpdateTime(System.currentTimeMillis());
+		
 		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subTrack2.setUpdateTime(System.currentTimeMillis());
 
 		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
 		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
 
 
 		dataStore.save(subTrack1);
-		dataStore.save(subTrack1);
+		dataStore.save(subTrack2);
 		dataStore.save(mainTrack);
 
-		spyAdapter.updateMainBroadcast(subTrack1);
+		subTrack1.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		spyAdapter.updateMainTrackWithRecentlyFinishedBroadcast(subTrack1);
 		assertNotNull(dataStore.get(mainTrack.getStreamId()));
-
-		spyAdapter.updateMainBroadcast(subTrack2);
+		
+		subTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		spyAdapter.updateMainTrackWithRecentlyFinishedBroadcast(subTrack2);
 		assertNull(dataStore.get(mainTrack.getStreamId()));
 
 	}
@@ -1845,6 +2125,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 	}
+	
+	@Test
+	public void testSaveMainBroadcast() 
+	{
+		DataStore dataStore = new InMemoryDataStore("test");
+		Broadcast mainTrack = AntMediaApplicationAdapter.saveMainBroadcast("streamId", "mainTrackId", dataStore);
+		assertNotNull(mainTrack);
+		//origin address must be null because main track is not a real stream
+		assertNull(mainTrack.getOriginAdress());
+	}
 
 	@Test
 	public void testAppDeletion() 
@@ -1868,6 +2158,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.stopApplication(true);
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
 	}
+
 
 	@Test
 	public void testGetWebRTCClientMap() {
@@ -1893,5 +2184,173 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ISubtrackPoller retrievedSubtrackPoller = adapter.getSubtrackPoller();
 		assertEquals("The retrieved subtrackPoller should match the mock instance.", mockSubtrackPoller, retrievedSubtrackPoller);
 	}
+	
+	@Test
+	public void testSchedulePlayList() throws Exception {
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("streamId");
+		broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		adapter.schedulePlayList(System.currentTimeMillis(), broadcast);
+		
+		
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
+		
+		
+		broadcast.setPlannedStartDate(100);
+		adapter.schedulePlayList(System.currentTimeMillis(), broadcast);
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 
+		
+		long now = System.currentTimeMillis();
+		broadcast.setPlannedStartDate((now + 3000) / 1000);
+		adapter.setDataStore(new InMemoryDataStore("testdb"));
+		adapter.getDataStore().save(broadcast);
+		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
+		adapter.setStreamFetcherManager(fetcherManager);
+
+		adapter.schedulePlayList(now, broadcast);
+		assertFalse(adapter.getPlayListSchedulerTimer().isEmpty());
+		
+		//it can take up 8 secs to start because of randomness about 5 seconds and 3 seconds 
+		Mockito.verify(fetcherManager, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
+
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
+		
+		
+		
+		
+		adapter.schedulePlayList(now, broadcast);
+		assertFalse(adapter.getPlayListSchedulerTimer().isEmpty());
+		adapter.cancelPlaylistSchedule(broadcast.getStreamId());
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
+
+		//it should be still 1 because we cancel the timer 
+		Mockito.verify(fetcherManager, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
+
+
+		
+		adapter.cancelPlaylistSchedule("anyId");
+	}
+
+	@Test
+	public void testNotifyRoomEndedHook() {
+		try{
+			String mainTrackId = "stream_"+RandomUtils.nextInt(0, 1000);
+			String subTrackId = "stream_"+RandomUtils.nextInt(0, 1000);
+			DataStore db = new InMemoryDataStore("db");
+
+			Broadcast roomBroadcast = new Broadcast();
+			Broadcast subTrackBroadcast = new Broadcast();
+
+			roomBroadcast.setStreamId(mainTrackId);
+			roomBroadcast.setZombi(true);
+			roomBroadcast.setListenerHookURL("url1");
+
+			subTrackBroadcast.setZombi(true);
+			subTrackBroadcast.setListenerHookURL("url2");
+			subTrackBroadcast.setStreamId(subTrackId);
+			subTrackBroadcast.setMainTrackStreamId(mainTrackId);
+			db.save(subTrackBroadcast);
+			db.save(roomBroadcast);
+
+			AntMediaApplicationAdapter spyAdapter = spy(adapter);
+			Vertx vertxSpy = spy(vertx);
+
+			spyAdapter.setDataStore(db);
+
+			IScope scope = mock(IScope.class);
+			when(scope.getName()).thenReturn("junit");
+			IContext context = Mockito.mock(IContext.class);
+			when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+			when(scope.getContext()).thenReturn(context);
+
+			spyAdapter.setScope(scope);
+			spyAdapter.setVertx(vertxSpy);
+
+			AppSettings appSettings = new AppSettings();
+			spyAdapter.setAppSettings(appSettings);
+
+			doNothing().when(spyAdapter).sendPOST(anyString(), any(), anyInt(), any());
+
+			spyAdapter.closeBroadcast(subTrackBroadcast.getStreamId());
+
+			verify(spyAdapter, timeout(5000)).updateMainTrackWithRecentlyFinishedBroadcast(subTrackBroadcast);
+
+
+			verify(spyAdapter, timeout(5000)).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null, null);
+			verify(spyAdapter, timeout(5000)).notifyNoActiveSubtracksLeftInMainTrack(roomBroadcast);
+
+		}catch (Exception e){
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
+	@Test
+	public void testNotifyRoomHook(){
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		DataStore db = new InMemoryDataStore("db");
+		String mainTrackId = "mainTrack_"+RandomUtils.nextInt(0, 1000);
+		String streamId = "stream_"+RandomUtils.nextInt(0, 1000);
+		Vertx vertxSpy = spy(vertx);
+		Broadcast broadcast = new Broadcast();
+		try{
+			broadcast.setStreamId(streamId);
+		}catch (Exception e){
+			e.printStackTrace();
+			fail();
+		}
+
+		broadcast.setMetaData("metaData");
+		db.save(broadcast);
+		spyAdapter.setDataStore(db);
+		
+		
+		Broadcast mainTrackBroadcast = new Broadcast();
+		try{
+			mainTrackBroadcast.setStreamId(mainTrackId);
+		}catch (Exception e){
+			e.printStackTrace();
+			fail();
+		}
+
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		IContext context = Mockito.mock(IContext.class);
+		when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+		when(scope.getContext()).thenReturn(context);
+
+		spyAdapter.setScope(scope);
+		spyAdapter.setVertx(vertxSpy);
+
+		String webhookUrl = "url";
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookRetryCount(1);
+
+		appSettings.setListenerHookURL(webhookUrl);
+		spyAdapter.setAppSettings(appSettings);
+
+		doNothing().when(spyAdapter).sendPOST(anyString(), any(), anyInt(), any());
+		
+		spyAdapter.notifyFirstActiveSubtrackInMainTrack(mainTrackBroadcast, broadcast.getStreamId());
+				
+
+		verify(spyAdapter,timeout(5000)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null);
+
+		appSettings.setListenerHookURL(null);
+		spyAdapter.notifyFirstActiveSubtrackInMainTrack(mainTrackBroadcast, broadcast.getStreamId());
+
+		verify(spyAdapter,times(1)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null);
+		broadcast.setMetaData(null);
+		db.save(broadcast);
+
+		appSettings.setListenerHookURL(webhookUrl);
+		spyAdapter.notifyFirstActiveSubtrackInMainTrack(mainTrackBroadcast, broadcast.getStreamId());
+
+		verify(spyAdapter,times(2)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null);
+
+	}
 }

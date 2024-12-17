@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.CookieStore;
@@ -38,7 +39,6 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.apache.tika.utils.ExceptionUtils;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -804,7 +804,7 @@ public class AppFunctionalV2Test {
 	/**
 	 * TODO: This test case should be improved
 	 */
-	//@Test
+	@Test
 	public void testStatistics() {
 
 		try {
@@ -850,7 +850,7 @@ public class AppFunctionalV2Test {
 			// publish live stream to the server
 			String streamId = "zombiStreamId1";
 			executeProcess(ffmpegPath
-					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {

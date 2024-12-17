@@ -59,7 +59,10 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		else 
 		{
 			result = true;
-			if (AntMediaApplicationAdapter.isStreaming(broadcast)) {
+			if (AntMediaApplicationAdapter.isStreaming(broadcast) && 			
+					AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), getAppAdaptor(scope).getServerSettings().getHostAddress(),  getAppAdaptor(scope).getServerSettings().getDefaultHttpPort(), scope.getName()) 
+				) 
+		    {
 				logger.info("Does not accept stream:{} because it's streaming", name);
 				result = false;
 			}
@@ -94,6 +97,10 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 
 	public ILicenceService getLicenceService(IScope scope) {
 		return (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+	}
+	
+	public AntMediaApplicationAdapter getAppAdaptor(IScope scope) {
+		return (AntMediaApplicationAdapter)scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 	}
 
 	public DataStore getDatastore() {

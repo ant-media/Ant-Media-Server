@@ -1,5 +1,6 @@
 package io.antmedia.test.servlet;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -108,7 +109,6 @@ public class UploadHLSChunkTest {
 		}
 	}
 
-
 	@Test
 	public void testDoDelete() {
 		when(mockRequest.getServletContext()).thenReturn(mockServletContext);
@@ -163,6 +163,26 @@ public class UploadHLSChunkTest {
 
 
 	}
+	
+	@Test
+	public void testGetS3Key() {
+		String pathInfo = "test.m3u8";
 
+		when(mockRequest.getPathInfo()).thenReturn(pathInfo);
+		AppSettings appSettings = new AppSettings();
+
+		String s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
+		assertEquals("streams/test.m3u8", s3Key);
+
+		pathInfo = "/test.m3u8";
+		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
+		assertEquals("streams/test.m3u8", s3Key);
+
+
+		pathInfo = "/test.m3u8";
+		appSettings.setS3StreamsFolderPath("streams/");
+		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
+		assertEquals("streams/test.m3u8", s3Key);
+	}
 
 }

@@ -62,6 +62,7 @@ import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avcodec.AVPacketSideData;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -143,8 +144,8 @@ public class Mp4Muxer extends RecordMuxer {
 	 */
 	@Override
 	protected boolean prepareAudioOutStream(AVStream inStream, AVStream outStream) {
-		if (bsfVideoName != null) {
-			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.bsfVideoName);
+		if (getBitStreamFilter() != null) {
+			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.getBitStreamFilter());
 			bsfContext = new AVBSFContext(null);
 
 			int ret = av_bsf_alloc(adtsToAscBsf, bsfContext);
@@ -229,17 +230,32 @@ public class Mp4Muxer extends RecordMuxer {
 				//On the other hand, if av_stream_add_side_data below would copy the side data, there would be no problem.
 				//av_stream_add_side_data just sets the pointer
 				//mekya Jan 29, 22
-				IntPointer rotationMatrixPointer = new IntPointer(avutil.av_malloc(size)).capacity(size);
 				
-				avutil.av_display_rotation_set(rotationMatrixPointer, rotation);
-
-				BytePointer bytePointer = new BytePointer(rotationMatrixPointer);
-				bytePointer.limit(rotationMatrixPointer.sizeof() * rotationMatrixPointer.limit());
+				int[] entryNb = new int[1];
+				entryNb[0] = stream.codecpar().nb_coded_side_data();
 				
-				ret = avformat.av_stream_add_side_data(stream, avcodec.AV_PKT_DATA_DISPLAYMATRIX , bytePointer, bytePointer.limit());
-				if (ret < 0) {
+				AVPacketSideData sideData = new AVPacketSideData(stream.codecpar().coded_side_data());
+				AVPacketSideData av_packet_side_data_add = avcodec.av_packet_side_data_new(sideData, 
+						entryNb,
+						 avcodec.AV_PKT_DATA_DISPLAYMATRIX,
+						 size,
+						 0
+						);
+				//ret = avformat.av_stream_add_side_data(stream, avcodec.AV_PKT_DATA_DISPLAYMATRIX , bytePointer, bytePointer.limit());
+				if (av_packet_side_data_add == null) {
 					loggerStatic.error("Cannot add rotation matrix side data to file:{}", dstFile);
-				}				
+					return;
+				}		
+				
+				IntPointer intPointer = new IntPointer(av_packet_side_data_add.data());
+				avutil.av_display_rotation_set(intPointer, rotation);
+				
+				stream.codecpar().coded_side_data(sideData);
+				//entryNb increases in av_packet_side_data_new so just update it
+				stream.codecpar().nb_coded_side_data(entryNb[0]); 
+				
+				loggerStatic.info("Added rotation matrix side data to file:{}", dstFile);
+
 			}
 		}
 

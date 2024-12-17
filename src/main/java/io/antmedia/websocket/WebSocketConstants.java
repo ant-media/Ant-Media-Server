@@ -1,7 +1,7 @@
 package io.antmedia.websocket;
 
 public class WebSocketConstants {
-	
+
 
 	private WebSocketConstants() {
 	}
@@ -76,6 +76,10 @@ public class WebSocketConstants {
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
 
+	/**
+	 * Please use {@link #MAIN_TRACK} instead
+	 */
+	@Deprecated(forRemoval = true, since = "2.11.3")
 	public static final String ROOM = "room";
 
 	public static final String JOIN_COMMAND = "join";
@@ -152,6 +156,13 @@ public class WebSocketConstants {
 	 */
 	public static final String NOT_ALLOWED_UNREGISTERED_STREAM = "not_allowed_unregistered_streams";
 	
+	
+	/**
+	 * This is sent back to the user if mainTrack 
+	 */
+	public static final String MAX_SUBTRACK_COUNT_REACHED = "main_track_has_max_subtrack_count__not_allowed_to_add_more_subtracks";
+
+	
 	/**
 	 * This is sent back to the user when there is no room specified in 
 	 * joining the video conference
@@ -168,8 +179,8 @@ public class WebSocketConstants {
 	 * joining the video conference
 	 */
 	public static final String ROOM_TIME_INVALID = "room_not_active_or_expired";
-	
-	
+
+
 	/**
 	 * This is sent back to the user when stream plannedStartDate and plannedEndDate 
 	 * values are in interval or not.
@@ -534,5 +545,108 @@ public class WebSocketConstants {
 	 */
 	public static final String BROADCAST = "broadcast";
 
+
+	public static final String SEND_PUSH_NOTIFICATION_COMMAND = "sendPushNotification";
+
+	public static final String REGISTER_PUSH_NOTIFICATION_TOKEN_COMMAND = "registerPushNotificationToken";
+
+	public static final String AUTH_TOKEN_NOT_VALID_ERROR_DEFINITION = "authenticationTokenNotValid";
+
+	/**
+	 * Push Notificaiton Service Registration Token
+	 */
+	public static final String PNS_REGISTRATION_TOKEN = "pnsRegistrationToken";
+
+	/**
+	 * Push Notificaiton Service type, it can fcm or apn
+	 * FCM: Firebase Cloud Messaging
+	 * APN: Apple Notification Service
+	 */
+	public static final String PNS_TYPE = "pnsType";
+
+	public static final String MISSING_PARAMETER_DEFINITION = "missingParameter";
+
+	/**
+	 * Information field in websocket communication
+	 */
+	public static final String INFORMATION = "information";
+
+	/**
+	 * Success field in websocket communication. If it's value true, the operation is successful.
+	 * If it's value is false, the operation is failed
+	 */
+	public static final String SUCCESS = "success";
+
+	/**
+	 * Topic field to send push notification
+	 */
+	public static final String PUSH_NOTIFICATION_TOPIC = "pushNotificationTopic";
+
+	/**
+	 * Subscriber id list to send push notification
+	 */
+	public static final String SUBSCRIBER_ID_LIST_TO_NOTIFY = "subscriberIdsToNotify";
+
+	/**
+	 * Push Notification Content
+	 */
+	public static final String PUSH_NOTIFICATION_CONTENT = "pushNotificationContent";
+
+	/**
+	 * Participant role in the room
+	 */
+	public static final String ROLE = "role";
+
+	/**
+	 * Command to get subtrack infos for a main track
+	 */
+	public static final String GET_SUBTRACKS_COMMAND = "getSubtracks";
+
+	/**
+	 * Command to get subtrack count for a main track
+	 */
+	public static final String GET_SUBTRACKS_COUNT_COMMAND = "getSubtracksCount";
+
+	/**
+	 * subtrack (broadcast) object list notification
+	 */
+	public static final String SUBTRACK_LIST_NOTIFICATION = "subtrackList";
+
+	/**
+	 * status field in websocket communication
+	 */
+	public static final String STATUS = "status";
+
+	/*
+	 * count field in websocket communication
+	 */
+	public static final String COUNT = "count";
+
+	/**
+	 * subtrack (broadcast) object count notification
+	 */
+	public static final String SUBTRACK_COUNT_NOTIFICATION = "subtrackCount";
+
+	/**
+	 * subtrack (broadcast) object list
+	 */
+	public static final String SUBTRACK_LIST = "subtrackList";
+
+	/**
+	 * This is the error definition that is sent when the stream does not get video or audio packet for the timeout duration.
+	 * Currently it's implemented for WebRTC ingest
+	 */
+	public static final String NO_PACKET_RECEIVED_FOR_TIMEOUT_DURATION = "noPacketReceivedForTimeoutDuration";
 	
+	/**
+	 * This is the error definition that is sent when mainTrack cannot be created or updated in publishing process.
+	 */
+	public static final String MAINTRACK_DB_OPERATION_FAILED = "mainTrackDBOperationFailed";
+
+
+	/**
+	 * This is passed in play websocket method to define the publisher stream id (if available) which uses same websocket channel with player
+	 * For example in conference case a participant use same websocket to publish its stream and to play the others
+	 */
+	public static final String USER_PUBLISH_ID = "userPublishId";
 }

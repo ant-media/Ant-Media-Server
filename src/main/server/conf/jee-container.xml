@@ -40,7 +40,10 @@
 	<!-- Tomcat without SSL enabled -->
 	<bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader"
 		depends-on="context.loader,warDeployer" lazy-init="true">
-		<!-- cluster --><!-- property name="cluster" ref="tomcat.cluster" /--><!-- cluster -->
+		<!--  make sure tomcat.cluster is initialized before TomcatLoader in cluster mode otherwise there maybe initialization exceptions -->
+		<!-- cluster start
+		<property name="clusterNotifier" ref="tomcat.cluster" />
+		cluster end -->
 		<property name="webappFolder" value="${red5.root}/webapps" />
 
 		<property name="connectors">
@@ -73,21 +76,21 @@
 
 						<property name="connectionProperties"> 
 							<map> 
-								<entry key="sslEnabledProtocols" value="TLSv1.2" />
-                                <entry key="useServerCipherSuitesOrder" value="true" />
-                                <entry key="ciphers" value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_RSA_WITH_AES_256_CCM_8,TLS_DHE_RSA_WITH_AES_256_CCM" />
-                                <entry key="SSLCertificateFile" value="${http.ssl_certificate_file}" />
-                                <entry key="SSLCertificateChainFile" value="${http.ssl_certificate_chain_file}" />
-                                <entry key="SSLCertificateKeyFile" value="${http.ssl_certificate_key_file}" />
-                                <entry key="clientAuth" value="false" />
-                                <entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
-                                <entry key="keepAliveTimout" value="-1"/>
-                                <entry key="useExecutor" value="true"/>
-                                <entry key="maxThreads" value="${http.max_threads}"/>
-                                <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
-                                <entry key="processorCache" value="${http.processor_cache}"/>
-                                <entry key="relaxedQueryChars" value="{}" />
-
+				                                <entry key="sslEnabledProtocols" value="TLSv1.2" />
+				                                <entry key="SSLEnabled" value="true" />
+				                                <entry key="useServerCipherSuitesOrder" value="true" />
+				                                <entry key="ciphers" value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_RSA_WITH_AES_256_CCM_8,TLS_DHE_RSA_WITH_AES_256_CCM" />
+				                                <entry key="SSLCertificateFile" value="${http.ssl_certificate_file}" />
+				                                <entry key="SSLCertificateChainFile" value="${http.ssl_certificate_chain_file}" />
+				                                <entry key="SSLCertificateKeyFile" value="${http.ssl_certificate_key_file}" />
+				                                <entry key="clientAuth" value="false" />
+				                                <entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
+				                                <entry key="keepAliveTimout" value="-1"/>
+				                                <entry key="useExecutor" value="true"/>
+				                                <entry key="maxThreads" value="${http.max_threads}"/>
+				                                <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
+				                                <entry key="processorCache" value="${http.processor_cache}"/>
+				                                <entry key="relaxedQueryChars" value="{}" />
 							</map> 
 						</property> 
 					</bean>
@@ -116,6 +119,10 @@
 					<property name="pattern" value="common" />
 					<property name="rotatable" value="true" />
 					<property name="requestAttributesEnabled" value="true" />
+					<property name="fileDateFormat" value="" />
+				</bean>
+				<bean class="io.antmedia.valves.DataTransferValve" >
+					<property name="asyncSupported" value="true" />
 				</bean>
 				
 				<!-- cluster start

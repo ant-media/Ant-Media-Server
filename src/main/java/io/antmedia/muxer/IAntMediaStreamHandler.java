@@ -2,6 +2,11 @@ package io.antmedia.muxer;
 
 import java.io.File;
 
+import org.onvif.ver10.device.wsdl.GetScopes;
+import org.red5.server.api.scope.IScope;
+
+import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
@@ -23,6 +28,11 @@ public interface IAntMediaStreamHandler {
 	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
 	public static final String PUBLISH_TYPE_SRT = "SRT";
 	
+	public static final String DEFAULT_USER_ROLE = "default";
+	
+	
+	public static final String WEBAPPS_PATH = "webapps/";
+
 	
 	/**
 	 * Called by some muxer like MP4Muxer
@@ -52,8 +62,12 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @param pendingPacketSize
 	 * Number of packets pending to be processed
+	 * 
+	 * @param totalByteReceived
+	 * @param byteTransferred 
+	 * @param currentTimeMillis
 	 */
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs);
+	public void setQualityParameters(String streamId, String quality, double speed, int inputQueueSize, long currentTimeMillis);
 
     /***
      * Adds a MuxAdaptor when a muxAdaptor is created
@@ -100,7 +114,7 @@ public interface IAntMediaStreamHandler {
 	 * Update broadcast status to BROADCASTING
 	 * 
 	 * @param streamId is the id of the stream.
-	 * @param absoluteStartTimeMs: It's the absolute start time if available
+	 * @param absoluteStartTimeMs: @deprecated It's not used anymore. It's the absolute start time if available 
 	 * @param publishType: It's RTMP, WebRTC, StreamSource
 	 * @param broadcast: It's the broadcast object. If it's null, a new record will be created
 	 * 
@@ -187,4 +201,34 @@ public interface IAntMediaStreamHandler {
 	 * @return
 	 */
 	public MuxAdaptor getMuxAdaptor(String streamId);
+	
+	/**	
+	 * Get the AppSettings of the application
+	 * @return AppSettings
+	 */
+	public AppSettings getAppSettings();
+
+
+	/**
+	 * Get the DataStore of the application
+	 * 
+	 * @return DataStore
+	 */
+	public DataStore getDataStore();
+
+	/**
+	 * Get the scope
+	 * @return
+	 */
+	public IScope getScope();
+
+
+	/**
+	 * Notify the webhook about the stream status
+	 * 
+	 * @param streamName
+	 * @param absoluteStartTimeMs
+	 */
+	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
+			int inputQueueSize, double speed);
 }

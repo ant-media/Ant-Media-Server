@@ -9,6 +9,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.junit.Assert.*;
 
@@ -52,6 +53,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
 
@@ -73,6 +75,8 @@ public class MuxingTest {
 	public static boolean videoExists;
 	
 	protected static Logger logger = LoggerFactory.getLogger(MuxingTest.class);
+	public static long videoDuration;
+	public static long audioDuration;
 
 
 	static {
@@ -139,6 +143,7 @@ public class MuxingTest {
 		assertTrue("duplicate test AppFunctionalV2Test#testSendRTMPStream", true);
 	}
 
+	
 
 	@Test
 	public void testSupportVideoCodecUnSupportedAudioCodec() {
@@ -363,6 +368,57 @@ public class MuxingTest {
 		assertTrue("This test is merged with RestServiceV2Test#testAddEndpointCrossCheckV2", true);
 	}
 
+	
+	@Test
+	public void testHEVCWithRTMP() throws Exception {
+		
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
+
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
+		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("live");
+		boolean mp4Enabled = appSettings.isMp4MuxingEnabled();
+		appSettings.setMp4MuxingEnabled(true);
+		
+		boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
+		appSettings.setHlsMuxingEnabled(true);
+		ConsoleAppRestServiceTest.callSetAppSettings("live", appSettings);
+
+		
+		String streamId = "hevc"  + (int)(Math.random() * 999999);
+
+		Process rtmpSendingProcess = execute(
+				ffmpegPath + " -re -i src/test/resources/test_hevc.flv -codec copy -f flv rtmp://"
+						+ SERVER_ADDR + "/live/" + streamId);
+		
+		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/live/streams/" + streamId+ ".m3u8");
+		});
+		
+		assertTrue(MuxingTest.videoExists);
+		assertTrue(MuxingTest.audioExists);
+		
+		
+		rtmpSendingProcess.destroy();
+		
+		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/live/streams/" + streamId+ ".mp4");
+		});
+		
+		
+		appSettings.setMp4MuxingEnabled(mp4Enabled);
+		appSettings.setHlsMuxingEnabled(hlsEnabled);
+		ConsoleAppRestServiceTest.callSetAppSettings("live", appSettings);
+		
+		
+	}
 
 	@Test
 	public void testMp4Muxing() {
@@ -392,6 +448,21 @@ public class MuxingTest {
 			Process rtmpSendingProcess = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
 							+ SERVER_ADDR + "/LiveApp/" + streamName);
+			
+			try {
+				Process finalProcess = rtmpSendingProcess;
+				Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+					return finalProcess.isAlive();
+				});
+			}
+			catch (Exception e) {
+				//try one more time because it may give high resource usage
+				 rtmpSendingProcess = execute(
+							ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+									+ SERVER_ADDR + "/LiveApp/" + streamName);
+            }
+			
+			
 
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
@@ -463,8 +534,14 @@ public class MuxingTest {
 			System.out.println("cannot allocate input context");
 			return false;
 		}
+		
+		//allowed_extensions
+		
+		AVDictionary optionsDictionary = new AVDictionary();
+			
+		av_dict_set(optionsDictionary, "allowed_extensions", "ALL", 0);
 
-		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
+		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) optionsDictionary)) < 0) {
 			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}
@@ -498,6 +575,9 @@ public class MuxingTest {
 				assertTrue(codecpar.height() != 0);
 				assertTrue(codecpar.format() != AV_PIX_FMT_NONE);
 				videoStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				
+				videoDuration = av_rescale_q(inputFormatContext.streams(i).duration(),  inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+
 
 				videoExists = true;
 				streamExists = true;
@@ -505,6 +585,8 @@ public class MuxingTest {
 			{
 				assertTrue(codecpar.sample_rate() != 0);
 				audioStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				
+				audioDuration = av_rescale_q(inputFormatContext.streams(i).duration(),  inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 				audioExists = true;
 				streamExists = true;
 			}
@@ -524,6 +606,8 @@ public class MuxingTest {
 			}
 			i++;
 			avcodec.av_packet_unref(pkt);
+			pkt.close();
+			pkt = null;
 		}
 
 		if (inputFormatContext.duration() != AV_NOPTS_VALUE) {

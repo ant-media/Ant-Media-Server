@@ -72,7 +72,6 @@ public class RTMPHandler extends BaseRTMPHandler {
 	private static final String HIGH_RESOURCE_USAGE = "current system resources not enough";
 	private static final String INVALID_STREAM_NAME = "stream name is invalid. Don't use special characters.";
 
-
 	/**
 	 * Status object service.
 	 */
@@ -111,6 +110,10 @@ public class RTMPHandler extends BaseRTMPHandler {
 	 */
 	public void setStatusObjectService(StatusObjectService statusObjectService) {
 		this.statusObjectService = statusObjectService;
+	}
+
+	public StatusObjectService getStatusObjectService() {
+		return statusObjectService;
 	}
 
 	public boolean isUnvalidatedConnectionAllowed() {
@@ -206,7 +209,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 	 *            Server-side service object
 	 * @return true if the call was performed, otherwise false
 	 */
-	private boolean invokeCall(RTMPConnection conn, IServiceCall call, Object service) {
+	public boolean invokeCall(RTMPConnection conn, IServiceCall call, Object service) {
 		final IScope scope = conn.getScope();
 		final IContext context = scope.getContext();
 		if (log.isTraceEnabled()) {
@@ -283,15 +286,23 @@ public class RTMPHandler extends BaseRTMPHandler {
 								call.getArguments()[0] = streamId;
 							}
 
-							if(streamId.contains("?") && streamId.contains("=")) {
-								//this means query parameters (token, hash etc.) are added to URL, so split it
+							if (streamId.contains("?")) {
 								streamId = streamId.split("\\?")[0];
 							}
 
-							if(!StreamIdValidator.isStreamIdValid(streamId))
-							{
+							boolean isValidStreamId = false;
+
+							//check for both / and %2F
+							String[] pathSegments = streamId.split("/|%2F");
+
+
+							if (pathSegments.length > 0 && !pathSegments[0].isEmpty()) {
+								isValidStreamId = StreamIdValidator.isStreamIdValid(pathSegments[0]);
+							}
+
+							if (!isValidStreamId) {
 								Status status = getStatus(NS_FAILED).asStatus();
-								status.setDescription(INVALID_STREAM_NAME+" setream name:"+streamId);
+								status.setDescription(INVALID_STREAM_NAME + " stream name: " + streamId);
 								channel.sendStatus(status);
 								return;
 							}
@@ -336,7 +347,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 				// handle service calls
 				invokeCall(conn, call);
 			}
-		} else if (StreamAction.CONNECT.equals(action)) {
+		} else if (StreamAction.CONNECT.equalsAction(action)) {
 			// Handle connection
 			log.debug("connect - transaction id: {}", transId);
 			// Get parameters passed from client to NetConnection#connection
@@ -567,7 +578,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 	}
 
 	public StatusObject getStatus(String code) {
-		return statusObjectService.getStatusObject(code);
+		return getStatusObjectService().getStatusObject(code);
 	}
 
 	/** {@inheritDoc} */

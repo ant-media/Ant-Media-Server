@@ -19,7 +19,9 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public class RedisStore extends MapBasedDataStore {
@@ -61,12 +63,21 @@ public class RedisStore extends MapBasedDataStore {
 	    	webRTCViewerMap = redisson.getMap(dbName+"WebRTCViewers");
 	    	streamInfoMap = redisson.getMap(dbName+"StreamInfo");
 	    	p2pMap = redisson.getMap(dbName+"P2P");
+	    	subscriberMetadataMap = redisson.getMap(dbName+"SubscriberMetaData");
+	    	connectionEventsMap = redisson.getMap(dbName+"ConnectionEvents");
 			
 			available = true;
     	}
     	 catch (IOException e) {
  			logger.error(ExceptionUtils.getStackTrace(e));
  		} 
+    	
+    	//migrate from conferenceRoomMap to Broadcast
+    	// May 11, 2024
+		// we may remove this code after some time and ConferenceRoom class
+    	// mekya
+    	migrateConferenceRoomsToBroadcasts();
+    	
 	}
 
 
@@ -170,7 +181,15 @@ public class RedisStore extends MapBasedDataStore {
 	public P2PConnection getP2PConnection(String streamId) {
 		return (P2PConnection) p2pMap.get(streamId);
 	}
-
-
+	
+	public long getLocalLiveBroadcastCount(String hostAddress) {
+		return getActiveBroadcastCount(map, gson, hostAddress);
+	}
+	
+	@Override
+	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
+	{
+		return getActiveBroadcastList(hostAddress);
+	}
 
 }

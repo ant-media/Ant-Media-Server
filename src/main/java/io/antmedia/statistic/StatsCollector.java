@@ -1,17 +1,13 @@
 package io.antmedia.statistic;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -20,8 +16,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -68,7 +64,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.WebRTCClientStats;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
@@ -121,6 +117,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String MAX_MEMORY = "maxMemory";
 
 	public static final String PROCESS_CPU_LOAD = "processCPULoad";
+	
+	public static final String SYSTEM_LOAD_AVERAGE_IN_LAST_MINUTE = "systemLoadAverageLastMinute";
 
 	public static final String SYSTEM_CPU_LOAD = "systemCPULoad";
 
@@ -205,17 +203,24 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
 
-	Gson gson = new Gson();
+	private static Gson gson = new Gson();
 
 	private int windowSize = 5;
 	private int measurementPeriod = 1000;
 	private int staticSendPeriod = 15000;
 
 	private int cpuLoad;
-	private int cpuLimit = 70;
+	private int cpuLimit = 75;
+	
+	
+	/**
+	 * Memory limit in percentage
+	 */
+	private int memoryLimit = 75;
 
 	/**
 	 * Min Free Ram Size that free memory should be always more than min
+	 * Use {@link #memoryLimit}
 	 */
 	private int minFreeRamSize = 50;
 
@@ -293,6 +298,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String HOOK_HIGH_RESOURCE_USAGE = "highResourceUsage";
 	public static final String HOOK_UNEXPECTED_SERVER_SHUTDOWN = "unexpectedServerShutdown";
 
+	private static final String SOFTWARE_VERSION = "softwareVersion";
+
 
 	private Producer<Long,String> kafkaProducer = null;
 
@@ -340,7 +347,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			if (300000/measurementPeriod == time2Log) {
 				if(logger != null) 
 				{
-					logger.info("System cpu load:{} process cpu load:{} available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
+					logger.info("System CPU:%{} Process CPU:%{} System Load Average:{} Memory:%{}", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.getSystemLoadAverageLastMinute(), getMemoryLoad());
 
 					int vertxWorkerQueueSize = getVertWorkerQueueSizeStatic();
 
@@ -534,6 +541,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(PROCESS_CPU_TIME, SystemUtils.getProcessCpuTime());
 		jsonObject.addProperty(SYSTEM_CPU_LOAD, SystemUtils.getSystemCpuLoad());
 		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
+		jsonObject.addProperty(SYSTEM_LOAD_AVERAGE_IN_LAST_MINUTE, SystemUtils.getSystemLoadAverageLastMinute());
 		return jsonObject;
 	}
 
@@ -699,6 +707,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.add(SYSTEM_MEMORY_INFO, getSysteMemoryInfoJSObject());
 		jsonObject.add(FILE_SYSTEM_INFO, getFileSystemInfoJSObject());
 		jsonObject.add(JVM_NATIVE_MEMORY_USAGE, getJVMNativeMemoryInfoJSObject());
+		
+		jsonObject.add(SOFTWARE_VERSION, gson.toJsonTree(RestServiceBase.getSoftwareVersion()));
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
@@ -811,7 +821,19 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}		
 		cpuLoad = total/cpuMeasurements.size();
 	}
+	
 
+
+	
+	public int getMemoryLoad() {
+		long availableMemory = SystemUtils.osAvailableMemory();
+		long totalMemory = SystemUtils.osTotalPhysicalMemory();
+		return (int) (((double)(totalMemory - availableMemory) / totalMemory) * 100);
+	}
+	
+	public int getOSType() {
+		return SystemUtils.OS_TYPE;
+	}
 
 	@Override
 	public boolean enoughResource(){
@@ -820,22 +842,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		if(getCpuLoad() < getCpuLimit()) 
 		{		
-			int freeRam = getFreeRam();
-			if (freeRam > getMinFreeRamSize() || freeRam == -1)  
-			{
-				//if it does not calculate the free ram, return true
-				enoughResource = true;		
+			if (getOSType() == SystemUtils.LINUX) {
+				long memoryLoad = getMemoryLoad();
+				enoughResource = memoryLoad < getMemoryLimit();
+				if (!enoughResource)  
+				{
+					logger.error("Not enough resource. Due to memory limit. Memory usage should be less than %{} but it is %{}", getMemoryLimit(), memoryLoad);
+				}
 			}
-			else {
-				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
+			else {		
+				int freeRam = getFreeRam();
+				enoughResource = (freeRam > getMinFreeRamSize() || freeRam == -1) ;
+				if (!enoughResource)  
+				{
+					logger.error("Not enough resource. Due to memory limit. Free memory should be more than {}MB but it is {}MB", getMinFreeRamSize(), freeRam);
+				}
 			}
-
 		}
 		else {
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
 		}
 
-		if (!enoughResource && webhookURL != null && !webhookURL.isEmpty()) {
+		if (!enoughResource && StringUtils.isNotBlank(webhookURL)) {
 
 			logger.info("Setting timer to call high resource usage hook.");
 			vertx.setTimer(10, e -> 
@@ -1159,8 +1187,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		for (Iterator<User> iterator2 = userList.iterator(); iterator2.hasNext();) 
 		{
 			User user = iterator2.next();
+			Map appNameUserType = user.getAppNameUserType();
 
-			if (user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
+			if ((user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) ||
+				(appNameUserType != null && appNameUserType.containsKey(CommonRestService.SCOPE_SYSTEM) && appNameUserType.get(CommonRestService.SCOPE_SYSTEM).equals(UserType.ADMIN))
+
+			)
 			{
 				email = user.getEmail();
 				break;
@@ -1184,6 +1216,23 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public void setWebhookURL(String webhookURL) {
 		this.webhookURL = webhookURL;
+	}
+
+	public int getMemoryLimit() {
+		return memoryLimit;
+	}
+
+	public void setMemoryLimit(int memoryLimit) {
+		if (memoryLimit > 100) {
+			this.memoryLimit = 100;
+		}
+		else if (memoryLimit < 10) {
+			this.memoryLimit = 10;
+		}
+		else {
+			this.memoryLimit = memoryLimit;
+		}
+		
 	}
 
 

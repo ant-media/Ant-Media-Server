@@ -65,7 +65,7 @@ usage() {
 }
 
 ipt_remove() {
-        iptab=`iptables -t nat -n -L PREROUTING | grep -E "REDIRECT.*dpt:80.*5080"`
+        iptab=`iptables -t nat -n -L PREROUTING 2>/dev/null  | grep -E "REDIRECT.*dpt:80.*5080"`
         if [ "$iptab" ]; then
                 iptables-save > /tmp/iptables_save
                 iptables -t nat -D PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 5080
@@ -102,18 +102,51 @@ get_password() {
   done
 }
 
+install_pkgs() {
+    if [ -f /etc/debian_version ]; then
+        $SUDO apt update -qq
+        $SUDO apt install -y jq dnsutils iptables
+    elif [ -f /etc/redhat-release ]; then
+        OS_VERSION=$(rpm -E %rhel)
+        pkgs="jq bind-utils iptables"
+        if [[ "$OS_VERSION" == "8" ]]; then
+            $SUDO yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        elif [[ "$OS_VERSION" == "9" ]]; then
+            $SUDO yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+        else
+            exit 1
+        fi
+        $SUDO yum install -y $pkgs || sudo dnf install -y $pkgs
+    fi
+}
+
+# Check if there is a Container and install necessary packages
+is_docker_container() {
+    if [ -f /.dockerenv ]; then
+        return 0
+    fi
+
+    return 1
+}
+
 SUDO="sudo"
 if ! [ -x "$(command -v sudo)" ]; then
   SUDO=""
 fi
 
+if is_docker_container; then
+    SUDO=""
+fi
+
+install_pkgs
+
 output() {
   OUT=$?
       if [ $OUT -ne 0 ]; then
           echo -e $ERROR_MESSAGE
-	  if [ -d $TEMP_DIR ]; then
-	     rm -rf $TEMP_DIR
-	  fi
+    if [ -d $TEMP_DIR ]; then
+       rm -rf $TEMP_DIR
+    fi
           exit $OUT
     fi
 }
@@ -123,6 +156,16 @@ delete_alias() {
    $SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
    output
   fi
+}
+
+wait_for_dns_validation() {
+  local hostname=$1
+
+  while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
+    now=$(date +"%H:%M:%S")
+    echo "$now > Waiting for DNS validation."
+    sleep 10
+  done
 }
 
 
@@ -149,19 +192,25 @@ if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
    exit 1
 fi
 
-# private key file should exist if it's custome ssl
+# private key file should exist if it's customer ssl
 if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
    usage
    echo -e "Missing chain file. Please check this link: https://github.com/ant-media/Ant-Media-Server/wiki/Frequently-Asked-Questions#how-to-install-custom-ssl-by-building-full-chain-certificate-\n"
    exit 1
 fi
 
+source $INSTALL_DIRECTORY/conf/jwt_generator.sh "$INSTALL_DIRECTORY"
+generate_jwt
+
 get_freedomain(){
   hostname="ams-$RANDOM"
+  #Refactor: It seems that result_marketplace is not used. On the other hand, JWT_KEY is a variable in generate_jwt
+  #it's better to return JWT_KEY in generate_jwt and don't use any variable other script 
+  result_marketplace=$(generate_jwt)
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
+  ip=`curl -s http://checkip.amazonaws.com`
   if [ ! -z $get_license_key ]; then
-    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
-      ip=`curl -s http://checkip.amazonaws.com`
+    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then   
       check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
       if [ $? != 0 ]; then
         echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
@@ -173,17 +222,18 @@ get_freedomain(){
         echo "The license key is invalid."
         exit 401
       fi
-      while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
-        now=$(date +"%H:%M:%S")
-        echo "$now > Waiting for DNS validation."
-        sleep 10
-      done
+      wait_for_dns_validation "$hostname"
       domain="$hostname"".antmedia.cloud"
       echo "DNS success, installing the SSL certificate."
       freedomain="true"
     else
       domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
     fi
+  elif [ $(curl -s -L "$REST_URL" --header "ProxyAuthorization: $JWT_KEY" | jq -e '.buildForMarket' 2>/dev/null) == "true" ]; then
+    check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=marketplace"`
+    wait_for_dns_validation "$hostname"
+    domain="$hostname"".antmedia.cloud"
+    freedomain="true" 
   else
     echo "Please make sure you enter your license key and use the Enterprise edition."
     exit 1
@@ -196,15 +246,15 @@ get_new_certificate(){
       #  install letsencrypt and get the certificate
       echo "creating new certificate"
       distro
-      if [ "$ID" == "ubuntu" ]; then
+      if [[ "$ID" == "ubuntu" || "$ID" == "debian" ]]; then
 
         $SUDO apt-get update -qq -y
         output
 
-        $SUDO apt-get install certbot python3-certbot-dns-route53 -qq -y
+        $SUDO apt-get install cron certbot python3-certbot-dns-route53 -qq -y
         output
 
-      elif [ "$ID" == "centos" ] || [ "$ID" == "rocky" ] || [ "$ID" == "almalinux" ]; then
+      elif [ "$ID" == "centos" ] || [ "$ID" == "rocky" ] || [ "$ID" == "almalinux" ] || [ "$ID" == "rhel" ]; then
         $SUDO yum -y install epel-release
         $SUDO yum -y install certbot
         output
@@ -446,7 +496,11 @@ ipt_restore
 
 echo ""
 
-$SUDO service antmedia restart
+if is_docker_container; then
+    kill -HUP 1
+else
+    $SUDO service antmedia restart
+fi
 
 output
 

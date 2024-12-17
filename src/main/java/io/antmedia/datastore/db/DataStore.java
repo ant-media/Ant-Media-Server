@@ -10,7 +10,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,13 +21,17 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
@@ -38,36 +45,43 @@ public abstract class DataStore {
 	//Do not forget to write function descriptions especially if you are adding new functions
 
 	public static final int MAX_ITEM_IN_ONE_LIST = 250;
-	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
+	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
-	private boolean writeStatsToDatastore = true;
+
+	public long executedQueryCount = 0;
 
 	protected volatile boolean available = false;
 
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
 	
-	
+	/**
+	 * We have appSettings fiels because we need to refect the changes on the fly
+	 */
+	protected AppSettings appSettings;
+
+
 	public abstract String save(Broadcast broadcast);
 
-	public Broadcast saveBroadcast (Broadcast broadcast) {
+	//TODO: In rare scenarios, streamId can not be unique 
+	public Broadcast saveBroadcast(Broadcast broadcast) {
 		String streamId = null;
 		try {
-		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-			streamId = RandomStringUtils.randomAlphanumeric(16) + System.currentTimeMillis();
-			broadcast.setStreamId(streamId);
+			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
+				streamId = RandomStringUtils.randomAlphanumeric(16) + System.nanoTime();
+				broadcast.setStreamId(streamId);
+			}
+			streamId = broadcast.getStreamId();
+			String rtmpURL = broadcast.getRtmpURL();
+			if (rtmpURL != null) {
+				rtmpURL += streamId;
+			}
+			broadcast.setRtmpURL(rtmpURL);
+			if (broadcast.getStatus() == null) {
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
-		streamId = broadcast.getStreamId();
-		String rtmpURL = broadcast.getRtmpURL();
-		if (rtmpURL != null) {
-			rtmpURL += streamId;
-		}
-		broadcast.setRtmpURL(rtmpURL);
-		if (broadcast.getStatus() == null) {
-			broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
-		}
-	} catch (Exception e) {
-		logger.error(ExceptionUtils.getStackTrace(e));
-	}
 		return broadcast;
 	}
 
@@ -77,7 +91,7 @@ public abstract class DataStore {
 	 * @return broadcast
 	 */
 	public abstract Broadcast get(String id);
-	
+
 	public Broadcast get(Map<String, String> broadcastMap, String streamId, Gson gson) {
 		synchronized (this) {
 			Broadcast broadcast = null;
@@ -99,7 +113,7 @@ public abstract class DataStore {
 	 * @return Vod object
 	 */
 	public abstract VoD getVoD(String id);
-	
+
 	public VoD getVoD(Map<String, String> vodMap, String vodId, Gson gson) {
 		synchronized (this) {
 			if (vodId != null) {
@@ -120,16 +134,6 @@ public abstract class DataStore {
 	protected int totalWebRTCViewerCount = 0;
 	protected long totalWebRTCViewerCountLastUpdateTime = 0;
 
-	public boolean updateSourceQualityParameters(String id, String quality, double speed,  int pendingPacketQueue) {
-		if(writeStatsToDatastore) {
-			return updateSourceQualityParametersLocal(id, quality, speed, pendingPacketQueue);
-		}
-		return false;
-	}
-
-	protected abstract boolean updateSourceQualityParametersLocal(String id, String quality, double speed,  int pendingPacketQueue);
-
-	public abstract boolean updateDuration(String id, long duration);
 
 	/**
 	 * Returns the number of vods which contains searched string
@@ -160,7 +164,7 @@ public abstract class DataStore {
 	 */
 	@Deprecated
 	public abstract long getBroadcastCount();
-	
+
 	public long getBroadcastCount(Map<String,String> broadcastMap) {
 		synchronized (this) {
 			return broadcastMap.size();
@@ -170,6 +174,8 @@ public abstract class DataStore {
 	public abstract boolean delete(String id);
 
 	public abstract boolean deleteVod(String id);
+
+	public abstract boolean updateVoDProcessStatus(String id, String status);
 
 	/**
 	 * Returns the Broadcast List in order
@@ -184,43 +190,11 @@ public abstract class DataStore {
 	 */
 	public abstract List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search);
 
-	/**
-	 * Returns the Conference Room List in order
-	 *
-	 * @param offset the number of items to skip
-	 * @param size batch size
-	 * @param sortBy can get "name" or "startDate" or "endDate" values
-	 * @param orderBy can get "desc" or "asc"
-	 * @param search is used for searching in RoomId
-	 * @return
-	 */
-	public abstract List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search);
-	
-	public List<ConferenceRoom> getConferenceRoomList(Map<String, String> conferenceMap, int offset, int size, String sortBy, String orderBy,
-			String search, Gson gson) {
-		ArrayList<ConferenceRoom> list = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> conferenceRooms = null;
-			conferenceRooms = conferenceMap.values();
-
-			for (String roomString : conferenceRooms) {
-				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
-				list.add(room);
-			}
-		}
-		if (search != null && !search.isEmpty()) {
-			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
-			logger.info("server side search called for Conference Room = {}", search);
-			list = searchOnServerConferenceRoom(list, search);
-		}
-		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
-	}
-
 
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
-	
+
 	public abstract List<Broadcast> getExternalStreamsList();
-	
+
 	/**
 	 * Closes the database
 	 * @param deleteDB if it's true, it also deletes the db and closes
@@ -283,7 +257,7 @@ public abstract class DataStore {
 	}
 
 	public abstract long getTotalBroadcastNumber();
-	
+
 	public long getTotalBroadcastNumber(Map<String,String> broadcastMap) {
 		synchronized (this) {
 			return broadcastMap.size();
@@ -328,7 +302,7 @@ public abstract class DataStore {
 	}
 
 	public abstract List<TensorFlowObject> getDetection(String id);
-	
+
 	public List<TensorFlowObject> getDetection(Map<String, String> detectionMap, String id, Gson gson){
 		synchronized (this) {
 			if (id != null) {
@@ -508,7 +482,7 @@ public abstract class DataStore {
 		List<Subscriber> subscribers= listAllSubscribers(streamId, offset, size);
 		List<SubscriberStats> subscriberStats = new ArrayList<>();
 
-		
+
 		for(Subscriber subscriber : subscribers) {
 			SubscriberStats stat = subscriber.getStats();
 			stat.setStreamId(subscriber.getStreamId());
@@ -599,28 +573,47 @@ public abstract class DataStore {
 	 */	
 	public boolean addSubscriberConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) {
 		boolean result = false;
-		Subscriber subscriber = getSubscriber(streamId, subscriberId);
-		if (subscriber != null) {
-			handleConnectionEvent(subscriber, event);
-
-			addSubscriber(streamId, subscriber);
-			result = true;
+		if (appSettings.isWriteSubscriberEventsToDatastore() && event != null) 
+		{
+			
+			Subscriber subscriber = getSubscriber(streamId, subscriberId);
+			
+			if (subscriber != null && !StringUtils.isBlank(subscriber.getSubscriberId())) 
+			{
+				if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
+					subscriber.setConnected(true);
+					subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()+1);
+				} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
+					subscriber.setConnected(false);
+					subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()-1);
+				}
+				addSubscriber(streamId, subscriber);
+			}
+			
+			result = handleConnectionEvent(streamId, subscriberId, event);
 		}
-
+		else {
+			logger.debug("Not saving subscriber events to datastore because either writeSubscriberEventsToDatastore are false in the settings or event is null."
+					+ "writeSubscriberEventsToDatastore:{} and event is {} null", appSettings.isWriteSubscriberEventsToDatastore(), event == null ? "" : "not");
+		}
 		return result;
+
+
 	}
 
 	// helper method used by all datastores
-	protected void handleConnectionEvent(Subscriber subscriber, ConnectionEvent event) {
-		if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
-			subscriber.setConnected(true);
-			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()+1);
-		} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
-			subscriber.setConnected(false);
-			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()-1);
+	protected boolean handleConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) 
+	{
+		if (StringUtils.isNoneBlank(subscriberId, streamId)) {
+			event.setStreamId(streamId);
+			event.setSubscriberId(subscriberId);
+			
+			return addConnectionEvent(event);
 		}
-		subscriber.getStats().addConnectionEvent(event);
-	}	
+		return false;
+	}
+	
+	protected abstract boolean addConnectionEvent(ConnectionEvent event);
 
 	/**
 	 * sets the avarage bitrate of the subscriber in the datastore
@@ -632,12 +625,15 @@ public abstract class DataStore {
 	public boolean updateSubscriberBitrateEvent(String streamId, String subscriberId,
 			long avgVideoBitrate, long avgAudioBitrate) {
 		boolean result = false;
-		Subscriber subscriber = getSubscriber(streamId, subscriberId);
-		if (subscriber != null) {	
-			subscriber.getStats().setAvgVideoBitrate(avgVideoBitrate);
-			subscriber.getStats().setAvgAudioBitrate(avgAudioBitrate);
-			addSubscriber(streamId, subscriber);
-			result = true;
+		if (appSettings.isWriteSubscriberEventsToDatastore()) 
+		{
+			Subscriber subscriber = getSubscriber(streamId, subscriberId);
+			if (subscriber != null) {	
+				subscriber.setAvgVideoBitrate(avgVideoBitrate);
+				subscriber.setAvgAudioBitrate(avgAudioBitrate);
+				addSubscriber(streamId, subscriber);
+				result = true;
+			}
 		}
 
 		return result;
@@ -683,20 +679,44 @@ public abstract class DataStore {
 	 */
 	public abstract long getActiveBroadcastCount();
 
-	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson) {
+	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
 		int activeBroadcastCount = 0;
 		synchronized (this) {
-			
+
 			Collection<String> values = broadcastMap.values();
-			for (String broadcastString : values) {
+			for (String broadcastString : values) 
+			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
-				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
+						(StringUtils.isBlank(hostAddress) || hostAddress.equals(broadcast.getOriginAdress()))) 
+				{
 					activeBroadcastCount++;
 				}
 			}
 		}
 		return activeBroadcastCount;
+	}
+
+	public List<Broadcast> getActiveBroadcastList(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
+		List<Broadcast> broadcastList = new ArrayList<>();
+		synchronized (this) {
+
+			Collection<String> values = broadcastMap.values();
+			for (String broadcastString : values) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+
+				String status = broadcast.getStatus();
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
+						(StringUtils.isBlank(hostAddress) || hostAddress.equals(broadcast.getOriginAdress())))
+				{
+					broadcastList.add(broadcast);
+				}
+			}
+		}
+
+		return broadcastList;
 	}
 
 	/**
@@ -706,7 +726,7 @@ public abstract class DataStore {
 	 * @param broadcast
 	 * @return
 	 */
-	public abstract boolean updateBroadcastFields(String streamId, Broadcast broadcast);
+	public abstract boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast);
 
 	/**
 	 * Add or subtract the HLS viewer count from current value
@@ -714,21 +734,21 @@ public abstract class DataStore {
 	 * @param diffCount
 	 */
 	public boolean updateHLSViewerCount(String streamId, int diffCount) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateHLSViewerCountLocal(streamId, diffCount);
 		}
 		return false;
 	}
-	
+
 	protected abstract boolean updateHLSViewerCountLocal(String streamId, int diffCount);
-	
+
 	/**
 	 * Add or subtract the DASH viewer count from current value
 	 * @param streamId
 	 * @param diffCount
 	 */
 	public boolean updateDASHViewerCount(String streamId, int diffCount) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateDASHViewerCountLocal(streamId, diffCount);
 		}
 		return false;
@@ -769,7 +789,7 @@ public abstract class DataStore {
 	 * if it is false, decrement viewer count by one
 	 */
 	public boolean updateWebRTCViewerCount(String streamId, boolean increment) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateWebRTCViewerCountLocal(streamId, increment);
 		}
 		return false;
@@ -785,7 +805,7 @@ public abstract class DataStore {
 	 * if it is false, decrement viewer count by one
 	 */
 	public boolean updateRtmpViewerCount(String streamId, boolean increment) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateRtmpViewerCountLocal(streamId, increment);
 		}
 		return false;
@@ -813,57 +833,6 @@ public abstract class DataStore {
 	 */
 	public abstract  void clearStreamInfoList(String streamId);
 
-	public boolean isWriteStatsToDatastore() {
-		return writeStatsToDatastore;
-	}
-
-	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
-		this.writeStatsToDatastore = writeStatsToDatastore;
-	}
-
-	/**
-	 * Creates a conference room with the parameters.
-	 * The room name is key so if this is called with the same room name
-	 * then new room is overwritten to old one.
-	 * @param room - conference room
-	 * @return true if successfully created, false if not
-	 */
-	public abstract boolean createConferenceRoom(ConferenceRoom room);
-
-	/**
-	 * Edits previously saved conference room
-	 * @param room - conference room
-	 * @return true if successfully edited, false if not
-	 */
-	public abstract boolean editConferenceRoom(String roomId, ConferenceRoom room);
-
-	/**
-	 * Deletes previously saved conference room
-	 * @param roomName- name of the conference room
-	 * @return true if successfully deleted, false if not
-	 */
-	public abstract boolean deleteConferenceRoom(String roomId);
-
-	/**
-	 * Retrieves previously saved conference room
-	 * @param roomName- name of the conference room
-	 * @return room - conference room
-	 */
-	public abstract ConferenceRoom getConferenceRoom(String roomId);
-
-	public ConferenceRoom getConferenceRoom(Map<String, String> conferenceRoomMap, String roomId, Gson gson) {
-		synchronized (this) {
-			if (roomId != null) {
-
-				String jsonString = conferenceRoomMap.get(roomId);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, ConferenceRoom.class);
-				}
-			}
-		}
-		return null;
-	}
-
 	/**
 	 * Updates the stream fields if it's not null
 	 * @param broadcast
@@ -874,7 +843,7 @@ public abstract class DataStore {
 	 * @param ipAddr
 	 * @param streamUrl
 	 */
-	protected void updateStreamInfo(Broadcast broadcast, Broadcast newBroadcast)
+	protected void updateStreamInfo(Broadcast broadcast, BroadcastUpdate newBroadcast)
 	{
 		if (newBroadcast.getName() != null) {
 			broadcast.setName(newBroadcast.getName());
@@ -912,11 +881,12 @@ public abstract class DataStore {
 			broadcast.setAltitude(newBroadcast.getAltitude());
 		}
 
+		//mainTrackStreamId can be empty
 		if (newBroadcast.getMainTrackStreamId() != null) {
 			broadcast.setMainTrackStreamId(newBroadcast.getMainTrackStreamId());
 		}
 
-		if (newBroadcast.getStartTime() != 0) {
+		if (newBroadcast.getStartTime() != null) {
 			broadcast.setStartTime(newBroadcast.getStartTime());
 		}
 
@@ -928,14 +898,14 @@ public abstract class DataStore {
 			broadcast.setStatus(newBroadcast.getStatus());
 		}
 
-		if (newBroadcast.getAbsoluteStartTimeMs() != 0) {
+		if (newBroadcast.getAbsoluteStartTimeMs() != null) {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
 		}		
-		
-		if (newBroadcast.getUpdateTime() != 0) {
+
+		if (newBroadcast.getUpdateTime() != null) {
 			broadcast.setUpdateTime(newBroadcast.getUpdateTime());
 		}
-		
+
 		if (newBroadcast.getPlayListItemList() != null) {
 			broadcast.setPlayListItemList(newBroadcast.getPlayListItemList());
 		}
@@ -953,8 +923,8 @@ public abstract class DataStore {
 		if (newBroadcast.getListenerHookURL() != null && !newBroadcast.getListenerHookURL().isEmpty()) {
 			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
 		}
-		
-		if (newBroadcast.getSpeed() != 0) {
+
+		if (newBroadcast.getSpeed() != null) {
 			broadcast.setSpeed(newBroadcast.getSpeed());
 		}
 
@@ -962,27 +932,92 @@ public abstract class DataStore {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
 
+		if (newBroadcast.getConferenceMode() != null) {
+			broadcast.setConferenceMode(newBroadcast.getConferenceMode());
+		}
 
-		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
-		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
-		broadcast.setDuration(newBroadcast.getDuration());
-		broadcast.setBitrate(newBroadcast.getBitrate());
-		broadcast.setUserAgent(newBroadcast.getUserAgent());
-		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
-		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
-		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
-		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
+		if (newBroadcast.getEncoderSettingsList() != null) {
+			broadcast.setEncoderSettingsList(newBroadcast.getEncoderSettingsList());
+		}
+
+		if (newBroadcast.getPlannedStartDate() != null) {
+			broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
+		}
+
+		if (newBroadcast.getPlannedEndDate() != null) {
+			broadcast.setPlannedEndDate(newBroadcast.getPlannedEndDate());
+		}
+
+		if (newBroadcast.getSeekTimeInMs() != null) {
+			broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
+		}
+
+		if (newBroadcast.getReceivedBytes() != null) {
+			broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
+		}
+
+		if (newBroadcast.getDuration() != null) {
+			broadcast.setDuration(newBroadcast.getDuration());
+		}
+
+		if (newBroadcast.getBitrate() != null) {
+			broadcast.setBitrate(newBroadcast.getBitrate());
+		}
+
+		if (newBroadcast.getUserAgent() != null) {
+			broadcast.setUserAgent(newBroadcast.getUserAgent());
+		}
+
+		if (newBroadcast.getWebRTCViewerLimit() != null) {
+			broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
+		}
+
+		if (newBroadcast.getHlsViewerLimit() != null) {
+			broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		}
+
+		if (newBroadcast.getDashViewerCount() != null) {
+			broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
+		}
+
+		if (newBroadcast.getSubTrackStreamIds() != null) {
+			broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
+		}
+
+		if (newBroadcast.getPlaylistLoopEnabled() != null) {
+			broadcast.setPlaylistLoopEnabled(newBroadcast.getPlaylistLoopEnabled());
+		}
+
+		if (newBroadcast.getAutoStartStopEnabled() != null) {
+			broadcast.setAutoStartStopEnabled(newBroadcast.getAutoStartStopEnabled());
+		}		
+
+		if (newBroadcast.getCurrentPlayIndex() != null) {
+			broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
+		}
+
+		if (newBroadcast.getSubtracksLimit() != null) {
+			broadcast.setSubtracksLimit(newBroadcast.getSubtracksLimit());
+		}
+
+		if (newBroadcast.getPendingPacketSize() != null) {
+			broadcast.setPendingPacketSize(newBroadcast.getPendingPacketSize());
+		}
+		
+		if (newBroadcast.getQuality() != null) {
+			broadcast.setQuality(newBroadcast.getQuality());
+		}
+
+		if (newBroadcast.getRole() != null) {
+			broadcast.setRole(newBroadcast.getRole());
+		}
+
 	}
 
-	/**
-	 * This method returns the local active broadcast count.ro
-	 * Mongodb implementation is different because of cluster.
-	 * Other implementations just return active broadcasts in db
-	 * @return
-	 */
-	public long getLocalLiveBroadcastCount(String hostAddress) {
-		return getActiveBroadcastCount();
-	}
+
+	public abstract long getLocalLiveBroadcastCount(String hostAddress);
+
+	public abstract List<Broadcast> getLocalLiveBroadcasts(String hostAddress);
 
 	/**
 	 * Below search methods and sortandcrop methods are used for getting the searched items and sorting and pagination.
@@ -1045,7 +1080,7 @@ public abstract class DataStore {
 					else {
 						result = c1.compareTo(c2);
 					}
-					
+
 				}
 				return result;
 			});
@@ -1147,72 +1182,6 @@ public abstract class DataStore {
 		}
 	}
 
-	protected ArrayList<ConferenceRoom> searchOnServerConferenceRoom(ArrayList<ConferenceRoom> roomList, String search){
-		if(search != null && !search.isEmpty()) {
-			for (Iterator<ConferenceRoom> i = roomList.iterator(); i.hasNext(); ) {
-				ConferenceRoom item = i.next();
-				if(item.getRoomId() != null) {
-					if (item.getRoomId().toLowerCase().contains(search.toLowerCase()))
-						continue;
-					else i.remove();
-				}
-			}
-		}
-		return roomList;
-	}
-
-	protected List<ConferenceRoom> sortAndCropConferenceRoomList(List<ConferenceRoom> roomList, int offset, int size, String sortBy, String orderBy) {
-		if("roomId".equals(sortBy) || "startDate".equals(sortBy) || "endDate".equals(sortBy)) 
-		{
-			Collections.sort(roomList, (room1, room2) -> {
-				Comparable c1 = null;
-				Comparable c2 = null;
-
-				if (sortBy.equals("roomId")) 
-				{
-					c1 = room1.getRoomId().toLowerCase();
-					c2 = room2.getRoomId().toLowerCase();
-				} 
-				else if (sortBy.equals("startDate")) {
-					c1 = Long.valueOf(room1.getStartDate());
-					c2 = Long.valueOf(room2.getStartDate());
-				} 
-				else if (sortBy.equals("endDate")) {
-					c1 = Long.valueOf(room1.getEndDate());
-					c2 = Long.valueOf(room2.getEndDate());
-				} 
-
-				int result = 0;
-				if (c1 != null && c2 != null) 
-				{
-					if ("desc".equals(orderBy)) {
-						result = c2.compareTo(c1);
-					}
-					else {
-						result = c1.compareTo(c2);
-					}
-				}
-				return result;
-			});
-		}
-
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0 ) {
-			offset = 0;
-		}
-
-		int toIndex =  Math.min(offset+size, roomList.size());
-		if (offset >= toIndex)
-		{
-			return new ArrayList<>();
-		}
-		else {
-			return roomList.subList(offset,toIndex);
-		}
-	}
-
 	/**
 	 * Creates new P2PConnection
 	 * @param conn - P2PConnection object
@@ -1235,19 +1204,27 @@ public abstract class DataStore {
 	public abstract boolean deleteP2PConnection(String streamId);
 
 	/**
+	 * @deprecated no need to use this method, logic has changed and we use directly getSubtracks, getActiveSubtracks.
+	 * It's kept for backward compatibility
+	 * 
 	 * Add a subtrack id to a main track (broadcast)
 	 * @param mainTrackId - main track id
 	 * @param subTrackId - main track id
 	 * @return boolean - success 
 	 */
+	@Deprecated(since = "2.9.1", forRemoval = true)
 	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
 
 	/**
+	 * @deprecated no need to use this method, logic has changed and we use directly getSubtracks, getActiveSubtracks.
+	 * It's kept for backward compatibility
+	 * 
 	 * Remove a subtrack id from a main track (broadcast)
 	 * @param mainTrackId - main track id
 	 * @param subTrackId - main track id
 	 * @return boolean - success
 	 */
+	@Deprecated(since = "2.9.1", forRemoval = true)
 	public abstract boolean removeSubTrack(String mainTrackId, String subTrackId);
 
 	/**
@@ -1331,7 +1308,7 @@ public abstract class DataStore {
 			return list.subList(offset,toIndex);
 		}
 	}
-	
+
 	/**
 	 * This is used to save WebRTC Viewer Info to datastore 
 	 *
@@ -1356,7 +1333,7 @@ public abstract class DataStore {
 			String search, Gson gson) {
 		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
 		synchronized (this) {
-			
+
 			Collection<String> webRTCViewers = webRTCViewerMap.values();
 			for (String infoString : webRTCViewers) {
 				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
@@ -1385,9 +1362,206 @@ public abstract class DataStore {
 	 * @param metaData new meta data
 	 */
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
+
+	/**
+	 * Put subscriber metadata. It overwrites the metadata, if you need to update something, 
+	 * first get the {@link #getSubscriberMetaData(String)} , update it and put it
+	 * 
+	 * @param subscriberId
+	 * @param SubscriberMetadata
+	 * @return 
+	 */
+	public abstract void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata);
+
+	/**
+	 * Get subscriber metadata
+	 * @param subscriberId
+	 * @return
+	 */
+	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
+
+	/**
+	 * This is a helper method to remove the ConferenceRoom in later versions
+	 * 
+	 * May 11, 2024 - mekya
+	 * 
+	 * @param broadcast
+	 * @return
+	 */
+	public static ConferenceRoom broadcastToConference(Broadcast broadcast) {
+
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+
+		conferenceRoom.setRoomId(broadcast.getStreamId());
+		conferenceRoom.setStartDate(broadcast.getPlannedStartDate());
+		conferenceRoom.setEndDate(broadcast.getPlannedEndDate());
+		conferenceRoom.setMode(broadcast.getConferenceMode());
+		conferenceRoom.setZombi(broadcast.isZombi());
+		conferenceRoom.setOriginAdress(broadcast.getOriginAdress());
+		conferenceRoom.setRoomStreamList(broadcast.getSubTrackStreamIds());
+
+
+		return conferenceRoom;
+	}
+
+	/**
+	 * This is a helper method to remove the ConferenceRoom in later versions
+	 * 
+	 * May 11, 2024 - mekya
+	 * 
+	 * @param broadcast
+	 * @return
+	 */
+	public static BroadcastUpdate conferenceUpdateToBroadcastUpdate(ConferenceRoom conferenceRoom) throws Exception {
+		BroadcastUpdate broadcast = new BroadcastUpdate();
+		broadcast.setStreamId(conferenceRoom.getRoomId());
+		broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
+		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
+		broadcast.setZombi(conferenceRoom.isZombi());
+		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
+		broadcast.setConferenceMode(conferenceRoom.getMode());
+		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
+
+		return broadcast;
+
+	}
+
+	public static Broadcast conferenceToBroadcast(ConferenceRoom conferenceRoom) throws Exception {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(conferenceRoom.getRoomId());
+		broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
+		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
+		broadcast.setZombi(conferenceRoom.isZombi());
+		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
+		broadcast.setConferenceMode(conferenceRoom.getMode());
+		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
+
+		return broadcast;
+
+	}
+
+	/**
+	 * Move ConferenceRoom to Broadcast
+	 */
+	public abstract void migrateConferenceRoomsToBroadcasts();
+
+	/**
+	 * Get the subtracks of the main track
+	 * @param mainTrackId the main track to get the subtracks
+	 * @param offset the offset to get the subtracks
+	 * @param size 	number of items to get
+	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
+	 * @param status the status of the stream broadcasting, finished etc. It can be null
+	 * @return
+	 */
+	public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status);
+
+	/**
+	 * Get the subtracks of the main track
+	 * @param mainTrackId the main track to get the subtracks
+	 * @param offset the offset to get the subtracks
+	 * @param size 	number of items to get
+	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
+	 * @return
+	 */
+	public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role);
+
+	/**
+	 * Get the count of subtracks
+	 * @param mainTrackId the main track to get the subtracks
+	 * @param role the role of the subtracks for role based streaming especially in conferences 
+	 * @return number of subtracks
+	 */
+	public abstract long getSubtrackCount(String mainTrackId, String role, String status);
+
+	/**
+	 * Get the count of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not count it. 
+	 * @param mainTrackId
+	 * @param role
+	 * @return
+	 */
+	public abstract long getActiveSubtracksCount(String mainTrackId, String role);
+
+	/**
+	 * Get of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not return it. 
+	 * This method is generally not recommended to use because it can be very costly.
+	 * It's implemented for the poll mechanism in Subtracks and poll mechanismi will be replaced with event mechanism
+	 * @param mainTrackId
+	 * @param role
+	 * @return
+	 */
+	public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, String role);
+
+
+	/**
+	 * 
+	 * @param streamId
+	 * @return If the stream has subtracks, it return true. If not, it returns false
+	 */
+	public abstract boolean hasSubtracks(String streamId);
+
+
 	
 
+	/**
+	 *
+	 * Get executed query count. For now only mongodb queries are counted.
+	 * @return Executed query count.
+	 */
+	public long getExecutedQueryCount() {
+		return executedQueryCount;
+	}
+
+	/**
+	 * Get connection events for a specific streamId and subscriberId
+	 * 
+	 * ConnectionEvents are recorded if {@link AppSettings#isWriteSubscriberEventsToDatastore()} is true
+	 * 
+	 * @param streamId
+	 * @param subscriberId 
+	 * @param offset
+	 * @param size
+	 * @return
+	 */
+	public abstract List<ConnectionEvent> getConnectionEvents(String streamId, @Nullable String subscriberId, int offset, int size);
+	
+	/**
+	 * Simple converter from Collection to List
+	 * @param values
+	 * @return
+	 */
+	protected static List<ConnectionEvent> getConnectionEventListFromCollection(Collection<ConnectionEvent> values, String streamId) {
+		List<ConnectionEvent> list = new ArrayList<>();		
+		
+		for(ConnectionEvent event: values) {
+			if (StringUtils.isBlank(streamId)) {
+				list.add(event);
+			}
+			else if (streamId.equals(event.getStreamId())) {
+				list.add(event);
+			}
+		}
+		
+		return list;
+		
+	}
+	
+	/**
+	 * Setter for appSettings
+	 * @param appSettings
+	 */
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
+	}
+	
 	//**************************************
-	//ATTENTION: Write function descriptions while adding new functions
+	//ATTENTION: Write function above with descriptions while adding new functions
 	//**************************************	
+
+	//**************************************
+	//ATTENTION 2: What is the reason you don't add descriptions to the functions? 
+	// Ignore this message if you have added descriptions to the new functions.
+	// I'm writing to the one who is ignoring this first message - mekya
+	//**************************************
+
 }

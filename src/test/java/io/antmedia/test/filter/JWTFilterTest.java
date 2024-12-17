@@ -1,11 +1,14 @@
 package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
 import jakarta.servlet.ServletException;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -45,6 +48,28 @@ public class JWTFilterTest {
 		
 		System.out.println("Valid Token: " + token);
 
+        // App Settings Null (App getting initialized)
+        {
+            //reset filterchain
+            filterChain = new MockFilterChain();
+
+            //reset httpServletResponse
+            httpServletResponse = Mockito.spy(new MockHttpServletResponse());
+
+            //reset httpServletRequest
+            httpServletRequest = new MockHttpServletRequest();
+
+            appSettings.setJwtControlEnabled(true);
+
+            Mockito.doReturn(null).when(jwtFilter).getAppSettings();
+
+            httpServletRequest.addHeader("Authorization", token);
+
+            jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+            Mockito.verify(httpServletResponse).sendError(HttpServletResponse.SC_FORBIDDEN, "Application is getting initialized");
+
+        }
         // JWT Token enable and invalid token scenario
         {   
         	//reset filterchain
@@ -107,6 +132,27 @@ public class JWTFilterTest {
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
         }
+
+        // JWT Token enable and valid token passed with Bearer prefix scenario
+        {
+            //reset filterchains
+            filterChain = new MockFilterChain();
+
+            //reset httpServletResponses
+            httpServletResponse = new MockHttpServletResponse();
+
+            //reset httpServletRequest
+            httpServletRequest = new MockHttpServletRequest();
+
+            appSettings.setJwtControlEnabled(true);
+
+            Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
+
+            httpServletRequest.addHeader("Authorization", JWTFilter.JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX+" "+token);
+
+            jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+        }
         
         // JWT Token enable and null header token scenario
         {
@@ -127,5 +173,33 @@ public class JWTFilterTest {
             assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
         }        
     }
+    
+    
+    @Test
+	public void testGenerateAndVerifyTokenWithIssuer() {
+
+		String token = JWTFilter.generateJwtToken("testtesttesttesttesttesttesttest", System.currentTimeMillis() + 10000, "test");
+		assertTrue(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "test"));
+		
+		assertFalse(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "test2"));
+		
+	}
+    
+    @Test
+	public void testJWTTokenValidWithSubscribers() {
+
+		
+		String token = JWTFilter.generateJwtToken("testtesttesttesttesttesttesttest", System.currentTimeMillis() + 10000, "subscriberId", "test");
+		
+		
+		assertFalse(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "subscriberId", "test2"));
+
+		assertFalse(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "subscriberId_df", "test2"));
+
+
+		assertTrue(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "subscriberId", "test"));
+
+
+	}	
 
 }

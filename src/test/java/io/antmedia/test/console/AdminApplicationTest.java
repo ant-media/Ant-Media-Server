@@ -24,14 +24,21 @@ import org.red5.server.tomcat.WarDeployer;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.console.AdminApplication;
+import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class AdminApplicationTest {
 
@@ -100,6 +107,70 @@ public class AdminApplicationTest {
 
 
 	}
+	
+	
+	@Test
+	public void testCreateAppParameters() {
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		app.setVertx(vertx);
+		
+		Mockito.doReturn(false).when(app).runCommand(Mockito.anyString());
+		ConsoleDataStoreFactory consoleDataStoreFactory = Mockito.mock(ConsoleDataStoreFactory.class);
+		app.setDataStoreFactory(consoleDataStoreFactory);
+		
+		app.runCreateAppScript("app", false, null , null, null, null);
+		
+		ArgumentCaptor<String> commandCaptor = ArgumentCaptor.forClass(String.class);
+		//"/bin/bash create_app.sh -n app -w true -p /Users/mekya/git/Ant-Media-Server -c false -m null -u null -s null"
+		
+		Mockito.verify(app).runCommand(commandCaptor.capture());
+		
+		assertTrue(commandCaptor.getValue().contains("-c false"));
+		assertTrue(commandCaptor.getValue().contains("-n app"));
+		
+		assertFalse(commandCaptor.getValue().contains("-m "));
+		assertFalse(commandCaptor.getValue().contains("-u "));
+		assertFalse(commandCaptor.getValue().contains("-s "));
+		assertFalse(commandCaptor.getValue().contains("-f "));
+		
+		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mapdb");
+		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", null);
+		
+		Mockito.verify(app, Mockito.times(2)).runCommand(commandCaptor.capture());
+		assertTrue(commandCaptor.getValue().contains("-c false"));
+		assertTrue(commandCaptor.getValue().contains("-n app"));
+		
+		assertFalse(commandCaptor.getValue().contains("-m dbUrl"));
+		assertFalse(commandCaptor.getValue().contains("-u username"));
+		assertFalse(commandCaptor.getValue().contains("-s pass"));
+		assertFalse(commandCaptor.getValue().contains("-f "));
+		
+		
+		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mongob");
+		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", null);
+		
+		Mockito.verify(app, Mockito.times(3)).runCommand(commandCaptor.capture());
+		assertTrue(commandCaptor.getValue().contains("-c false"));
+		assertTrue(commandCaptor.getValue().contains("-n app"));
+		
+		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
+		assertTrue(commandCaptor.getValue().contains("-u username"));
+		assertTrue(commandCaptor.getValue().contains("-s pass"));
+		assertFalse(commandCaptor.getValue().contains("-f"));
+		
+		
+		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", "warfile");
+		
+		Mockito.verify(app, Mockito.times(4)).runCommand(commandCaptor.capture());
+		assertTrue(commandCaptor.getValue().contains("-c false"));
+		assertTrue(commandCaptor.getValue().contains("-n app"));
+		
+		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
+		assertTrue(commandCaptor.getValue().contains("-u username"));
+		assertTrue(commandCaptor.getValue().contains("-s pass"));
+		assertTrue(commandCaptor.getValue().contains("-f warfile"));
+
+	}
 
 	@Test
 	public void testCreateDeleteApplication() 
@@ -107,6 +178,8 @@ public class AdminApplicationTest {
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
+		
+		app.setDataStoreFactory(Mockito.mock(ConsoleDataStoreFactory.class));
 
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
@@ -120,13 +193,13 @@ public class AdminApplicationTest {
 		app.setWarDeployer(warDeployer);
 		app.createApplication("test", null);
 
-		Mockito.verify(app, Mockito.never()).runCreateAppScript("test", null);
+		Mockito.verify(app, Mockito.never()).runCreateAppScript("test", false, null, null, null, null);
 
 
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.createApplication("test", null);
 
-		Mockito.verify(app).runCreateAppScript("test", null);
+		Mockito.verify(app).runCreateAppScript("test", false, null, null, null, null);
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
 
 
@@ -301,8 +374,9 @@ public class AdminApplicationTest {
 		dataStore.save(new Broadcast());
 		assertEquals(1, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
 
-		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-		dataStore.updateBroadcastFields(id, broadcast);
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		dataStore.updateBroadcastFields(id, broadcastUpdate);
 
 		assertEquals(0, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
 
@@ -316,21 +390,40 @@ public class AdminApplicationTest {
 			AdminApplication adminApplication = Mockito.spy(new AdminApplication());
 			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.any());
 
-			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");		
-			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest");
+			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest", "secret");		
+			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest", "secret");
 
-			adminApplication.createApplicationWithURL("app2", null);
+			adminApplication.createApplicationWithURL("app2", null, null);
 			//it should be never for app2 because url is null
-			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app2"), Mockito.anyString());
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app2"), nullable(String.class), nullable(String.class));
 
 
-			adminApplication.createApplicationWithURL("app3", "");
+			adminApplication.createApplicationWithURL("app3", "", null);
 			//it should be never for app3 because url is ""
-			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app3"), Mockito.anyString());
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app3"), Mockito.anyString(),eq(null));
 
-			adminApplication.createApplicationWithURL("app4", "htdfdf");
-			//it should be 2 time because there is an url. It also with different app name.
-			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString());
+			adminApplication.createApplicationWithURL("app4", "htdfdf", null);
+			//it should be 2 time because url is not starting with http. It also with different app name.
+			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile(Mockito.anyString(),Mockito.anyString(), nullable(String.class));
+			
+			adminApplication.createApplicationWithURL("app5", "https://dfaf", null);
+			//it should be 2 time because url is  starting with http. It also with different app name.
+			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString(), nullable(String.class));
+			
+			
+			
+			
+			adminApplication = Mockito.spy(new AdminApplication());
+			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.any());
+			
+			Mockito.doReturn(null).when(adminApplication).downloadWarFile(Mockito.anyString(), anyString(), anyString());
+			adminApplication.createApplicationWithURL("app6", "https://antmedia.io/rest", "secret");
+			verify(adminApplication, never()).createApplication(Mockito.anyString(), Mockito.any());
+
+
+			Mockito.doReturn(new File("test")).when(adminApplication).downloadWarFile(Mockito.anyString(), anyString(), anyString());
+			adminApplication.createApplicationWithURL("app6", "https://antmedia.io/rest", "secret");
+			verify(adminApplication, times(1)).createApplication(Mockito.anyString(), Mockito.any());
 
 
 		} catch (IOException e) {
@@ -345,12 +438,32 @@ public class AdminApplicationTest {
 		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
 		try{
 			//Just download something to check if it is downloading, the method only downloads with an http request.
-			assertNotNull(adminApplication.downloadWarFile("LiveApp", "https://antmedia.io/rest"));
+			assertNotNull(adminApplication.downloadWarFile("LiveApp", "https://antmedia.io/rest", "secret"));
 		}
 		catch(Exception e){
 			e.printStackTrace();
 			fail();
 		}
+	}
+	
+	@Test
+	public void testGetWarFileInTmpDirectory() throws IOException {
+		
+		File warFileInTmpDirectory = AdminApplication.getWarFileInTmpDirectory("anywardoesnotexist");
+		assertNull(warFileInTmpDirectory);
+		
+		//create a file in tmp directory
+		String appName = "test";
+		String filename = "test.war";
+		
+		File f = new File(AdminApplication.getJavaTmpDirectory(), filename);
+		f.deleteOnExit();
+		f.createNewFile();
+		
+		warFileInTmpDirectory = AdminApplication.getWarFileInTmpDirectory(AdminApplication.getWarName(appName));
+		assertNotNull(warFileInTmpDirectory);
+
+		
 	}
 
 	@Test
@@ -380,6 +493,8 @@ public class AdminApplicationTest {
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
+		
+		app.setDataStoreFactory(Mockito.mock(ConsoleDataStoreFactory.class));
 
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
@@ -398,17 +513,17 @@ public class AdminApplicationTest {
 			};
 		};
 		app.setWarDeployer(warDeployer);
-		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.any());
+		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
 
 		app.createApplication(appName, null);
 
-		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, null);
+		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, false, null, null, null, null);
 
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.createApplication(appName, null);
-		Mockito.verify(app).runCreateAppScript(appName, null);
+		Mockito.verify(app).runCreateAppScript(appName, false, null, null, null, null);
 
-		assertFalse(app.createApplicationWithURL(appName, "some_url"));
+		assertFalse(app.createApplicationWithURL(appName, "some_url", null));
 
 		assertFalse(app.createApplication(appName, "some_url"));
 	}

@@ -24,7 +24,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -38,6 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.codec.AVCVideo;
+import org.red5.codec.HEVCVideo;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IStreamCodecInfo;
 import org.red5.codec.IVideoStreamCodec;
@@ -75,6 +75,7 @@ import org.red5.server.net.rtmp.event.IRTMPEvent;
 import org.red5.server.net.rtmp.event.Invoke;
 import org.red5.server.net.rtmp.event.Notify;
 import org.red5.server.net.rtmp.event.VideoData;
+import org.red5.server.net.rtmp.event.VideoData.VideoFourCC;
 import org.red5.server.net.rtmp.status.Status;
 import org.red5.server.net.rtmp.status.StatusCodes;
 import org.red5.server.stream.message.RTMPMessage;
@@ -88,10 +89,9 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.parser.codec.AACAudio;
 import io.vertx.core.Vertx;
 
@@ -321,13 +321,18 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 				// get stream codec
 				IStreamCodecInfo codecInfo = getCodecInfo();
 				StreamCodecInfo info = null;
-				if (codecInfo instanceof StreamCodecInfo) {
+				
+				if (codecInfo instanceof StreamCodecInfo) 
+				{
 					info = (StreamCodecInfo) codecInfo;
 				}
+				
 				//log.trace("Stream codec info: {}", info);
-				if (rtmpEvent instanceof AudioData) {
+				if (rtmpEvent instanceof AudioData) 
+				{
 					IAudioStreamCodec audioStreamCodec = null;
-					if (checkAudioCodec) {
+					if (checkAudioCodec) 
+					{
 						// dont try to read codec info from 0 length audio packets
 						if (buf.limit() > 0) {
 							audioStreamCodec = AudioCodecFactory.getAudioCodec(buf);
@@ -336,10 +341,13 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 							}
 							checkAudioCodec = false;
 						}
-					} else if (codecInfo != null) {
+					} 
+					else if (codecInfo != null) 
+					{
 						audioStreamCodec = codecInfo.getAudioCodec();
 					}
-					if (audioStreamCodec instanceof AACAudio) {
+					if (audioStreamCodec instanceof AACAudio) 
+					{
 						audioStreamCodec.addData(buf);
 					}
 					else {
@@ -357,23 +365,46 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 					}
 					eventTime = rtmpEvent.getTimestamp();
 					log.trace("Audio: {}", eventTime);
-				} else if (rtmpEvent instanceof VideoData) {
+				} 
+				else if (rtmpEvent instanceof VideoData) 
+				{
 					IVideoStreamCodec videoStreamCodec = null;
-					if (checkVideoCodec) {
-						videoStreamCodec = VideoCodecFactory.getVideoCodec(buf);
-						if (info != null) {
+					if (checkVideoCodec) 
+					{
+						VideoData videoData = (VideoData) rtmpEvent;
+						if (videoData.isExVideoHeader())
+						{
+							
+							if (videoData.getCodecId() == VideoFourCC.HEVC_FOURCC.value) {
+								log.info("HEVC codec is detected for streamId:{} ", getPublishedName());
+								videoStreamCodec = new HEVCVideoEnhancedRTMP();
+							}
+							else {
+								//TODO: throw exception and drop the connection because we'll not support other codecs
+							}
+						}
+						else 
+						{
+							videoStreamCodec = VideoCodecFactory.getVideoCodec(buf);
+						}
+						if (info != null) 
+						{
 							info.setVideoCodec(videoStreamCodec);
 						}
 						checkVideoCodec = false;
-					} else if (codecInfo != null) {
+					} 
+					else if (codecInfo != null) 
+					{
 						videoStreamCodec = codecInfo.getVideoCodec();
 					}
-					if (videoStreamCodec instanceof AVCVideo) {
+					
+					
+					if (videoStreamCodec instanceof AVCVideo || videoStreamCodec instanceof HEVCVideoEnhancedRTMP || videoStreamCodec instanceof HEVCVideo) {
 						videoStreamCodec.addData(buf);
 					}
 					else {
 						//don't support codecs other than AVC(264)
-						log.error("Video codec is not AVC so stopping connection {}", getPublishedName());
+						log.error("Video codec is not AVC or HEVC so stopping connection {}", getPublishedName());
 						stop();
 						IStreamCapableConnection connection = getConnection();
 						if (connection != null) {
@@ -386,7 +417,9 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 					}
 					eventTime = rtmpEvent.getTimestamp();
 					log.trace("Video: {}", eventTime);
-				} else if (rtmpEvent instanceof Invoke) {
+				} 
+				else if (rtmpEvent instanceof Invoke) 
+				{
 					Invoke invokeEvent = (Invoke) rtmpEvent;
 					log.debug("Invoke action: {}", invokeEvent.getAction());
 					eventTime = rtmpEvent.getTimestamp();
@@ -969,18 +1002,20 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			}
 		}
 
-		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, false, conn.getScope());
-
-
+		DataStore datastore = getDatastore(appCtx);
+		Broadcast broadcast = null;
+		if (datastore != null) {
+			broadcast = datastore.get(publishedName);
+		}
 		
+		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, broadcast, false, conn.getScope());
 
 		try {
 			if (conn == null) {
 				throw new IOException("Stream is no longer connected");
-
 			}
 
-			setUpEndPoints(appCtx, publishedName, localMuxAdaptor);
+			setUpEndPoints(appCtx, broadcast, localMuxAdaptor);
 			localMuxAdaptor.init(conn, publishedName, false);
 			
 			addStreamListener(localMuxAdaptor);
@@ -1001,12 +1036,17 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			log.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
+	
+	public DataStore getDatastore(ApplicationContext appCtx) {
+		if (appCtx.containsBean(IDataStoreFactory.BEAN_NAME)) {
+			return ((IDataStoreFactory) appCtx.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
+		}
+		return null;
+	}
 
-	private void setUpEndPoints(ApplicationContext appCtx, String publishedName, MuxAdaptor muxAdaptor) {
-		if (appCtx.containsBean(IDataStoreFactory.BEAN_NAME)) 
+	private void setUpEndPoints(ApplicationContext appCtx, Broadcast broadcast, MuxAdaptor muxAdaptor) {
+		if (broadcast != null)
 		{
-			DataStore dataStore = ((IDataStoreFactory)appCtx.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
-			Broadcast broadcast = dataStore.get(publishedName);
 			Vertx vertx = (Vertx) appCtx.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 			MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
@@ -1120,6 +1160,10 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 	
 	public void setMuxAdaptor(WeakReference<MuxAdaptor> muxAdaptor) {
 		this.muxAdaptor = muxAdaptor;
+	}
+	
+	public WeakReference<MuxAdaptor> getMuxAdaptor() {
+		return muxAdaptor;
 	}
 
 }

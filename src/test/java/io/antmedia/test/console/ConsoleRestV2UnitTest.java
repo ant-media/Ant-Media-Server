@@ -6,6 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,11 +17,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
+import org.awaitility.Awaitility;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.junit.After;
 import org.junit.Before;
@@ -27,7 +35,9 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -43,12 +53,13 @@ import io.antmedia.console.rest.RestServiceV2;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.vertx.core.Vertx;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import org.webrtc.SessionDescription;
 
 
 public class ConsoleRestV2UnitTest {
@@ -130,7 +141,7 @@ public class ConsoleRestV2UnitTest {
 	public void getUserList(){
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
@@ -143,7 +154,7 @@ public class ConsoleRestV2UnitTest {
 		assertNotNull(restServiceSpy.getUserList());
 
 		userName = "username" + (int) (Math.random() * 1000000000);
-		user = new User(userName, "second pass", UserType.ADMIN, "all");
+		user = new User(userName, "second pass", UserType.ADMIN, "all", null);
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
@@ -157,7 +168,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
-		User user = new User(userName, password, UserType.ADMIN, "system");
+		User user = new User(userName, password, UserType.ADMIN, "system", new HashMap<String, String>());
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
@@ -169,7 +180,7 @@ public class ConsoleRestV2UnitTest {
 
 		String userName2 = "username" + (int) (Math.random() * 1000000000);
 
-		user = new User(userName2, "second pass", UserType.ADMIN, "system");
+		user = new User(userName2, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -177,7 +188,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertTrue(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system");
+		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
@@ -185,7 +196,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertFalse(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system");
+		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -255,8 +266,12 @@ public class ConsoleRestV2UnitTest {
 
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
-		boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname", "scope", "admin");
-		assertTrue(sendUserInfo);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			HashMap<String,String> appNameUserTypeMap = new HashMap<>();
+			appNameUserTypeMap.put("system", UserType.ADMIN.toString());
+			boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname","system","admin", appNameUserTypeMap);
+			return sendUserInfo;
+		});
 	}
 
 	@Test
@@ -365,13 +380,57 @@ public class ConsoleRestV2UnitTest {
 				apps.add("tahirrrr");
 				AdminApplication adminApp = Mockito.mock(AdminApplication.class);
 				Mockito.when(adminApp.getApplications()).thenReturn(apps);
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
 
-				restServiceSpy.createApplication("taso", inputStream);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
 
-				Mockito.verify(adminApp).createApplication("taso",tmpsDirectory + "taso.war");
+				restServiceSpy.createApplication(appName, inputStream);
+
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + "taso.war");
+			}
+			
+			{
+				
+				RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+				AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(true).when(adminApp).createApplication(Mockito.anyString(), Mockito.anyString());
+
+				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
+
+				Result result = restServiceSpy.createApplication(appName, inputStream);
+
+				assertTrue(result.isSuccess());
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + "taso.war");
+				
+				
+				Mockito.doReturn(true).when(adminApp).createApplication(Mockito.anyString(), Mockito.anyString());
+				Mockito.when(rootScope.getScope(appName)).thenReturn(null);
+				result = restServiceSpy.createApplication(appName, inputStream);
+				assertFalse(result.isSuccess());
+				Mockito.verify(adminApp, times(2)).createApplication(appName, tmpsDirectory + "taso.war");
+				
 			}
 
 			{
@@ -384,10 +443,19 @@ public class ConsoleRestV2UnitTest {
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
 
-				restServiceSpy.createApplication("taso", null);
 
-				Mockito.verify(adminApp).createApplication("taso", null);
+				restServiceSpy.createApplication(appName, null);
+
+				Mockito.verify(adminApp).createApplication(appName, null);
 			}
 
 
@@ -401,10 +469,19 @@ public class ConsoleRestV2UnitTest {
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				String appName = "LiveApp";
+				IScope rootScope = Mockito.mock(IScope.class);
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
 
-				restServiceSpy.createApplication("LiveApp", inputStream);
 
-				Mockito.verify(adminApp, Mockito.never()).createApplication("LiveApp", "LiveApp.war");
+				restServiceSpy.createApplication(appName, inputStream);
+
+				Mockito.verify(adminApp, Mockito.never()).createApplication(appName, appName + ".war");
 			}
 
 			{
@@ -427,10 +504,20 @@ public class ConsoleRestV2UnitTest {
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(true).when(restServiceSpy).isClusterMode();
 				Mockito.doReturn(settings).when(restServiceSpy).getServerSettings();
+				var appName = "taso";
+				IScope rootScope = Mockito.mock(IScope.class);
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
 
-				restServiceSpy.createApplication("taso", inputStream);
+				
 
-				Mockito.verify(adminApp).createApplication("taso", tmpsDirectory + "taso.war");
+				restServiceSpy.createApplication(appName, inputStream);
+
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + appName + ".war");
 			}
 
 			{
@@ -463,7 +550,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -507,7 +594,7 @@ public class ConsoleRestV2UnitTest {
 		assertFalse(result2.isSuccess());
 
 		//No new password
-		user = new User(userName, "12345", UserType.ADMIN, "all");
+		user = new User(userName, "12345", UserType.ADMIN, "all", null);
 		result2 = restService.changeUserPasswordInternal(userName, user);
 		System.out.println(result2.getMessage());
 		assertFalse(result2.isSuccess());
@@ -518,7 +605,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "system");
+		User user = new User(userName, password, UserType.ADMIN, "system", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -539,7 +626,7 @@ public class ConsoleRestV2UnitTest {
 		//Add second user
 		String password2 = "password2";
 		String userName2 = "username" + (int) (Math.random() * 100000);
-		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system");
+		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system", new HashMap<String, String>());
 
 		result = restService.addUser(user2);
 		assertTrue(result.isSuccess());
@@ -561,12 +648,28 @@ public class ConsoleRestV2UnitTest {
 		result = restService.editUser(null);
 		assertFalse(result.isSuccess());
 	}
+	
+	@Test
+	public void testInvalidateSession() {
+		HttpSession session = Mockito.mock(HttpSession.class);
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+		Mockito.when(mockRequest.getSession()).thenReturn(session);
+		restService.setRequestForTest(mockRequest);
+
+		
+		restService.deleteSession();
+		
+		Mockito.verify(session).invalidate();
+		
+		
+	}
 
 	@Test
 	public void testDeleteUser() {
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -584,7 +687,7 @@ public class ConsoleRestV2UnitTest {
 		assertNotNull(dbStore.getUser(userName));
 
 		String userName2 = "username" + (int) (Math.random() * 100000);
-		User user2 = new User(userName2, password, UserType.READ_ONLY, "all");
+		User user2 = new User(userName2, password, UserType.READ_ONLY, "all", null);
 
 		//Trying to delete a non existant user
 		result = restService.deleteUser(userName2);
@@ -851,4 +954,101 @@ public class ConsoleRestV2UnitTest {
 
 	}
 
+	@Test
+	public void testAuthenticateMultiAppUser(){
+		String password = "password";
+		String userName = "username" + (int) (Math.random() * 100000);
+
+		Map<String,String> appNameUserTypeMap = new HashMap<>();
+		appNameUserTypeMap.put("LiveApp", UserType.USER.toString());
+		appNameUserTypeMap.put("live", UserType.READ_ONLY.toString());
+
+		User user = new User(userName, password, null, null, appNameUserTypeMap);
+		dbStore.addUser(user);
+
+		HttpSession session = Mockito.mock(HttpSession.class);
+
+		Mockito.when(session.getAttribute(USER_EMAIL)).thenReturn(userName);
+		Mockito.when(session.getAttribute(USER_PASSWORD)).thenReturn(password);
+
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+		Mockito.when(mockRequest.getSession()).thenReturn(session);
+
+		restService.setRequestForTest(mockRequest);
+
+		JsonObject appNameUserTypeJson = new JsonObject();
+		for (Map.Entry<String, String> entry : user.getAppNameUserType().entrySet()) {
+			String appName = entry.getKey();
+			String userType = entry.getValue();
+
+			appNameUserTypeJson.addProperty(appName, userType);
+		}
+
+		Result result = restService.authenticateUser(user);
+		assertTrue(result.isSuccess());
+        assertEquals(result.getMessage(), appNameUserTypeJson.toString());
+	}
+
+
+	@Test
+	public void testAppStatus(){
+		FileInputStream inputStream;
+		try{
+			inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
+			String tmpsDirectory = System.getProperty("java.io.tmpdir");
+			if (!tmpsDirectory.endsWith("/")) {
+				tmpsDirectory += "/";
+			}
+
+			AppSettings appSettings = new AppSettings();
+
+			RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+			AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+			IScope rootScope = Mockito.mock(IScope.class);
+			String appName = "testapp";
+
+			IClusterNotifier clusterNotifier = Mockito.mock(IClusterNotifier.class);
+			IClusterStore clusterStore = Mockito.mock(IClusterStore.class);
+			Mockito.when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
+			Mockito.when(adminApp.getClusterNotifier()).thenReturn(clusterNotifier);
+
+			Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+			Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+			Mockito.doReturn(true).when(adminApp).createApplication(Mockito.anyString(), Mockito.anyString());
+			Mockito.doReturn(true).when(adminApp).deleteApplication(Mockito.anyString(), Mockito.anyBoolean());
+
+
+			Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+			Mockito.doReturn(true).when(restServiceSpy).isClusterMode();
+			Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+			Mockito.doReturn(Mockito.mock(ServerSettings.class)).when(restServiceSpy).getServerSettings();
+			Mockito.doReturn(appSettings).when(restServiceSpy).getSettings(appName);
+			Mockito.doReturn("").when(restServiceSpy).changeSettings(Mockito.eq(appName), any());
+
+			Result result = restServiceSpy.createApplication(appName, inputStream);
+
+			ArgumentCaptor<AppSettings> appSettingsArgumentCaptor = ArgumentCaptor.forClass(AppSettings.class);
+			Mockito.verify(clusterStore, times(1)).saveSettings(appSettingsArgumentCaptor.capture());
+			assertEquals(AppSettings.APPLICATION_STATUS_INSTALLING, appSettingsArgumentCaptor.getValue().getAppStatus());
+
+			ArgumentCaptor<AppSettings> appSettingsArgumentCaptor2 = ArgumentCaptor.forClass(AppSettings.class);
+			Mockito.verify(restServiceSpy, times(1)).changeSettings(Mockito.eq(appName), appSettingsArgumentCaptor2.capture());
+			assertEquals(AppSettings.APPLICATION_STATUS_INSTALLED, appSettingsArgumentCaptor2.getValue().getAppStatus());
+
+			assertTrue(result.isSuccess());
+
+			result = restServiceSpy.deleteApplication(appName, true);
+			assertTrue(result.isSuccess());
+
+		}
+		catch(Exception e){
+
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+
+	}
 }

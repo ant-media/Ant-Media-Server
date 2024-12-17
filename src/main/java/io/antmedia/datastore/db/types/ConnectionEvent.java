@@ -1,81 +1,126 @@
 package io.antmedia.datastore.db.types;
 
 
+import org.bson.types.ObjectId;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import dev.morphia.annotations.Entity;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Id;
+import dev.morphia.annotations.Index;
+import dev.morphia.annotations.IndexOptions;
+import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 
-@ApiModel(value="ConnectionEvent", description="Connection Event for the subscriber")
+@Schema(description = "Connection Event for the subscriber")
 @Entity
+@Indexes({ 
+	@Index(fields = @Field("streamId")), 
+	@Index(fields = @Field("subscriberId")) })
 public class ConnectionEvent {
-	@JsonIgnore
-	public static final String CONNECTED_EVENT = "connected";
-	@JsonIgnore
-	public static final String DISCONNECTED_EVENT = "disconnected";
-	
+    @JsonIgnore
+    public static final String CONNECTED_EVENT = "connected";
+    @JsonIgnore
+    public static final String DISCONNECTED_EVENT = "disconnected";
+
+    /**
+     * Timestamp of this event. Unix timestamp in milliseconds
+     */
+    @Schema(description = "the unix timestamp of the event in milliseconds")
+    private long timestamp;
+    /**
+     * type of the event Connection/Disconnection
+     */
+    @Schema(description = "The type of the event. It can have connected or disconnected values")
+    private String eventType;
+
+    @Schema(description = "IP address of the instance that this event happened")
+    private String instanceIP;
+
+    @Schema(description = "Connection type. It can be publish or play")
+    private String type;
+
+    @Schema(description = "Event protocol. It can be webrtc, hls, dash")
+    private String eventProtocol;
+    
+    @Schema(description = "Stream id of the event")
+    private String streamId;
+    
+    @Schema(description = "Subscriber id of the event")
+    private String subscriberId;
+    
+    @JsonIgnore
+    @Schema(hidden = true)
+    @Id
+    private ObjectId dbId;
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public String getInstanceIP() {
+        return instanceIP;
+    }
+
+    public void setInstanceIP(String instanceIP) {
+        this.instanceIP = instanceIP;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getEventProtocol() {
+        return eventProtocol;
+    }
+
+    public void setEventProtocol(String eventProtocol) {
+        this.eventProtocol = eventProtocol;
+    }
+
 	/**
-	 * Timestamp of this event. Unix timestamp in milliseconds
+	 * @return the subscriberId
 	 */
-	@ApiModelProperty(value = "the unix timestamp of the event in milliseconds")
-	private long timestamp;
+	public String getSubscriberId() {
+		return subscriberId;
+	}
+
 	/**
-	 * type of the event Connection/Disconnection
+	 * @param subscriberId the subscriberId to set
 	 */
-	@ApiModelProperty(value = "The type of the event. It can have connected or disconnected values")
-	private String eventType;
-	
-	@ApiModelProperty(value = "IP address of the instance that this event happened")
-	private String instanceIP;
-	
-	@ApiModelProperty(value = "Connection type. It can be publish or play")
-	private String type;
-	
-	@ApiModelProperty(value = "Event protocol. It can be webrtc, hls, dash")
-	private String eventProtocol;
-
-	public long getTimestamp() {
-		return timestamp;
+	public void setSubscriberId(String subscriberId) {
+		this.subscriberId = subscriberId;
 	}
 
-	public void setTimestamp(long timestamp) {
-		this.timestamp = timestamp;
+	/**
+	 * @return the streamId
+	 */
+	public String getStreamId() {
+		return streamId;
 	}
 
-	public String getEventType() {
-		return eventType;
+	/**
+	 * @param streamId the streamId to set
+	 */
+	public void setStreamId(String streamId) {
+		this.streamId = streamId;
 	}
-
-	public void setEventType(String eventType) {
-		this.eventType = eventType;
-	}
-
-	public String getInstanceIP() {
-		return instanceIP;
-	}
-
-	public void setInstanceIP(String instanceIP) {
-		this.instanceIP = instanceIP;
-	}
-
-	public String getType() {
-		return type;
-	}
-
-	public void setType(String type) {
-		this.type = type;
-	}
-
-	public String getEventProtocol() {
-		return eventProtocol;
-	}
-
-	public void setEventProtocol(String eventProtocol) {
-		this.eventProtocol = eventProtocol;
-	}
-	
-	
-	
 }
