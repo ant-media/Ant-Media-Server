@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.antmedia.FFmpegUtilities;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.rest.RestServiceBase;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -58,6 +59,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -278,6 +280,8 @@ public abstract class Muxer {
 	private long currentTimeInSeconds;
 
 	private int videoCodecId;
+
+	private IAntMediaStreamHandler appInstance;
 
 
 	protected Muxer(Vertx vertx) {
@@ -703,6 +707,14 @@ public abstract class Muxer {
 		ApplicationContext appCtx = context.getApplicationContext();
 		return (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 	}
+	
+	protected IAntMediaStreamHandler getAppInstance() {
+		if (appInstance == null) {
+			appInstance = (IAntMediaStreamHandler) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		}
+		return appInstance;
+	}
+	
 
 	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat) {
 		StringBuilder result = new StringBuilder(name);

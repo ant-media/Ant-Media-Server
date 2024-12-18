@@ -44,9 +44,25 @@ public interface IAntMediaStreamHandler {
 	 * @param file video file that muxed is finished
 	 * @param duration of the video in milliseconds
 	 * @param resolution height of the video 
+	 * 
+	 * @Deprecated use {@link #muxingFinished(Broadcast, File, long, long, int, String, String)} because Broadcast object may be deleted when this method is called
 	 */
 	public void muxingFinished(String id, File file, long startTime, long duration , int resolution, String path, String vodId);
 	
+	
+	/**
+	 * Called by some muxer like MP4Muxer
+	 * 
+	 * id actually is the name of the file however in some cases file name and the id may be different
+	 * in some cases like there is already a file with that name
+	 * 
+	 * @param broadcast object that muxed is finished
+	 * @param file video file that muxed is finished
+	 * @param duration of the video in milliseconds
+	 * @param resolution height of the video 
+	 * 
+	 */
+	public void muxingFinished(Broadcast broadcast, File file, long startTime, long duration , int resolution, String path, String vodId);
 	
 	/**
 	 * Update stream quality, speed and number of pending packet size and update time

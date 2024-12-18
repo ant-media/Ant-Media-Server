@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
@@ -126,6 +127,8 @@ public abstract class RecordMuxer extends Muxer {
 		super.writeTrailer();
 
 
+		Broadcast broadcast = getAppInstance().getDataStore().get(streamId);
+		
 		vertx.executeBlocking(()->{
 			try {
 
@@ -136,8 +139,8 @@ public abstract class RecordMuxer extends Muxer {
 				File f = getFinalFileName(appSettings.isS3RecordingEnabled());
 
 				finalizeRecordFile(f);
-
-				adaptor.muxingFinished(streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
+				
+				adaptor.muxingFinished(broadcast, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
 
@@ -155,7 +158,7 @@ public abstract class RecordMuxer extends Muxer {
 				logger.error(e.getMessage());
 			}
 			return null;
-		});
+		}, false);
 
 	}
 

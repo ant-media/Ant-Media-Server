@@ -29,6 +29,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.*;
 
+import javax.annotation.Nonnull;
+
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.statistic.*;
@@ -109,7 +111,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.web.context.WebApplicationContext;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -908,7 +909,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 			return null;
 
-		});
+		}, false);
 
 
 		if (absoluteStartTimeMs == 0)
@@ -1013,8 +1014,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 
+	//@Override
+	public void muxingFinished(String streamId, File File, long startTime, long duration, int resolution,
+			String previewFilePath, String vodId) 
+	{
+		muxingFinished(getDataStore().get(streamId), File, startTime, duration, resolution, previewFilePath, vodId);
+	}
+
 	@Override
-	public void muxingFinished(final String streamId, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
+	public void muxingFinished(@Nonnull Broadcast broadcast, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
@@ -1024,17 +1032,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String listenerHookURL = null;
 		String streamName = file.getName();
 
-		Broadcast broadcast = getDataStore().get(streamId);
-
-		if(broadcast != null){
-			listenerHookURL = broadcast.getListenerHookURL();
-			if(broadcast.getName() != null){
-				streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
-			}
+		String streamId = broadcast.getStreamId();
+		
+		listenerHookURL = broadcast.getListenerHookURL();
+		if(StringUtils.isNotBlank(broadcast.getName())){
+			streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
 		}
 
+
 		//We need to get the webhook url explicitly because broadcast may be deleted here
-		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
+		if (StringUtils.isNotBlank(listenerHookURL)) {
 			// if hook URL is not defined for stream specific, then try to get common one from app
 			listenerHookURL = appSettings.getListenerHookURL();
 		}
@@ -1047,14 +1054,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			vodIdFinal = RandomStringUtils.randomAlphanumeric(24);
 		}
 
-		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodIdFinal, previewFilePath);
-		if(broadcast != null){
-			newVod.setDescription(broadcast.getDescription());
-			newVod.setMetadata(broadcast.getMetaData());
-			newVod.setLongitude(broadcast.getLongitude());
-			newVod.setLatitude(broadcast.getLatitude());
-			newVod.setAltitude(broadcast.getAltitude());
-		}
+		VoD newVod = new VoD(streamName, broadcast.getStreamId(), relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodIdFinal, previewFilePath);
+		newVod.setDescription(broadcast.getDescription());
+		newVod.setMetadata(broadcast.getMetaData());
+		newVod.setLongitude(broadcast.getLongitude());
+		newVod.setLatitude(broadcast.getLatitude());
+		newVod.setAltitude(broadcast.getAltitude());
+		
 
 
 		if (getDataStore().addVod(newVod) == null) {
@@ -1069,7 +1075,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				|| ((index = vodName.lastIndexOf(".webm")) != -1) )
 		{
 			final String baseName = vodName.substring(0, index);
-			final String metaData = (broadcast != null) ? broadcast.getMetaData() : null;
+			final String metaData = broadcast.getMetaData();
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
 			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, metaData, null);
 		}
@@ -1307,7 +1313,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 				return null;
 
-			});
+			}, false);
 
 
 		});
@@ -2447,7 +2453,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.executeBlocking(() -> {
 			closeBroadcast(streamId);
 			return null;
-		});
+		}, false);
 	}
 
 	public boolean isClusterMode() {
