@@ -144,6 +144,7 @@ public abstract class RestServiceBase {
 	public static final int HIGH_CPU_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
 	public static final int INVALID_STREAM_NAME_ERROR = -5;
+	public static final int FETCH_REQUEST_REDIRECTED_TO_ORIGIN = -6;
 
 	public static final String HTTP = "http://";
 	public static final String RTSP = "rtsp://";
@@ -157,7 +158,7 @@ public abstract class RestServiceBase {
 	public static final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
 
 	public static final String LOOPBACK_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
-	private static final String REPLACE_CHARS = "[\n|\r|\t]";
+	public static final String REPLACE_CHARS = "[\n|\r|\t]";
 	@Context
 	protected ServletContext servletContext;
 	protected DataStoreFactory dataStoreFactory;
@@ -1012,7 +1013,7 @@ public abstract class RestServiceBase {
 			}
 
 			if (logger.isInfoEnabled())  {
-				logger.info("IP: {}", serverAddr.replaceAll("[\n|\r|\t]", "_"));
+				logger.info("IP: {}", serverAddr.replaceAll(REPLACE_CHARS, "_"));
 			}
 
 			if(serverAddr.split("\\.").length == 4 && validateIPaddress(serverAddr)){
@@ -1736,37 +1737,28 @@ public abstract class RestServiceBase {
 		return null;
 	}
 
-	protected Object getToken (String streamId, long expireDate, String type, String roomId)
-	{
-		Token token = null;
-		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
-		if(streamId != null && type != null && expireDate > 0) {
-
-			ITokenService tokenService = getTokenService();
-
-			if(tokenService != null)
-			{
-				token = tokenService.createToken(streamId, expireDate, type, roomId);
-				if(token != null)
-				{
-					if (getDataStore().saveToken(token)) {
-						//returns token only everything is OK
-						return token;
-					}
-					else {
-						message = "Cannot save token to the datastore";
-					}
-				}
-				else {
-					message = "Cannot create token. It can be a mock token service";
-				}
-			}
-			else {
-				message = "No token service in this app";
-			}
+	protected Object getToken(String streamId, long expireDate, String type, String roomId) {
+		if (streamId == null || type == null || expireDate <= 0) {
+			return new Result(false, "Define Stream ID, Token Type and Expire Date (unix time)");
+		}
+		if (!type.equals(Token.PLAY_TOKEN) && !type.equals(Token.PUBLISH_TOKEN)) {
+			return new Result(false, "Invalid token type. Supported types are 'play' and 'publish'");
 		}
 
-		return new Result(false, message);
+		ITokenService tokenService = getTokenService();
+		if (tokenService == null) {
+			return new Result(false, "No token service in this app");
+		}
+
+		Token token = tokenService.createToken(streamId, expireDate, type, roomId);
+		if (token == null) {
+			return new Result(false, "Cannot create token. It may be a mock token service");
+		}
+		if (!getDataStore().saveToken(token)) {
+			return new Result(false, "Cannot save token to the datastore");
+		}
+
+		return token;
 	}
 
 	protected Object getJwtToken (String streamId, long expireDate, String type, String roomId)

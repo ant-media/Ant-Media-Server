@@ -14,6 +14,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.analytic.model.PlayerStatsEvent;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.logger.LoggerUtils;
+import io.antmedia.rest.RestServiceBase;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.HttpMethod;
@@ -38,10 +39,10 @@ public class DataTransferValve extends ValveBase {
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 
 			if (subscriberId != null) {
-				subscriberId = subscriberId.replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX, "_");
+				subscriberId = subscriberId.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 			}
 			
-			String clientIP = request.getRemoteAddr().replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX, "_");
+			String clientIP = request.getRemoteAddr().replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 
 			long bytesWritten = response.getBytesWritten(false);
 			

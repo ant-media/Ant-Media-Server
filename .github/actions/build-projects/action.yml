@@ -93,4 +93,8 @@ runs:
         cp -a  ManagementConsole_AngularApp/node_modules/. ~/ManagementConsole_AngularApp-node_modules-cache/
                   
  
-   
+    - name: Replace ffmpeg builds
+      shell: bash
+      run: |
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1-1.5.11/ffmpeg-7.1-1.5.11-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1-1.5.11-linux-x86_64.jar
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1-1.5.11/ffmpeg-7.1-1.5.11-linux-arm64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1-1.5.11-linux-arm64.jar

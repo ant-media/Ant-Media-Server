@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 
 import java.io.File;
@@ -33,6 +35,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
@@ -56,6 +59,7 @@ import io.antmedia.statistic.IStatsCollector;
 import io.vertx.core.Vertx;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import org.webrtc.SessionDescription;
 
 
 public class ConsoleRestV2UnitTest {
@@ -384,7 +388,9 @@ public class ConsoleRestV2UnitTest {
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
-				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
 
 				restServiceSpy.createApplication(appName, inputStream);
@@ -408,6 +414,10 @@ public class ConsoleRestV2UnitTest {
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
 				
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 
 				Result result = restServiceSpy.createApplication(appName, inputStream);
 
@@ -439,7 +449,9 @@ public class ConsoleRestV2UnitTest {
 				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
 				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
-				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 
 				restServiceSpy.createApplication(appName, null);
 
@@ -462,6 +474,10 @@ public class ConsoleRestV2UnitTest {
 				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
 				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 
 				restServiceSpy.createApplication(appName, inputStream);
 
@@ -493,6 +509,10 @@ public class ConsoleRestV2UnitTest {
 				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
 				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 				
 
 				restServiceSpy.createApplication(appName, inputStream);
@@ -968,5 +988,67 @@ public class ConsoleRestV2UnitTest {
 		Result result = restService.authenticateUser(user);
 		assertTrue(result.isSuccess());
         assertEquals(result.getMessage(), appNameUserTypeJson.toString());
+	}
+
+
+	@Test
+	public void testAppStatus(){
+		FileInputStream inputStream;
+		try{
+			inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
+			String tmpsDirectory = System.getProperty("java.io.tmpdir");
+			if (!tmpsDirectory.endsWith("/")) {
+				tmpsDirectory += "/";
+			}
+
+			AppSettings appSettings = new AppSettings();
+
+			RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+			AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+			IScope rootScope = Mockito.mock(IScope.class);
+			String appName = "testapp";
+
+			IClusterNotifier clusterNotifier = Mockito.mock(IClusterNotifier.class);
+			IClusterStore clusterStore = Mockito.mock(IClusterStore.class);
+			Mockito.when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
+			Mockito.when(adminApp.getClusterNotifier()).thenReturn(clusterNotifier);
+
+			Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+			Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+			Mockito.doReturn(true).when(adminApp).createApplication(Mockito.anyString(), Mockito.anyString());
+			Mockito.doReturn(true).when(adminApp).deleteApplication(Mockito.anyString(), Mockito.anyBoolean());
+
+
+			Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+			Mockito.doReturn(true).when(restServiceSpy).isClusterMode();
+			Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+			Mockito.doReturn(Mockito.mock(ServerSettings.class)).when(restServiceSpy).getServerSettings();
+			Mockito.doReturn(appSettings).when(restServiceSpy).getSettings(appName);
+			Mockito.doReturn("").when(restServiceSpy).changeSettings(Mockito.eq(appName), any());
+
+			Result result = restServiceSpy.createApplication(appName, inputStream);
+
+			ArgumentCaptor<AppSettings> appSettingsArgumentCaptor = ArgumentCaptor.forClass(AppSettings.class);
+			Mockito.verify(clusterStore, times(1)).saveSettings(appSettingsArgumentCaptor.capture());
+			assertEquals(AppSettings.APPLICATION_STATUS_INSTALLING, appSettingsArgumentCaptor.getValue().getAppStatus());
+
+			ArgumentCaptor<AppSettings> appSettingsArgumentCaptor2 = ArgumentCaptor.forClass(AppSettings.class);
+			Mockito.verify(restServiceSpy, times(1)).changeSettings(Mockito.eq(appName), appSettingsArgumentCaptor2.capture());
+			assertEquals(AppSettings.APPLICATION_STATUS_INSTALLED, appSettingsArgumentCaptor2.getValue().getAppStatus());
+
+			assertTrue(result.isSuccess());
+
+			result = restServiceSpy.deleteApplication(appName, true);
+			assertTrue(result.isSuccess());
+
+		}
+		catch(Exception e){
+
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+
 	}
 }

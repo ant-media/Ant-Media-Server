@@ -28,10 +28,10 @@ public class IPFilterDashboard extends AbstractFilter{
 	}
 
 
-	public boolean isAllowedDashboard(final String remoteIPAdrress){
+	public boolean isAllowedDashboard(final String remoteIPAddress){
 		ServerSettings serverSettings = getServerSettings();
 		if (serverSettings != null){
-			return checkCIDRList(serverSettings.getAllowedCIDRList(),remoteIPAdrress);
+			return checkCIDRList(serverSettings.getAllowedCIDRList(),remoteIPAddress);
 		}
 		// Deny this request
 		return false;

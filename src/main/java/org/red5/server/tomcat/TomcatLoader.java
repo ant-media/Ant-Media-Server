@@ -80,6 +80,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.component.AppConfig;
 
 /**
@@ -173,8 +174,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	/**
 	 * Cluster
 	 */
-	@Autowired(required=false)
-	private Cluster cluster;
+	private IClusterNotifier clusterNotifier;
 
 	/**
 	 * Valves
@@ -310,9 +310,6 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		// set the default host for our engine
 		engine.setDefaultHost(host.getName());
 
-		if (cluster != null) {
-			engine.setCluster(cluster);
-		}
 		// set the webapp folder if not already specified
 		if (webappFolder == null) {
 			// Use default webapps directory
@@ -912,24 +909,24 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		return "TomcatLoader [serviceEngineName=" + serviceEngineName + "]";
 	}
 
-	/**
-	 * Get cluster
-	 * @return cluster object
-	 */
-	public Cluster getCluster() {
-		return cluster;
-	}
 
-	/**
-	 * Set cluster
-	 * @param cluster object
-	 */
-	public void setCluster(Cluster cluster) {
-		this.cluster = cluster;
-	}
 	
 	public List<TomcatConnector> getConnectors() {
 		return connectors;
+	}
+
+	/**
+	 * @return the clusterNotifier
+	 */
+	public IClusterNotifier getClusterNotifier() {
+		return clusterNotifier;
+	}
+
+	/**
+	 * @param clusterNotifier the clusterNotifier to set
+	 */
+	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
+		this.clusterNotifier = clusterNotifier;
 	}
 
 }

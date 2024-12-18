@@ -103,22 +103,10 @@
 				<exclude>cuda*.jar</exclude>
 				
 				
-				<!-- exclude these files becauwe we write below from the custom build -->
-				
-				<exclude>ffmpeg*linux-x86_64.jar</exclude>
-				<exclude>ffmpeg*linux-arm64.jar</exclude>
-				
 				
 			</excludes>
 		</fileSet>
-		<fileSet> <!-- Overwrite Custom FFmepg Build Plugins - these files are downloaded autoomatically in pom.xml-->
-			<directory>${project.basedir}</directory>
-			<outputDirectory>plugins</outputDirectory>
-			<includes>
-				<include>ffmpeg-*.jar</include>
-			</includes>
-			
-		</fileSet>
+		
 		<fileSet>
 			<directory>${project.basedir}/src/main/server</directory>
 			<outputDirectory></outputDirectory>

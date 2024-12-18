@@ -1,6 +1,7 @@
 package io.antmedia.test;
 
-
+import static io.antmedia.muxer.MuxAdaptor.getExtendedSubfolder;
+import static io.antmedia.muxer.MuxAdaptor.getSubfolder;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AC3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
@@ -9,6 +10,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HCA;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HEVC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_NONE;
+
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
@@ -23,15 +25,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
-import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -5829,6 +5823,94 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		byte endOfString = capturedBuffer.get();
 		assertEquals(0x00, endOfString);
+	}
+
+	@Test
+	public void testGetSubfolder() throws Exception {
+		String mainTrackId = "mainTrackId";
+		String streamId = "stream456";
+
+		AppSettings appSettings = new AppSettings();
+
+		assertEquals("", getExtendedSubfolder(mainTrackId, streamId, null));
+		assertEquals("simplepath", getExtendedSubfolder(mainTrackId, streamId, "simplepath"));
+		assertEquals("mainTrackId", getExtendedSubfolder(mainTrackId, streamId, "%m"));
+		assertEquals("stream456", getExtendedSubfolder(mainTrackId, streamId, "%s"));
+
+		assertEquals("mainTrackId/stream456", getExtendedSubfolder(mainTrackId, streamId, "%m/%s"));
+		assertEquals("stream456/mainTrackId", getExtendedSubfolder(mainTrackId, streamId, "%s/%m"));
+		assertEquals(appSettings.getSubFolder(), getExtendedSubfolder(mainTrackId, streamId, appSettings.getSubFolder()));
+
+		assertEquals("folder", getExtendedSubfolder(null, null, "folder/%m/%s"));
+		assertEquals("folder", getExtendedSubfolder(null, null, "/folder/%m/%s/"));
+		assertEquals("folder", getExtendedSubfolder(null, null, "folder/%m/%s/"));
+		assertEquals("folder", getExtendedSubfolder(null, null, "/folder/%m/%s"));
+
+		assertEquals("folder",
+				getExtendedSubfolder(null, null, "folder/%m/%s"));
+
+		assertEquals("folder/stream1",
+				getExtendedSubfolder(null, "stream1", "folder/%m/%s"));
+
+		assertEquals("folder/track1",
+				getExtendedSubfolder("track1", null, "folder/%m/%s"));
+
+		assertEquals("folder/track1/stream1",
+				getExtendedSubfolder("track1", "stream1", "folder/%m/%s"));
+
+		assertEquals("folder/stream1",
+				getExtendedSubfolder(null, "stream1", "/folder/%m/%s/"));
+
+		assertEquals("lastpeony/mainTrackId/stream456",
+				getExtendedSubfolder(mainTrackId, streamId, "lastpeony/%m/%s"));
+
+		assertEquals("folder/mainTrackId",
+				getExtendedSubfolder(mainTrackId, streamId, "folder/%m"));
+
+		assertEquals("folder/mainTrackId",
+				getExtendedSubfolder(mainTrackId, streamId, "folder/%m/"));
+
+		appSettings.setSubFolder("defaultFolder");
+
+		assertEquals("defaultFolder", getSubfolder(new Broadcast(), appSettings));
+
+		Broadcast broadcastWithSubfolder = new Broadcast();
+		broadcastWithSubfolder.setSubFolder("customSubfolder");
+
+		Broadcast broadcastWithIds = new Broadcast();
+		broadcastWithIds.setMainTrackStreamId(mainTrackId);
+		broadcastWithIds.setStreamId(streamId);
+
+		assertEquals("customSubfolder", getSubfolder(broadcastWithSubfolder, appSettings));
+
+		appSettings.setSubFolder("recordings/%m/%s");
+		assertEquals("recordings/mainTrackId/stream456", getSubfolder(broadcastWithIds, appSettings));
+
+		appSettings.setSubFolder("recordings/%m/%s");
+		assertEquals("recordings", getSubfolder(new Broadcast(), appSettings));
+
+		Broadcast broadcastWithEmptyIds = new Broadcast();
+		broadcastWithEmptyIds.setMainTrackStreamId("");
+		broadcastWithEmptyIds.setStreamId("");
+		assertEquals("recordings", getSubfolder(broadcastWithEmptyIds, appSettings));
+
+		appSettings.setSubFolder("recordings/%m");
+		Broadcast broadcastWithOnlyMainTrack = new Broadcast();
+		broadcastWithOnlyMainTrack.setMainTrackStreamId(mainTrackId);
+		assertEquals("recordings/mainTrackId", getSubfolder(broadcastWithOnlyMainTrack, appSettings));
+
+		appSettings.setSubFolder("recordings/%s");
+		Broadcast broadcastWithOnlyStreamId = new Broadcast();
+		broadcastWithOnlyStreamId.setStreamId(streamId);
+		assertEquals("recordings/stream456", getSubfolder(broadcastWithOnlyStreamId, appSettings));
+
+		appSettings.setSubFolder("fixedFolder");
+		assertEquals("fixedFolder", getSubfolder(broadcastWithIds, appSettings));
+
+		//broadcast subfolder overwrites app settings sub folder.
+		assertEquals("customSubfolder", getSubfolder(broadcastWithSubfolder, appSettings));
+
+
 	}
 
 }

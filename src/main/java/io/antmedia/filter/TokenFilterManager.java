@@ -12,6 +12,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.security.ITokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,7 +24,6 @@ import jakarta.ws.rs.HttpMethod;
 
 public class TokenFilterManager extends AbstractFilter   {
 
-	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 	public static final String NOT_INITIALIZED= "Not initialized";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
 	public static final String TOKEN_HEADER_FOR_NODE_COMMUNICATION = "ClusterAuthorization";
@@ -42,19 +42,19 @@ public class TokenFilterManager extends AbstractFilter   {
 		String subscriberCodeText = ((HttpServletRequest) request).getParameter("subscriberCode");
 
 		if (tokenId != null) {
-			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
+			tokenId = tokenId.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 		}
 		if (subscriberId != null) {
-			subscriberId = subscriberId.replaceAll(REPLACE_CHARS_REGEX, "_");
+			subscriberId = subscriberId.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 		}
 		if (subscriberCodeText != null) {
-			subscriberCodeText = subscriberCodeText.replaceAll(REPLACE_CHARS_REGEX, "_");
+			subscriberCodeText = subscriberCodeText.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 		}
 
 		String sessionId = httpRequest.getSession().getId();
 		String streamId = getStreamId(httpRequest.getRequestURI());
 
-		String clientIP = httpRequest.getRemoteAddr().replaceAll(REPLACE_CHARS_REGEX, "_");
+		String clientIP = httpRequest.getRemoteAddr().replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 
 
 		AppSettings appSettings = getAppSettings();
@@ -79,7 +79,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		 */
 
 
-		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) 
+		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))
 		{
 			if (streamId == null) {
 				logger.warn("No streamId found in the request: {}", httpRequest.getRequestURI());
@@ -98,7 +98,7 @@ public class TokenFilterManager extends AbstractFilter   {
 			
 			if (jwtInternalCommunicationToken != null) 
 			{
-				//if jwtInternalCommunicationToken is not null, 
+				//if jwtInternalCommunicationToken is not null,
 				//it means that this is the origin instance and receiving request from the edge node directly
 				
 				boolean checkJwtToken = false;
@@ -177,7 +177,7 @@ public class TokenFilterManager extends AbstractFilter   {
 			return null;
 		}
 		
-		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
+		requestURI = requestURI.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 
 		int endIndex;
 		int startIndex = requestURI.indexOf('/');

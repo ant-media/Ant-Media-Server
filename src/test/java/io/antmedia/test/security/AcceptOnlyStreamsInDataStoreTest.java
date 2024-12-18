@@ -131,6 +131,17 @@ public class AcceptOnlyStreamsInDataStoreTest {
 			
 			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null, null));
 			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null, null));
+			
+			//change origin adress that is something not accesible
+			broadcastingBroadcast.setOriginAdress("not.exist.antmedia.io");
+			//it shoudla allow to publish because it's not accessible
+			assertTrue(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null, null));
+			//change origin adress to empty
+			broadcastingBroadcast.setOriginAdress("");
+			//it shoudl not allow to publish because timeout is not passed
+			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null, null));
+
+			
 			assertTrue(filter.isPublishAllowed(scope, offlineBroadcast.getStreamId(), "mode", null, null));
 			assertTrue(filter.isPublishAllowed(scope, stuckedBroadcast.getStreamId(), "mode", null, null));
 			
