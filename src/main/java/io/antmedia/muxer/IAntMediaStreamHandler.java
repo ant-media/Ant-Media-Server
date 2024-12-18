@@ -47,6 +47,7 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @Deprecated use {@link #muxingFinished(Broadcast, File, long, long, int, String, String)} because Broadcast object may be deleted when this method is called
 	 */
+	@Deprecated
 	public void muxingFinished(String id, File file, long startTime, long duration , int resolution, String path, String vodId);
 	
 	

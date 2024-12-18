@@ -2673,15 +2673,19 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String lat = "1L";
 		String longitude = "2L";
 		String altitude = "3L";
-		
+
+		boolean checkValuesVoDFields = false;
+
 		if (getDataStore().get(streamId) == null) {
+
+			checkValuesVoDFields = true;
 			Broadcast broadcast = new Broadcast();
 			try {
 				broadcast.setStreamId(streamId);
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
-			
+
 			broadcast.setName(streamName);
 			broadcast.setDescription(description);
 			broadcast.setLatitude(lat);
@@ -2691,7 +2695,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			//set this zombi to trigger delete operation at the end
 			broadcast.setZombi(true);
 			getDataStore().save(broadcast);
-			
+
 		}
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setHlsMuxingEnabled(false);
@@ -2743,29 +2747,31 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
 				MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
 			}
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				List<VoD> tmpList = getDataStore().getVodList(0, 10, "date", "desc", streamId, null);
-				
+
 				return tmpList.size() > 0;
 			});
-			
+
 			List<VoD> vodList = getDataStore().getVodList(0, 10, "date", "desc", streamId, null);
-			
+
 			assertTrue(1 <= vodList.size());
-			assertEquals(streamName, vodList.get(0).getStreamName());
-			assertEquals(description, vodList.get(0).getDescription());
 
-			assertEquals(lat, vodList.get(0).getLatitude());
+			if (checkValuesVoDFields) {
+				assertEquals(streamName, vodList.get(0).getStreamName());
+				assertEquals(description, vodList.get(0).getDescription());
 
-			assertEquals(longitude, vodList.get(0).getLongitude());
+				assertEquals(lat, vodList.get(0).getLatitude());
 
-			assertEquals(altitude, vodList.get(0).getAltitude());
-			assertEquals(metadata, vodList.get(0).getMetadata());
+				assertEquals(longitude, vodList.get(0).getLongitude());
+
+				assertEquals(altitude, vodList.get(0).getAltitude());
+				assertEquals(metadata, vodList.get(0).getMetadata());
+			}
 
 
-			
-			
+
 			return muxAdaptor.getMuxerList().get(0).getFile();
 		} catch (Exception e) {
 			e.printStackTrace();

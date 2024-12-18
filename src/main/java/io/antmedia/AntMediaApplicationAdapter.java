@@ -1042,7 +1042,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		logger.info("muxing finished for stream: {} with file: {}", streamId, file);
 
 		//We need to get the webhook url explicitly because broadcast may be deleted here
-		if (StringUtils.isNotBlank(listenerHookURL)) {
+		if (StringUtils.isBlank(listenerHookURL)) {
 			// if hook URL is not defined for stream specific, then try to get common one from app
 			listenerHookURL = appSettings.getListenerHookURL();
 		}
