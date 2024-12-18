@@ -138,6 +138,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
 import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
 import io.antmedia.integration.AppFunctionalV2Test;
@@ -2647,11 +2648,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//assertEquals(0xFF00, unsigned << 8);
 
-
-
 	}
 
-	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
+	public File testMp4Muxing(String streamId, boolean shortVersion, boolean checkDuration) {
 
 		logger.info("running testMp4Muxing");
 
@@ -2668,14 +2667,31 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
-		if (getDataStore().get(name) == null) {
+		String streamName = "broadcastName";
+		String description = "broadadcastDescription";
+		String metadata = "metadata";
+		String lat = "1L";
+		String longitude = "2L";
+		String altitude = "3L";
+		
+		if (getDataStore().get(streamId) == null) {
 			Broadcast broadcast = new Broadcast();
 			try {
-				broadcast.setStreamId(name);
+				broadcast.setStreamId(streamId);
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
+			
+			broadcast.setName(streamName);
+			broadcast.setDescription(description);
+			broadcast.setLatitude(lat);
+			broadcast.setLongitude(longitude);
+			broadcast.setAltitude(altitude);
+			broadcast.setMetaData(metadata);
+			//set this zombi to trigger delete operation at the end
+			broadcast.setZombi(true);
 			getDataStore().save(broadcast);
+			
 		}
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setHlsMuxingEnabled(false);
@@ -2698,7 +2714,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
 
-			boolean result = muxAdaptor.init(appScope, name, false);
+			boolean result = muxAdaptor.init(appScope, streamId, false);
 
 			assertTrue(result);
 
@@ -2727,6 +2743,29 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
 				MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
 			}
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				List<VoD> tmpList = getDataStore().getVodList(0, 10, "date", "desc", streamId, null);
+				
+				return tmpList.size() > 0;
+			});
+			
+			List<VoD> vodList = getDataStore().getVodList(0, 10, "date", "desc", streamId, null);
+			
+			assertTrue(1 <= vodList.size());
+			assertEquals(streamName, vodList.get(0).getStreamName());
+			assertEquals(description, vodList.get(0).getDescription());
+
+			assertEquals(lat, vodList.get(0).getLatitude());
+
+			assertEquals(longitude, vodList.get(0).getLongitude());
+
+			assertEquals(altitude, vodList.get(0).getAltitude());
+			assertEquals(metadata, vodList.get(0).getMetadata());
+
+
+			
+			
 			return muxAdaptor.getMuxerList().get(0).getFile();
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -1039,6 +1039,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
 		}
 
+		logger.info("muxing finished for stream: {} with file: {}", streamId, file);
 
 		//We need to get the webhook url explicitly because broadcast may be deleted here
 		if (StringUtils.isNotBlank(listenerHookURL)) {
@@ -1046,15 +1047,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			listenerHookURL = appSettings.getListenerHookURL();
 		}
 
-		String vodIdFinal;
-		if (vodId != null) {
-			vodIdFinal = vodId;
-		}
-		else {
-			vodIdFinal = RandomStringUtils.randomAlphanumeric(24);
+		if (StringUtils.isBlank(vodId)) {
+			vodId = RandomStringUtils.randomAlphanumeric(24);
 		}
 
-		VoD newVod = new VoD(streamName, broadcast.getStreamId(), relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodIdFinal, previewFilePath);
+		VoD newVod = new VoD(streamName, broadcast.getStreamId(), relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
 		newVod.setDescription(broadcast.getDescription());
 		newVod.setMetadata(broadcast.getMetaData());
 		newVod.setLongitude(broadcast.getLongitude());
@@ -1077,7 +1074,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			final String baseName = vodName.substring(0, index);
 			final String metaData = broadcast.getMetaData();
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, metaData, null);
+			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metaData, null);
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
