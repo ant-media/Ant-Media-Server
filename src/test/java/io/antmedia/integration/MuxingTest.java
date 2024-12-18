@@ -13,15 +13,22 @@ import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.junit.Assert.*;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.ProcessHandle.Info;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -857,6 +864,22 @@ public class MuxingTest {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
 			});
 
+			
+			String content = getM3U8Content("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
+			
+			
+			long now = System.currentTimeMillis();
+	        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+	        String formattedTime = formatter.format(new Date(now));
+
+	        //(now/10000) we can not guarantee we will have a ts created just now so use regex like live_test873835-20241218-173452XX.ts
+	        String regex = streamName+"-"+formattedTime+"-"+(now/100000) + "\\d{2}\\.ts";
+	        System.out.println("regex for ts name:"+regex);
+
+			Pattern pattern = Pattern.compile(regex);
+	        Matcher matcher = pattern.matcher(content);
+	        assertTrue (matcher.find());
+			
 			rtmpSendingProcess.destroyForcibly();
 			
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
@@ -870,6 +893,29 @@ public class MuxingTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	private String getM3U8Content(String urlString) throws Exception {
+		URL url = new URL(urlString);
+
+        // Open a connection and create a BufferedReader
+        BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+
+        // Read the URL content into a StringBuilder
+        StringBuilder content = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            content.append(line).append("\n");
+        }
+
+        // Close the reader
+        reader.close();
+
+        // Print the content
+        System.out.println("URL Content:");
+        System.out.println(content.toString());
+        
+        return content.toString();
 	}
 
 	

@@ -1150,6 +1150,9 @@ public class AppSettings implements Serializable{
 	 * HLS segment file suffix format. 
 	 * By default: %09d which means 9 digit incremental
 	 * To add time: It can be like %Y%m%d-%s
+	 * If you want to use both incrementing numbers and date together
+	 * - Please use double % for the incrementing number suffix like: %s-%%09d
+	 * - +second_level_segment_index to HLS flags
 	 *
 	 */
 	@Value( "${hlsSegmentFileSuffixFormat:%09d}" )
