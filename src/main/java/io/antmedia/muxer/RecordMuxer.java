@@ -140,7 +140,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				finalizeRecordFile(f);
 				
-				adaptor.muxingFinished(broadcast, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
+				adaptor.muxingFinished(broadcast, streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
 

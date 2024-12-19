@@ -29,8 +29,8 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	
 	
 	@Override
-	public void muxingFinished(Broadcast broadcast, File file, long startTime, long duration, int resolution, String previewPath, String vodId) {
-		super.muxingFinished(broadcast, file, startTime, duration, resolution, previewPath, vodId);
+	public void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration, int resolution, String previewPath, String vodId) {
+		super.muxingFinished(broadcast, streamId, file, startTime, duration, resolution, previewPath, vodId);
 		Application.id.add(broadcast.getStreamId());
 		Application.file.add(file);
 		Application.duration.add(duration);

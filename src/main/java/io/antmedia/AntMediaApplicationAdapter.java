@@ -1014,30 +1014,50 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 
-	//@Override
+	@Override
+	@Deprecated
 	public void muxingFinished(String streamId, File File, long startTime, long duration, int resolution,
 			String previewFilePath, String vodId) 
 	{
-		muxingFinished(getDataStore().get(streamId), File, startTime, duration, resolution, previewFilePath, vodId);
+		muxingFinished(getDataStore().get(streamId), streamId, File, startTime, duration, resolution, previewFilePath, vodId);
 	}
 
 	@Override
-	public void muxingFinished(@Nonnull Broadcast broadcast, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
+	public void muxingFinished(@Nonnull Broadcast broadcast, String streamId, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
+		
+		String listenerHookURL = null;
+		String streamName = file.getName();
+		String description = null;
+		String metadata = null;
+		String longitude = null;
+		String latitude = null;
+		String altitude = null;
+
+		if (broadcast != null) {
+			listenerHookURL = broadcast.getListenerHookURL();
+			if(StringUtils.isNotBlank(broadcast.getName())){
+				streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
+			}
+			description = broadcast.getDescription();
+			metadata = broadcast.getMetaData();
+			longitude = broadcast.getLongitude();
+			latitude = broadcast.getLatitude();
+			altitude = broadcast.getAltitude();
+		}
+		else {
+			logger.error("Broadcast is null for muxing finished for stream: {} it's not supposed to happen", streamId);
+		}
+		
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
 		long systemTime = System.currentTimeMillis();
 
 		String relativePath = getRelativePath(filePath);
-		String listenerHookURL = null;
-		String streamName = file.getName();
-
-		String streamId = broadcast.getStreamId();
 		
-		listenerHookURL = broadcast.getListenerHookURL();
-		if(StringUtils.isNotBlank(broadcast.getName())){
-			streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
-		}
+
+		
+		
 
 		logger.info("muxing finished for stream: {} with file: {}", streamId, file);
 
@@ -1051,12 +1071,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			vodId = RandomStringUtils.randomAlphanumeric(24);
 		}
 
-		VoD newVod = new VoD(streamName, broadcast.getStreamId(), relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
-		newVod.setDescription(broadcast.getDescription());
-		newVod.setMetadata(broadcast.getMetaData());
-		newVod.setLongitude(broadcast.getLongitude());
-		newVod.setLatitude(broadcast.getLatitude());
-		newVod.setAltitude(broadcast.getAltitude());
+		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
+		newVod.setDescription(description);
+		newVod.setMetadata(metadata);
+		newVod.setLongitude(longitude);
+		newVod.setLatitude(latitude);
+		newVod.setAltitude(altitude);
 		
 
 
@@ -1072,9 +1092,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				|| ((index = vodName.lastIndexOf(".webm")) != -1) )
 		{
 			final String baseName = vodName.substring(0, index);
-			final String metaData = broadcast.getMetaData();
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metaData, null);
+			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metadata, null);
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
