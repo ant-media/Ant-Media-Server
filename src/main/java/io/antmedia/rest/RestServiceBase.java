@@ -144,6 +144,7 @@ public abstract class RestServiceBase {
 	public static final int HIGH_CPU_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
 	public static final int INVALID_STREAM_NAME_ERROR = -5;
+	public static final int FETCH_REQUEST_REDIRECTED_TO_ORIGIN = -6;
 
 	public static final String HTTP = "http://";
 	public static final String RTSP = "rtsp://";
