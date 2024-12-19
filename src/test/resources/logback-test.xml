@@ -28,5 +28,6 @@
     <logger name="io.antmedia.muxer" level="DEBUG" />
 	
     <logger name="org.quartz" level="OFF" />
+    <logger name="io.antmedia.streamsource" level="DEBUG" />
     
 </configuration>
