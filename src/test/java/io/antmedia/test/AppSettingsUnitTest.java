@@ -655,9 +655,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(100, appSettings.getAppInstallationTime());
 		
 		
-		assertEquals(RequestClientOptions.DEFAULT_STREAM_BUFFER_SIZE, appSettings.getS3TransferBufferSizeInBytes());
-		appSettings.setS3TransferBufferSizeInBytes(100000);
-		assertEquals(100000, appSettings.getS3TransferBufferSizeInBytes());
+		assertEquals(10000000, appSettings.getS3TransferBufferSizeInBytes());
+		appSettings.setS3TransferBufferSizeInBytes(50000);
+		assertEquals(50000, appSettings.getS3TransferBufferSizeInBytes());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass

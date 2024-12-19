@@ -2013,7 +2013,7 @@ public class AppSettings implements Serializable{
 	 * bigger than ts segment file size for HLS continuous upload.
 	 * Otherwise chunk update may cannot be retried in case of any network break.
 	 */
-	@Value("${s3TransferBufferSizeInBytes:${"+SETTINGS_S3_TRANSFER_BUFFER_SIZE+":100000000}}")
+	@Value("${s3TransferBufferSizeInBytes:${"+SETTINGS_S3_TRANSFER_BUFFER_SIZE+":10000000}}")
 	private int s3TransferBufferSizeInBytes = 10000000;
 
 
