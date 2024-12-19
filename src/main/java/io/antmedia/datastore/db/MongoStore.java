@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.morphia.query.filters.Filter;
 import dev.morphia.query.filters.LogicalFilter;
 import org.apache.commons.io.FilenameUtils;
@@ -26,6 +25,7 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
