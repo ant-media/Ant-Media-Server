@@ -1,5 +1,7 @@
 package io.antmedia.console.datastore;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
@@ -43,6 +45,8 @@ public class ConsoleDataStoreFactory implements ApplicationContextAware {
 	private String dbPassword;
 
 	private Vertx vertx;
+	
+	private static Logger logger = LoggerFactory.getLogger(ConsoleDataStoreFactory.class);
 	
 	public String getAppName() {
 		return appName;
@@ -109,6 +113,9 @@ public class ConsoleDataStoreFactory implements ApplicationContextAware {
 			else if(DataStoreFactory.DB_TYPE_REDISDB.contentEquals(dbType))
 			{
 				dataStore = new RedisStore(dbHost);
+			}
+			else {
+				logger.error("Undefined Console Datastore:{}  db name:{}", dbType, dbName);
 			}
 		}
 		return dataStore;
