@@ -36,6 +36,7 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
+import com.amazonaws.RequestClientOptions;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -652,13 +653,18 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setAppInstallationTime(100);
 		assertEquals(100, appSettings.getAppInstallationTime());
+		
+		
+		assertEquals(RequestClientOptions.DEFAULT_STREAM_BUFFER_SIZE, appSettings.getS3TransferBufferSizeInBytes());
+		appSettings.setS3TransferBufferSizeInBytes(100000);
+		assertEquals(100000, appSettings.getS3TransferBufferSizeInBytes());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				196, numberOfFields);
+				197, numberOfFields);
 
 	}
 
