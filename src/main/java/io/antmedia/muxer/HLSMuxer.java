@@ -375,12 +375,7 @@ public class HLSMuxer extends Muxer  {
 				//convert segmentFileName to regular expression
 				
 				int indexOfSuffix = 0;
-				if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
-					indexOfSuffix = segmentFilename.indexOf(segmentFileNameSuffix);
-				}
-				else {
-					indexOfSuffix = segmentFilename.indexOf(segmentFileNameSuffix);
-				}
+				indexOfSuffix = segmentFilename.indexOf(segmentFileNameSuffix);
 				
 				String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
 				String regularExpression = segmentFileWithoutSuffix + ".*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
