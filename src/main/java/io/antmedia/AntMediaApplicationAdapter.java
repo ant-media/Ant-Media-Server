@@ -1054,10 +1054,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		long systemTime = System.currentTimeMillis();
 
 		String relativePath = getRelativePath(filePath);
-		
-
-		
-		
 
 		logger.info("muxing finished for stream: {} with file: {}", streamId, file);
 
