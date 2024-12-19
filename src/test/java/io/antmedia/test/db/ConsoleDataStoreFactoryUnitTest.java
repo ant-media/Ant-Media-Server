@@ -74,12 +74,14 @@ public class ConsoleDataStoreFactoryUnitTest {
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
         assertNotNull("DataStore should not be null", dataStore);
         assertTrue("DataStore should be of type MapDBStore", dataStore instanceof MapDBStore);
+        dataStore.clear();
+        dataStore.close();
     }
 
     @Test
     public void testGetDataStoreRedisDB() {
         consoleDataStoreFactory.setDbType(DataStoreFactory.DB_TYPE_REDISDB);
-        consoleDataStoreFactory.setDbHost("127.0.0.1");
+        consoleDataStoreFactory.setDbHost("redis://127.0.0.1:6379");
 
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
         assertNotNull("DataStore should not be null", dataStore);
