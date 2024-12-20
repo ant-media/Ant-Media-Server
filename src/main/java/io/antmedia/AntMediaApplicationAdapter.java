@@ -1,5 +1,6 @@
 package io.antmedia;
 
+import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
 import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
@@ -26,10 +27,11 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 
+import io.antmedia.filter.JWTFilter;
+import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -90,9 +92,6 @@ import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
-import io.antmedia.statistic.DashViewerStats;
-import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.ViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -110,6 +109,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.web.context.WebApplicationContext;
+
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
@@ -176,6 +177,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String STREAM_SOURCE = "streamSource";
 	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
+	public static final int CLUSTER_POST_RETRY_ATTEMPT_COUNT = 3;
+	public static final int CLUSTER_POST_TIMEOUT_MS = 1000;
 
 	//Allow any sub directory under /
 	private static final String VOD_IMPORT_ALLOWED_DIRECTORY = "/";
@@ -223,6 +226,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private Random random = new Random();
 
+	private IStatsCollector statsCollector;
+
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -253,17 +258,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());			
-			
+
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), new IAppSettingsUpdateListener() {
-				
+
 				@Override
 				public boolean settingsUpdated(AppSettings settings) {
 					return updateSettings(settings, false, true);
 				}
-				
+
 				@Override
 				public AppSettings getCurrentSettings() {
-					
+
 					return getAppSettings();
 				}
 			});
@@ -977,7 +982,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public ServerSettings getServerSettings()
 	{
 		if (serverSettings == null) {
-			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
+			serverSettings = (ServerSettings)getScope().getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
 		}
 		return serverSettings;
 	}
@@ -1247,6 +1252,67 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
+	public boolean sendClusterPost(String url, String clusterCommunicationToken) 
+	{
+
+		boolean result = false;
+		try (CloseableHttpClient httpClient = getHttpClient()) 
+		{
+			HttpPost httpPost = new HttpPost(url);
+			RequestConfig requestConfig = RequestConfig.custom()
+					.setConnectTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.setConnectionRequestTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.setSocketTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.build();
+			httpPost.setConfig(requestConfig);
+
+			httpPost.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
+
+			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) 
+			{
+				int statusCode = httpResponse.getStatusLine().getStatusCode();
+				logger.info("Cluster POST Response Status: {}", statusCode);
+				if (statusCode == HttpStatus.SC_OK) {
+					result = true;
+				} 
+			}
+		} 
+		catch (IOException e) 
+		{
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return result;
+	}
+
+	public void trySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts, CompletableFuture<Boolean> future) {
+		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
+
+			vertx.executeBlocking(() -> {
+
+				boolean result = sendClusterPost(url, clusterCommunicationToken);
+
+				if (!result && retryAttempts >= 1) {
+					trySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1, future);
+				}
+				else {
+
+					future.complete(result);
+					if (result) {
+						logger.info("Cluster POST is successful another node for url:{}", url);
+					}
+					else {
+						logger.info("Cluster POST is not successful to another node for url:{} and no more retry attempts left",
+								url);
+					}
+				}
+				return null;
+
+			});
+
+
+		});
+	}
+
 	/**
 	 *
 	 * @param url
@@ -1264,6 +1330,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					.setSocketTimeout(2000)
 					.build();
 			httpPost.setConfig(requestConfig);
+
 
 			if (ContentType.APPLICATION_FORM_URLENCODED.getMimeType().equals(contentType))
 			{
@@ -1362,24 +1429,97 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
 	}
 
-	public Result startStreaming(Broadcast broadcast)
-	{
+	public Result startStreaming(Broadcast broadcast) {
 		Result result = new Result(false);
 
-		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)
-				)  {
-			result = getStreamFetcherManager().startStreaming(broadcast);
+		// Check resource availability first
+		if (!getStatsCollector().enoughResource()) {
+			result.setMessage("Not enough resource on server to start streaming.");
+			return result;
 		}
+
+		// Handle streaming for IP camera, stream source, and VOD
+		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) {
+
+			if (isClusterMode()) {
+				String broadcastOriginAddress = broadcast.getOriginAdress();
+
+				// Handle null or empty origin address
+				if (StringUtils.isBlank(broadcastOriginAddress)) {
+					result = getStreamFetcherManager().startStreaming(broadcast);
+					result.setMessage("Broadcasts origin address is not set. " +
+							getServerSettings().getHostAddress() + " will fetch the stream.");
+					return result;
+				}
+
+				// Handle matching origin address
+				if (broadcastOriginAddress.equals(getServerSettings().getHostAddress())) {
+					result = getStreamFetcherManager().startStreaming(broadcast);
+					return result;
+				}
+
+				// Forward request to origin server
+				forwardStartStreaming(broadcast);
+				result.setSuccess(true);
+				result.setErrorId(FETCH_REQUEST_REDIRECTED_TO_ORIGIN);
+				result.setMessage("Request forwarded to origin server for fetching. " +
+						"Check broadcast status for final confirmation.");
+				return result;
+			} 
+			else {
+				result = getStreamFetcherManager().startStreaming(broadcast);
+			}
+		}
+		// Handle playlist type
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
 			result = getStreamFetcherManager().startPlaylist(broadcast);
-
 		}
+		// Handle unsupported broadcast types
 		else {
-			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", broadcast.getType(), broadcast.getStreamId());
+			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}",
+					broadcast.getType(), broadcast.getStreamId());
+			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist");
 		}
+
 		return result;
+	}
+
+	public void forwardStartStreaming(Broadcast broadcast) {
+		String jwtToken = JWTFilter.generateJwtToken(
+				getAppSettings().getClusterCommunicationKey(),
+				System.currentTimeMillis() + 5000
+				);
+
+		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" +
+				getServerSettings().getDefaultHttpPort() +
+				File.separator + getAppSettings().getAppName() +
+				File.separator + "rest" +
+				File.separator + "v2" +
+				File.separator + "broadcasts" +
+				File.separator + broadcast.getStreamId() +
+				File.separator + "start";
+
+
+		CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+		trySendClusterPostWithDelay(restRouteOfNode, jwtToken, CLUSTER_POST_RETRY_ATTEMPT_COUNT, future);
+
+
+		future.thenAccept(success -> {
+			if (success) {
+				logger.info("Cluster POST redirection to {} succeeded", restRouteOfNode);
+			} else {
+				logger.info("Cluster POST redirection to {} failed. Local node {} will fetch the stream. ", restRouteOfNode, getServerSettings().getHostAddress());
+				getStreamFetcherManager().startStreaming(broadcast);
+			}
+		})
+		.exceptionally(ex -> {
+			logger.error("Cluster POST encountered an exception: {}", ExceptionUtils.getStackTrace(ex));
+			getStreamFetcherManager().startStreaming(broadcast);
+			return null;
+		});
 	}
 
 	public Result stopStreaming(Broadcast broadcast)
@@ -1668,8 +1808,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void closeDB(boolean deleteDB) {
-		boolean isClusterMode = getScope().getContext().hasBean(IClusterNotifier.BEAN_NAME);
-		if (deleteDB && isClusterMode)
+		boolean clusterMode = isClusterMode();
+		if (deleteDB && clusterMode)
 		{
 			//let the other nodes have enough time to synch
 			getVertx().setTimer(ClusterNode.NODE_UPDATE_PERIOD + 1000, l->
@@ -1956,7 +2096,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			appSettings.setToBeDeleted(newSettings.isToBeDeleted());
 
 			appSettings.setAppStatus(newSettings.getAppStatus());
-			
+
 
 			boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
 			logger.info("Saving settings to cluster db -> {} for app: {} and updateTime:{}", saveSettings, getScope().getName(), appSettings.getUpdateTime());
@@ -2314,6 +2454,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		});
 	}
 
+	public boolean isClusterMode() {
+		return getScope().getContext().hasBean(IClusterNotifier.BEAN_NAME);
+	}
+
 	public void joinedTheRoom(String roomId, String streamId) {
 		//No need to implement here.
 	}
@@ -2340,6 +2484,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public Map<String, Long> getPlayListSchedulerTimer() {
 		return playListSchedulerTimer;
+	}
+
+	public IStatsCollector getStatsCollector() {
+		if(statsCollector == null)
+		{
+			statsCollector = (IStatsCollector)getScope().getContext().getApplicationContext().getBean(StatsCollector.BEAN_NAME);
+		}
+		return statsCollector;
+	}
+
+	public void setStatsCollector(IStatsCollector statsCollector) {
+		this.statsCollector = statsCollector;
 	}
 
 }

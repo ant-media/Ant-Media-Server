@@ -101,8 +101,6 @@ public class RestProxyFilter extends AbstractFilter {
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())
 						&& isHostRunning(broadcast.getOriginAdress(), getServerSettings().getDefaultHttpPort())) 
 				{
-
-
 					forwardRequestToNode(request, response, broadcast.getOriginAdress());
 				}
 				else 
