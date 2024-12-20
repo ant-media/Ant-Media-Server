@@ -6,6 +6,7 @@ import org.onvif.ver10.device.wsdl.GetScopes;
 import org.red5.server.api.scope.IScope;
 
 import io.antmedia.AppSettings;
+import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.plugin.api.IFrameListener;
@@ -247,4 +248,10 @@ public interface IAntMediaStreamHandler {
 	 */
 	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
 			int inputQueueSize, double speed);
+	
+	/**
+	 * Add listener that is notified when the settings are updated
+	 * @param listener
+	 */
+	public void addSettingsUpdateListener(IAppSettingsUpdateListener listener);
 }

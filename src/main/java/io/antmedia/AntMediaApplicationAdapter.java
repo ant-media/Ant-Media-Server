@@ -108,6 +108,7 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
+import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
@@ -228,6 +229,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private Random random = new Random();
 
 	private IStatsCollector statsCollector;
+	
+	private Set<IAppSettingsUpdateListener> settingsUpdateListenerSet = new ConcurrentHashSet<IAppSettingsUpdateListener>();
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -699,7 +702,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}	
 
 				for (IStreamListener listener : streamListeners) {
+					//keep backward compatibility
 					listener.streamFinished(broadcast.getStreamId());
+					listener.streamFinished(broadcast);
 				}
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 			}
@@ -875,6 +880,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
+					listener.streamStarted(broadcast);
 				}
 
 				long videoHeight = 0;
@@ -1055,7 +1061,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		String relativePath = getRelativePath(filePath);
 
-		logger.info("muxing finished for stream: {} with file: {}", streamId, file);
+		logger.info("muxing finished for stream: {} with file: {} and duration:{}", streamId, file, duration);
 
 		//We need to get the webhook url explicitly because broadcast may be deleted here
 		if (StringUtils.isBlank(listenerHookURL)) {
@@ -2127,8 +2133,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else {
 			logger.warn("Settings cannot be saved for {}", getScope().getName());
 		}
+		
+		notifySettingsUpdateListeners(appSettings);
 
 		return result;
+	}
+	
+	public void notifySettingsUpdateListeners(AppSettings appSettings) {
+		for (IAppSettingsUpdateListener listener : settingsUpdateListenerSet) {
+			listener.settingsUpdated(appSettings);
+		}
+	}
+	
+	@Override
+	public void addSettingsUpdateListener(IAppSettingsUpdateListener listener) {
+		settingsUpdateListenerSet.add(listener);
 	}
 
 	private boolean isEncoderSettingsValid(List<EncoderSettings> encoderSettingsList) {
