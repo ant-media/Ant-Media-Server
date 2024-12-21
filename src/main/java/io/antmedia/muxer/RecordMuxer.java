@@ -129,7 +129,7 @@ public abstract class RecordMuxer extends Muxer {
 
 		if (fileTmp == null || !fileTmp.exists()) {
 
-			logger.error("File: {} does not exist. Streaming is likely not started for streamId:{}", fileTmp.getAbsolutePath(), streamId);
+			logger.error("MP4 temp file does not exist. Streaming is likely not started for streamId:{}", streamId);
 			return;
 		}
 		
