@@ -665,10 +665,6 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
-	private static final String SETTINGS_S3_TRANSFER_BUFFER_SIZE = "s3TransferBufferSize";
-	/**
-	 * @hidden
-	 */
 	private static final String SETTINGS_S3_CACHE_CONTROL = "settings.s3CacheControl";
 	/**
 	 * @hidden
@@ -2013,7 +2009,7 @@ public class AppSettings implements Serializable{
 	 * bigger than ts segment file size for HLS continuous upload.
 	 * Otherwise chunk update may cannot be retried in case of any network break.
 	 */
-	@Value("${s3TransferBufferSizeInBytes:${"+SETTINGS_S3_TRANSFER_BUFFER_SIZE+":10000000}}")
+	@Value("${s3TransferBufferSizeInBytes:10000000}")
 	private int s3TransferBufferSizeInBytes = 10000000;
 
 
