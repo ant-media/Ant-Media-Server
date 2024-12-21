@@ -4,12 +4,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +33,7 @@ import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -274,6 +281,29 @@ public class AmazonS3StorageClientTest {
 		
 		storage.setPermission("aws-exec-read");
 		assertEquals(CannedAccessControlList.AwsExecRead, storage.getCannedAcl());
+		
+		
+	}
+	
+	@Test
+	public void testS3TransferBufferSize() {
+		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
+		int s3TransferBufferSize = 5000;
+		
+		storage.setTransferBufferSize(s3TransferBufferSize);
+
+		TransferManager tm = Mockito.mock(TransferManager.class);
+		Mockito.doReturn(tm).when(storage).getTransferManager();
+		Mockito.doReturn(true).when(storage).isEnabled();
+		Mockito.doNothing().when(storage).listenUploadProgress(anyString(), nullable(File.class), anyBoolean(), any());
+
+		
+		storage.save("key", null, mock(InputStream.class), false, false);
+
+		ArgumentCaptor<PutObjectRequest> putObjectRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+		Mockito.verify(tm).upload(putObjectRequestCaptor.capture());
+		assertEquals(s3TransferBufferSize, putObjectRequestCaptor.getValue().getRequestClientOptions().getReadLimit());
+
 		
 		
 	}

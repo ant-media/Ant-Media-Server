@@ -1793,6 +1793,7 @@ public class AppSettings implements Serializable{
 	public static final String APPLICATION_STATUS_INSTALLATION_FAILED = "installationFailed";
 
 
+
 	/**
 	 * Describes the application installation status. Possible values:
 	 *
@@ -2000,6 +2001,17 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${s3Permission:${"+SETTINGS_S3_PERMISSION+":public-read}}")
 	private String s3Permission = "public-read";
+	
+	
+	/**
+	 * S3 Transfer Buffer Size
+	 * This describes to buffer size to keep transferring data. It should be
+	 * bigger than ts segment file size for HLS continuous upload.
+	 * Otherwise chunk update may cannot be retried in case of any network break.
+	 */
+	@Value("${s3TransferBufferSizeInBytes:10000000}")
+	private int s3TransferBufferSizeInBytes = 10000000;
+
 
 	/**
 	 *  HLS Encryption key info file full path.
@@ -4137,5 +4149,13 @@ public class AppSettings implements Serializable{
 	 */
 	public void setAppInstallationTime(long appInstallationTime) {
 		this.appInstallationTime = appInstallationTime;
+	}
+
+	public int getS3TransferBufferSizeInBytes() {
+		return s3TransferBufferSizeInBytes;
+	}
+
+	public void setS3TransferBufferSizeInBytes(int s3TransferBufferSizeInBytes) {
+		this.s3TransferBufferSizeInBytes = s3TransferBufferSizeInBytes;
 	}
 }
