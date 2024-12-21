@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.red5.server.api.IContext;
@@ -127,7 +128,7 @@ public abstract class RecordMuxer extends Muxer {
 		super.writeTrailer();
 
 
-		Broadcast broadcast = getAppInstance().getDataStore().get(streamId);
+		Broadcast broadcast = getAppAdaptor().getDataStore().get(streamId);
 		
 		vertx.executeBlocking(()->{
 			try {
@@ -155,19 +156,14 @@ public abstract class RecordMuxer extends Muxer {
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
 				}
 			} catch (Exception e) {
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 			return null;
 		}, false);
 
 	}
 
-	public AntMediaApplicationAdapter getAppAdaptor() {
-		IContext context = RecordMuxer.this.scope.getContext();
-		ApplicationContext appCtx = context.getApplicationContext();
-		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		return adaptor;
-	}
+
 
 	
 	public static String getS3Prefix(String s3FolderPath, String subFolder) {

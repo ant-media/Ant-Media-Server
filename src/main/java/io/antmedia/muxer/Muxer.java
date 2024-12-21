@@ -708,11 +708,12 @@ public abstract class Muxer {
 		return (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 	}
 	
-	protected IAntMediaStreamHandler getAppInstance() {
-		if (appInstance == null) {
-			appInstance = (IAntMediaStreamHandler) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		}
-		return appInstance;
+	
+	public AntMediaApplicationAdapter getAppAdaptor() {
+		IContext context = scope.getContext();
+		ApplicationContext appCtx = context.getApplicationContext();
+		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		return adaptor;
 	}
 	
 

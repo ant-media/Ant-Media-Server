@@ -1051,7 +1051,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			altitude = broadcast.getAltitude();
 		}
 		else {
-			logger.error("Broadcast is null for muxing finished for stream: {} it's not supposed to happen", streamId);
+			logger.error("Broadcast is null for muxingFinished for stream: {} it's not supposed to happen", streamId);
 		}
 		
 		String vodName = file.getName();
