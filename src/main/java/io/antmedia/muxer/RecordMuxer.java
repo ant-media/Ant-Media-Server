@@ -27,7 +27,7 @@ public abstract class RecordMuxer extends Muxer {
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
 	protected int resolution;
-	
+
 	protected boolean uploadMP4ToS3 = true;
 
 	protected String previewPath;
@@ -41,7 +41,7 @@ public abstract class RecordMuxer extends Muxer {
 	 * It will be define when record muxer is called by anywhere
 	 */
 	private long startTime = 0;
-	
+
 	private String vodId;
 
 
@@ -52,7 +52,7 @@ public abstract class RecordMuxer extends Muxer {
 		firstAudioDts = -1;
 		firstVideoDts = -1;
 		firstKeyFrameReceived = false;
-		
+
 	}
 
 	protected int[] SUPPORTED_CODECS;
@@ -108,13 +108,13 @@ public abstract class RecordMuxer extends Muxer {
 		}
 		return true;
 	}
-	
-	
+
+
 	@Override
 	public String getOutputURL() {
 		return fileTmp.getAbsolutePath();
 	}
-		
+
 	public void setPreviewPath(String path){
 		this.previewPath = path;
 	}
@@ -127,9 +127,14 @@ public abstract class RecordMuxer extends Muxer {
 
 		super.writeTrailer();
 
+		if (fileTmp == null || !fileTmp.exists()) {
 
-		Broadcast broadcast = getAppAdaptor().getDataStore().get(streamId);
+			logger.error("File: {} does not exist. Streaming is likely not started for streamId:{}", fileTmp.getAbsolutePath(), streamId);
+			return;
+		}
 		
+		Broadcast broadcast = getAppAdaptor().getDataStore().get(streamId);
+
 		vertx.executeBlocking(()->{
 			try {
 
@@ -140,7 +145,7 @@ public abstract class RecordMuxer extends Muxer {
 				File f = getFinalFileName(appSettings.isS3RecordingEnabled());
 
 				finalizeRecordFile(f);
-				
+
 				adaptor.muxingFinished(broadcast, streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
@@ -155,6 +160,7 @@ public abstract class RecordMuxer extends Muxer {
 
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
 				}
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -165,7 +171,7 @@ public abstract class RecordMuxer extends Muxer {
 
 
 
-	
+
 	public static String getS3Prefix(String s3FolderPath, String subFolder) {
 		return replaceDoubleSlashesWithSingleSlash(s3FolderPath + File.separator + (subFolder != null ? subFolder : "" ) + File.separator);
 	}
@@ -176,7 +182,7 @@ public abstract class RecordMuxer extends Muxer {
 		String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
 
 		String prefix = getS3Prefix(s3FolderPath, subFolder);
-		
+
 		String fileName = getFile().getName();
 
 		File f = new File(origFileName);
@@ -215,7 +221,7 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 
-	
+
 
 	public boolean isUploadingToS3(){return uploadMP4ToS3;}
 
