@@ -73,6 +73,7 @@ import com.google.firebase.messaging.SendResponse;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
@@ -415,10 +416,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 
+		IAppSettingsUpdateListener settingsListener = mock(IAppSettingsUpdateListener.class);
+		spyAdapter.addSettingsUpdateListener(settingsListener);
+		
 		spyAdapter.updateSettings(newSettings, false, false);
 		//it should not change times(1) because we don't want it to update the datastore
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
+		
+		//make sure settingsUpdated is called
+		verify(settingsListener, times(1)).settingsUpdated(settings);
 
 		settings.setUpdateTime(900);
 		newSettings.setUpdateTime(900);
@@ -641,7 +648,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testMuxingFinishedWithPreview(){
+	public void testMuxingFinishedWithPreview() throws Exception{
 		AppSettings appSettings = new AppSettings();
 		appSettings.setGeneratePreview(true);
 		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
@@ -653,6 +660,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		adapter.setDataStoreFactory(dsf);
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("streamId");
+		dataStore.save(broadcast);
 
 		adapter.setVertx(vertx);
 
@@ -662,7 +672,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertFalse(f.exists());
 
-		adapter.muxingFinished("streamId", anyFile, 0, 100, 480, "src/test/resources/preview.png", null);
+		adapter.muxingFinished(broadcast, "streamId", anyFile, 0, 100, 480, "src/test/resources/preview.png", null);
 
 		await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -676,7 +686,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testMuxingFinished() {
+	public void testMuxingFinished() throws Exception {
 
 		AppSettings appSettings = new AppSettings();
 		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
@@ -688,16 +698,19 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		adapter.setDataStoreFactory(dsf);
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("streamId");
+		dataStore.save(broadcast);
 
 		adapter.setVertx(vertx);
 
 		File anyFile = new File("src/test/resources/sample_MP4_480.mp4");
 
 		{
-
 			assertFalse(f.exists());
 
-			adapter.muxingFinished("streamId", anyFile, 0, 100, 480, null, null);
+			adapter.muxingFinished(broadcast, broadcast.getStreamId(), anyFile, 0, 100, 480, null, null);
 
 			await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -715,7 +728,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			assertFalse(f.exists());
 
-			adapter.muxingFinished("streamId", anyFile, 0, 100, 480, "", null);
+			adapter.muxingFinished(broadcast, broadcast.getStreamId(), anyFile, 0, 100, 480, "", null);
 
 			await().pollDelay(3, TimeUnit.SECONDS).atMost(4, TimeUnit.SECONDS).until(()-> !f.exists());
 		}
@@ -1121,7 +1134,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 * So, no hook is posted
 		 */
 
-
 		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureMainTrackId = ArgumentCaptor.forClass(String.class);
@@ -1137,7 +1149,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
+		spyAdaptor.muxingFinished(broadcast, broadcast.getStreamId(), anyFile, 0, 100, 480, null, null);
 
 		//verify that notifyHook is never called
 		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
@@ -1162,7 +1174,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.updateBroadcastFields(streamId, update);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
+		spyAdaptor.muxingFinished(broadcast, broadcast.getStreamId(), anyFile, 0, 100, 480, null, null);
 
 		await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -1196,7 +1208,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.delete(streamId);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
+		spyAdaptor.muxingFinished("streamId", anyFile, 0, 100, 480, null, null);
 
 		await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -1225,7 +1237,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		appSettings.setListenerHookURL("listenerHookURL");
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
+		spyAdaptor.muxingFinished(broadcast, broadcast.getStreamId(), anyFile, 0, 100, 480, null, null);
 
 		await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
