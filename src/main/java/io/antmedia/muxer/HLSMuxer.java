@@ -173,7 +173,7 @@ public class HLSMuxer extends Muxer  {
 			options.put("hls_segment_type", hlsSegmentType);
 			if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
 
-				segmentInitFilename = initialResourceNameWithoutExtension + "_init.mp4";
+				segmentInitFilename = initialResourceNameWithoutExtension + "_" + System.currentTimeMillis() + "_init.mp4";
 				options.put("hls_fmp4_init_filename", segmentInitFilename);
 				segmentFilename += FMP4_EXTENSION;
 			} else { //if it's mpegts

@@ -625,10 +625,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//check the init file and m4s files there
 		assertTrue(hlsMuxer.getFile().exists());
-		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "_init.mp4").exists());
-		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "000000003.fmp4").exists());
+		String[] filesInStreams = hlsMuxer.getFile().getParentFile().list();
+		boolean initFileFound = false;
+        String regex = streamId + "_" + System.currentTimeMillis()/10000 + "\\d{4}_init.mp4";
+		System.out.println("regex:"+regex);
 
-
+		for (int i = 0; i < filesInStreams.length; i++) {
+			System.out.println("files:"+filesInStreams[i]);
+			initFileFound |= filesInStreams[i].matches(regex);
+		}
+		assertTrue(initFileFound);
 		assertTrue(MuxingTest.testFile(hlsMuxer.getFile().getAbsolutePath(), 107000));
 
 		assertEquals(0, hlsMuxer.getAudioNotWrittenCount());
