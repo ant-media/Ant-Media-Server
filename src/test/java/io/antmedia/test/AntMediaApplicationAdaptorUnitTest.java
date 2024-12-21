@@ -73,6 +73,7 @@ import com.google.firebase.messaging.SendResponse;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
@@ -415,10 +416,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 
+		IAppSettingsUpdateListener settingsListener = mock(IAppSettingsUpdateListener.class);
+		spyAdapter.addSettingsUpdateListener(settingsListener);
+		
 		spyAdapter.updateSettings(newSettings, false, false);
 		//it should not change times(1) because we don't want it to update the datastore
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
+		
+		//make sure settingsUpdated is called
+		verify(settingsListener, times(1)).settingsUpdated(settings);
 
 		settings.setUpdateTime(900);
 		newSettings.setUpdateTime(900);
