@@ -372,7 +372,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				currentApplicationCreationProcesses.remove(appName);
 			}
 			return null;
-		});
+		}, false);
 
 		return success;
 

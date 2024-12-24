@@ -29,6 +29,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.*;
 
+import javax.annotation.Nonnull;
+
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.statistic.*;
@@ -106,10 +108,10 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
+import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.web.context.WebApplicationContext;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -227,6 +229,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private Random random = new Random();
 
 	private IStatsCollector statsCollector;
+	
+	private Set<IAppSettingsUpdateListener> settingsUpdateListenerSet = new ConcurrentHashSet<IAppSettingsUpdateListener>();
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -698,7 +702,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}	
 
 				for (IStreamListener listener : streamListeners) {
+					//keep backward compatibility
 					listener.streamFinished(broadcast.getStreamId());
+					listener.streamFinished(broadcast);
 				}
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 			}
@@ -874,6 +880,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
+					listener.streamStarted(broadcast);
 				}
 
 				long videoHeight = 0;
@@ -908,7 +915,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 			return null;
 
-		});
+		}, false);
 
 
 		if (absoluteStartTimeMs == 0)
@@ -1014,47 +1021,65 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	@Override
-	public void muxingFinished(final String streamId, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
+	@Deprecated
+	public void muxingFinished(String streamId, File File, long startTime, long duration, int resolution,
+			String previewFilePath, String vodId) 
+	{
+		muxingFinished(getDataStore().get(streamId), streamId, File, startTime, duration, resolution, previewFilePath, vodId);
+	}
+
+	@Override
+	public void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
+		
+		String listenerHookURL = null;
+		String streamName = file.getName();
+		String description = null;
+		String metadata = null;
+		String longitude = null;
+		String latitude = null;
+		String altitude = null;
+
+		if (broadcast != null) {
+			listenerHookURL = broadcast.getListenerHookURL();
+			if(StringUtils.isNotBlank(broadcast.getName())){
+				streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
+			}
+			description = broadcast.getDescription();
+			metadata = broadcast.getMetaData();
+			longitude = broadcast.getLongitude();
+			latitude = broadcast.getLatitude();
+			altitude = broadcast.getAltitude();
+		}
+		else {
+			logger.error("Broadcast is null for muxingFinished for stream: {} it's not supposed to happen", streamId);
+		}
+		
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
 		long systemTime = System.currentTimeMillis();
 
 		String relativePath = getRelativePath(filePath);
-		String listenerHookURL = null;
-		String streamName = file.getName();
 
-		Broadcast broadcast = getDataStore().get(streamId);
-
-		if(broadcast != null){
-			listenerHookURL = broadcast.getListenerHookURL();
-			if(broadcast.getName() != null){
-				streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
-			}
-		}
+		logger.info("muxing finished for stream: {} with file: {} and duration:{}", streamId, file, duration);
 
 		//We need to get the webhook url explicitly because broadcast may be deleted here
-		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
+		if (StringUtils.isBlank(listenerHookURL)) {
 			// if hook URL is not defined for stream specific, then try to get common one from app
 			listenerHookURL = appSettings.getListenerHookURL();
 		}
 
-		String vodIdFinal;
-		if (vodId != null) {
-			vodIdFinal = vodId;
-		}
-		else {
-			vodIdFinal = RandomStringUtils.randomAlphanumeric(24);
+		if (StringUtils.isBlank(vodId)) {
+			vodId = RandomStringUtils.randomAlphanumeric(24);
 		}
 
-		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodIdFinal, previewFilePath);
-		if(broadcast != null){
-			newVod.setDescription(broadcast.getDescription());
-			newVod.setMetadata(broadcast.getMetaData());
-			newVod.setLongitude(broadcast.getLongitude());
-			newVod.setLatitude(broadcast.getLatitude());
-			newVod.setAltitude(broadcast.getAltitude());
-		}
+		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
+		newVod.setDescription(description);
+		newVod.setMetadata(metadata);
+		newVod.setLongitude(longitude);
+		newVod.setLatitude(latitude);
+		newVod.setAltitude(altitude);
+		
 
 
 		if (getDataStore().addVod(newVod) == null) {
@@ -1069,9 +1094,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				|| ((index = vodName.lastIndexOf(".webm")) != -1) )
 		{
 			final String baseName = vodName.substring(0, index);
-			final String metaData = (broadcast != null) ? broadcast.getMetaData() : null;
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, metaData, null);
+			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metadata, null);
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -1307,7 +1331,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 				return null;
 
-			});
+			}, false);
 
 
 		});
@@ -2109,8 +2133,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else {
 			logger.warn("Settings cannot be saved for {}", getScope().getName());
 		}
+		
+		notifySettingsUpdateListeners(appSettings);
 
 		return result;
+	}
+	
+	public void notifySettingsUpdateListeners(AppSettings appSettings) {
+		for (IAppSettingsUpdateListener listener : settingsUpdateListenerSet) {
+			listener.settingsUpdated(appSettings);
+		}
+	}
+	
+	@Override
+	public void addSettingsUpdateListener(IAppSettingsUpdateListener listener) {
+		settingsUpdateListenerSet.add(listener);
 	}
 
 	private boolean isEncoderSettingsValid(List<EncoderSettings> encoderSettingsList) {
@@ -2251,6 +2288,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		storageClient.setPermission(settings.getS3Permission());
 		storageClient.setStorageClass(settings.getS3StorageClass());
 		storageClient.setCacheControl(settings.getS3CacheControl());
+		storageClient.setTransferBufferSize(settings.getS3TransferBufferSizeInBytes());
 		storageClient.reset();
 	}
 
@@ -2447,7 +2485,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.executeBlocking(() -> {
 			closeBroadcast(streamId);
 			return null;
-		});
+		}, false);
 	}
 
 	public boolean isClusterMode() {

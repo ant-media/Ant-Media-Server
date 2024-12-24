@@ -154,7 +154,9 @@ public class AmazonS3StorageClient extends StorageClient {
 			{
 				putRequest = new PutObjectRequest(getStorageName(), key, inputStream, metadata);
 			}
-
+			
+			putRequest.getRequestClientOptions().setReadLimit(getTransferBufferSize());
+			
 			putRequest.setCannedAcl(getCannedAcl());
 
 			if(checkStorageClass(getStorageClass())){
@@ -187,7 +189,7 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 	}
 
-	private void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
 		upload.addProgressListener((ProgressListener)event -> 
 		{
 			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
