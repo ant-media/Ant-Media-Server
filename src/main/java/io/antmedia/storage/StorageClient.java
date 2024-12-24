@@ -55,7 +55,8 @@ public abstract class StorageClient {
 	
 	protected ProgressListener progressListener;
 
-	
+	private int transferBufferSize;
+
 	/**
 	 * Delete file from storage
 	 * 
@@ -179,5 +180,14 @@ public abstract class StorageClient {
 
 	public void setCacheControl(String cacheControl) {
 		this.cacheControl = cacheControl;
+	}
+
+	public int getTransferBufferSize() {
+		return transferBufferSize;
+	}
+
+
+	public void setTransferBufferSize(int transferBufferSize) {
+		this.transferBufferSize = transferBufferSize;
 	}
 }

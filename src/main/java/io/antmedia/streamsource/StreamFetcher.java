@@ -564,6 +564,8 @@ public class StreamFetcher {
 
 				av_packet_ref(packet, pkt);
 				bufferQueue.add(packet);
+				logger.debug("packet/ref packet dts: {}/{} pts:{}/{} streamId:{}", pkt.dts(), packet.dts(), pkt.pts(),
+						packet.pts(), streamId);
 			}
 			else {
 

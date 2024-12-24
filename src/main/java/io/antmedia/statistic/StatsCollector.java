@@ -440,11 +440,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private void sendWebRTCClientStats() {
 		getVertx().executeBlocking(
-				b -> {
+				() -> {
 					collectAndSendWebRTCClientsStats();
-					b.complete();
+					return null;
 				}, 
-				null);
+				false);
 	}
 
 

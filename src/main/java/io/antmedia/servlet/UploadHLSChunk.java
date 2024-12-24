@@ -119,6 +119,7 @@ public class UploadHLSChunk extends HttpServlet {
 
 		String s3FileKey = getS3Key(req, appSettings);
 
+		//TODO: we overwrite progressListener for the ongoing upload here. This may make logs misleading.
 		storageClient.setProgressListener(event -> {
 			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
 			{
