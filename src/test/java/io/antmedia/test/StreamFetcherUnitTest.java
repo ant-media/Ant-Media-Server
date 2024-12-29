@@ -971,8 +971,17 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//test HLS Source
 		String streamId = testFetchStreamSources("src/test/resources/test.m3u8", false, false, true, "fmp4");
 		
-		File f = new File("webapps/junit/streams/"+streamId +"_init.mp4");
-		assertTrue(f.exists());
+		String[] filesInStreams = new File("webapps/junit/streams").list();
+		boolean initFileFound = false;
+        String regex = streamId + "_" + System.currentTimeMillis()/100000 + "\\d{5}_init.mp4";
+		System.out.println("regex:"+regex);
+
+		for (int i = 0; i < filesInStreams.length; i++) {
+			System.out.println("files:"+filesInStreams[i]);
+			initFileFound |= filesInStreams[i].matches(regex);
+		}
+		assertTrue(initFileFound);
+		
 		logger.info("leaving testHLSSource");
 	}
 

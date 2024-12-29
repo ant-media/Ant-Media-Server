@@ -1145,6 +1145,19 @@ public class AppSettings implements Serializable{
 	@Value( "${hlsSegmentType:mpegts}" )
 	private String hlsSegmentType = "mpegts";
 
+
+	/**
+	 * HLS segment file suffix format. 
+	 * By default: %09d which means 9 digit incremental
+	 * To add time: It can be like %Y%m%d-%s
+	 * If you want to use both incrementing numbers and date together
+	 * - Please use double % for the incrementing number suffix like: %s-%%09d
+	 * - +second_level_segment_index to HLS flags
+	 *
+	 */
+	@Value( "${hlsSegmentFileSuffixFormat:%09d}" )
+	private String hlsSegmentFileSuffixFormat = "%09d";
+
 	/**
 	 * The path for manually saved used VoDs
 	 * Determines the directory to store VOD files.
@@ -3982,6 +3995,14 @@ public class AppSettings implements Serializable{
 
 	public void setHlsSegmentType(String hlsSegmentType) {
 		this.hlsSegmentType = hlsSegmentType;
+	}
+
+	public String getHlsSegmentFileSuffixFormat() {
+		return hlsSegmentFileSuffixFormat;
+	}
+
+	public void setHlsSegmentFileNameFormat(String hlsSegmentFileSuffixFormat) {
+		this.hlsSegmentFileSuffixFormat = hlsSegmentFileSuffixFormat;
 	}
 
 	public String getRecordingSubfolder() {

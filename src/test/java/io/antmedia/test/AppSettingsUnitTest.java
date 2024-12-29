@@ -646,6 +646,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("test/folder", appSettings.getSubFolder());
 		
 		assertFalse(appSettings.isWriteSubscriberEventsToDatastore());
+		
+		assertEquals("%09d", appSettings.getHlsSegmentFileSuffixFormat());
+		appSettings.setHlsSegmentFileNameFormat("%s");
+		assertEquals("%s", appSettings.getHlsSegmentFileSuffixFormat());
 
 		
 		appSettings.setAppStatus(AppSettings.APPLICATION_STATUS_INSTALLED);
@@ -664,8 +668,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				197, numberOfFields);
-
+				198, numberOfFields);
 	}
 
 
