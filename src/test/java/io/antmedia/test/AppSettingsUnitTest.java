@@ -662,13 +662,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(10000000, appSettings.getS3TransferBufferSizeInBytes());
 		appSettings.setS3TransferBufferSizeInBytes(50000);
 		assertEquals(50000, appSettings.getS3TransferBufferSizeInBytes());
+		
+		map = appSettings.getEncoderParameters();
+		assertNotNull(map);
+		assertEquals(0, map.size());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				198, numberOfFields);
+				199, numberOfFields);
 	}
 
 
