@@ -4053,14 +4053,6 @@ public class AppSettings implements Serializable{
 		this.hlsSegmentType = hlsSegmentType;
 	}
 
-	public String getHlsSegmentFileSuffixFormat() {
-		return hlsSegmentFileSuffixFormat;
-	}
-
-	public void setHlsSegmentFileNameFormat(String hlsSegmentFileSuffixFormat) {
-		this.hlsSegmentFileSuffixFormat = hlsSegmentFileSuffixFormat;
-	}
-
 	public String getRecordingSubfolder() {
 		return recordingSubfolder;
 	}
@@ -4248,5 +4240,19 @@ public class AppSettings implements Serializable{
 	 */
 	public void setEncoderParameters(Map<String, Map<String,String>> encoderParameters) {
 		this.encoderParameters = encoderParameters;
+	}
+
+	/**
+	 * @return the hlsSegmentFileSuffixFormat
+	 */
+	public String getHlsSegmentFileSuffixFormat() {
+		return hlsSegmentFileSuffixFormat;
+	}
+
+	/**
+	 * @param hlsSegmentFileSuffixFormat the hlsSegmentFileSuffixFormat to set
+	 */
+	public void setHlsSegmentFileSuffixFormat(String hlsSegmentFileSuffixFormat) {
+		this.hlsSegmentFileSuffixFormat = hlsSegmentFileSuffixFormat;
 	}
 }

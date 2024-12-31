@@ -648,7 +648,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(appSettings.isWriteSubscriberEventsToDatastore());
 		
 		assertEquals("%09d", appSettings.getHlsSegmentFileSuffixFormat());
-		appSettings.setHlsSegmentFileNameFormat("%s");
+		appSettings.setHlsSegmentFileSuffixFormat("%s");
 		assertEquals("%s", appSettings.getHlsSegmentFileSuffixFormat());
 
 		

@@ -833,7 +833,7 @@ public class MuxingTest {
 			boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
 			appSettings.setHlsMuxingEnabled(true);
 			String hlsSegmentFileNameFormat = appSettings.getHlsSegmentFileSuffixFormat();
-			appSettings.setHlsSegmentFileNameFormat("-%Y%m%d-%s");
+			appSettings.setHlsSegmentFileSuffixFormat("-%Y%m%d-%s");
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
@@ -887,7 +887,7 @@ public class MuxingTest {
 			});
 			
 			appSettings.setHlsMuxingEnabled(hlsEnabled);
-			appSettings.setHlsSegmentFileNameFormat(hlsSegmentFileNameFormat);
+			appSettings.setHlsSegmentFileSuffixFormat(hlsSegmentFileNameFormat);
 			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 		} catch (Exception e) {
 			e.printStackTrace();
