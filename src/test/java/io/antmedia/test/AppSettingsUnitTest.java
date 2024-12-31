@@ -663,9 +663,22 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setS3TransferBufferSizeInBytes(50000);
 		assertEquals(50000, appSettings.getS3TransferBufferSizeInBytes());
 		
-		map = appSettings.getEncoderParameters();
-		assertNotNull(map);
-		assertEquals(0, map.size());
+		Map<String, Map<String, String>> mapEncoderParameters = appSettings.getEncoderParameters();
+		assertNotNull(mapEncoderParameters);
+		assertEquals(0, mapEncoderParameters.size());
+		
+		Map<String, String> libopenH264 = new HashMap<>();
+		libopenH264.put("rc_mode", "quality");
+		mapEncoderParameters.put("libopenh264", libopenH264);
+		
+		
+		appSettings.setEncoderParameters(mapEncoderParameters);
+		
+		mapEncoderParameters = appSettings.getEncoderParameters();
+		assertNotNull(mapEncoderParameters);
+		assertEquals(1, mapEncoderParameters.size());
+		assertEquals("quality", mapEncoderParameters.get("libopenh264").get("rc_mode"));
+		
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
