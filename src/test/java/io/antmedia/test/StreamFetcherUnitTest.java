@@ -973,7 +973,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		String[] filesInStreams = new File("webapps/junit/streams").list();
 		boolean initFileFound = false;
-        String regex = streamId + "_" + System.currentTimeMillis()/100000 + "\\d{5}_init.mp4";
+		
+		//matches 13 digits because System.currentTimeMillis() is used in the file
+        String regex = streamId + "_\\d{13}_init.mp4";
 		System.out.println("regex:"+regex);
 
 		for (int i = 0; i < filesInStreams.length; i++) {

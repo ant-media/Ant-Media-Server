@@ -1093,9 +1093,10 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * The settings for accepting only time based token subscribers as connections to the streams 
-	 * @Deprecated. Please use {@link #enableTimeTokenForPlay} or {@link #enableTimeTokenForPublish}
+	 * @deprecated. Please use {@link #enableTimeTokenForPlay} or {@link #enableTimeTokenForPublish}
 	 */
 	@Value( "${timeTokenSubscriberOnly:${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}}" )
+	@Deprecated
 	private boolean timeTokenSubscriberOnly;
 	/**
 	 * The setting for accepting only time based token(TOTP) subscribers as connections to the streams
@@ -1161,9 +1162,10 @@ public class AppSettings implements Serializable{
 	/**
 	 * The path for manually saved used VoDs
 	 * Determines the directory to store VOD files.
-	 * @Deprecated use {@link VoDRestService#importVoDs(String)}
+	 * @deprecated use {@link VoDRestService#importVoDs(String)}
 	 */
 	@Value( "${vodFolder:${"+SETTINGS_VOD_FOLDER+":}}" )
+	@Deprecated
 	private String vodFolder = "";
 
 	/**
@@ -1346,41 +1348,69 @@ public class AppSettings implements Serializable{
 	/**
 	 * Name of the encoder to be used in adaptive bitrate,
 	 * If there is a GPU, server tries to open h264_nvenc,
-	 * If there is no GPU, server tries to open libx264 by default
-	 * Can be h264_nvenc or libx264. If you set h264_nvenc but it cannot be opened then libx264 will be used,
-	 * Name of the encoder to be used in adaptive bitrate,
-	 * If there is a GPU, server tries to open h264_nvenc,
-	 * If there is no GPU, server tries to open libx264 by default
+	 * If there is no GPU, server tries to open openh264 by default
+	 * Can be h264_nvenc or openh264. If you set h264_nvenc and then if it cannot be opened, libx264 will be used,	
 	 */
 	@Value( "${encoderName:${" + SETTINGS_ENCODING_ENCODER_NAME +":}}")
 	private String encoderName = "";
+	
+	/**
+	 * Encoder specific parameters in key-value mapping way with JSON objects.
+	 * 
+	 * Keys should match the encoder names officially in ffmpeg for instance libopenh264, h264_nvenc, vpx, hevc_nvenc
+	 * 
+	 * Then you can have a json object like this which includes the parameters for the encoder
+	 * {
+	 * "libopenh264": {
+	 *   "profile":"main",
+	 *   
+	 * },
+	 * "vpx": {
+	 *  "deadline":"realtime",
+	 * },
+	 * "h264_nvenc": {
+	 *   "preset":"ll"
+	 * }
+	 * }
+	 */
+	@Value("${encoderParameters:{}}")
+	private Map<String, Map<String,String>> encoderParameters = new HashMap<>();
 
 	/**
 	 * Encoder's preset value in adaptive bitrate
 	 * Libx264 presets are there
 	 * https://trac.ffmpeg.org/wiki/Encode/H.264
 	 * Ant Media Server uses "veryfast" by default
+	 * 
+	 * @deprecated use {@link #encoderParameters}
 	 *
 	 */
 	@Value("${encoderPreset:${" + SETTINGS_ENCODING_PRESET +":}}")
+	@Deprecated
 	private String encoderPreset = "";
 
 	/**
 	 * Encoder profile in adaptive bitrate,
 	 * It's baseline by default.
+	 * @deprecated use {@link #encoderParameters}
 	 */
 	@Value( "${encoderProfile:${" + SETTINGS_ENCODING_PROFILE +":}}")
+	@Deprecated
 	private String encoderProfile = "";
 
 	/**
 	 * Encoder level in adaptive bitrate
+	 * @deprecated use {@link #encoderParameters}
 	 */
+	@Deprecated
 	@Value( "${encoderLevel:${" + SETTINGS_ENCODING_LEVEL +":}}")
 	private String encoderLevel = "";
 
 	/**
 	 * Encoding rate control in adaptive bitrate
+	 * @deprecated use {@link #encoderParameters}
 	 */
+	@Deprecated
 	@Value( "${encoderRc:${" + SETTINGS_ENCODING_RC +":}}")
 	private String encoderRc = "";
 
@@ -1389,7 +1419,10 @@ public class AppSettings implements Serializable{
 	 * This is the x264-params in ffmpeg
 	 * Specific settings for selected encoder,
 	 * For libx264 please check https://trac.ffmpeg.org/wiki/Encode/H.264
+	 * 
+	 * @deprecated use {@link #encoderParameters}
 	 */
+	@Deprecated
 	@Value( "${encoderSpecific:${" + SETTINGS_ENCODING_SPECIFIC +":}}")
 	private String encoderSpecific = "";
 
@@ -1410,8 +1443,10 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Set quality/speed ratio modifier, Higher values speed up the encode at the cost of quality.
+	 * @deprecated use {@link #encoderParameters}
 	 */
 	@Value( "${vp8EncoderSpeed:${" + SETTINGS_ENCODING_VP8_SPEED +":4}}")
+	@Deprecated
 	private int vp8EncoderSpeed = 4;
 
 	/**
@@ -1419,8 +1454,11 @@ public class AppSettings implements Serializable{
 	 *  best
 	 * 	good 
 	 *  realtime
+	 *  
+	 *  @deprecated use {@link #encoderParameters}
 	 */
 	@Value( "${vp8EncoderDeadline:${" + SETTINGS_ENCODING_VP8_DEADLINE +":realtime}}")
+	@Deprecated
 	private String vp8EncoderDeadline = "realtime";
 
 	/**
@@ -1720,15 +1758,34 @@ public class AppSettings implements Serializable{
 	@Value("${dataChannelWebHookURL:${" + SETTINGS_DATA_CHANNEL_WEBHOOK_URL+":}}")
 	private String dataChannelWebHookURL = "";
 
-
+	/**
+	 * @deprecated. Please use {@link #encoderParameters}
+	 */
+	@Deprecated
 	private String h265EncoderPreset;
-
+	
+	/**
+	 * @deprecated. Please use {@link #encoderParameters}
+	 */
+	@Deprecated
 	private String h265EncoderProfile;
 
+	/**
+	 * @deprecated. Please use {@link #encoderParameters}
+	 */
+	@Deprecated
 	private String h265EncoderRc;
 
+	/**
+	 * @deprecated. Please use {@link #encoderParameters}
+	 */
+	@Deprecated
 	private String h265EncoderSpecific;
 
+	/**
+	 * @deprecated. Please use {@link #encoderParameters}
+	 */
+	@Deprecated
 	private String h265EncoderLevel;
 
 	/**
@@ -1781,9 +1838,10 @@ public class AppSettings implements Serializable{
 	/**
 	 * Constant Rate Factor used by x264, x265, VP8,
 	 * Use values between 4-51
-	 *
+	 * @deprecated. Please use {@link #encoderParameters}
 	 */
 	@Value("${constantRateFactor:${"+SETTINGS_CONSTANT_RATE_FACTOR+":23}}")
+	@Deprecated
 	private String constantRateFactor = "23";
 
 	/**
@@ -2736,7 +2794,7 @@ public class AppSettings implements Serializable{
 	}
 
 	/**
-	 * @Deprecated Please use {@link #isEnableTimeTokenForPlay()} or {@link #isEnableTimeTokenForPublish()}
+	 * @deprecated Please use {@link #isEnableTimeTokenForPlay()} or {@link #isEnableTimeTokenForPublish()}
 	 * @return
 	 */
 	@Deprecated
@@ -3997,14 +4055,6 @@ public class AppSettings implements Serializable{
 		this.hlsSegmentType = hlsSegmentType;
 	}
 
-	public String getHlsSegmentFileSuffixFormat() {
-		return hlsSegmentFileSuffixFormat;
-	}
-
-	public void setHlsSegmentFileNameFormat(String hlsSegmentFileSuffixFormat) {
-		this.hlsSegmentFileSuffixFormat = hlsSegmentFileSuffixFormat;
-	}
-
 	public String getRecordingSubfolder() {
 		return recordingSubfolder;
 	}
@@ -4178,5 +4228,33 @@ public class AppSettings implements Serializable{
 
 	public void setS3TransferBufferSizeInBytes(int s3TransferBufferSizeInBytes) {
 		this.s3TransferBufferSizeInBytes = s3TransferBufferSizeInBytes;
+	}
+
+	/**
+	 * @return the encoderParameters
+	 */
+	public Map<String, Map<String,String>> getEncoderParameters() {
+		return encoderParameters;
+	}
+
+	/**
+	 * @param encoderParameters the encoderParameters to set
+	 */
+	public void setEncoderParameters(Map<String, Map<String,String>> encoderParameters) {
+		this.encoderParameters = encoderParameters;
+	}
+
+	/**
+	 * @return the hlsSegmentFileSuffixFormat
+	 */
+	public String getHlsSegmentFileSuffixFormat() {
+		return hlsSegmentFileSuffixFormat;
+	}
+
+	/**
+	 * @param hlsSegmentFileSuffixFormat the hlsSegmentFileSuffixFormat to set
+	 */
+	public void setHlsSegmentFileSuffixFormat(String hlsSegmentFileSuffixFormat) {
+		this.hlsSegmentFileSuffixFormat = hlsSegmentFileSuffixFormat;
 	}
 }
