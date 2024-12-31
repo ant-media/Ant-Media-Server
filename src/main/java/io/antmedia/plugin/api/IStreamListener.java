@@ -10,7 +10,7 @@ public interface IStreamListener {
 	 * AMS inform the plugins when a stream is started with this method.
 	 * @param streamId is the id of the stream
 	 * 
-	 * @Deprecated use {@link #streamStarted(Broadcast)} because Broadcast object may be deleted when this method is called
+	 * @deprecated use {@link #streamStarted(Broadcast)} because Broadcast object may be deleted when this method is called
 	 */
 	@Deprecated (since="3.0", forRemoval = true)
 	public default void streamStarted(String streamId) {
@@ -30,7 +30,7 @@ public interface IStreamListener {
 	 * AMS inform the plugins when a stream is finished with this method.
 	 * @param streamId is the id of the stream
 	 * 
-	 * @Deprecated use {@link #streamFinished(Broadcast)} because Broadcast object may be deleted when this method is called
+	 * @deprecated use {@link #streamFinished(Broadcast)} because Broadcast object may be deleted when this method is called
 	 */
 	@Deprecated (since="3.0", forRemoval = true)
 	public default void streamFinished(String streamId) {

@@ -1096,6 +1096,7 @@ public class AppSettings implements Serializable{
 	 * @deprecated. Please use {@link #enableTimeTokenForPlay} or {@link #enableTimeTokenForPublish}
 	 */
 	@Value( "${timeTokenSubscriberOnly:${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}}" )
+	@Deprecated
 	private boolean timeTokenSubscriberOnly;
 	/**
 	 * The setting for accepting only time based token(TOTP) subscribers as connections to the streams
@@ -1164,6 +1165,7 @@ public class AppSettings implements Serializable{
 	 * @deprecated use {@link VoDRestService#importVoDs(String)}
 	 */
 	@Value( "${vodFolder:${"+SETTINGS_VOD_FOLDER+":}}" )
+	@Deprecated
 	private String vodFolder = "";
 
 	/**
@@ -1453,7 +1455,7 @@ public class AppSettings implements Serializable{
 	 * 	good 
 	 *  realtime
 	 *  
-	 *  @Deprecated use {@link #encoderParameters}
+	 *  @deprecated use {@link #encoderParameters}
 	 */
 	@Value( "${vp8EncoderDeadline:${" + SETTINGS_ENCODING_VP8_DEADLINE +":realtime}}")
 	@Deprecated
