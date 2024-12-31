@@ -1093,7 +1093,7 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * The settings for accepting only time based token subscribers as connections to the streams 
-	 * @Deprecated. Please use {@link #enableTimeTokenForPlay} or {@link #enableTimeTokenForPublish}
+	 * @deprecated. Please use {@link #enableTimeTokenForPlay} or {@link #enableTimeTokenForPublish}
 	 */
 	@Value( "${timeTokenSubscriberOnly:${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}}" )
 	private boolean timeTokenSubscriberOnly;
@@ -1161,7 +1161,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * The path for manually saved used VoDs
 	 * Determines the directory to store VOD files.
-	 * @Deprecated use {@link VoDRestService#importVoDs(String)}
+	 * @deprecated use {@link VoDRestService#importVoDs(String)}
 	 */
 	@Value( "${vodFolder:${"+SETTINGS_VOD_FOLDER+":}}" )
 	private String vodFolder = "";
@@ -1380,7 +1380,7 @@ public class AppSettings implements Serializable{
 	 * https://trac.ffmpeg.org/wiki/Encode/H.264
 	 * Ant Media Server uses "veryfast" by default
 	 * 
-	 * @Deprecated use {@link #encoderParameters}
+	 * @deprecated use {@link #encoderParameters}
 	 *
 	 */
 	@Value("${encoderPreset:${" + SETTINGS_ENCODING_PRESET +":}}")
@@ -1390,7 +1390,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Encoder profile in adaptive bitrate,
 	 * It's baseline by default.
-	 * @Deprecated use {@link #encoderParameters}
+	 * @deprecated use {@link #encoderParameters}
 	 */
 	@Value( "${encoderProfile:${" + SETTINGS_ENCODING_PROFILE +":}}")
 	@Deprecated
@@ -1398,7 +1398,7 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Encoder level in adaptive bitrate
-	 * @Deprecated use {@link #encoderParameters}
+	 * @deprecated use {@link #encoderParameters}
 	 */
 	@Deprecated
 	@Value( "${encoderLevel:${" + SETTINGS_ENCODING_LEVEL +":}}")
@@ -1406,7 +1406,7 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Encoding rate control in adaptive bitrate
-	 * @Deprecated use {@link #encoderParameters}
+	 * @deprecated use {@link #encoderParameters}
 	 */
 	@Deprecated
 	@Value( "${encoderRc:${" + SETTINGS_ENCODING_RC +":}}")
@@ -1418,7 +1418,7 @@ public class AppSettings implements Serializable{
 	 * Specific settings for selected encoder,
 	 * For libx264 please check https://trac.ffmpeg.org/wiki/Encode/H.264
 	 * 
-	 * @Deprecated use {@link #encoderParameters}
+	 * @deprecated use {@link #encoderParameters}
 	 */
 	@Deprecated
 	@Value( "${encoderSpecific:${" + SETTINGS_ENCODING_SPECIFIC +":}}")
@@ -1441,7 +1441,7 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Set quality/speed ratio modifier, Higher values speed up the encode at the cost of quality.
-	 * @Deprecated use {@link #encoderParameters}
+	 * @deprecated use {@link #encoderParameters}
 	 */
 	@Value( "${vp8EncoderSpeed:${" + SETTINGS_ENCODING_VP8_SPEED +":4}}")
 	@Deprecated
@@ -1757,31 +1757,31 @@ public class AppSettings implements Serializable{
 	private String dataChannelWebHookURL = "";
 
 	/**
-	 * @Deprecated. Please use {@link #encoderParameters}
+	 * @deprecated. Please use {@link #encoderParameters}
 	 */
 	@Deprecated
 	private String h265EncoderPreset;
 	
 	/**
-	 * @Deprecated. Please use {@link #encoderParameters}
+	 * @deprecated. Please use {@link #encoderParameters}
 	 */
 	@Deprecated
 	private String h265EncoderProfile;
 
 	/**
-	 * @Deprecated. Please use {@link #encoderParameters}
+	 * @deprecated. Please use {@link #encoderParameters}
 	 */
 	@Deprecated
 	private String h265EncoderRc;
 
 	/**
-	 * @Deprecated. Please use {@link #encoderParameters}
+	 * @deprecated. Please use {@link #encoderParameters}
 	 */
 	@Deprecated
 	private String h265EncoderSpecific;
 
 	/**
-	 * @Deprecated. Please use {@link #encoderParameters}
+	 * @deprecated. Please use {@link #encoderParameters}
 	 */
 	@Deprecated
 	private String h265EncoderLevel;
@@ -1836,7 +1836,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Constant Rate Factor used by x264, x265, VP8,
 	 * Use values between 4-51
-	 * @Deprecated. Please use {@link #encoderParameters}
+	 * @deprecated. Please use {@link #encoderParameters}
 	 */
 	@Value("${constantRateFactor:${"+SETTINGS_CONSTANT_RATE_FACTOR+":23}}")
 	@Deprecated
@@ -2792,7 +2792,7 @@ public class AppSettings implements Serializable{
 	}
 
 	/**
-	 * @Deprecated Please use {@link #isEnableTimeTokenForPlay()} or {@link #isEnableTimeTokenForPublish()}
+	 * @deprecated Please use {@link #isEnableTimeTokenForPlay()} or {@link #isEnableTimeTokenForPublish()}
 	 * @return
 	 */
 	@Deprecated
