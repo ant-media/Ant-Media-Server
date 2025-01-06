@@ -29,13 +29,10 @@ public class HLSMuxer extends Muxer  {
 	
 	public static final String SEI_USER_DATA = "sei_user_data";
 	
+	private static final String LETTER_DOT = ".";
 	private static final String TS_EXTENSION = "ts";
 	private static final String FMP4_EXTENSION = "fmp4";
 
-	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d." + TS_EXTENSION;
-	//DASH also has m4s and ChunkTransferServlet is responsbile for streaming m4s files, so it's better to use fmp4 here
-	private static final String SEGMENT_SUFFIX_FMP4 = "%0"+SEGMENT_INDEX_LENGTH+"d."+ FMP4_EXTENSION;
-	
 	private static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
 	private static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
 
@@ -79,6 +76,8 @@ public class HLSMuxer extends Muxer  {
 	private ByteBuffer pendingSEIData;
 
 	private AVPacket tmpPacketForSEI;
+
+	private String segmentFileNameSuffix;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
@@ -147,36 +146,41 @@ public class HLSMuxer extends Muxer  {
 
 			logger.info("hls time:{}, hls list size:{} hls playlist type:{} for stream:{}", hlsTime, hlsListSize, this.hlsPlayListType, streamId);
 
-			if (StringUtils.isNotBlank(httpEndpoint)) 			
-			{
+			if (StringUtils.isNotBlank(httpEndpoint)) {
 				segmentFilename = httpEndpoint;
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += (this.subFolder != null ? subFolder : "");
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
-				segmentFilename += initialResourceNameWithoutExtension;	
-			}
-			else 
-			{
+				segmentFilename += initialResourceNameWithoutExtension;
+			} else {
 				segmentFilename = file.getParentFile().toString();
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += initialResourceNameWithoutExtension;
 			}
 			
+			segmentFileNameSuffix = getAppSettings().getHlsSegmentFileSuffixFormat();
+
+			if(segmentFileNameSuffix.contains("%s") || segmentFileNameSuffix.contains("%Y") || segmentFileNameSuffix.contains("%m")) {
+				options.put("strftime", "1");
+			}
+			
+			segmentFilename += getAppSettings().getHlsSegmentFileSuffixFormat();
+
 			//remove double slashes with single slash because it may cause problems
 			segmentFilename = replaceDoubleSlashesWithSingleSlash(segmentFilename);
-			
+
+			segmentFilename += LETTER_DOT;
 			options.put("hls_segment_type", hlsSegmentType);
 			if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
-				
-				segmentInitFilename = initialResourceNameWithoutExtension + "_init.mp4";
+
+				segmentInitFilename = initialResourceNameWithoutExtension + "_" + System.currentTimeMillis() + "_init.mp4";
 				options.put("hls_fmp4_init_filename", segmentInitFilename);
-				segmentFilename += SEGMENT_SUFFIX_FMP4;
-			}
-			else { //if it's mpegts
-				segmentFilename += SEGMENT_SUFFIX_TS;
+				segmentFilename += FMP4_EXTENSION;
+			} else { //if it's mpegts
+				segmentFilename += TS_EXTENSION;
 			}
 			
-					
+
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) 
@@ -371,15 +375,10 @@ public class HLSMuxer extends Muxer  {
 				//convert segmentFileName to regular expression
 				
 				int indexOfSuffix = 0;
-				if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
-					indexOfSuffix = segmentFilename.indexOf(SEGMENT_SUFFIX_FMP4);
-				}
-				else {
-					indexOfSuffix = segmentFilename.indexOf(SEGMENT_SUFFIX_TS);
-				}
+				indexOfSuffix = segmentFilename.indexOf(segmentFileNameSuffix);
 				
 				String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
-				String regularExpression = segmentFileWithoutSuffix + "[0-9]*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
+				String regularExpression = segmentFileWithoutSuffix + ".*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
 				File[] files = getHLSFilesInDirectory(regularExpression);
 	
 				if (files != null)
