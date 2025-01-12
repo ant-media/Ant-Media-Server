@@ -503,7 +503,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isHlsMuxingEnabled());
 		assertEquals(true, appSettings.isWebRTCEnabled());
 		assertEquals(true, appSettings.isDeleteHLSFilesOnEnded());
-		assertEquals("5", appSettings.getHlsListSize());
+		assertEquals("15", appSettings.getHlsListSize());
 		assertEquals("", appSettings.getHlsPlayListType());
 		assertEquals(0, appSettings.getEncoderSettings().size());
 		assertEquals(7, appSettings.getUploadExtensionsToS3());
@@ -635,7 +635,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(-1, appSettings.getWebhookStreamStatusUpdatePeriodMs());
 
-		assertEquals(150, appSettings.getEncodingQueueSize());
+		assertEquals(300, appSettings.getEncodingQueueSize());
 		appSettings.setEncodingQueueSize(200);
 		assertEquals(200, appSettings.getEncodingQueueSize());
 		assertEquals("png", appSettings.getPreviewFormat());

@@ -884,8 +884,8 @@ public class AppSettings implements Serializable{
 	 * Number of segments(chunks) in m3u8 files
 	 * Set the maximum number of playlist entries, If 0 the list file will contain all the segments,
 	 */
-	@Value("${hlsListSize:${"+SETTINGS_HLS_LIST_SIZE+":5}}")
-	private String hlsListSize = "5";
+	@Value("${hlsListSize:${"+SETTINGS_HLS_LIST_SIZE+":15}}")
+	private String hlsListSize = "15";
 
 	/**
 	 * Duration of segments in m3u8 files
@@ -2434,8 +2434,8 @@ public class AppSettings implements Serializable{
 	 * The size of encoding queue to keep the frames waiting for encoding in Stream Adaptor
 	 * default: 150 (5 seconds frame for 30 fps stream)
 	 */
-	@Value("${encodingQueueSize:150}")
-	private int encodingQueueSize = 150;
+	@Value("${encodingQueueSize:300}")
+	private int encodingQueueSize = 300;
 	
 	/**
 	 * Write subscriber events to datastore. It's false by default
