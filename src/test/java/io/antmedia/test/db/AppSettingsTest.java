@@ -136,7 +136,7 @@ public class AppSettingsTest {
 		
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		assertTrue(savedSettings.isMp4MuxingEnabled());
-		assertEquals("5", savedSettings.getHlsListSize());
+		assertEquals("15", savedSettings.getHlsListSize());
 		assertEquals("", savedSettings.getVodFolder());
 		assertEquals("2", savedSettings.getHlsTime());
 		assertEquals("", savedSettings.getHlsPlayListType());
@@ -160,7 +160,7 @@ public class AppSettingsTest {
 		savedSettings = mockApplicationAdapter.getAppSettings();
 		
 		//settings should not be changed because wron encoder parameter
-		assertEquals("5", savedSettings.getHlsListSize());
+		assertEquals("15", savedSettings.getHlsListSize());
 		assertEquals("", savedSettings.getVodFolder());
 		assertEquals("2", savedSettings.getHlsTime());
 		assertEquals("", savedSettings.getHlsPlayListType());
