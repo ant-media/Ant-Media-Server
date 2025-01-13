@@ -644,6 +644,15 @@ public class WebSocketCommunityHandlerTest {
 		wsHandler.setUserAgent(userAgent);
 		assertEquals(userAgent, wsHandler.getUserAgent());
 	}
+	
+	@Test
+	public void testClientIP() {
+		assertEquals("N/A", wsHandler.getClientIP());
+
+		String clienTIP = "a.b.c.d";
+		wsHandler.setClientIP(clienTIP);
+		assertEquals(clienTIP, wsHandler.getClientIP());
+	}
 
 	@Test
 	public void testGetSDP() {

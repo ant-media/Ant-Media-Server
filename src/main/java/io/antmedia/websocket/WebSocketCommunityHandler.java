@@ -42,6 +42,9 @@ public class WebSocketCommunityHandler {
 	
 	protected String userAgent = "N/A";
 	
+	protected String clientIP = "N/A";
+
+	
 	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
 		this.appContext = appContext;
 		this.session = session;
@@ -495,5 +498,13 @@ public class WebSocketCommunityHandler {
 
 	public void setUserAgent(String userAgent) {
 		this.userAgent = userAgent;
+	}
+
+	public String getClientIP() {
+		return clientIP;
+	}
+
+	public void setClientIP(String clientIP) {
+		this.clientIP = clientIP;
 	}
 }
