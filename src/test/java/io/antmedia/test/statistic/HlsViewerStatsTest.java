@@ -48,6 +48,39 @@ public class HlsViewerStatsTest {
 	public static void afterClass() {
 		vertx.close();
 	}
+	
+	@Test
+	public void testUpdateSubscriberIfRequires() {
+		HlsViewerStats viewerStats = new HlsViewerStats();
+		
+		viewerStats.setVertx(vertx);
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("datastore"));
+		viewerStats.setDataStore(dataStore);
+		viewerStats.setServerSettings(new ServerSettings());
+		
+		String streamId = String.valueOf((Math.random() * 999999));
+
+		Broadcast broadcast = new Broadcast();
+
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+		
+		String subscriberId = "subscriberId";
+		String sessionId = String.valueOf((Math.random() * 999999));
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberId);
+		Mockito.verify(dataStore, timeout(2000)).addSubscriber(any(), any());
+		
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberId);
+		Mockito.verify(dataStore,  after(2000).times(1)).addSubscriber(any(), any());
+
+		
+		
+		
+	}
 
 	@Test
 	public void testHLSViewerCount() {

@@ -872,8 +872,8 @@ public class MuxingTest {
 	        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
 	        String formattedTime = formatter.format(new Date(now));
 
-	        //(now/10000) we can not guarantee we will have a ts created just now so use regex like live_test873835-20241218-173452XX.ts
-	        String regex = streamName+"-"+formattedTime+"-"+(now/100000) + "\\d{2}\\.ts";
+	        //(now/10000) we can not guarantee we will have a ts created just now so use regex like live_test873835-20241218-1734XXXX.ts
+	        String regex = streamName+"-"+formattedTime+"-"+(now/10000000) + "\\d{4}\\.ts";
 	        System.out.println("regex for ts name:"+regex);
 
 			Pattern pattern = Pattern.compile(regex);

@@ -7,6 +7,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.antmedia.logger.LoggerUtils;
+
+import org.apache.commons.codec.binary.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,10 +103,18 @@ public class ViewerStats {
 						subscriber.setStreamId(streamId);
 						subscriber.setSubscriberId(subscriberId);
 					}
-					subscriber.setRegisteredNodeIp(serverSettings.getHostAddress());
 					
-					//if subscriber is coming from the DB following command just updates the one in the db
-					getDataStore().addSubscriber(streamId, subscriber);
+					//if the subscriber is not registered to the current node, I mean it's created above then, 
+					//subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress() will not equal
+					if (!StringUtils.equals(subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress())) 
+					{	
+						subscriber.setRegisteredNodeIp(serverSettings.getHostAddress());
+						
+						//only update database if it's required
+						getDataStore().addSubscriber(streamId, subscriber);
+					}
+					
+					
 					
 					
 					// map sessionId to subscriberId
