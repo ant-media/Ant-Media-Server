@@ -5970,10 +5970,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		@Override
 		protected void finalizeRecordFile(File file) throws IOException {
 		}
-
-		public static String getS3Prefix() {
-			return getS3Prefix();
-		}
 	}
 
 	@Test
@@ -6005,6 +6001,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doNothing().when(adapter).muxingFinished(any(),anyString(),any(),anyLong(),anyLong(),anyInt(),anyString(),anyString());
 
 		recordMuxerMock.writeTrailer();
+		Thread.sleep(5000);
 
 		verify(recordMuxerMock, times(1)).finalizeRecordFile(any());
 		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
