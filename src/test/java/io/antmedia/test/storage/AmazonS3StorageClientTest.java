@@ -8,8 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -231,24 +230,26 @@ public class AmazonS3StorageClientTest {
 	public void testChangeS3Settings() 
 	{
 		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
+		AmazonS3 amazonS3 =  Mockito.mock(AmazonS3.class);
+		Mockito.doReturn(amazonS3).when(storage).initAmazonS3();
+		doReturn("").when(storage).getStorageName();
 
-		Mockito.doReturn(Mockito.mock(AmazonS3.class)).when(storage).initAmazonS3();
-		
-		
+
 		//Call getAmazonS3 with default settings
 		storage.getAmazonS3();
+		Mockito.verify(amazonS3).listObjectsV2(anyString(),anyString());
 		Mockito.verify(storage, Mockito.times(1)).initAmazonS3();
 		
 		
 		storage.getAmazonS3();
 		//it should still be called 1 time
 		Mockito.verify(storage, Mockito.times(1)).initAmazonS3();
-		
+
 		storage.reset();
 		storage.getAmazonS3();
 		//it should be called twice because it's reset
 		Mockito.verify(storage, Mockito.times(2)).initAmazonS3();
-		
+
 	}
 	
 	@Test
