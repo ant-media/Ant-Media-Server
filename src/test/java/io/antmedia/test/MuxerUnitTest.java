@@ -27,21 +27,8 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -61,6 +48,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.*;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -129,10 +117,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.EncoderSettings;
-import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -165,6 +149,7 @@ import io.antmedia.test.eRTMP.HEVCDecoderConfigurationParserTest;
 import io.antmedia.test.utils.VideoInfo;
 import io.antmedia.test.utils.VideoProber;
 import io.vertx.core.Vertx;
+
 
 @ContextConfiguration(locations = {"test.xml"})
 //@ContextConfiguration(classes = {AppConfig.class})
@@ -893,6 +878,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		{
 			HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
+			hlsMuxer.setIsRunning(new AtomicBoolean(true));
 			String streamId = "streamId";
 			String subFolder = "subfolder";
 
@@ -907,6 +893,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		{
 			//add trailer slash
 			HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com/", false);
+			hlsMuxer.setIsRunning(new AtomicBoolean(true));
 			String streamId = "streamId";
 			String subFolder = "subfolder/";
 
@@ -924,6 +911,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams/", 0b010, null, false));
+			hlsMuxer.setIsRunning(new AtomicBoolean(true));
 			String streamId = "streamId";
 			String subFolder = "subfolder/";
 
@@ -951,6 +939,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
+			hlsMuxer.setIsRunning(new AtomicBoolean(true));
 			String streamId = "streamId";
 			String subFolder = "subfolder";
 
@@ -978,6 +967,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
+			hlsMuxer.setIsRunning(new AtomicBoolean(true));
 			String streamId = "streamId";
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 
@@ -5970,4 +5960,58 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
+	static class RecordMuxerMock extends RecordMuxer {
+		protected RecordMuxerMock(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
+			super(storageClient, vertx, s3FolderPath);
+		}
+		@Override
+		protected void finalizeRecordFile(File file) throws IOException {
+		}
+
+		public static String getS3Prefix() {
+			return getS3Prefix();
+		}
+	}
+
+	@Test
+	public void testWriteTrailer() throws IOException, InterruptedException {
+
+		Vertx vertx = Vertx.vertx();
+		RecordMuxerMock recordMuxerMock = Mockito.spy(new RecordMuxerMock(Mockito.mock(StorageClient.class), vertx, ""));
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		recordMuxerMock.init(appScope, "test", 0, "", 0);
+		recordMuxerMock.setIsRunning(new AtomicBoolean(true));
+
+		File file = mock(File.class);
+		recordMuxerMock.setFileTmp(file);
+		Mockito.when(file.exists()).thenReturn(true);
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		Mockito.when(storageClient.isEnabled()).thenReturn(true);
+		doReturn(new File("test")).when(recordMuxerMock).getFinalFileName(anyBoolean());
+		doNothing().when(recordMuxerMock).finalizeRecordFile(any());
+
+		AppSettings settings = Mockito.mock(AppSettings.class);
+		doReturn(true).when(settings).isS3RecordingEnabled();
+		doReturn(settings).when(recordMuxerMock).getAppSettings();
+
+		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+		doReturn(adapter).when(recordMuxerMock).getAppAdaptor();
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		doReturn(dataStore).when(adapter).getDataStore();
+		doReturn(null).when(dataStore).get(anyString());
+		doNothing().when(adapter).muxingFinished(any(),anyString(),any(),anyLong(),anyLong(),anyInt(),anyString(),anyString());
+
+		recordMuxerMock.writeTrailer();
+
+		verify(recordMuxerMock, times(1)).finalizeRecordFile(any());
+		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
+
+		recordMuxerMock.writeTrailer();
+
+		//trailer already written should not invoke again
+		verify(recordMuxerMock, times(1)).finalizeRecordFile(any());
+		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
+
+
+	}
 }

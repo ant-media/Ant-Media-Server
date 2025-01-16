@@ -12,9 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
-import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
-import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -117,6 +115,10 @@ public abstract class RecordMuxer extends Muxer {
 
 	public void setPreviewPath(String path){
 		this.previewPath = path;
+	}
+
+	public void setFileTmp(File fileTmp){
+		this.fileTmp = fileTmp;
 	}
 
 	/**
