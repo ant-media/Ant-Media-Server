@@ -124,6 +124,8 @@ public abstract class RecordMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
+		if(!isRunning.get())
+			return;
 
 		super.writeTrailer();
 
@@ -158,7 +160,7 @@ public abstract class RecordMuxer extends Muxer {
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 
-					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
+					saveToStorage(getS3Prefix(s3FolderPath,subFolder), f, f.getName(), storageClient);
 				}
 
 			} catch (Exception e) {
