@@ -867,6 +867,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		s3Prefix = RecordMuxer.getS3Prefix("s3/", "test/");
 		assertEquals("s3/test/", s3Prefix);
+
+		s3Prefix = RecordMuxer.getS3Prefix("s3", "");
+		assertEquals("s3/", s3Prefix);
 	}
 
 	@Test
