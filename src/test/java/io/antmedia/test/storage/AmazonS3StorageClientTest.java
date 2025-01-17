@@ -95,7 +95,8 @@ public class AmazonS3StorageClientTest {
 	@Test
 	public void testS3() {
 		AmazonS3StorageClient storage = Mockito.spy(new AmazonS3StorageClient());
-		
+		doReturn(null).when(storage).getObjects(anyString());
+
 		storage.setAccessKey(ACCESS_KEY);
 		storage.setSecretKey(SECRET_KEY);
 		storage.setRegion("eu-west-1");
@@ -107,6 +108,7 @@ public class AmazonS3StorageClientTest {
 		storage.save("streams" + "/" + f.getName() , f);
 		
 		Mockito.verify(storage).getTransferManager();
+		Mockito.verify(storage).getObjects(anyString());
 
 		storage.save("streams" + "/" + f.getName() , f);
 
@@ -117,7 +119,6 @@ public class AmazonS3StorageClientTest {
 	public void testException() {
 		try {
 			AmazonS3StorageClient storage = new AmazonS3StorageClient();
-			storage.setStorageName("antmedia-test");
 
 			storage.delete("streams/" + "any_file");
 			
@@ -231,14 +232,12 @@ public class AmazonS3StorageClientTest {
 	public void testChangeS3Settings() 
 	{
 		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
-		AmazonS3 amazonS3 =  Mockito.mock(AmazonS3.class);
-		Mockito.doReturn(amazonS3).when(storage).initAmazonS3();
+		Mockito.doReturn(Mockito.mock(AmazonS3.class)).when(storage).initAmazonS3();
 		doReturn("").when(storage).getStorageName();
 
 
 		//Call getAmazonS3 with default settings
 		storage.getAmazonS3();
-		Mockito.verify(amazonS3).listObjectsV2(anyString(),anyString());
 		Mockito.verify(storage, Mockito.times(1)).initAmazonS3();
 		
 		

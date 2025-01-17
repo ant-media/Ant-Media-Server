@@ -46,7 +46,7 @@ public class AmazonS3StorageClient extends StorageClient {
 
 		if (amazonS3 == null) {
 			amazonS3 = initAmazonS3();
-			amazonS3.listObjectsV2(getStorageName(), "");
+			getObjects("");
 		}
 		return amazonS3;
 	}
