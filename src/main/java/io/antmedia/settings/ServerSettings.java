@@ -334,36 +334,29 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 		return globalHostAddress;
 	}
+	
+	public static Enumeration<NetworkInterface> getNetworkInterfaces() throws SocketException {
+		return NetworkInterface.getNetworkInterfaces();
+	}
 
-	private static InetAddress getNoneLoopbackHostAddress() 
+	public static InetAddress getNoneLoopbackHostAddress() 
 	{
 
 		InetAddress noneLoopbackAddress = null;
 		Enumeration<NetworkInterface> interfaces;
 		try 
 		{
-			interfaces = NetworkInterface.getNetworkInterfaces();
+			interfaces = getNetworkInterfaces();
 
 			while (interfaces.hasMoreElements()) {
 				NetworkInterface networkInterface = interfaces.nextElement();
 
 				// Skip loopback and non-active interfaces
-				if (networkInterface.isLoopback() || !networkInterface.isUp()) {
+				if (isLoopBackOrDown(networkInterface)) {
 					continue;
 				}
-
-				Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
-				while (addresses.hasMoreElements()) 
-				{
-					InetAddress address = addresses.nextElement();
-					//check if it's IPv4 address and not loopback
-					if (!address.isLoopbackAddress() && address.getAddress().length == 4) 
-					{
-						logger.info("Non-loopback address: {}", address.getHostAddress());
-						noneLoopbackAddress = address;
-						break;
-					}
-				}
+				
+				noneLoopbackAddress = getAddress(networkInterface.getInetAddresses());
 				
 				if (noneLoopbackAddress != null) 
 				{
@@ -380,6 +373,24 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		return noneLoopbackAddress;
 
 
+	}
+
+	public static boolean isLoopBackOrDown(NetworkInterface networkInterface) throws SocketException {
+		return networkInterface.isLoopback() || !networkInterface.isUp();
+	}
+
+	public static InetAddress getAddress(Enumeration<InetAddress> inetAddresses) {
+		while (inetAddresses.hasMoreElements()) 
+		{
+			InetAddress address = inetAddresses.nextElement();
+			//check if it's IPv4 address and not loopback
+			if (!address.isLoopbackAddress() && address.getAddress().length == 4) 
+			{
+				logger.info("Non-loopback address: {}", address.getHostAddress());
+				return address;
+			}
+		}
+		return null;
 	}
 
 	public static String getLocalHostAddress() {
@@ -691,8 +702,5 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	public void setAppIngestsSrtStreamsWithoutStreamId(String appIngestsSrtStreamsWithoutStreamId) {
 		this.appIngestsSrtStreamsWithoutStreamId = appIngestsSrtStreamsWithoutStreamId;
 	}
-
-
-
 
 }

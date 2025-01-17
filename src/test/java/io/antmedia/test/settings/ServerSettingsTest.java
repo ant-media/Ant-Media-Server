@@ -6,8 +6,17 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.springframework.beans.factory.annotation.Value;
@@ -178,7 +187,8 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	@Test
-	public void testNoneLoopbackAddress() {
+	public void testNoneLoopbackHostAddress() {
+		
 		String localHostAddress = ServerSettings.getLocalHostAddress();
 		assertNotNull(localHostAddress);
 		
@@ -187,5 +197,57 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		assertNotEquals("127.0.1.1", localHostAddress);
 
 	}
+	
+	@Test
+	public void testNoneLoopbackAddress() {
+		try {
+		
+			NetworkInterface networkInterface = Mockito.mock(NetworkInterface.class);
+			
+			assertTrue(ServerSettings.isLoopBackOrDown(networkInterface));
+			
+			Mockito.when(networkInterface.isLoopback()).thenReturn(true);
+			assertTrue(ServerSettings.isLoopBackOrDown(networkInterface));
+			
+			
+			Mockito.when(networkInterface.isUp()).thenReturn(true);
+			assertTrue(ServerSettings.isLoopBackOrDown(networkInterface));
+			
+			
+			Mockito.when(networkInterface.isLoopback()).thenReturn(false);
+
+			assertFalse(ServerSettings.isLoopBackOrDown(networkInterface));
+			
+			
+			InetAddress inetAddress = Mockito.mock(InetAddress.class);
+			Enumeration<InetAddress> inetAddresses = Collections.enumeration(Arrays.asList(inetAddress));
+			
+			Mockito.when(inetAddress.getAddress()).thenReturn(new byte[6]);
+			assertNull(ServerSettings.getAddress(inetAddresses));
+			
+			inetAddresses = Collections.enumeration(Arrays.asList(inetAddress));
+			Mockito.when(inetAddress.isLoopbackAddress()).thenReturn(false);
+			assertNull(ServerSettings.getAddress(inetAddresses));
+			
+			inetAddresses = Collections.enumeration(Arrays.asList(inetAddress));
+			Mockito.when(inetAddress.getAddress()).thenReturn(new byte[4]);
+			assertNotNull(ServerSettings.getAddress(inetAddresses));
+			
+			Mockito.when(inetAddress.isLoopbackAddress()).thenReturn(true);
+			Mockito.when(inetAddress.getAddress()).thenReturn(new byte[4]);
+			assertNull(ServerSettings.getAddress(inetAddresses));
+
+			Mockito.when(inetAddress.isLoopbackAddress()).thenReturn(true);
+			Mockito.when(inetAddress.getAddress()).thenReturn(new byte[5]);
+			assertNull(ServerSettings.getAddress(inetAddresses));
+			
+		}
+		catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(e.getMessage());
+		}
+	}
+	
+	
 	
 }
