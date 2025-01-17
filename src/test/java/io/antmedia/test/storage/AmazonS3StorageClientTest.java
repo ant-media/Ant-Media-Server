@@ -117,7 +117,8 @@ public class AmazonS3StorageClientTest {
 	public void testException() {
 		try {
 			AmazonS3StorageClient storage = new AmazonS3StorageClient();
-		
+			storage.setStorageName("antmedia-test");
+
 			storage.delete("streams/" + "any_file");
 			
 			storage.fileExist("any_file");
