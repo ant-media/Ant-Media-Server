@@ -356,12 +356,19 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 				while (addresses.hasMoreElements()) 
 				{
 					InetAddress address = addresses.nextElement();
-					if (!address.isLoopbackAddress()) 
+					//check if it's IPv4 address and not loopback
+					if (!address.isLoopbackAddress() && address.getAddress().length == 4) 
 					{
 						logger.info("Non-loopback address: {}", address.getHostAddress());
 						noneLoopbackAddress = address;
 						break;
 					}
+				}
+				
+				if (noneLoopbackAddress != null) 
+				{
+					//break the outer loop to not to check other interfaces
+                    break;
 				}
 			}
 

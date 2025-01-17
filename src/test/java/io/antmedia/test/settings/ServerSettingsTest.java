@@ -2,6 +2,7 @@ package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -174,6 +175,17 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(serverSettings.isOfflineLicense());
 		serverSettings.setOfflineLicense(true);
 		assertTrue(serverSettings.isOfflineLicense());
+	}
+	
+	@Test
+	public void testNoneLoopbackAddress() {
+		String localHostAddress = ServerSettings.getLocalHostAddress();
+		assertNotNull(localHostAddress);
+		
+		//it should never return 127.0.0.1 address
+		assertNotEquals("127.0.0.1", localHostAddress);
+		assertNotEquals("127.0.1.1", localHostAddress);
+
 	}
 	
 }
