@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -332,6 +335,46 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		return globalHostAddress;
 	}
 
+	private static InetAddress getNoneLoopbackHostAddress() 
+	{
+
+		InetAddress noneLoopbackAddress = null;
+		Enumeration<NetworkInterface> interfaces;
+		try 
+		{
+			interfaces = NetworkInterface.getNetworkInterfaces();
+
+			while (interfaces.hasMoreElements()) {
+				NetworkInterface networkInterface = interfaces.nextElement();
+
+				// Skip loopback and non-active interfaces
+				if (networkInterface.isLoopback() || !networkInterface.isUp()) {
+					continue;
+				}
+
+				Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+				while (addresses.hasMoreElements()) 
+				{
+					InetAddress address = addresses.nextElement();
+					if (!address.isLoopbackAddress()) 
+					{
+						logger.info("Non-loopback address: {}", address.getHostAddress());
+						noneLoopbackAddress = address;
+						break;
+					}
+				}
+			}
+
+		} 
+		catch (SocketException e) {
+		  logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return noneLoopbackAddress;
+
+
+	}
+
 	public static String getLocalHostAddress() {
 
 		if (localHostAddress == null) {
@@ -341,7 +384,18 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
 				 * Let it is run once
 				 */
-				localHostAddress = InetAddress.getLocalHost().getHostAddress();
+				InetAddress noneLoopbackHostAddress = getNoneLoopbackHostAddress();
+				if (noneLoopbackHostAddress != null) 
+				{
+					logger.info("localhost address is set to none loopback address: {}", noneLoopbackHostAddress.getHostAddress());
+					localHostAddress = noneLoopbackHostAddress.getHostAddress();
+				}
+				else 
+				{
+
+					localHostAddress = InetAddress.getLocalHost().getHostAddress(); 
+					logger.info("localhost address is set to default localhost address: {}", localHostAddress);
+				}
 			} catch (UnknownHostException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
