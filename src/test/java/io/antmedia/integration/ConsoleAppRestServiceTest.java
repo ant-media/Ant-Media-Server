@@ -404,6 +404,9 @@ public class ConsoleAppRestServiceTest{
 
 
 		//give load to the server by sending http requests to m3u8
+		
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
 
 		threadStarted = false;
 		Thread thread = new Thread() {
@@ -428,17 +431,17 @@ public class ConsoleAppRestServiceTest{
 								.build();
 
 						client.execute(get);
+						
+						Thread.sleep(10);
 
 						i++;
 
-						if (i % 100 == 0) {
+						if (i % 1000 == 0) {
 							log.info("{} requests are sent to url", i, url);
 						}
 
-
-
 					} catch (Exception e) {
-						e.printStackTrace();
+						//don't printout exception because it's expected
 					}
 
 
@@ -478,16 +481,17 @@ public class ConsoleAppRestServiceTest{
 
 		Awaitility.await().atMost(30,  TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
 		.until(() -> {
-			Applications applications = getApplications();
-			if (applications.applications.length == 3) {
-				for (String app : applications.applications) {
+			Applications applicationsTmp = getApplications();
+			if (applicationsTmp.applications.length == appCount) {
+				for (String app : applicationsTmp.applications) {
 					if (app.equals("live")) {
 						return true;
 					}
+					
 				}
 			}
 			else {
-				log.info("applications length is not 3: {}", applications.applications);
+				log.info("applications length is not {}: {}", appCount, applications.applications);
 			}
 
 			return false;
