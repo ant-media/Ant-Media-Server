@@ -395,6 +395,92 @@ public class ConsoleAppRestServiceTest{
 
 		return null;
 	}
+	
+	boolean threadStarted = false;
+	boolean breakThread = false;
+	
+	@Test
+	public void testStartUnderHttpLoad() {
+	
+		
+		//give load to the server by sending http requests to m3u8
+		
+		threadStarted = false;
+		Thread thread = new Thread() {
+			@Override
+			public void run() {
+				
+				threadStarted = true;
+				
+				log.info("Thread is started");
+				
+				while (!breakThread) {
+					
+					try {
+						//send http request to m3u8
+						String url = "http://127.0.0.1:5080/live/streams/stream.m3u8";
+	
+						CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+				
+	
+						HttpUriRequest get = RequestBuilder.get().setUri(url)
+								.build();
+	
+						client.execute(get);
+
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+
+					
+				}
+				
+				log.info("Thread is finished");
+				
+			}
+		};
+		
+		thread.start();
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return threadStarted;
+		});
+		//restart the server
+		
+		Process process = AppFunctionalV2Test.execute("sudo service antmedia restart");
+		assertEquals(0, process.exitValue());
+		
+		//check that live is started
+		Awaitility.await().atMost(30,  TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+		.until(() -> 
+		{	
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			return callAuthenticateUser(user).isSuccess();
+		});
+		
+		Awaitility.await().atMost(30,  TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+		.until(() -> {
+			Applications applications = getApplications();
+			if (applications.applications.length == 3) {
+				for (String app : applications.applications) {
+					if (app.equals("live")) {
+						return true;
+					}
+				}
+			}
+			else {
+				log.info("applications length is not 3: {}", applications.applications);
+			}
+			
+			return false;
+		});
+		
+		//finish thread
+		this.breakThread = true;
+		
+	}
 
 	@Test
 	public void testCreateCustomApp() 
