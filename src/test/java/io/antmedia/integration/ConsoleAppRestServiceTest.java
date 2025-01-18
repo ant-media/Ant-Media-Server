@@ -436,7 +436,7 @@ public class ConsoleAppRestServiceTest{
 
 						i++;
 
-						if (i % 1000 == 0) {
+						if (i % 200 == 0) {
 							log.info("{} requests are sent to url", i, url);
 						}
 
@@ -491,7 +491,7 @@ public class ConsoleAppRestServiceTest{
 				}
 			}
 			else {
-				log.info("applications length is not {}: {}", appCount, applications.applications);
+				log.info("applications length is not {}: {}", appCount, applicationsTmp.applications);
 			}
 
 			return false;
