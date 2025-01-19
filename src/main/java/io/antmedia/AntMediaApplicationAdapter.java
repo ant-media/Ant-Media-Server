@@ -45,7 +45,9 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -1283,21 +1285,32 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean sendClusterPost(String url, String clusterCommunicationToken) 
 	{
+		HttpPost httpPost = new HttpPost(url);
+		return callClusterRestMethod(httpPost, clusterCommunicationToken);
+	}
+	
+	public boolean sendClusterDelete(String url, String clusterCommunicationToken) 
+	{
+		HttpDelete httpDelete = new HttpDelete(url);
+		return callClusterRestMethod(httpDelete, clusterCommunicationToken);
+	}
+	
+	public boolean callClusterRestMethod(HttpRequestBase reuqest, String clusterCommunicationToken) 
+	{
 
 		boolean result = false;
 		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
-			HttpPost httpPost = new HttpPost(url);
 			RequestConfig requestConfig = RequestConfig.custom()
 					.setConnectTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.setConnectionRequestTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.setSocketTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.build();
-			httpPost.setConfig(requestConfig);
+			reuqest.setConfig(requestConfig);
 
-			httpPost.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
+			reuqest.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
 
-			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) 
+			try (CloseableHttpResponse httpResponse = httpClient.execute(reuqest)) 
 			{
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
 				logger.info("Cluster POST Response Status: {}", statusCode);
