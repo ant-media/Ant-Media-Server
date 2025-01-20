@@ -1216,7 +1216,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(streamCount, broadcastList.size());
 
 		for (Broadcast item: broadcastList) {
-			Result result = restServiceReal.deleteBroadcast(item.getStreamId());
+			Result result = restServiceReal.deleteBroadcast(item.getStreamId(), false);
 			assertTrue(result.isSuccess());
 		}
 
@@ -1236,7 +1236,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
 
-			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId(), false);
 			assertTrue(result.isSuccess());
 		}
 
@@ -1251,7 +1251,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
 
-			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId(), false);
 			assertTrue(result.isSuccess());
 		}
 
@@ -1266,7 +1266,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
 
-			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId(), false);
 			assertTrue(result.isSuccess());
 		}
 
@@ -3747,4 +3747,85 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse(restServiceReal.checkStreamUrl("dummy://something"));
 	}
 
+	
+	@Test
+	public void testDeleteBroadcastWithSubreacks() {
+		AppSettings settings = new AppSettings();
+		String serverName = "fully.qualified.domain.name";
+		restServiceReal.setAppSettings(settings);
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		restServiceReal.setScope(scope);
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		Mockito.when(appAdaptor.stopStreaming(any())).thenReturn(new Result(true));
+
+		restServiceReal.setApplication(appAdaptor);
+		
+		Broadcast mainTrack = new Broadcast();
+		try {
+			mainTrack.setStreamId("mainTrack");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		mainTrack.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		mainTrack.setUpdateTime(System.currentTimeMillis());
+		
+		Broadcast subtrack1 = new Broadcast();
+		try {
+			subtrack1.setStreamId("subtrack1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		subtrack1.setMainTrackStreamId(mainTrack.getStreamId());
+		subtrack1.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subtrack1.setUpdateTime(System.currentTimeMillis());
+
+		
+		Broadcast subtrack2 = new Broadcast();
+		try {
+			subtrack2.setStreamId("subtrack2");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		subtrack2.setMainTrackStreamId(mainTrack.getStreamId());
+		subtrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subtrack2.setUpdateTime(System.currentTimeMillis());
+		
+		Broadcast subtrack3 = new Broadcast();
+		try {
+			subtrack3.setStreamId("subtrack3");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		subtrack3.setMainTrackStreamId(mainTrack.getStreamId());
+		subtrack3.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		subtrack3.setUpdateTime(System.currentTimeMillis() - 50000);
+
+		
+		store.save(mainTrack);
+		store.save(subtrack1);
+		store.save(subtrack2);
+		store.save(subtrack3);
+
+		Result result = restServiceReal.deleteBroadcast(mainTrack.getStreamId(), true);
+		
+		verify(appAdaptor).stopStreaming(eq(mainTrack));
+		verify(appAdaptor, times(3)).sendClusterDelete(anyString(), anyString());
+
+	}
+	
 }

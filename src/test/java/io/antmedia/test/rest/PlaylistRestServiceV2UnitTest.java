@@ -283,20 +283,20 @@ public class PlaylistRestServiceV2UnitTest {
 		assertEquals("testPlaylistId", streamId);
 		
 
-		result = restServiceReal.deleteBroadcast(playlist.getStreamId());
+		result = restServiceReal.deleteBroadcast(playlist.getStreamId(), false);
 		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
 
 		assertEquals(true, result.isSuccess());
 
 		//If there is no Playlist in DB.
 
-		result = restServiceReal.deleteBroadcast("testDbNullPlaylistId");
+		result = restServiceReal.deleteBroadcast("testDbNullPlaylistId", false);
 
 		assertEquals(false, result.isSuccess());
 
 		// If Playlist ID is null.
 
-		result = restServiceReal.deleteBroadcast(null);
+		result = restServiceReal.deleteBroadcast(null, false);
 
 		assertEquals(false, result.isSuccess());
 

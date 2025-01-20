@@ -49,6 +49,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -337,7 +338,11 @@ public abstract class RestServiceBase {
 	}
 
 
-	protected Result deleteBroadcast(String id) {
+	protected Result deleteBroadcast(String id, Boolean deleteSubtracks) {
+		if(deleteSubtracks == null) {
+			deleteSubtracks = true;
+		} 
+		
 		Result result = new Result (false);
 		boolean stopResult = false;
 		Broadcast broadcast = null;
@@ -352,6 +357,11 @@ public abstract class RestServiceBase {
 			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
 
 			result.setSuccess(getDataStore().delete(id));
+			
+			if(deleteSubtracks) {
+				boolean subtrackDeletionResult = deleteSubtracks(broadcast);
+				result.setSuccess(subtrackDeletionResult);
+			}
 
 			if(result.isSuccess())
 			{
@@ -373,6 +383,36 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
+	private boolean deleteSubtracks(Broadcast broadcast) {
+		boolean result = true;
+		long subtrackCount = getDataStore().getSubtrackCount(broadcast.getStreamId(), "", "");
+		logger.info("{} Subtracks of maintrack {} will also be deleted.", subtrackCount, broadcast.getStreamId());
+		
+		if(subtrackCount > 0) {
+			List<Broadcast> subtracks = getDataStore().getSubtracks(broadcast.getStreamId(), 0, (int)subtrackCount, "");
+			
+			for (Broadcast subtrack : subtracks) {
+				String jwtToken = JWTFilter.generateJwtToken(
+						getAppSettings().getClusterCommunicationKey(),
+						System.currentTimeMillis() + 5000
+						);
+
+				String restRouteOfNode = "http://" + subtrack.getOriginAdress() + ":" +
+						getServerSettings().getDefaultHttpPort() +
+						File.separator + getAppSettings().getAppName() +
+						File.separator + "rest" +
+						File.separator + "v2" +
+						File.separator + "broadcasts" +
+						File.separator + subtrack.getStreamId();
+				
+				result &= getApplication().sendClusterDelete(restRouteOfNode, jwtToken);
+			}
+		}
+		
+		
+		return result;
+	}
+
 	protected Result deleteBroadcasts(String[] streamIds) {
 
 		Result result = new Result(false);
@@ -381,7 +421,7 @@ public abstract class RestServiceBase {
 		{
 			for (String id : streamIds)
 			{
-				result = deleteBroadcast(id);
+				result = deleteBroadcast(id, false);
 				if (!result.isSuccess())
 				{
 					id =  id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_" );
