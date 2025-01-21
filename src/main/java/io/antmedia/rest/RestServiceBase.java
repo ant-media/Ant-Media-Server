@@ -1857,7 +1857,7 @@ public abstract class RestServiceBase {
 
 		version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
 
-		logger.info("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
+		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
 		return version;
 	}
 
