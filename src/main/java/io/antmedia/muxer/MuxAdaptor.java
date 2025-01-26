@@ -1882,6 +1882,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		logger.info("Calling stop for {} input queue size:{}", streamId, getInputQueueSize());
 		stopRequestExist = true;
 	}
+	
+	public void setInputQueueSize(int size) {
+		queueSize.set(size);
+	}
 
 	public int getInputQueueSize() {
 		return queueSize.get();

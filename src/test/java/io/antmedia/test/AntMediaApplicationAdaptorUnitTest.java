@@ -495,7 +495,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		broadcast2.setWebRTCViewerCount(100);
 		broadcast2.setRtmpViewerCount(10);
 		broadcast2.setHlsViewerCount(1000);
-
+		broadcast2.setUpdateTime(System.currentTimeMillis());
 		broadcast2.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
 
 
@@ -1314,6 +1314,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		for (int i=0; i < numberOfCall; i++) 
 		{
 			Broadcast stream = new Broadcast();
+			stream.setUpdateTime(System.currentTimeMillis());
 			stream.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 			
 			adapter.getDataStore().save(stream);
