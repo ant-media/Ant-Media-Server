@@ -1,6 +1,11 @@
 package io.antmedia.filter;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +13,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.amazonaws.util.StringUtils;
+
+import io.antmedia.AppSettings;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -86,17 +93,63 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 					long start = Long.parseLong(startDate);
 					long end = Long.parseLong(endDate);
-					chain.doFilter(request, responseWrapper);
 
-					int status = responseWrapper.getStatus();
-					if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) {
+					String original = null;
+					String redirectLocation = null;
+					
+					AppSettings appSettings = getAppSettings();
+			        
+					String requestURI = ((HttpServletRequest) request).getRequestURI();
+				    if (requestURI != null && !requestURI.isEmpty() && appSettings != null) {
+				    	String httpForwardingBaseURL = appSettings.getHttpForwardingBaseURL();
+					    String httpForwardingExtension = "m3u8";
+			
+				    	redirectLocation = HttpForwardFilter.getRedirectUrl(requestURI, httpForwardingBaseURL, httpForwardingExtension);
+				    }
 
-						final byte[] originalData = responseWrapper.getContentAsByteArray();
-						String original = new String(originalData, StandardCharsets.UTF_8);
+					
+					if (redirectLocation != null) {
+					    logger.info("HLS manifest file will be downloaded from redirect location.");
+				    	
+				        // Make a new HTTP request to the redirect URL
+				        URL url = createRedirectURL(redirectLocation);
+				        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+				        connection.setRequestMethod("GET");
 
+				        // Read the response from the redirect URL
+				        try (InputStream inputStream = connection.getInputStream();
+				                ByteArrayOutputStream result = new ByteArrayOutputStream()) {
+
+				               byte[] buffer = new byte[1024];
+				               int length;
+				               while ((length = inputStream.read(buffer)) != -1) {
+				                   result.write(buffer, 0, length);
+				               }
+
+				               // Convert the result to a string
+				               original = result.toString(StandardCharsets.UTF_8.name());
+				               
+						       responseWrapper.setStatus(HttpServletResponse.SC_OK); // Set status to 200 OK
+
+				        }
+				        catch (Exception e) {
+						    logger.info("HLS manifest file cannot be downloaded from redirect location.");
+				        }
+					} 
+					else {
+						chain.doFilter(request, responseWrapper);
+
+						int status = responseWrapper.getStatus();
+						if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) {
+							final byte[] originalData = responseWrapper.getContentAsByteArray();
+							original = new String(originalData, StandardCharsets.UTF_8);
+						}
+					} 
+					
+					if(original != null) {
 						MediaPlaylistParser parser = new MediaPlaylistParser();
 						MediaPlaylist playList = parser.readPlaylist(original);
-
+	
 						List<MediaSegment> segments = new ArrayList<>();
 						for (MediaSegment segment : playList.mediaSegments()) 
 						{
@@ -112,25 +165,24 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 								}
 							});
 						}
-
+	
 						MediaPlaylist newPlayList = MediaPlaylist.builder()
 								.version(playList.version())
 								.targetDuration(playList.targetDuration())
 								.ongoing(false)
 								.addAllMediaSegments(segments)
 								.build();
-
+	
 						String newData = new MediaPlaylistParser().writePlaylistAsString(newPlayList);
 						if (parameterExists) {
 							newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
 						}
-
+	
 						// Write final modified data to response
 						responseWrapper.resetBuffer(); // Clears any previous response data
 						responseWrapper.getOutputStream().write(newData.getBytes(StandardCharsets.UTF_8));
 						//copyBodyToResponse is called in finally block
-					} 
-					//we don't need else block because we are calling copyBodyToResponse in finally block
+					}
 				}
 			}
 			catch (Exception e) {
@@ -140,7 +192,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 			{
 				// Ensure the response body is copied back after all modifications
 				//IT IS CALLED FOR ALL CASES
-				responseWrapper.copyBodyToResponse();
+				responseWrapper.copyBodyToResponse();	
 			}
 		} 
 		else 
@@ -149,6 +201,11 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		}
 	}
 
+	public URL createRedirectURL(String redirectLocation) throws MalformedURLException {
+		URL url = new URL(redirectLocation);
+		return url;
+	}
+	
 	private void addSecurityParametersToSegmentUrls(String token, String subscriberId, String subscriberCode, ServletRequest request, ContentCachingResponseWrapper response, FilterChain chain) throws IOException, ServletException {
 
 		addSecurityParametersToURLs(token, subscriberId, subscriberCode, request, response, chain, SEGMENT_FILE_REGEX);

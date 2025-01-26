@@ -1,5 +1,6 @@
 package io.antmedia.test.filter;
 
+import io.antmedia.AppSettings;
 import io.antmedia.filter.HlsManifestModifierFilter;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.*;
@@ -16,7 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -633,6 +637,68 @@ public class HlsManifestModifierFilterTest {
 			assertTrue(modifiedM3u8.contains("test000000002.ts?subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
 			assertTrue(modifiedM3u8.contains("test000000003.ts?subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
 			assertTrue(modifiedM3u8.contains("test000000004.ts?subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
+			assertFalse(modifiedM3u8.contains("test000000005.ts"));
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (ServletException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	
+	@Test
+	public void testFilterWithRedirection() {
+		try {
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+			
+			HlsManifestModifierFilter spyHlsManifestModifierFilter = spy(hlsManifestModifierFilter);
+
+			ServletOutputStream outputStream = mock(ServletOutputStream.class);
+			when(mockResponse.getOutputStream()).thenReturn(outputStream);
+			when(mockResponse.getStatus()).thenReturn(200);
+			when(mockResponse.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
+			FilterChain myChain = new FilterChain() {
+				@Override
+				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
+					((ContentCachingResponseWrapper)servletResponse).setStatus(200);
+					((ContentCachingResponseWrapper)servletResponse).getOutputStream().write(testM3u8.getBytes());
+				}
+			};
+
+			//blank start end params
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			when(mockRequest.getMethod()).thenReturn("GET");
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/test.m3u8");
+			when(mockRequest.getParameter(HlsManifestModifierFilter.START)).thenReturn("1709926082");
+			when(mockRequest.getParameter(HlsManifestModifierFilter.END)).thenReturn("1709926087");
+
+			AppSettings appSettings = new AppSettings();
+			appSettings.setHttpForwardingBaseURL("forward_url");
+			
+			doReturn(appSettings).when(spyHlsManifestModifierFilter).getAppSettings();
+			
+			URL url = mock(URL.class);
+			HttpURLConnection connection = mock(HttpURLConnection.class);
+			
+			doReturn(url).when(spyHlsManifestModifierFilter).createRedirectURL(anyString());
+
+			when(url.openConnection()).thenReturn(connection);
+			when(connection.getInputStream()).thenReturn(new ByteArrayInputStream(testM3u8Query.getBytes()));
+			
+	
+			spyHlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
+
+			byte[] modifiedResponseContent = responseWrapper.getContentAsByteArray();
+			String modifiedM3u8 = new String(modifiedResponseContent, StandardCharsets.UTF_8);
+
+			//System.out.println(modifiedM3u8);
+
+			assertFalse(modifiedM3u8.contains("test000000001.ts"));
+			assertTrue(modifiedM3u8.contains("test000000002.ts"));
+			assertTrue(modifiedM3u8.contains("test000000003.ts"));
+			assertTrue(modifiedM3u8.contains("test000000004.ts"));
 			assertFalse(modifiedM3u8.contains("test000000005.ts"));
 
 		} catch (IOException e) {

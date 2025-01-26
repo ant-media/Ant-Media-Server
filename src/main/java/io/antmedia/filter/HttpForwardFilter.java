@@ -34,45 +34,49 @@ public class HttpForwardFilter extends AbstractFilter {
 
 			if (appSettings != null) 
 			{
-				String httpForwardingExtension = appSettings.getHttpForwardingExtension(); 
 				String httpForwardingBaseURL = appSettings.getHttpForwardingBaseURL();
-
-				if (httpForwardingExtension != null && !httpForwardingExtension.isEmpty() &&
-						httpForwardingBaseURL != null && !httpForwardingBaseURL.isEmpty()) 
-				{
-					String[] extension = httpForwardingExtension.split(COMMA);
-					for (int i = 0; i < extension.length; i++) 
-					{
-						if (requestURI.endsWith(extension[i])) {
-							
-							String subURI = requestURI.substring(requestURI.indexOf(SLASH, 1));
-
-							//two back to back slashes cause problems
-							String normalizedBaseURL = httpForwardingBaseURL.endsWith(SLASH) ? httpForwardingBaseURL : httpForwardingBaseURL + SLASH;
-
-							String normalizedSubURI = subURI.startsWith(SLASH) ? subURI.substring(1) : subURI;
-
-							String redirectUri = normalizedBaseURL + normalizedSubURI;
-
-							HttpServletResponse httpResponse = (HttpServletResponse) response;
-							if (redirectUri.contains(DOUBLE_DOT)) {
-								throw new IOException("URI is not well formatted");
-							}
-							httpResponse.sendRedirect(redirectUri);
-							//return immediately
-							return;
-						}
-					}
-					logger.trace("Extensions({}) does match the request uri: {}", extension, requestURI);
-				}
-				else {
-					logger.trace("No forwarding because extension or url not set for request: {}", requestURI);
-				}
+			    String httpForwardingExtension = appSettings.getHttpForwardingExtension();
+	
+		        String redirectUri = getRedirectUrl(requestURI, httpForwardingBaseURL, httpForwardingExtension);
+	
+		        if (redirectUri != null) {
+		            HttpServletResponse httpResponse = (HttpServletResponse) response;
+		            httpResponse.sendRedirect(redirectUri);
+		            return; // return immediately after redirect
+		        }
+	
+		        logger.trace("No matching extension or forwarding settings for request URI: {}", requestURI);
 			}
-		}
+	    }
 
-		chain.doFilter(request, response);
+	    chain.doFilter(request, response);
 	}
+
+	public static String getRedirectUrl(String requestURI, String httpForwardingBaseURL, String httpForwardingExtension) throws IOException {
+	    if (httpForwardingExtension == null || httpForwardingExtension.isEmpty() ||
+	        httpForwardingBaseURL == null || httpForwardingBaseURL.isEmpty()) {
+	        return null; // Incomplete settings
+	    }
+
+	    String[] extensions = httpForwardingExtension.split(COMMA);
+	    for (String extension : extensions) {
+	        if (requestURI.endsWith(extension)) {
+	            String subURI = requestURI.substring(requestURI.indexOf(SLASH, 1));
+
+	            String normalizedBaseURL = httpForwardingBaseURL.endsWith(SLASH) ? httpForwardingBaseURL : httpForwardingBaseURL + SLASH;
+	            String normalizedSubURI = subURI.startsWith(SLASH) ? subURI.substring(1) : subURI;
+
+	            String redirectUri = normalizedBaseURL + normalizedSubURI;
+
+	            if (redirectUri.contains(DOUBLE_DOT)) {
+	                throw new IOException("URI is not well formatted");
+	            }
+	            return redirectUri;
+	        }
+	    }
+	    return null; // No matching extension
+	}
+
 	
 	
 
