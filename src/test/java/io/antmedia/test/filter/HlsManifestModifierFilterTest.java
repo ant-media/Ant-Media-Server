@@ -37,7 +37,9 @@ public class HlsManifestModifierFilterTest {
 
 	@Before
 	public void before() {
-		hlsManifestModifierFilter = new HlsManifestModifierFilter();
+		hlsManifestModifierFilter = spy(new HlsManifestModifierFilter());
+		AppSettings appSettings = new AppSettings();
+		doReturn(appSettings).when(hlsManifestModifierFilter).getAppSettings();
 	}
 
 	@After
@@ -653,8 +655,6 @@ public class HlsManifestModifierFilterTest {
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
 			
-			HlsManifestModifierFilter spyHlsManifestModifierFilter = spy(hlsManifestModifierFilter);
-
 			ServletOutputStream outputStream = mock(ServletOutputStream.class);
 			when(mockResponse.getOutputStream()).thenReturn(outputStream);
 			when(mockResponse.getStatus()).thenReturn(200);
@@ -677,18 +677,18 @@ public class HlsManifestModifierFilterTest {
 			AppSettings appSettings = new AppSettings();
 			appSettings.setHttpForwardingBaseURL("forward_url");
 			
-			doReturn(appSettings).when(spyHlsManifestModifierFilter).getAppSettings();
+			doReturn(appSettings).when(hlsManifestModifierFilter).getAppSettings();
 			
 			URL url = mock(URL.class);
 			HttpURLConnection connection = mock(HttpURLConnection.class);
 			
-			doReturn(url).when(spyHlsManifestModifierFilter).createRedirectURL(anyString());
+			doReturn(url).when(hlsManifestModifierFilter).createRedirectURL(anyString());
 
 			when(url.openConnection()).thenReturn(connection);
 			when(connection.getInputStream()).thenReturn(new ByteArrayInputStream(testM3u8Query.getBytes()));
 			
 	
-			spyHlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
 
 			byte[] modifiedResponseContent = responseWrapper.getContentAsByteArray();
 			String modifiedM3u8 = new String(modifiedResponseContent, StandardCharsets.UTF_8);
