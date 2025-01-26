@@ -445,7 +445,7 @@ public abstract class RestServiceBase {
 	}
 
 	public boolean isStreaming(Broadcast broadcast) {
-		return AntMediaApplicationAdapter.isStreaming(broadcast);
+		return AntMediaApplicationAdapter.isStreaming(broadcast.getStatus(), broadcast.getUpdateTime());
 	}
 
 	/**

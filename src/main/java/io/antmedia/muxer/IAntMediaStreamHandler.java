@@ -7,6 +7,7 @@ import org.red5.server.api.scope.IScope;
 
 import io.antmedia.AppSettings;
 import io.antmedia.IAppSettingsUpdateListener;
+import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.plugin.api.IFrameListener;
@@ -23,6 +24,7 @@ public interface IAntMediaStreamHandler {
 	public static final String BROADCAST_STATUS_PREPARING = "preparing";
 	public static final String BROADCAST_STATUS_ERROR = "error";
 	public static final String BROADCAST_STATUS_FAILED = "failed";
+	public static final String BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY = "terminated_unexpectedly";
 	
 	public static final String PUBLISH_TYPE_PULL = "Pull";
 	public static final String PUBLISH_TYPE_RTMP = "RTMP";
@@ -85,8 +87,26 @@ public interface IAntMediaStreamHandler {
 	 * @param totalByteReceived
 	 * @param byteTransferred 
 	 * @param currentTimeMillis
+	 * 
+	 * @Deprecated {@link #setQualityParameters(String, PublishStatsEvent, long)} should be used instead of this method
 	 */
+	@Deprecated
 	public void setQualityParameters(String streamId, String quality, double speed, int inputQueueSize, long currentTimeMillis);
+	
+	
+	/**
+	 * Sets quality parameters for the given stream ID.
+
+	 * This method is called to update quality-related parameters 
+	 * for the specified stream during the publishing process. 
+
+	 * @param streamId The unique identifier of the stream.
+	 * @param stats The current publishing statistics for the stream.
+	 * @param currentTimeMillis The current timestamp in milliseconds.
+	 */
+	public default void setQualityParameters(String streamId, PublishStatsEvent stats, long currentTimeMillis) {
+		
+	}
 
     /***
      * Adds a MuxAdaptor when a muxAdaptor is created

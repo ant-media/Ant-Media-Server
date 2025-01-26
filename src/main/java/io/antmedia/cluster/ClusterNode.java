@@ -25,6 +25,8 @@ public class ClusterNode implements Serializable {
 	private String memory;
 	private String cpu;
 	
+	private int dbQueryAveargeTimeMs;
+	
 	@NotSaved
 	private String status;
 	
@@ -55,7 +57,7 @@ public class ClusterNode implements Serializable {
 	}
 
 	public String getStatus() {
-		if(System.currentTimeMillis() - lastUpdateTime > NODE_UPDATE_PERIOD*2) {
+		if((System.currentTimeMillis() - lastUpdateTime) > (NODE_UPDATE_PERIOD*4)) {
 			status = ClusterNode.DEAD;
 		}
 		else {
@@ -87,5 +89,19 @@ public class ClusterNode implements Serializable {
 
 	public void setCpu(String cpu) {
 		this.cpu = cpu;
+	}
+
+	/**
+	 * @return the dbQueryAveargeTimeMs
+	 */
+	public int getDbQueryAveargeTimeMs() {
+		return dbQueryAveargeTimeMs;
+	}
+
+	/**
+	 * @param dbQueryAveargeTimeMs the dbQueryAveargeTimeMs to set
+	 */
+	public void setDbQueryAveargeTimeMs(int dbQueryAveargeTimeMs) {
+		this.dbQueryAveargeTimeMs = dbQueryAveargeTimeMs;
 	}
 }

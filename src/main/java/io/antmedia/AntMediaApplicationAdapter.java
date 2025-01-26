@@ -69,6 +69,7 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.analytic.model.PublishEndedEvent;
 import io.antmedia.analytic.model.PublishStartedEvent;
+import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.analytic.model.ViewerCountEvent;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
@@ -1449,12 +1450,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
 		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
-
-	public static final boolean isStreaming(Broadcast broadcast) {
+	
+	public static final boolean isStreaming(String status, long updateTime) {
 		//if updatetime is older than 2 times update period time, regard that it's not streaming
-		return System.currentTimeMillis() - broadcast.getUpdateTime() < STREAM_TIMEOUT_MS &&
-				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
-						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
+		return System.currentTimeMillis() - updateTime < STREAM_TIMEOUT_MS &&
+				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)
+						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status));
 	}
 
 	public Result startStreaming(Broadcast broadcast) {
@@ -1611,34 +1612,47 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
-
+	public void setQualityParameters(String streamId, PublishStatsEvent stats, long currentTimeMillis) {
 		vertx.runOnContext(h -> {
 
-			Broadcast broadcastLocal = getDataStore().get(id);
+			Broadcast broadcastLocal = getDataStore().get(streamId);
 			if (broadcastLocal != null)
 			{
-				//round the number to three decimal places,
-				double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
-
-				logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+				
+				logger.debug("update source quality for stream: {}", streamId);
 
 				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setSpeed(roundedSpeed);	
-				broadcastUpdate.setPendingPacketSize(pendingPacketSize);
-				broadcastUpdate.setUpdateTime(updateTimeMs);
-				broadcastUpdate.setQuality(quality);
-				long elapsedTime = System.currentTimeMillis() - broadcastLocal.getStartTime();
-				broadcastUpdate.setDuration(elapsedTime);
+				broadcastUpdate.setSpeed(stats.getSpeed());	
+				broadcastUpdate.setPendingPacketSize(stats.getInputQueueSize());
+				broadcastUpdate.setUpdateTime(currentTimeMillis);
+				long elapsedTimeMs = System.currentTimeMillis() - broadcastLocal.getStartTime();
+				broadcastUpdate.setDuration(elapsedTimeMs);
+				if (elapsedTimeMs > 0 ) {
+					long elapsedSeconds = elapsedTimeMs / 1000;
+					long bitrate = (stats.getTotalByteReceived()/elapsedSeconds)*8;
+					broadcastUpdate.setBitrate(bitrate);
+				}
 
+				broadcastUpdate.setWidth(stats.getWidth());
+				broadcastUpdate.setHeight(stats.getHeight());
+				
+				broadcastUpdate.setEncoderQueueSize(stats.getEncodingQueueSize());		
+				broadcastUpdate.setDropPacketCountInIngestion(stats.getDroppedPacketCountInIngestion());
+				broadcastUpdate.setDropFrameCountInEncoding(stats.getDroppedFrameCountInEncoding());
+				broadcastUpdate.setPacketLostRatio(stats.getPacketLostRatio());
+				broadcastUpdate.setPacketsLost(stats.getPacketsLost());
+                broadcastUpdate.setJitterMs(stats.getJitterMs());
+                broadcastUpdate.setRttMs(stats.getRoundTripTimeMs());	
+                
+                broadcastUpdate.setRemoteIp(stats.getRemoteIp());
+                broadcastUpdate.setUserAgent(stats.getUserAgent()); 
 
-				getDataStore().updateBroadcastFields(id, broadcastUpdate);
+				getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 
 				ViewerCountEvent viewerCountEvent = new ViewerCountEvent();
 				viewerCountEvent.setApp(getScope().getName());
-				viewerCountEvent.setStreamId(id);
+				viewerCountEvent.setStreamId(streamId);
 				viewerCountEvent.setDashViewerCount(broadcastLocal.getDashViewerCount());
 				viewerCountEvent.setHlsViewerCount(broadcastLocal.getHlsViewerCount());
 				viewerCountEvent.setWebRTCViewerCount(broadcastLocal.getWebRTCViewerCount());
@@ -1647,6 +1661,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 
 		});
+		
+		
+	}
+
+	@Override
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
+		PublishStatsEvent stats = new PublishStatsEvent();
+		stats.setSpeed(speed);
+		stats.setInputQueueSize(pendingPacketSize);
+		
+		setQualityParameters(id, stats, updateTimeMs);
 	}
 
 	@Override
@@ -1722,7 +1747,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							+ " total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
-					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished explicitly");
+					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished_unexpectedly");
 					everythingHasStopped = false;
 					break;
 				}
@@ -1743,8 +1768,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				//if it's not closed properly, let's set the state to failed
 				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 
-				broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-				broadcastUpdate.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+				broadcastUpdate.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 				broadcastUpdate.setWebRTCViewerCount(0);
 				broadcastUpdate.setHlsViewerCount(0);
 				broadcastUpdate.setDashViewerCount(0);
