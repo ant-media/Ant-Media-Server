@@ -1631,7 +1631,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcastUpdate.setUpdateTime(currentTimeMillis);
 				long elapsedTimeMs = System.currentTimeMillis() - broadcastLocal.getStartTime();
 				broadcastUpdate.setDuration(elapsedTimeMs);
-				if (elapsedTimeMs > 0 ) {
+				if (elapsedTimeMs > 1000 ) { //fix by zero division
 					long elapsedSeconds = elapsedTimeMs / 1000;
 					long bitrate = (stats.getTotalByteReceived()/elapsedSeconds)*8;
 					broadcastUpdate.setBitrate(bitrate);
