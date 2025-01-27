@@ -593,6 +593,11 @@ public class Broadcast {
 		return status;
 	}
 
+	/**
+	 * Pay attention to the status field. Even if you set to BROADCASTING, it will check last update time to understand if it's really broadcasting
+	 * Check the {@link Broadcast#getStatus()}
+	 * @param status
+	 */
 	public void setStatus(String status) {
 		this.status = status;
 	}

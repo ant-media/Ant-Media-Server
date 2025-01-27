@@ -279,7 +279,7 @@ public interface IAntMediaStreamHandler {
 	 * @param absoluteStartTimeMs
 	 */
 	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
-			int inputQueueSize, double speed);
+			int inputQueueSize, int encodingQueueSize, int dropFrameCountInEncoding, int dropPacketCountInIngestion, double speed);
 	
 	/**
 	 * Add listener that is notified when the settings are updated

@@ -998,6 +998,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		//increase updating time to STAT_UPDATE_PERIOD_MS seconds because it may cause some issues in mongodb updates 
 		//or 
 		//update before STAT_UPDATE_PERIOD_MS if speed something meaningful
+		
+		int encodingQueueSize = getEncodingQueueSize();
+		int dropFrameCountInEncoding = getDroppedFrameCountInEncoding();
+		int dropPacketCountInIngestion = getDroppedPacketCountInIngestion();
+		
 		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS || (lastQualityUpdateTime == 0 && speed > 0.8)) 
 		{
 			
@@ -1006,9 +1011,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			long byteTransferred = totalByteReceived - lastTotalByteReceived;
 			lastTotalByteReceived = totalByteReceived;
 
-			int encodingQueueSize = getEncodingQueueSize();
-			int dropFrameCountInEncoding = getDroppedFrameCountInEncoding();
-			int dropPacketCountInIngestion = getDroppedPacketCountInIngestion();
+			
 
 			PublishStatsEvent publishStatsEvent = new PublishStatsEvent();
 			publishStatsEvent.setApp(scope.getName());
@@ -1025,6 +1028,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			publishStatsEvent.setDurationMs(durationMs);
 			publishStatsEvent.setWidth(width);
 			publishStatsEvent.setHeight(height);
+			
+			LoggerUtils.logAnalyticsFromServer(publishStatsEvent);
 
 			getStreamHandler().setQualityParameters(streamId, publishStatsEvent, now);
 		}
@@ -1032,7 +1037,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		long webhookStreamStatusUpdatePeriod = appSettings.getWebhookStreamStatusUpdatePeriodMs();
 		if (webhookStreamStatusUpdatePeriod != -1 && (now - lastWebhookStreamStatusUpdateTime) > webhookStreamStatusUpdatePeriod) {
 			lastWebhookStreamStatusUpdateTime = now;
-			getStreamHandler().notifyWebhookForStreamStatus(getBroadcast(), width, height, totalByteReceived, inputQueueSize, roundedSpeed);
+			getStreamHandler().notifyWebhookForStreamStatus(getBroadcast(), width, height, totalByteReceived, inputQueueSize, encodingQueueSize, dropFrameCountInEncoding, dropPacketCountInIngestion, roundedSpeed);
 		}
 	}
 

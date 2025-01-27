@@ -788,7 +788,10 @@ public class BroadcastRestServiceV2UnitTest {
 
 			assertEquals(1, store.get(streamId).getEndPointList().size());
 
-			store.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+			broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+			store.updateBroadcastFields(streamId, broadcastUpdate);
 
 			assertTrue(restServiceSpy.removeEndpoint(streamId, endpointURL).isSuccess());
 		}
@@ -902,8 +905,12 @@ public class BroadcastRestServiceV2UnitTest {
 			assertTrue(result.isSuccess());
 
 			assertEquals(1, store.get(streamId).getEndPointList().size());
-
-			store.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+			boolean updateStatus = store.updateBroadcastFields(streamId, broadcastUpdate);
+			assertTrue(updateStatus);
 
 			when(context.containsBean(any())).thenReturn(true);
 			serverHostAddress = "127.0.1.1";
@@ -935,7 +942,11 @@ public class BroadcastRestServiceV2UnitTest {
 
 			assertEquals(1, store.get(streamId).getEndPointList().size());
 
-			store.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+			boolean updateStatus = store.updateBroadcastFields(streamId, broadcastUpdate);
+			assertTrue(updateStatus);
 
 			when(context.containsBean(any())).thenReturn(true);
 			serverHostAddress = "55.55.55.55";
@@ -1521,7 +1532,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
 		restServiceReal.setServerSettings(serverSettings);
-
+		broadcast.setUpdateTime(System.currentTimeMillis());
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		store.save(broadcast);
 
@@ -1556,6 +1567,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 
 		Broadcast broadcast3 = new Broadcast(null, "name");
+		broadcast3.setUpdateTime(System.currentTimeMillis());
 		broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		store.save(broadcast3);
 
@@ -1651,7 +1663,10 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNull(broadcastTmp.getListenerHookURL());
 
 		//update status
-		boolean updateStatus = store.updateStatus(createBroadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+		boolean updateStatus = store.updateBroadcastFields(createBroadcast.getStreamId(), broadcastUpdate);
 		assertTrue(updateStatus);
 
 		//check status
@@ -1759,7 +1774,11 @@ public class BroadcastRestServiceV2UnitTest {
 		//disable
 		assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), false, "mp4", 0).isSuccess());
 
-		store.updateStatus(testBroadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+		
+		store.updateBroadcastFields(testBroadcast.getStreamId(), broadcastUpdate);
 
 		assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), true, "mp4", 0).isSuccess());
 		verify(mockMuxAdaptor).startRecording(RecordType.MP4, 0);
@@ -1796,6 +1815,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Response response = restServiceSpy.createBroadcast(new Broadcast("test"), false);
 		Broadcast testBroadcast = (Broadcast) response.getEntity();
 		testBroadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		testBroadcast.setUpdateTime(System.currentTimeMillis());
 		String streamId = testBroadcast.getStreamId();
 
 		MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
@@ -2541,6 +2561,7 @@ public class BroadcastRestServiceV2UnitTest {
 		//It means there is no stream to stop
 		assertTrue(streamSourceRest.checkStopStreaming(broadcast));
 
+		broadcast.setUpdateTime(System.currentTimeMillis());
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		//it should return false because adaptor return false
 		assertFalse(streamSourceRest.checkStopStreaming(broadcast));
@@ -3232,8 +3253,10 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2=new Broadcast();
 		try {
 			broadcast1.setStreamId("stream1");
+			broadcast1.setUpdateTime(System.currentTimeMillis());
 			broadcast1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast2.setStreamId("stream2");
+			broadcast2.setUpdateTime(System.currentTimeMillis());
 			broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		} catch (Exception e) {
 			e.printStackTrace();

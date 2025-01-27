@@ -2653,6 +2653,7 @@ public class DBStoresUnitTest {
 		dataStore.save(broadcast2);
 
 		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setUpdateTime(System.currentTimeMillis());
 		broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);	
 		broadcast3.setWebRTCViewerCount(104);
 		broadcast3.setHlsViewerCount(305);

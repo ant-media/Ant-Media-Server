@@ -1248,7 +1248,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
-			int inputQueueSize, double speed) {
+			int inputQueueSize,  int encodingQueueSize, int dropFrameCountInEncoding, int dropPacketCountInIngestion, double speed) {
 		String listenerHookURL = getListenerHookURL(broadcast);
 
 		if (StringUtils.isNotBlank(listenerHookURL)) {
@@ -1266,6 +1266,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				variables.put("speed", speed);
 				variables.put("timestamp", System.currentTimeMillis());
 				variables.put("streamName",broadcast.getName());
+				variables.put("encodingQueueSize", encodingQueueSize);
+				variables.put("dropFrameCountInEncoding", dropFrameCountInEncoding);
+				variables.put("dropPacketCountInIngestion", dropPacketCountInIngestion);
 
 				try {
 					sendPOST(listenerHookURL, variables, appSettings.getWebhookRetryCount(), appSettings.getWebhookContentType());
@@ -1623,7 +1626,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (broadcastLocal != null)
 			{
 				
-				logger.debug("update source quality for stream: {}", streamId);
 
 				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setSpeed(stats.getSpeed());	
@@ -1631,11 +1633,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcastUpdate.setUpdateTime(currentTimeMillis);
 				long elapsedTimeMs = System.currentTimeMillis() - broadcastLocal.getStartTime();
 				broadcastUpdate.setDuration(elapsedTimeMs);
-				if (elapsedTimeMs > 1000 ) { //fix by zero division
-					long elapsedSeconds = elapsedTimeMs / 1000;
+				long elapsedSeconds = elapsedTimeMs / 1000;
+				if (elapsedSeconds > 0 ) { //protect by zero division
 					long bitrate = (stats.getTotalByteReceived()/elapsedSeconds)*8;
 					broadcastUpdate.setBitrate(bitrate);
 				}
+
+				
 
 				broadcastUpdate.setWidth(stats.getWidth());
 				broadcastUpdate.setHeight(stats.getHeight());
@@ -1661,6 +1665,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				viewerCountEvent.setWebRTCViewerCount(broadcastLocal.getWebRTCViewerCount());
 
 				LoggerUtils.logAnalyticsFromServer(viewerCountEvent);
+				
+				logger.debug("update source quality for stream:{} width:{} height:{} bitrate:{} input queue size:{} encoding queue size:{} packetsLost:{} packetLostRatio:{} jitter:{} rtt:{}",
+						
+						streamId, stats.getWidth(), stats.getHeight(), broadcastUpdate.getBitrate(), stats.getInputQueueSize(), stats.getEncodingQueueSize(),
+						stats.getPacketsLost(), stats.getPacketLostRatio(), stats.getJitterMs(), stats.getRoundTripTimeMs());
 			}
 
 		});
