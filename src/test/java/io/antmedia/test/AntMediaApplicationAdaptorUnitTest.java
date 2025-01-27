@@ -501,6 +501,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Add 3. Broadcast
 		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setUpdateTime(System.currentTimeMillis());
 		broadcast3.setStatus(spyAdapter.BROADCAST_STATUS_PREPARING);
 
 		dataStore.save(broadcast);

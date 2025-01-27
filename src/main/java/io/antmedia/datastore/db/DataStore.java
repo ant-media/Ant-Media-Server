@@ -1024,7 +1024,10 @@ public abstract class DataStore {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
 		}		
 
-		
+		if (newBroadcast.getUpdateTime() != null) {
+			broadcast.setUpdateTime(newBroadcast.getUpdateTime());
+		}
+
 		if (newBroadcast.getPlayListItemList() != null) {
 			broadcast.setPlayListItemList(newBroadcast.getPlayListItemList());
 		}
@@ -1175,9 +1178,6 @@ public abstract class DataStore {
 			broadcast.setVirtual(newBroadcast.getVirtual());
 		}
 		
-		
-		//update the time of the broadcast in all cases
-		broadcast.setUpdateTime(System.currentTimeMillis());
 	}
 
 
