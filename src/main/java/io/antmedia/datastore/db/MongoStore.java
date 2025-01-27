@@ -1138,10 +1138,6 @@ public class MongoStore extends DataStore {
 					updates.add(set(META_DATA, broadcast.getMetaData()));
 				}
 
-				if (broadcast.getUpdateTime() != null) {
-					updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
-				}
-
 				if (broadcast.getSubtracksLimit() != null) {
 					updates.add(set("subtracksLimit", broadcast.getSubtracksLimit()));
 				}
@@ -1176,6 +1172,10 @@ public class MongoStore extends DataStore {
 
 
 				prepareFields(broadcast, updates);
+				
+				
+				//update the update time all the cases
+				updates.add(set(UPDATE_TIME_FIELD, System.currentTimeMillis()));
 
 				UpdateResult updateResult = query.update(updates).execute();
 
