@@ -175,6 +175,7 @@ public class WebSocketCommunityHandlerTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		broadcast.setUpdateTime(System.currentTimeMillis());
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
 		dataStore.save(broadcast);
