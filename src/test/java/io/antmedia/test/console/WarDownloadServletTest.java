@@ -40,13 +40,13 @@ public class WarDownloadServletTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 		
-		request.setRequestURI("/test123.war");
+		request.setRequestURI("/test1.war");
 		warDownloadServlet.doHead(request, response);
 		verify(response).sendError(HttpServletResponse.SC_NOT_FOUND, "No such war file in the tmp directory");
 		
 		
 		
-		File f = new File(AdminApplication.getJavaTmpDirectory(), "test.war");
+		File f = new File(AdminApplication.getJavaTmpDirectory(), "test1.war");
 		assertTrue(f.createNewFile());
 		f.deleteOnExit();
 		
@@ -57,7 +57,7 @@ public class WarDownloadServletTest {
 		
 		
 		warDownloadServlet = Mockito.spy(new WarDownloadServlet());
-		Mockito.doReturn(mock(AntMediaApplicationAdapter.class)).when(warDownloadServlet).getAppAdaptor("test", request);
+		Mockito.doReturn(mock(AntMediaApplicationAdapter.class)).when(warDownloadServlet).getAppAdaptor("test1", request);
 		response = Mockito.spy(new MockHttpServletResponse());
 		verify(response, never()).sendError(anyInt(), anyString());
 		
