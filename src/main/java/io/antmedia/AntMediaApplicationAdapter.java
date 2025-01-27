@@ -732,6 +732,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		mainBroadcast.setZombi(true);
 		mainBroadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
 		mainBroadcast.getSubTrackStreamIds().add(streamId);
+		mainBroadcast.setVirtual(true);
 		// don't set  setOriginAdress because it's not a real stream and it causes extra delay  -> mainBroadcast.setOriginAdress(serverSettings.getHostAddress()) 
 		mainBroadcast.setStartTime(System.currentTimeMillis());
 
@@ -1457,10 +1458,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
 	
-	public static final boolean isStreaming(String status, long updateTime) {
-		//if updatetime is older than 2 times update period time, regard that it's not streaming
-		return System.currentTimeMillis() - updateTime < STREAM_TIMEOUT_MS &&
-				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)
+	/**
+	 * Important information: Status field of Broadcast class checks the update time to report the status is broadcasting or not.
+	 * {@link Broadcast#getStatus()}
+	*/
+	public static final boolean isStreaming(String status) {
+		
+		return (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)
 						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status));
 	}
 

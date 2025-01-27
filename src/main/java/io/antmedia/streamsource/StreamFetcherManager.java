@@ -123,7 +123,7 @@ public class StreamFetcherManager {
 
 		if (!isStreamLive) {
 			//this stream may be fetching in somewhere in the cluster
-			isStreamLive = AntMediaApplicationAdapter.isStreaming(broadcast.getStatus(), broadcast.getUpdateTime()) && 
+			isStreamLive = AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && 
 					AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), serverSettings.getHostAddress(), serverSettings.getDefaultHttpPort(), scope.getName());
 		}
 

@@ -1256,7 +1256,10 @@ public class MongoStore extends DataStore {
 		
 		if (broadcast.getRemoteIp() != null) {
 			updates.add(set("remoteIp", broadcast.getRemoteIp()));
-
+		}
+		
+		if (broadcast.getVirtual() != null) {
+			updates.add(set("virtual", broadcast.getVirtual()));
 		}
 	}
 

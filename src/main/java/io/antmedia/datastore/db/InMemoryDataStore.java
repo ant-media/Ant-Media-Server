@@ -1130,8 +1130,7 @@ public class InMemoryDataStore extends DataStore {
 		{
 			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
 					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
-					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-					&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus(), broadcast.getUpdateTime()))) 
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))) 
 			{
 				count++;
 			}
@@ -1147,8 +1146,7 @@ public class InMemoryDataStore extends DataStore {
 		{
 			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
 					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
-					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-					&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus(), broadcast.getUpdateTime()))) 
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))) 
 			{
 				subtracks.add(broadcast);
 			}

@@ -161,6 +161,8 @@ public class BroadcastUpdate {
     private Boolean autoStartStopEnabled = null;
 
     private List<EncoderSettings> encoderSettingsList = null;
+    
+    private Boolean virtual = null;
 
 	public String getStreamId() {
 		return streamId;
@@ -785,6 +787,20 @@ public class BroadcastUpdate {
 	 */
 	public void setRemoteIp(String remoteIp) {
 		this.remoteIp = remoteIp;
+	}
+
+	/**
+	 * @return the virtual
+	 */
+	public Boolean getVirtual() {
+		return virtual;
+	}
+
+	/**
+	 * @param virtual the virtual to set
+	 */
+	public void setVirtual(Boolean virtual) {
+		this.virtual = virtual;
 	}
     
     

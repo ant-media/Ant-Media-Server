@@ -408,6 +408,15 @@ public class Broadcast {
 	@Schema(description ="The list of encoder settings")
 	private List<EncoderSettings> encoderSettingsList;
 	
+	
+	/**
+	 * If this broadcast is a virtual or not.
+	 * For the conference calls, broadcasts are virtual. 
+	 * It means that they are not real streams but they are just a reference to the main stream.
+	 * On the other hand, virtual streams can be real streams as well. 
+	 */
+	private boolean virtual = false;
+	
 
 	@Entity
 	public static class HLSParameters
@@ -577,11 +586,18 @@ public class Broadcast {
 		this.quality = quality;
 	}
 
+		
 	public String getStatus() {
-		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)) {
+		
+		if (virtual) 
+		{
+			return status;
+		}
+		else if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) || IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status)) {
 			
-			if (AntMediaApplicationAdapter.isStreaming(status, updateTime)) {
-				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
+			if (System.currentTimeMillis() - updateTime < AntMediaApplicationAdapter.STREAM_TIMEOUT_MS) 
+			{
+				return status;
 			}
 			else {
 				//if stream is stuck with broadcasting state, return its state as finished 
@@ -1211,5 +1227,19 @@ public class Broadcast {
 	 */
 	public void setRemoteIp(String remoteIp) {
 		this.remoteIp = remoteIp;
+	}
+
+	/**
+	 * @return the virtual
+	 */
+	public boolean isVirtual() {
+		return virtual;
+	}
+
+	/**
+	 * @param virtual the virtual to set
+	 */
+	public void setVirtual(boolean virtual) {
+		this.virtual = virtual;
 	}
 }

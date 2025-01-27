@@ -1538,8 +1538,7 @@ public abstract class MapBasedDataStore extends DataStore
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				if ( mainTrackId.equals(broadcast.getMainTrackStreamId())
 						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role)) 
-						&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-						&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus(), broadcast.getUpdateTime()))
+						&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))
 						) 
 				{
 					count++;
@@ -1565,8 +1564,7 @@ public abstract class MapBasedDataStore extends DataStore
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				if ( mainTrackId.equals(broadcast.getMainTrackStreamId())
 						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role)) 
-						&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-						&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus(), broadcast.getUpdateTime()))
+						&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))
 						) 
 				{
 					subtracks.add(broadcast);

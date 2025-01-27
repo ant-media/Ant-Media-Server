@@ -77,7 +77,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 	public void startStreamingIfAutoStartStopEnabled(HttpServletRequest request, String streamId) {
 		//start if it's not found, it may be started 
 		Broadcast broadcast = getBroadcast(request, streamId);
-		if (broadcast != null && broadcast.isAutoStartStopEnabled() && !AntMediaApplicationAdapter.isStreaming(broadcast.getStatus(), broadcast.getUpdateTime())) 
+		if (broadcast != null && broadcast.isAutoStartStopEnabled() && !AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) 
 		{
 			//startStreaming method starts streaming if stream is not streaming in local or in any node in the cluster
 			logger.info("http play request(hls, dash) is received for stream id:{} and it's not streaming, so it's trying to start the stream", streamId);

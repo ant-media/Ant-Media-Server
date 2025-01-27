@@ -285,7 +285,7 @@ public class StreamFetcher {
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
-				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus(), broadcast.getUpdateTime())) {
+				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
 
 					return;

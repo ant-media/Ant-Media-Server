@@ -1174,6 +1174,10 @@ public abstract class DataStore {
 			broadcast.setRemoteIp(newBroadcast.getRemoteIp());
 		}
 		
+		if (newBroadcast.getVirtual() != null) {
+			broadcast.setVirtual(newBroadcast.getVirtual());
+		}
+		
 	}
 
 
