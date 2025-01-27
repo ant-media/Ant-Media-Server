@@ -350,17 +350,6 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications")
 	@Produces(MediaType.APPLICATION_JSON)
 	public String getApplications() {
-
-	/*	String userEmail = (String)httpRequest.getSession().getAttribute(CommonRestService.USER_EMAIL);
-		AbstractConsoleDataStore store = getAbstractConsoleDataStore();
-		if (store != null)
-		{
-			User currentUser = store.getUser(userEmail);*/
-
-
-
-
-
 	    return super.getApplications();
 	}
 
