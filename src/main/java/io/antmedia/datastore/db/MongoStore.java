@@ -614,6 +614,7 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		long startTime = System.nanoTime();
 		List<Broadcast> streamList = Arrays.asList();
+		long now = System.currentTimeMillis();
 		synchronized(this) {
 			try {
 
@@ -626,7 +627,9 @@ public class MongoStore extends DataStore {
 						);
 
 				streamList = query.iterator().toList();
-				final UpdateResult results = query.update(new UpdateOptions().multi(true), set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
+				final UpdateResult results = query.update(new UpdateOptions().multi(true), 
+						set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING),
+						set(UPDATE_TIME_FIELD, now));
 				long updatedCount = results.getModifiedCount();
 				if(updatedCount != streamList.size()) {
 					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
