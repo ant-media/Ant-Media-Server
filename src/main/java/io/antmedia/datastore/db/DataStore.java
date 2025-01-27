@@ -1218,7 +1218,7 @@ public abstract class DataStore {
 		
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateHLSViewerCountLocal");
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "searchOnServerVod");
 		return broadcastList;
 	}
 
@@ -1360,7 +1360,7 @@ public abstract class DataStore {
 		
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateHLSViewerCountLocal");
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "sortAndCropBroadcastList");
 		
 		if (offset >= toIndex)
 		{
@@ -1477,7 +1477,7 @@ public abstract class DataStore {
 		}
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateHLSViewerCountLocal");
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "searchOnWebRTCViewerInfo");
 		return list;
 	}
 
@@ -1503,7 +1503,7 @@ public abstract class DataStore {
 		int toIndex =  Math.min(offset+size, list.size());
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateHLSViewerCountLocal");
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "sortAndCropWebRTCViewerInfoList");
 		if (offset >= toIndex)
 		{
 			return new ArrayList<>();
@@ -1553,7 +1553,7 @@ public abstract class DataStore {
 		}
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateHLSViewerCountLocal");
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getWebRTCViewerList");
 		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
 	}
 

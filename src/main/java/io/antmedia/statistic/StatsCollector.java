@@ -73,7 +73,6 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.dropwizard.MetricsService;
 
 
-
 public class StatsCollector implements IStatsCollector, ApplicationContextAware, DisposableBean {	
 
 	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
@@ -808,7 +807,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				dbQueryTimeMs += adaptor.getDataStore().getAverageQueryTimeMs();
 			}
 		}
-		if (scopes.size() > 0) {
+		if (!scopes.isEmpty()) {
 			return dbQueryTimeMs/scopes.size();
 		}
 		return 0;
