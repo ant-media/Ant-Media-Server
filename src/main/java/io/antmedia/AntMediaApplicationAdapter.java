@@ -1658,6 +1658,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
                 
                 broadcastUpdate.setRemoteIp(stats.getRemoteIp());
                 broadcastUpdate.setUserAgent(stats.getUserAgent()); 
+                broadcastUpdate.setReceivedBytes(stats.getTotalByteReceived());
 
 				getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 
