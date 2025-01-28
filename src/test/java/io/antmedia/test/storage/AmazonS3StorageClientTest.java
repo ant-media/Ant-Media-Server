@@ -4,12 +4,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.spy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +32,7 @@ import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -89,7 +95,8 @@ public class AmazonS3StorageClientTest {
 	@Test
 	public void testS3() {
 		AmazonS3StorageClient storage = Mockito.spy(new AmazonS3StorageClient());
-		
+		doReturn(null).when(storage).getObjects(anyString());
+
 		storage.setAccessKey(ACCESS_KEY);
 		storage.setSecretKey(SECRET_KEY);
 		storage.setRegion("eu-west-1");
@@ -102,6 +109,7 @@ public class AmazonS3StorageClientTest {
 		storage.save("streams" + "/" + f.getName() , f);
 		
 		Mockito.verify(storage).getTransferManager();
+		Mockito.verify(storage).getObjects(anyString());
 
 		storage.save("streams" + "/" + f.getName() , f);
 
@@ -112,7 +120,7 @@ public class AmazonS3StorageClientTest {
 	public void testException() {
 		try {
 			AmazonS3StorageClient storage = new AmazonS3StorageClient();
-		
+
 			storage.delete("streams/" + "any_file");
 			
 			storage.fileExist("any_file");
@@ -225,10 +233,10 @@ public class AmazonS3StorageClientTest {
 	public void testChangeS3Settings() 
 	{
 		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
-
 		Mockito.doReturn(Mockito.mock(AmazonS3.class)).when(storage).initAmazonS3();
-		
-		
+		doReturn("").when(storage).getStorageName();
+
+
 		//Call getAmazonS3 with default settings
 		storage.getAmazonS3();
 		Mockito.verify(storage, Mockito.times(1)).initAmazonS3();
@@ -237,12 +245,12 @@ public class AmazonS3StorageClientTest {
 		storage.getAmazonS3();
 		//it should still be called 1 time
 		Mockito.verify(storage, Mockito.times(1)).initAmazonS3();
-		
+
 		storage.reset();
 		storage.getAmazonS3();
 		//it should be called twice because it's reset
 		Mockito.verify(storage, Mockito.times(2)).initAmazonS3();
-		
+
 	}
 	
 	@Test
@@ -275,6 +283,29 @@ public class AmazonS3StorageClientTest {
 		
 		storage.setPermission("aws-exec-read");
 		assertEquals(CannedAccessControlList.AwsExecRead, storage.getCannedAcl());
+		
+		
+	}
+	
+	@Test
+	public void testS3TransferBufferSize() {
+		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
+		int s3TransferBufferSize = 5000;
+		
+		storage.setTransferBufferSize(s3TransferBufferSize);
+
+		TransferManager tm = Mockito.mock(TransferManager.class);
+		Mockito.doReturn(tm).when(storage).getTransferManager();
+		Mockito.doReturn(true).when(storage).isEnabled();
+		Mockito.doNothing().when(storage).listenUploadProgress(anyString(), nullable(File.class), anyBoolean(), any());
+
+		
+		storage.save("key", null, mock(InputStream.class), false, false);
+
+		ArgumentCaptor<PutObjectRequest> putObjectRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+		Mockito.verify(tm).upload(putObjectRequestCaptor.capture());
+		assertEquals(s3TransferBufferSize, putObjectRequestCaptor.getValue().getRequestClientOptions().getReadLimit());
+
 		
 		
 	}

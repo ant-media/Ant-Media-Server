@@ -73,7 +73,6 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.dropwizard.MetricsService;
 
 
-
 public class StatsCollector implements IStatsCollector, ApplicationContextAware, DisposableBean {	
 
 	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
@@ -149,6 +148,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String FILE_SYSTEM_INFO = "fileSystemInfo";
 
 	public static final String GPU_UTILIZATION = "gpuUtilization";
+	
+	public static final String GPU_ENCODER_UTILIZATION = "gpuEncoderUtilization";
+	
+	public static final String GPU_DECODER_UTILIZATION = "gpuDecoderUtilization";
 
 	public static final String GPU_DEVICE_INDEX = "index";
 
@@ -169,6 +172,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String TOTAL_LIVE_STREAMS = "totalLiveStreamSize";
 
 	public static final String LOCAL_WEBRTC_LIVE_STREAMS = "localWebRTCLiveStreams";
+	
+	public static final String DB_AVERAGE_QUERY_TIME_MS = "dbAverageQueryTimeMs";
 
 	public static final String LOCAL_LIVE_STREAMS = "localLiveStreams";
 
@@ -347,14 +352,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			if (300000/measurementPeriod == time2Log) {
 				if(logger != null) 
 				{
-					logger.info("System CPU:%{} Process CPU:%{} System Load Average:{} Memory:%{}", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.getSystemLoadAverageLastMinute(), getMemoryLoad());
 
 					int vertxWorkerQueueSize = getVertWorkerQueueSizeStatic();
 
 					int webRTCVertxWorkerQueueSize = getWebRTCVertxWorkerQueueSizeStatic();
 
-					logger.info("Vertx worker queue size:{} WebRTCVertx worker queue size:{}", vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
+					logger.info("System CPU:%{} Process CPU:%{} System Load Average:{} Memory:%{} Vertx worker queue size:{} WebRTCVertx worker queue size:{}", 
+							cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.getSystemLoadAverageLastMinute(), getMemoryLoad(),
+							vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
+					
+					for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+						
+						IScope scope = iterator.next();
+						AntMediaApplicationAdapter adaptor = null;
 
+						if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null)
+						{
+							logger.info("DB Average Query Time:{}ms and Query Count:{} for app:{}", adaptor.getDataStore().getAverageQueryTimeMs(), adaptor.getDataStore().getExecutedQueryCount(), scope.getName());
+						
+						}
+					}
+					
+					
 				}
 
 				time2Log = 0;
@@ -440,11 +459,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private void sendWebRTCClientStats() {
 		getVertx().executeBlocking(
-				b -> {
+				() -> {
 					collectAndSendWebRTCClientsStats();
-					b.complete();
+					return null;
 				}, 
-				null);
+				false);
 	}
 
 
@@ -515,6 +534,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(GPU_DEVICE_INDEX, deviceIndex);
 		jsonObject.addProperty(GPU_UTILIZATION, gpuUtils.getGPUUtilization(deviceIndex));
 		jsonObject.addProperty(GPU_MEMORY_UTILIZATION, gpuUtils.getMemoryUtilization(deviceIndex));
+		jsonObject.addProperty(GPU_ENCODER_UTILIZATION, gpuUtils.getEncoderUtilization(deviceIndex));
+		jsonObject.addProperty(GPU_DECODER_UTILIZATION, gpuUtils.getDecoderUtilization(deviceIndex));
+
 		MemoryStatus memoryStatus = gpuUtils.getMemoryStatus(deviceIndex);
 		jsonObject.addProperty(GPU_MEMORY_TOTAL, memoryStatus.getMemoryTotal());
 		jsonObject.addProperty(GPU_MEMORY_FREE, memoryStatus.getMemoryFree());
@@ -724,6 +746,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		int encodersBlocked = 0;
 		int encodersNotOpened = 0;
 		int publishTimeoutError = 0;
+		long dbQueryTimeMs = 0;
+		int numberOfApps = 0;
 		if (scopes != null) {
 			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
 				IScope scope = iterator.next();
@@ -744,9 +768,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
 					localStreams += adaptor.getMuxAdaptors().size();
-
+					dbQueryTimeMs += adaptor.getDataStore().getAverageQueryTimeMs();
+					dbQueryTimeMs++; //increase 1 ms because it show 0 ms if there
+					numberOfApps++;
 				}
 			}
+		}
+		
+		if (numberOfApps > 0) {
+			jsonObject.addProperty(StatsCollector.DB_AVERAGE_QUERY_TIME_MS, dbQueryTimeMs/numberOfApps);
 		}
 
 		//add local webrtc viewer size
@@ -765,6 +795,24 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
 
 		return jsonObject;
+	}
+	
+	public long getDBQueryAverageTimeMs() {
+		long dbQueryTimeMs = 0;
+		for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+			IScope scope = iterator.next();
+			AntMediaApplicationAdapter adaptor = null;
+
+			if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null) {
+				dbQueryTimeMs += adaptor.getDataStore().getAverageQueryTimeMs();
+			}
+		}
+		if (!scopes.isEmpty()) {
+			return dbQueryTimeMs/scopes.size();
+		}
+		return 0;
+		
+		
 	}
 
 	private static int getHLSViewers(IScope scope) {

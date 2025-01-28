@@ -13,6 +13,7 @@ import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
+import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
 import dev.morphia.utils.IndexType;
 import io.antmedia.AntMediaApplicationAdapter;
@@ -23,7 +24,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description="The basic broadcast class")
 @Entity(value = "broadcast")
-@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), @Index(fields = @Field("streamId")), @Index(fields = @Field("status")) })
+@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), 
+	@Index(fields = @Field("streamId"), options = @IndexOptions(unique = true, name="streamId_unique_index")), 
+	@Index(fields = @Field("status")) })
 public class Broadcast {
 
 	private static final Logger logger = LoggerFactory.getLogger(Broadcast.class);
@@ -42,22 +45,22 @@ public class Broadcast {
 	 * "finished", "broadcasting", "created"
 	 */
 
-	@Schema(description = "the status of the stream", allowableValues = "finished,broadcasting,created,preparing,error,failed")
+	@Schema(description = "the status of the stream", allowableValues = {"finished","broadcasting","created","preparing","error","failed"})
 	private String status;
 
-	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished,broadcasting,created,preparing,error,failed")
+	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = {"finished","broadcasting","created","preparing","error","failed"})
 	private String playListStatus;
 	
 	/**
 	 * "liveStream", "ipCamera", "streamSource", "VoD"
 	 */
-	@Schema(description = "the type of the stream", allowableValues = "liveStream,ipCamera,streamSource,VoD,playlist")
+	@Schema(description = "the type of the stream", allowableValues = {"liveStream","ipCamera","streamSource","VoD","playlist"})
 	private String type;
 
 	/**
 	 * "WebRTC", "RTMP", "Pull"
 	 */
-	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = "WebRTC,RTMP,Pull")
+	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = {"WebRTC","RTMP","Pull","SRT"})
 	private String publishType;
 
 	/**
@@ -253,12 +256,12 @@ public class Broadcast {
 	private boolean zombi = false;
 
 	/**
-
 	 * Number of audio and video packets that is being pending to be encoded
 	 * in the queue
 	 */
 
-	@Schema(description ="the number of audio and video packets that is being pending to be encoded in the queue ")
+	@Schema(description ="Number of packets ingested and waiting for processing. It generally makes sense in RTMP, SRT ingest and Stream Source pull. This number"
+			+ "should be low less than 10 ")
 	private int pendingPacketSize = 0;
 
 	/**
@@ -281,17 +284,48 @@ public class Broadcast {
 	@Schema(description ="the number of RTMP viewers of the stream")
 	private int rtmpViewerCount = 0;
 
-	@Schema(description ="the publishing start time of the stream")
+	@Schema(description ="Publishing start time of the stream in unixtimestamp milliseconds")
 	private long startTime = 0;
 
-	@Schema(description ="the received bytes until now")
+	@Schema(description ="The received total bytes until now")
 	private long receivedBytes = 0;
 
-	@Schema(description ="the received bytes / duration")
+	@Schema(description ="The received bitrate per seconds")
 	private long bitrate = 0;
+	
+	@Schema(description ="Width of the incoming stream")
+	private int width = 0;
+	
+	@Schema(description ="Height of the incoming stream")
+	private int height = 0;
+	
+	@Schema(description ="Number of frames ingested and waiting for encoding. This number should be low less than 10 ")
+	private int encoderQueueSize = 0;
+	
+	@Schema(description ="Number of drop packets in total while ingesting. The packets can be drop if the server is loaded or WebRTC connectivity is not healthy. This value should be zero in perfect scenario")
+	private int dropPacketCountInIngestion;
 
+	@Schema(description ="Number of dropped frames in total while transcoding the stream. If there is an adaptive bitrate and server is loaded, "
+			+ "encoder may not transcode the stream in real-time and frames can be dropped to not cause memory crash")
+	private int dropFrameCountInEncoding;
+	
+	@Schema(description ="Lost packets' ratio in WebRTC ingest. This value should be 0.01(%1)")
+	private double packetLostRatio;
+	
+	@Schema(description ="Number of packets lost in WebRTC ingest")
+	private int packetsLost;
+	
+	@Schema(description ="Jitter milliseconds in WebRTC ingest. This value should be less than 50ms. The lesser the better")
+	private int jitterMs;
+	
+	@Schema(description ="Round Trip Time milliseconds in WebRTC ingest. This value should be less than 50ms. The lesser the better")
+	private int rttMs;
+	
 	@Schema(description ="User - Agent")
 	private String userAgent = "N/A";
+	
+	@Schema(description ="Remote IP of the stream")
+	private String remoteIp;
 
 	@Schema(description ="latitude of the broadcasting location")
 	private String latitude;
@@ -373,6 +407,15 @@ public class Broadcast {
 
 	@Schema(description ="The list of encoder settings")
 	private List<EncoderSettings> encoderSettingsList;
+	
+	
+	/**
+	 * If this broadcast is a virtual or not.
+	 * For the conference calls, broadcasts are virtual. 
+	 * It means that they are not real streams but they are just a reference to the main stream.
+	 * On the other hand, virtual streams can be real streams as well. 
+	 */
+	private boolean virtual = false;
 	
 
 	@Entity
@@ -543,10 +586,34 @@ public class Broadcast {
 		this.quality = quality;
 	}
 
+		
 	public String getStatus() {
+		
+		if (virtual) 
+		{
+			return status;
+		}
+		else if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) || IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status)) {
+			
+			if (System.currentTimeMillis() - updateTime < AntMediaApplicationAdapter.STREAM_TIMEOUT_MS) 
+			{
+				return status;
+			}
+			else {
+				//if stream is stuck with broadcasting state, return its state as finished 
+				return IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY;
+			}
+			
+			
+		}
 		return status;
 	}
 
+	/**
+	 * Pay attention to the status field. Even if you set to BROADCASTING, it will check last update time to understand if it's really broadcasting
+	 * Check the {@link Broadcast#getStatus()}
+	 * @param status
+	 */
 	public void setStatus(String status) {
 		this.status = status;
 	}
@@ -1020,5 +1087,159 @@ public class Broadcast {
 	
 	public void setPlaylistLoopEnabled(boolean playlistLoopEnabled) {
 		this.playlistLoopEnabled = playlistLoopEnabled;
+	}
+
+	/**
+	 * @return the width
+	 */
+	public int getWidth() {
+		return width;
+	}
+
+	/**
+	 * @param width the width to set
+	 */
+	public void setWidth(int width) {
+		this.width = width;
+	}
+
+	/**
+	 * @return the height
+	 */
+	public int getHeight() {
+		return height;
+	}
+
+	/**
+	 * @param height the height to set
+	 */
+	public void setHeight(int height) {
+		this.height = height;
+	}
+
+	/**
+	 * @return the encoderQueueSize
+	 */
+	public int getEncoderQueueSize() {
+		return encoderQueueSize;
+	}
+
+	/**
+	 * @param encoderQueueSize the encoderQueueSize to set
+	 */
+	public void setEncoderQueueSize(int encoderQueueSize) {
+		this.encoderQueueSize = encoderQueueSize;
+	}
+
+	/**
+	 * @return the dropPacketCountInIngestion
+	 */
+	public int getDropPacketCountInIngestion() {
+		return dropPacketCountInIngestion;
+	}
+
+	/**
+	 * @param dropPacketCountInIngestion the dropPacketCountInIngestion to set
+	 */
+	public void setDropPacketCountInIngestion(int dropPacketCountInIngestion) {
+		this.dropPacketCountInIngestion = dropPacketCountInIngestion;
+	}
+
+	/**
+	 * @return the dropFrameCountInEncoding
+	 */
+	public int getDropFrameCountInEncoding() {
+		return dropFrameCountInEncoding;
+	}
+
+	/**
+	 * @param dropFrameCountInEncoding the dropFrameCountInEncoding to set
+	 */
+	public void setDropFrameCountInEncoding(int dropFrameCountInEncoding) {
+		this.dropFrameCountInEncoding = dropFrameCountInEncoding;
+	}
+
+	/**
+	 * @return the packetLostRatio
+	 */
+	public double getPacketLostRatio() {
+		return packetLostRatio;
+	}
+
+	/**
+	 * @param packetLostRatio the packetLostRatio to set
+	 */
+	public void setPacketLostRatio(double packetLostRatio) {
+		this.packetLostRatio = packetLostRatio;
+	}
+
+	/**
+	 * @return the jitterMs
+	 */
+	public int getJitterMs() {
+		return jitterMs;
+	}
+
+	/**
+	 * @param jitterMs the jitterMs to set
+	 */
+	public void setJitterMs(int jitterMs) {
+		this.jitterMs = jitterMs;
+	}
+
+	/**
+	 * @return the rttMs
+	 */
+	public int getRttMs() {
+		return rttMs;
+	}
+
+	/**
+	 * @param rttMs the rttMs to set
+	 */
+	public void setRttMs(int rttMs) {
+		this.rttMs = rttMs;
+	}
+
+	/**
+	 * @return the packetsLost
+	 */
+	public int getPacketsLost() {
+		return packetsLost;
+	}
+
+	/**
+	 * @param packetsLost the packetsLost to set
+	 */
+	public void setPacketsLost(int packetsLost) {
+		this.packetsLost = packetsLost;
+	}
+
+	/**
+	 * @return the remoteIp
+	 */
+	public String getRemoteIp() {
+		return remoteIp;
+	}
+
+	/**
+	 * @param remoteIp the remoteIp to set
+	 */
+	public void setRemoteIp(String remoteIp) {
+		this.remoteIp = remoteIp;
+	}
+
+	/**
+	 * @return the virtual
+	 */
+	public boolean isVirtual() {
+		return virtual;
+	}
+
+	/**
+	 * @param virtual the virtual to set
+	 */
+	public void setVirtual(boolean virtual) {
+		this.virtual = virtual;
 	}
 }

@@ -19,6 +19,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.rest.RestServiceBase;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -75,7 +76,7 @@ public class WarDownloadServlet extends HttpServlet{
 	@Override
 	public void doHead(HttpServletRequest request, HttpServletResponse response)  throws ServletException, IOException  {
 
-		String requestURI = request.getRequestURI().replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX,"_") ; // The path including the context path
+		String requestURI = request.getRequestURI().replaceAll(RestServiceBase.REPLACE_CHARS,"_") ; // The path including the context path
 		String appName = requestURI.substring(requestURI.lastIndexOf("/")+1, requestURI.lastIndexOf("."));
 
 		File warFileInTmpDirectory = AdminApplication.getWarFileInTmpDirectory (AdminApplication.getWarName(appName));
@@ -115,7 +116,7 @@ public class WarDownloadServlet extends HttpServlet{
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			 {
 
-		String requestURI = request.getRequestURI().replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX,"_") ; // The path including the context path
+		String requestURI = request.getRequestURI().replaceAll(RestServiceBase.REPLACE_CHARS,"_") ; // The path including the context path
 
 		String token = request.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
 

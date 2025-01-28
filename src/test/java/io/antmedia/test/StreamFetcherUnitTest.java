@@ -11,11 +11,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
@@ -26,12 +24,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +48,6 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -980,8 +971,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//test HLS Source
 		String streamId = testFetchStreamSources("src/test/resources/test.m3u8", false, false, true, "fmp4");
 		
-		File f = new File("webapps/junit/streams/"+streamId +"_init.mp4");
-		assertTrue(f.exists());
+		String[] filesInStreams = new File("webapps/junit/streams").list();
+		boolean initFileFound = false;
+		
+		//matches 13 digits because System.currentTimeMillis() is used in the file
+        String regex = streamId + "_\\d{13}_init.mp4";
+		System.out.println("regex:"+regex);
+
+		for (int i = 0; i < filesInStreams.length; i++) {
+			System.out.println("files:"+filesInStreams[i]);
+			initFileFound |= filesInStreams[i].matches(regex);
+		}
+		assertTrue(initFileFound);
+		
 		logger.info("leaving testHLSSource");
 	}
 
@@ -1430,7 +1432,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(worker, times(2)).packetRead(any());
 	}
 	
-	//@Test
+	@Test
 	public void testWritePacketOffset() {
 		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx, 0);
 

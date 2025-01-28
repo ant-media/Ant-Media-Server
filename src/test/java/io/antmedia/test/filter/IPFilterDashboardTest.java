@@ -34,9 +34,6 @@ public class IPFilterDashboardTest {
 
 		 Mockito.doReturn(null).when(ipFilter).getServerSettings();
 		 assertFalse(ipFilter.isAllowedDashboard("127.0.0.1"));
-		 
-		 
-		
 	}
 	
 	
@@ -76,6 +73,90 @@ public class IPFilterDashboardTest {
         
         httpServletRequest.setPathInfo("");
         
+        ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+
+        assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+    }
+
+    @Test
+    public void testFilterHandlesPortNumber() throws IOException, ServletException {
+        IPFilterDashboard ipFilter = Mockito.spy(new IPFilterDashboard());
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.setRemoteAddr("127.0.0.1:8000");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        MockFilterChain filterChain = new MockFilterChain();
+
+        ServerSettings serverSettings = new ServerSettings();
+
+        serverSettings.setAllowedDashboardCIDR("127.0.0.1/8");
+        Mockito.doReturn(serverSettings).when(ipFilter).getServerSettings();
+
+        httpServletRequest.setPathInfo("");
+
+        ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+
+        assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+    }
+
+    @Test
+    public void testFilterHandlesPortNumberNegativeCase() throws IOException, ServletException {
+        IPFilterDashboard ipFilter = Mockito.spy(new IPFilterDashboard());
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.setRemoteAddr("198.168.0.1:8000");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        MockFilterChain filterChain = new MockFilterChain();
+
+        ServerSettings serverSettings = new ServerSettings();
+
+        serverSettings.setAllowedDashboardCIDR("127.0.0.1/8");
+        Mockito.doReturn(serverSettings).when(ipFilter).getServerSettings();
+
+        httpServletRequest.setPathInfo("");
+
+        ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+
+        assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+    }
+
+    @Test
+    public void testFilterHandlesIpV6WithPort() throws IOException, ServletException {
+        IPFilterDashboard ipFilter = Mockito.spy(new IPFilterDashboard());
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.setRemoteAddr("2ea7:c2fe:7337:09f4:aa44:234b:8fef:8cfb:8000");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        MockFilterChain filterChain = new MockFilterChain();
+
+        ServerSettings serverSettings = new ServerSettings();
+
+        serverSettings.setAllowedDashboardCIDR("2ea7:c2fe:7337:09f4:0000:0000:0000:0000/64");
+        Mockito.doReturn(serverSettings).when(ipFilter).getServerSettings();
+
+        httpServletRequest.setPathInfo("");
+
+        ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+
+        assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+    }
+
+    @Test
+    public void testFilterHandlesIpV6WithPortNegativeCase() throws IOException, ServletException {
+        IPFilterDashboard ipFilter = Mockito.spy(new IPFilterDashboard());
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.setRemoteAddr("2ea7:c2fe:7337:09f4:aa44:234b:8fef:8cfb:8000");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        MockFilterChain filterChain = new MockFilterChain();
+
+        ServerSettings serverSettings = new ServerSettings();
+
+        serverSettings.setAllowedDashboardCIDR("09f4:0000:0000:0000:0000:0000:0000:0000/64");
+        Mockito.doReturn(serverSettings).when(ipFilter).getServerSettings();
+
+        httpServletRequest.setPathInfo("");
+
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());

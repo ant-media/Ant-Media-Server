@@ -560,12 +560,14 @@ public class PlaylistRestServiceV2UnitTest {
 
 		restServiceReal.setScope(scope);
 
-		ApplicationContext context = mock(ApplicationContext.class);
+		ApplicationContext applicationContext = mock(ApplicationContext.class);
+
+		when(icontext.getApplicationContext()).thenReturn(applicationContext);
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(dataStore);
 
-		restServiceReal.setAppCtx(context);
+		restServiceReal.setAppCtx(applicationContext);
 
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		
@@ -574,10 +576,12 @@ public class PlaylistRestServiceV2UnitTest {
 		//init stream fetcher
 		app.getStreamFetcherManager();
 
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(applicationContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		IStatsCollector collector = mock(IStatsCollector.class);
 		when(collector.enoughResource()).thenReturn(true);
-		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(collector);
+		when(applicationContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(collector);
+
+		when(app.getStatsCollector()).thenReturn(collector);
 
 
 		dataStore.save(playlist);

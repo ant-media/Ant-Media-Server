@@ -6,6 +6,8 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -14,6 +16,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.analytic.model.PlayerStatsEvent;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.logger.LoggerUtils;
+import io.antmedia.rest.RestServiceBase;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.HttpMethod;
@@ -24,6 +27,9 @@ import jakarta.ws.rs.HttpMethod;
  *
  */
 public class DataTransferValve extends ValveBase {
+	
+	
+	private Logger logger = LoggerFactory.getLogger(DataTransferValve.class);
 
 	@Override
 	public void invoke(Request request, Response response) throws IOException, ServletException {
@@ -35,17 +41,24 @@ public class DataTransferValve extends ValveBase {
 
 		if (StringUtils.isNotBlank(streamId) && (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))) 
 		{
+			
+			ConfigurableWebApplicationContext context = (ConfigurableWebApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+
+			if (context == null || !context.isRunning()) {
+				logger.debug("Context is not ready yet for request: {}", request.getRequestURI());
+				return;
+			}
+			
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 
 			if (subscriberId != null) {
-				subscriberId = subscriberId.replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX, "_");
+				subscriberId = subscriberId.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 			}
 			
-			String clientIP = request.getRemoteAddr().replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX, "_");
+			String clientIP = request.getRemoteAddr().replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 
 			long bytesWritten = response.getBytesWritten(false);
 			
-			ConfigurableWebApplicationContext context = (ConfigurableWebApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
 			PlayerStatsEvent playerStatsEvent = new PlayerStatsEvent();
 			playerStatsEvent.setStreamId(streamId);

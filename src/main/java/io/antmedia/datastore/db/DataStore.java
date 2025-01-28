@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -20,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -41,38 +44,50 @@ public abstract class DataStore {
 
 	//Do not forget to write function descriptions especially if you are adding new functions
 
+	private static final int QUERY_TIME_THRESHOLD_MS_SEC  = 100;
+	
+	private static final int QUERY_TIME_THRESHOLD_NANO_SEC = QUERY_TIME_THRESHOLD_MS_SEC * 1_000_000;
 	public static final int MAX_ITEM_IN_ONE_LIST = 250;
-	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
+	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
-	private boolean writeStatsToDatastore = true;
+
+	private long executedQueryCount = 0;
+	
+	private long totalQueryTimeNanoSec = 0;
+	
 
 	protected volatile boolean available = false;
 
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
 	
-	
+	/**
+	 * We have appSettings fields because we need to refect the changes on the fly
+	 */
+	protected AppSettings appSettings;
+
+
 	public abstract String save(Broadcast broadcast);
 
 	//TODO: In rare scenarios, streamId can not be unique 
-	public Broadcast saveBroadcast(Broadcast broadcast) {
+	protected Broadcast saveBroadcast(Broadcast broadcast) {
 		String streamId = null;
 		try {
-		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-			streamId = RandomStringUtils.randomAlphanumeric(16) + System.nanoTime();
-			broadcast.setStreamId(streamId);
+			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
+				streamId = RandomStringUtils.randomAlphanumeric(16) + System.nanoTime();
+				broadcast.setStreamId(streamId);
+			}
+			streamId = broadcast.getStreamId();
+			String rtmpURL = broadcast.getRtmpURL();
+			if (rtmpURL != null) {
+				rtmpURL += streamId;
+			}
+			broadcast.setRtmpURL(rtmpURL);
+			if (broadcast.getStatus() == null) {
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
-		streamId = broadcast.getStreamId();
-		String rtmpURL = broadcast.getRtmpURL();
-		if (rtmpURL != null) {
-			rtmpURL += streamId;
-		}
-		broadcast.setRtmpURL(rtmpURL);
-		if (broadcast.getStatus() == null) {
-			broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
-		}
-	} catch (Exception e) {
-		logger.error(ExceptionUtils.getStackTrace(e));
-	}
 		return broadcast;
 	}
 
@@ -82,20 +97,27 @@ public abstract class DataStore {
 	 * @return broadcast
 	 */
 	public abstract Broadcast get(String id);
-	
+
 	public Broadcast get(Map<String, String> broadcastMap, String streamId, Gson gson) {
-		synchronized (this) {
-			Broadcast broadcast = null;
+		long startTime = System.nanoTime();
+
+		Broadcast broadcast = null;
+		synchronized (this) 
+		{	
 			String jsonString = null;
-			if (streamId != null) {
+			if (streamId != null) 
+			{
 				jsonString = broadcastMap.get(streamId);
-				if(jsonString != null) {
-					return gson.fromJson(jsonString, Broadcast.class);
+				if(jsonString != null) 
+				{
+					broadcast = gson.fromJson(jsonString, Broadcast.class);
 				}
-				return broadcast;
 			}
 		}
-		return null;
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "get(Map<String, String> broadcastMap, String streamId, Gson gson)");
+		return broadcast;
 	}
 
 	/**
@@ -104,19 +126,24 @@ public abstract class DataStore {
 	 * @return Vod object
 	 */
 	public abstract VoD getVoD(String id);
-	
+
 	public VoD getVoD(Map<String, String> vodMap, String vodId, Gson gson) {
+		long startTime = System.nanoTime();
+		VoD vod = null;
 		synchronized (this) {
 			if (vodId != null) {
 				String jsonString = null;
 				jsonString = vodMap.get(vodId);
 
 				if (jsonString != null) {
-					return gson.fromJson(jsonString, VoD.class);
+					vod = gson.fromJson(jsonString, VoD.class);
 				}
 			}
 		}
-		return null;
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getVoD(Map<String, String> vodMap, String vodId, Gson gson)");
+		return vod;
 	}
 
 	public abstract boolean updateStatus(String id, String status);
@@ -125,16 +152,6 @@ public abstract class DataStore {
 	protected int totalWebRTCViewerCount = 0;
 	protected long totalWebRTCViewerCountLastUpdateTime = 0;
 
-	public boolean updateSourceQualityParameters(String id, String quality, double speed,  int pendingPacketQueue) {
-		if(writeStatsToDatastore) {
-			return updateSourceQualityParametersLocal(id, quality, speed, pendingPacketQueue);
-		}
-		return false;
-	}
-
-	protected abstract boolean updateSourceQualityParametersLocal(String id, String quality, double speed,  int pendingPacketQueue);
-
-	public abstract boolean updateDuration(String id, long duration);
 
 	/**
 	 * Returns the number of vods which contains searched string
@@ -165,17 +182,24 @@ public abstract class DataStore {
 	 */
 	@Deprecated
 	public abstract long getBroadcastCount();
-	
+
 	public long getBroadcastCount(Map<String,String> broadcastMap) {
+		long startTime = System.nanoTime();
+		long count = 0;
 		synchronized (this) {
-			return broadcastMap.size();
+			count = broadcastMap.size();
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getBroadcastCount(Map<String,String> broadcastMap");
+		
+		return count;
 	}
 
 	public abstract boolean delete(String id);
 
 	public abstract boolean deleteVod(String id);
-	
+
 	public abstract boolean updateVoDProcessStatus(String id, String status);
 
 	/**
@@ -193,9 +217,9 @@ public abstract class DataStore {
 
 
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
-	
+
 	public abstract List<Broadcast> getExternalStreamsList();
-	
+
 	/**
 	 * Closes the database
 	 * @param deleteDB if it's true, it also deletes the db and closes
@@ -216,6 +240,8 @@ public abstract class DataStore {
 	public abstract List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search);
 
 	public List<VoD> getVodListV2(Map<String, String> vodMap, String streamId, String search, Gson gson, String dbName) {
+		long startTime = System.nanoTime();
+
 		ArrayList<VoD> vods = new ArrayList<>();
 		synchronized (this) {
 
@@ -242,8 +268,14 @@ public abstract class DataStore {
 				logger.info("server side search called for VoD searchString = {}", search);
 				vods = searchOnServerVod(vods, search);
 			}
-			return vods;
+			
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getVodListV2(Map<String, String> vodMap, String streamId, String search, Gson gson, String dbName)");
+		
+		return vods;
 	}
 
 
@@ -252,17 +284,30 @@ public abstract class DataStore {
 	public abstract long getTotalVodNumber();
 
 	public long getTotalVodNumber(Map<String, String> broadcastMap) {
+		long startTime = System.nanoTime();
+		long count = 0;
 		synchronized (this) {
-			return broadcastMap.size();
+			count = broadcastMap.size();
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getTotalVodNumber(Map<String, String> broadcastMap)");
+		return count;
 	}
 
 	public abstract long getTotalBroadcastNumber();
-	
+
 	public long getTotalBroadcastNumber(Map<String,String> broadcastMap) {
+		long startTime = System.nanoTime();
+		long count = 0;
 		synchronized (this) {
-			return broadcastMap.size();
+			count = broadcastMap.size();
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getTotalBroadcastNumber(Map<String,String> broadcastMap)");
+		return count;
 	}
 
 	public abstract void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects);
@@ -270,6 +315,8 @@ public abstract class DataStore {
 	public abstract List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize);
 
 	public List<TensorFlowObject> getDetectionList(Map<String, String> detectionMap, String idFilter, int offsetSize, int batchSize, Gson gson) {
+		long startTime = System.nanoTime();
+
 
 		List<TensorFlowObject> list = new ArrayList<>();
 
@@ -299,22 +346,30 @@ public abstract class DataStore {
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getDetectionList(Map<String, String> detectionMap, String idFilter, int offsetSize, int batchSize, Gson gson)");
 		return list;
 	}
 
 	public abstract List<TensorFlowObject> getDetection(String id);
-	
+
 	public List<TensorFlowObject> getDetection(Map<String, String> detectionMap, String id, Gson gson){
+		long startTime = System.nanoTime();
+		List<TensorFlowObject> list = new ArrayList<>();
 		synchronized (this) {
 			if (id != null) {
 				String jsonString = detectionMap.get(id);
 				if (jsonString != null) {
 					Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-					return gson.fromJson(jsonString, listType);
+					list = gson.fromJson(jsonString, listType);
 				}
 			}
 		}
-		return null;
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getDetection(Map<String, String> detectionMap, String id, Gson gson)");
+		return list;
 	}
 
 	/**
@@ -333,7 +388,10 @@ public abstract class DataStore {
 	 */
 	public abstract List<Token> listAllTokens (String streamId, int offset, int size);
 
-	public List<Token> listAllTokens (Map<String, String> tokenMap, String streamId, int offset, int size, Gson gson) {
+	public List<Token> listAllTokens(Map<String, String> tokenMap, String streamId, int offset, int size, Gson gson) {
+		
+		long startTime = System.nanoTime();
+
 
 		List<Token> list = new ArrayList<>();
 		List<Token> listToken = new ArrayList<>();
@@ -374,6 +432,10 @@ public abstract class DataStore {
 			}
 
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "listAllTokens(Map<String, String> tokenMap, String streamId, int offset, int size, Gson gson)");
 		return listToken;
 	}
 
@@ -406,8 +468,8 @@ public abstract class DataStore {
 
 	public abstract Token getToken (String tokenId);
 
-	public Token getToken(Map<String, String> tokenMap, String tokenId,
-			Gson gson) {
+	public Token getToken(Map<String, String> tokenMap, String tokenId, Gson gson) {
+		long startTime = System.nanoTime();
 		Token token = null;
 		synchronized (this) {
 			if (tokenId != null) {
@@ -417,6 +479,9 @@ public abstract class DataStore {
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getToken(Map<String, String> tokenMap, String tokenId, Gson gson)");
 		return token;
 	}
 
@@ -430,6 +495,8 @@ public abstract class DataStore {
 	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size);
 
 	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson) {
+		long startTime = System.nanoTime();
+
 		List<Subscriber> list = new ArrayList<>();
 		List<Subscriber> listSubscriber = new ArrayList<>();
 
@@ -469,6 +536,9 @@ public abstract class DataStore {
 			}
 
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson)");
 		return listSubscriber;
 	}
 
@@ -480,16 +550,21 @@ public abstract class DataStore {
 	 * @return lists of subscriber statistics
 	 */	
 	public List<SubscriberStats> listAllSubscriberStats(String streamId, int offset, int size) {
+		long startTime = System.nanoTime();
 		List<Subscriber> subscribers= listAllSubscribers(streamId, offset, size);
 		List<SubscriberStats> subscriberStats = new ArrayList<>();
 
-		
+
 		for(Subscriber subscriber : subscribers) {
 			SubscriberStats stat = subscriber.getStats();
 			stat.setStreamId(subscriber.getStreamId());
 			stat.setSubscriberId(subscriber.getSubscriberId());
 			subscriberStats.add(stat);
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "listAllSubscriberStats(String streamId, int offset, int size)");
 
 		return subscriberStats;
 	}
@@ -538,6 +613,8 @@ public abstract class DataStore {
 	public abstract Subscriber getSubscriber (String streamId, String subscriberId);
 
 	public Subscriber getSubscriber(Map<String, String> subscriberMap, String streamId, String subscriberId, Gson gson) {
+		long startTime = System.nanoTime();
+
 		Subscriber subscriber = null;
 		synchronized (this) {
 			if (subscriberId != null && streamId != null) {
@@ -547,6 +624,10 @@ public abstract class DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getSubscriber(Map<String, String> subscriberMap, String streamId, String subscriberId, Gson gson) ");
 		return subscriber;
 	}
 
@@ -557,12 +638,18 @@ public abstract class DataStore {
 	 * @return- true if connected else false
 	 */	
 	public boolean isSubscriberConnected(String streamId, String subscriberId) {
+		long startTime = System.nanoTime();
+		boolean connected = false;
 		Subscriber subscriber = getSubscriber(streamId, subscriberId);
 
 		if(subscriber != null) {
-			return subscriber.isConnected();
+			connected = subscriber.isConnected();
 		}
-		return false;
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "isSubscriberConnected(String streamId, String subscriberId)");
+		return connected;
 	}
 
 	/**
@@ -573,29 +660,60 @@ public abstract class DataStore {
 	 * @return- true if successful else false
 	 */	
 	public boolean addSubscriberConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) {
+		long startTime = System.nanoTime();
 		boolean result = false;
-		Subscriber subscriber = getSubscriber(streamId, subscriberId);
-		if (subscriber != null) {
-			handleConnectionEvent(subscriber, event);
-
-			addSubscriber(streamId, subscriber);
-			result = true;
+		if (appSettings.isWriteSubscriberEventsToDatastore() && event != null) 
+		{
+			
+			Subscriber subscriber = getSubscriber(streamId, subscriberId);
+			
+			if (subscriber != null && !StringUtils.isBlank(subscriber.getSubscriberId())) 
+			{
+				if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
+					subscriber.setConnected(true);
+					subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()+1);
+				} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
+					subscriber.setConnected(false);
+					subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()-1);
+				}
+				addSubscriber(streamId, subscriber);
+			}
+			
+			result = handleConnectionEvent(streamId, subscriberId, event);
 		}
-
+		else {
+			logger.debug("Not saving subscriber events to datastore because either writeSubscriberEventsToDatastore are false in the settings or event is null."
+					+ "writeSubscriberEventsToDatastore:{} and event is {} null", appSettings.isWriteSubscriberEventsToDatastore(), event == null ? "" : "not");
+		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "addSubscriberConnectionEvent(String streamId, String subscriberId, ConnectionEvent event)");
+		
 		return result;
+
+
 	}
 
 	// helper method used by all datastores
-	protected void handleConnectionEvent(Subscriber subscriber, ConnectionEvent event) {
-		if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
-			subscriber.setConnected(true);
-			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()+1);
-		} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
-			subscriber.setConnected(false);
-			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()-1);
+	protected boolean handleConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) 
+	{
+		long startTime = System.nanoTime();
+		boolean result = false;
+		
+		if (StringUtils.isNoneBlank(subscriberId, streamId)) 
+		{
+			event.setStreamId(streamId);
+			event.setSubscriberId(subscriberId);
+			
+			result = addConnectionEvent(event);
 		}
-		subscriber.getStats().addConnectionEvent(event);
-	}	
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "handleConnectionEvent(String streamId, String subscriberId, ConnectionEvent event)");
+		return result;
+	}
+	
+	protected abstract boolean addConnectionEvent(ConnectionEvent event);
 
 	/**
 	 * sets the avarage bitrate of the subscriber in the datastore
@@ -604,16 +722,23 @@ public abstract class DataStore {
 	 * @param event - bitrate measurement event
 	 * @return- true if successful else false
 	 */	
-	public boolean updateSubscriberBitrateEvent(String streamId, String subscriberId,
-			long avgVideoBitrate, long avgAudioBitrate) {
+	public boolean updateSubscriberBitrateEvent(String streamId, String subscriberId, long avgVideoBitrate, long avgAudioBitrate) {
 		boolean result = false;
-		Subscriber subscriber = getSubscriber(streamId, subscriberId);
-		if (subscriber != null) {	
-			subscriber.getStats().setAvgVideoBitrate(avgVideoBitrate);
-			subscriber.getStats().setAvgAudioBitrate(avgAudioBitrate);
-			addSubscriber(streamId, subscriber);
-			result = true;
+		long startTime = System.nanoTime();
+		if (appSettings.isWriteSubscriberEventsToDatastore()) 
+		{
+			Subscriber subscriber = getSubscriber(streamId, subscriberId);
+			if (subscriber != null) {	
+				subscriber.setAvgVideoBitrate(avgVideoBitrate);
+				subscriber.setAvgAudioBitrate(avgAudioBitrate);
+				addSubscriber(streamId, subscriber);
+				result = true;
+			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateSubscriberBitrateEvent(String streamId, String subscriberId, long avgVideoBitrate, long avgAudioBitrate)");
 
 		return result;
 	}
@@ -659,42 +784,54 @@ public abstract class DataStore {
 	public abstract long getActiveBroadcastCount();
 
 	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
+		long startTime = System.nanoTime();
+
 		int activeBroadcastCount = 0;
 		synchronized (this) {
-			
+
 			Collection<String> values = broadcastMap.values();
 			for (String broadcastString : values) 
 			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
-						(StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress()))) 
+						(StringUtils.isBlank(hostAddress) || hostAddress.equals(broadcast.getOriginAdress()))) 
 				{
 					activeBroadcastCount++;
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson, String hostAddress)");
 		return activeBroadcastCount;
 	}
-	
+
 	public List<Broadcast> getActiveBroadcastList(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
+		long startTime = System.nanoTime();
+
 		List<Broadcast> broadcastList = new ArrayList<>();
 		synchronized (this) {
-			
+
 			Collection<String> values = broadcastMap.values();
 			for (String broadcastString : values) 
 			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-				
+
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
-					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
+						(StringUtils.isBlank(hostAddress) || hostAddress.equals(broadcast.getOriginAdress())))
 				{
 					broadcastList.add(broadcast);
 				}
 			}
 		}
 		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getActiveBroadcastList(Map<String, String> broadcastMap, Gson gson, String hostAddress)");
+
 		return broadcastList;
 	}
 
@@ -713,21 +850,21 @@ public abstract class DataStore {
 	 * @param diffCount
 	 */
 	public boolean updateHLSViewerCount(String streamId, int diffCount) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateHLSViewerCountLocal(streamId, diffCount);
 		}
 		return false;
 	}
-	
+
 	protected abstract boolean updateHLSViewerCountLocal(String streamId, int diffCount);
-	
+
 	/**
 	 * Add or subtract the DASH viewer count from current value
 	 * @param streamId
 	 * @param diffCount
 	 */
 	public boolean updateDASHViewerCount(String streamId, int diffCount) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateDASHViewerCountLocal(streamId, diffCount);
 		}
 		return false;
@@ -743,6 +880,8 @@ public abstract class DataStore {
 	public abstract long getObjectDetectedTotal(String streamId);
 
 	public long getObjectDetectedTotal(Map<String, String> detectionMap, String streamId, Gson gson) {
+		long startTime = System.nanoTime();
+
 		List<TensorFlowObject> list = new ArrayList<>();
 
 		Type listType = new TypeToken<ArrayList<TensorFlowObject>>() {
@@ -758,6 +897,10 @@ public abstract class DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getObjectDetectedTotal(Map<String, String> detectionMap, String streamId, Gson gson)");
 		return list.size();
 	}
 
@@ -768,7 +911,7 @@ public abstract class DataStore {
 	 * if it is false, decrement viewer count by one
 	 */
 	public boolean updateWebRTCViewerCount(String streamId, boolean increment) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateWebRTCViewerCountLocal(streamId, increment);
 		}
 		return false;
@@ -784,7 +927,7 @@ public abstract class DataStore {
 	 * if it is false, decrement viewer count by one
 	 */
 	public boolean updateRtmpViewerCount(String streamId, boolean increment) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateRtmpViewerCountLocal(streamId, increment);
 		}
 		return false;
@@ -811,14 +954,6 @@ public abstract class DataStore {
 	 * @param streamId
 	 */
 	public abstract  void clearStreamInfoList(String streamId);
-
-	public boolean isWriteStatsToDatastore() {
-		return writeStatsToDatastore;
-	}
-
-	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
-		this.writeStatsToDatastore = writeStatsToDatastore;
-	}
 
 	/**
 	 * Updates the stream fields if it's not null
@@ -888,11 +1023,11 @@ public abstract class DataStore {
 		if (newBroadcast.getAbsoluteStartTimeMs() != null) {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
 		}		
-		
+
 		if (newBroadcast.getUpdateTime() != null) {
 			broadcast.setUpdateTime(newBroadcast.getUpdateTime());
 		}
-		
+
 		if (newBroadcast.getPlayListItemList() != null) {
 			broadcast.setPlayListItemList(newBroadcast.getPlayListItemList());
 		}
@@ -910,7 +1045,7 @@ public abstract class DataStore {
 		if (newBroadcast.getListenerHookURL() != null && !newBroadcast.getListenerHookURL().isEmpty()) {
 			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
 		}
-		
+
 		if (newBroadcast.getSpeed() != null) {
 			broadcast.setSpeed(newBroadcast.getSpeed());
 		}
@@ -918,83 +1053,136 @@ public abstract class DataStore {
 		if (newBroadcast.getMetaData() != null) {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
-		
+
 		if (newBroadcast.getConferenceMode() != null) {
 			broadcast.setConferenceMode(newBroadcast.getConferenceMode());
 		}
-		
+
 		if (newBroadcast.getEncoderSettingsList() != null) {
 			broadcast.setEncoderSettingsList(newBroadcast.getEncoderSettingsList());
 		}
-		
+
 		if (newBroadcast.getPlannedStartDate() != null) {
 			broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
 		}
-		
+
 		if (newBroadcast.getPlannedEndDate() != null) {
 			broadcast.setPlannedEndDate(newBroadcast.getPlannedEndDate());
 		}
-		
+
 		if (newBroadcast.getSeekTimeInMs() != null) {
 			broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
 		}
-		
+
 		if (newBroadcast.getReceivedBytes() != null) {
 			broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
 		}
-		
+
 		if (newBroadcast.getDuration() != null) {
-            broadcast.setDuration(newBroadcast.getDuration());
-        }
-		
+			broadcast.setDuration(newBroadcast.getDuration());
+		}
+
 		if (newBroadcast.getBitrate() != null) {
 			broadcast.setBitrate(newBroadcast.getBitrate());
 		}
-		
+
 		if (newBroadcast.getUserAgent() != null) {
 			broadcast.setUserAgent(newBroadcast.getUserAgent());
 		}
-		
+
 		if (newBroadcast.getWebRTCViewerLimit() != null) {
 			broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		}
-		
+
 		if (newBroadcast.getHlsViewerLimit() != null) {
 			broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
 		}
-		
+
 		if (newBroadcast.getDashViewerCount() != null) {
 			broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
 		}
-		
+
 		if (newBroadcast.getSubTrackStreamIds() != null) {
 			broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		}
-		
+
 		if (newBroadcast.getPlaylistLoopEnabled() != null) {
 			broadcast.setPlaylistLoopEnabled(newBroadcast.getPlaylistLoopEnabled());
 		}
-		
+
 		if (newBroadcast.getAutoStartStopEnabled() != null) {
 			broadcast.setAutoStartStopEnabled(newBroadcast.getAutoStartStopEnabled());
-        }		
-		
+		}		
+
 		if (newBroadcast.getCurrentPlayIndex() != null) {
 			broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		}
-		
+
 		if (newBroadcast.getSubtracksLimit() != null) {
 			broadcast.setSubtracksLimit(newBroadcast.getSubtracksLimit());
 		}
-		
+
 		if (newBroadcast.getPendingPacketSize() != null) {
 			broadcast.setPendingPacketSize(newBroadcast.getPendingPacketSize());
 		}
+		
+		if (newBroadcast.getQuality() != null) {
+			broadcast.setQuality(newBroadcast.getQuality());
+		}
+
+		if (newBroadcast.getRole() != null) {
+			broadcast.setRole(newBroadcast.getRole());
+		}
+		
+		if (newBroadcast.getWidth() != null) {
+			broadcast.setWidth(newBroadcast.getWidth());
+		}
+		
+		if (newBroadcast.getHeight() != null) {
+			broadcast.setHeight(newBroadcast.getHeight());
+		}
+		
+		if (newBroadcast.getEncoderQueueSize() != null) {
+			broadcast.setEncoderQueueSize(newBroadcast.getEncoderQueueSize());
+		}
+		
+		if (newBroadcast.getDropPacketCountInIngestion() != null) {
+			broadcast.setDropPacketCountInIngestion(newBroadcast.getDropPacketCountInIngestion());
+		}
+		
+		if (newBroadcast.getDropFrameCountInEncoding() != null) {
+			broadcast.setDropFrameCountInEncoding(newBroadcast.getDropFrameCountInEncoding());
+		}
+		
+		if (newBroadcast.getPacketLostRatio() != null) {
+			broadcast.setPacketLostRatio(newBroadcast.getPacketLostRatio());
+		}
+		
+		if (newBroadcast.getJitterMs() != null) {
+			broadcast.setJitterMs(newBroadcast.getJitterMs());
+		}
+		
+		if (newBroadcast.getRttMs() != null) {
+			broadcast.setRttMs(newBroadcast.getRttMs());
+		}
+		
+		if (newBroadcast.getPacketsLost() != null) {
+			broadcast.setPacketsLost(newBroadcast.getPacketsLost());
+		}
+		
+		if (newBroadcast.getRemoteIp() != null) {
+			broadcast.setRemoteIp(newBroadcast.getRemoteIp());
+		}
+		
+		if (newBroadcast.getVirtual() != null) {
+			broadcast.setVirtual(newBroadcast.getVirtual());
+		}
+		
 	}
 
 
 	public abstract long getLocalLiveBroadcastCount(String hostAddress);
-	
+
 	public abstract List<Broadcast> getLocalLiveBroadcasts(String hostAddress);
 
 	/**
@@ -1003,6 +1191,8 @@ public abstract class DataStore {
 	 * They are used by InMemoryDataStore and MapDBStore, Mongodb implements the same functionality inside its own class.
 	 */
 	protected ArrayList<VoD> searchOnServerVod(ArrayList<VoD> broadcastList, String search){
+		
+		long startTime = System.nanoTime();
 		if(search != null && !search.isEmpty()) {
 			for (Iterator<VoD> i = broadcastList.iterator(); i.hasNext(); ) {
 				VoD item = i.next();
@@ -1025,11 +1215,16 @@ public abstract class DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "searchOnServerVod");
 		return broadcastList;
 	}
 
 	protected List<VoD> sortAndCropVodList(List<VoD> vodList, int offset, int size, String sortBy, String orderBy) 
 	{
+		long startTime = System.nanoTime();
 		if (("name".equals(sortBy) || "date".equals(sortBy)) && orderBy != null ) 
 
 		{
@@ -1058,7 +1253,7 @@ public abstract class DataStore {
 					else {
 						result = c1.compareTo(c2);
 					}
-					
+
 				}
 				return result;
 			});
@@ -1072,6 +1267,11 @@ public abstract class DataStore {
 		}
 
 		int toIndex =  Math.min(offset+size, vodList.size());
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "sortAndCropVodList(List<VoD> vodList, int offset, int size, String sortBy, String orderBy)");
+		
 		if (offset >= toIndex)
 		{
 			return new ArrayList<>();
@@ -1082,6 +1282,7 @@ public abstract class DataStore {
 
 	}
 	protected ArrayList<Broadcast> searchOnServer(ArrayList<Broadcast> broadcastList, String search){
+		long startTime = System.nanoTime();
 		if(search != null && !search.isEmpty()) {
 			for (Iterator<Broadcast> i = broadcastList.iterator(); i.hasNext(); ) {
 				Broadcast item = i.next();
@@ -1097,11 +1298,16 @@ public abstract class DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "searchOnServer(ArrayList<Broadcast> broadcastList, String search){");
 		return broadcastList;
 	}
 
 	protected List<Broadcast> sortAndCropBroadcastList(List<Broadcast> broadcastList, int offset, int size, String sortBy, String orderBy) {
 
+		long startTime = System.nanoTime();
 		if(("name".equals(sortBy) || "date".equals(sortBy) || "status".equals(sortBy)) && orderBy != null) 
 		{
 			Collections.sort(broadcastList, new Comparator<Broadcast>() {
@@ -1151,6 +1357,11 @@ public abstract class DataStore {
 		}
 
 		int toIndex =  Math.min(offset+size, broadcastList.size());
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "sortAndCropBroadcastList");
+		
 		if (offset >= toIndex)
 		{
 			return new ArrayList<>();
@@ -1232,6 +1443,8 @@ public abstract class DataStore {
 	public abstract int getTotalWebRTCViewersCount();
 
 	public int getTotalWebRTCViewersCount(Map<String, String> broadcastMap, Gson gson) {
+		long startTime = System.nanoTime();
+
 		long now = System.currentTimeMillis();
 		if (now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
 			int total = 0;
@@ -1244,10 +1457,16 @@ public abstract class DataStore {
 			totalWebRTCViewerCount = total;
 			totalWebRTCViewerCountLastUpdateTime = now;
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getTotalWebRTCViewersCount(Map<String, String> broadcastMap, Gson gson)");
+		
 		return totalWebRTCViewerCount;
 	}
 
 	protected ArrayList<WebRTCViewerInfo> searchOnWebRTCViewerInfo(ArrayList<WebRTCViewerInfo> list, String search) {
+		long startTime = System.nanoTime();
 		if(search != null && !search.isEmpty()) {
 			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
 				WebRTCViewerInfo item = i.next();
@@ -1256,10 +1475,14 @@ public abstract class DataStore {
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "searchOnWebRTCViewerInfo");
 		return list;
 	}
 
 	protected List<WebRTCViewerInfo> sortAndCropWebRTCViewerInfoList(List<WebRTCViewerInfo> list, int offset, int size, String sortBy, String orderBy) {
+		long startTime = System.nanoTime();
 		if("viewerId".equals(sortBy)) 
 		{
 			Collections.sort(list, (viewer1, viewer2) -> {
@@ -1278,6 +1501,9 @@ public abstract class DataStore {
 		}
 
 		int toIndex =  Math.min(offset+size, list.size());
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "sortAndCropWebRTCViewerInfoList");
 		if (offset >= toIndex)
 		{
 			return new ArrayList<>();
@@ -1286,7 +1512,7 @@ public abstract class DataStore {
 			return list.subList(offset,toIndex);
 		}
 	}
-	
+
 	/**
 	 * This is used to save WebRTC Viewer Info to datastore 
 	 *
@@ -1309,9 +1535,11 @@ public abstract class DataStore {
 
 	public List<WebRTCViewerInfo> getWebRTCViewerList(Map<String, String> webRTCViewerMap, int offset, int size, String sortBy, String orderBy,
 			String search, Gson gson) {
+		long startTime = System.nanoTime();
+
 		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
 		synchronized (this) {
-			
+
 			Collection<String> webRTCViewers = webRTCViewerMap.values();
 			for (String infoString : webRTCViewers) {
 				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
@@ -1323,6 +1551,9 @@ public abstract class DataStore {
 			logger.info("server side search called for Conference Room = {}", search);
 			list = searchOnWebRTCViewerInfo(list, search);
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getWebRTCViewerList");
 		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
 	}
 
@@ -1357,7 +1588,7 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
-	
+
 	/**
 	 * This is a helper method to remove the ConferenceRoom in later versions
 	 * 
@@ -1403,7 +1634,7 @@ public abstract class DataStore {
 		return broadcast;
 
 	}
-	
+
 	public static Broadcast conferenceToBroadcast(ConferenceRoom conferenceRoom) throws Exception {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStreamId(conferenceRoom.getRoomId());
@@ -1432,9 +1663,9 @@ public abstract class DataStore {
 	 * @param status the status of the stream broadcasting, finished etc. It can be null
 	 * @return
 	 */
-    public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status);
-    
-    /**
+	public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status);
+
+	/**
 	 * Get the subtracks of the main track
 	 * @param mainTrackId the main track to get the subtracks
 	 * @param offset the offset to get the subtracks
@@ -1442,52 +1673,128 @@ public abstract class DataStore {
 	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
 	 * @return
 	 */
-    public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role);
-    
-    /**
-     * Get the count of subtracks
-     * @param mainTrackId the main track to get the subtracks
-     * @param role the role of the subtracks for role based streaming especially in conferences 
-     * @return number of subtracks
-     */
-    public abstract long getSubtrackCount(String mainTrackId, String role, String status);
-    
-    /**
-     * Get the count of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not count it. 
-     * @param mainTrackId
-     * @param role
-     * @return
-     */
-    public abstract long getActiveSubtracksCount(String mainTrackId, String role);
-    
-    /**
-     * Get of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not return it. 
-     * This method is generally not recommended to use because it can be very costly.
-     * It's implemented for the poll mechanism in Subtracks and poll mechanismi will be replaced with event mechanism
-     * @param mainTrackId
-     * @param role
-     * @return
-     */
-    public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, String role);
-    
-    
-    /**
-     * 
-     * @param streamId
-     * @return If the stream has subtracks, it return true. If not, it returns false
-     */
-    public abstract boolean hasSubtracks(String streamId);
-    
+	public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role);
 
-    //**************************************
-	//ATTENTION: Write function descriptions while adding new functions
+	/**
+	 * Get the count of subtracks
+	 * @param mainTrackId the main track to get the subtracks
+	 * @param role the role of the subtracks for role based streaming especially in conferences 
+	 * @return number of subtracks
+	 */
+	public abstract long getSubtrackCount(String mainTrackId, String role, String status);
+
+	/**
+	 * Get the count of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not count it. 
+	 * @param mainTrackId
+	 * @param role
+	 * @return
+	 */
+	public abstract long getActiveSubtracksCount(String mainTrackId, String role);
+
+	/**
+	 * Get of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not return it. 
+	 * This method is generally not recommended to use because it can be very costly.
+	 * It's implemented for the poll mechanism in Subtracks and poll mechanismi will be replaced with event mechanism
+	 * @param mainTrackId
+	 * @param role
+	 * @return
+	 */
+	public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, String role);
+
+
+	/**
+	 * 
+	 * @param streamId
+	 * @return If the stream has subtracks, it return true. If not, it returns false
+	 */
+	public abstract boolean hasSubtracks(String streamId);
+
+
+	
+
+	/**
+	 *
+	 * Get executed query count. For now only mongodb queries are counted.
+	 * @return Executed query count.
+	 */
+	public long getExecutedQueryCount() {
+		return executedQueryCount;
+	}
+
+	/**
+	 * Get connection events for a specific streamId and subscriberId
+	 * 
+	 * ConnectionEvents are recorded if {@link AppSettings#isWriteSubscriberEventsToDatastore()} is true
+	 * 
+	 * @param streamId
+	 * @param subscriberId 
+	 * @param offset
+	 * @param size
+	 * @return
+	 */
+	public abstract List<ConnectionEvent> getConnectionEvents(String streamId, @Nullable String subscriberId, int offset, int size);
+	
+	/**
+	 * Simple converter from Collection to List
+	 * @param values
+	 * @return
+	 */
+	protected static List<ConnectionEvent> getConnectionEventListFromCollection(Collection<ConnectionEvent> values, String streamId) {
+		List<ConnectionEvent> list = new ArrayList<>();		
+		
+		for(ConnectionEvent event: values) {
+			if (StringUtils.isBlank(streamId)) {
+				list.add(event);
+			}
+			else if (streamId.equals(event.getStreamId())) {
+				list.add(event);
+			}
+		}
+		
+		return list;
+		
+	}
+	
+	/**
+	 * Setter for appSettings
+	 * @param appSettings
+	 */
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
+	}
+	
+	/**
+	 * Calculate total query time in milliseconds
+	 * @return
+	 */
+	public long getAverageQueryTimeMs() {
+		return (totalQueryTimeNanoSec/1_000_000) / (executedQueryCount == 0 ? 1 : executedQueryCount);
+	}
+	
+	/**
+	 * Add query time in nanoseconds
+	 * @param queryTimeNanoSec
+	 */
+	public void addQueryTime(long queryTimeNanoSec) {
+		totalQueryTimeNanoSec += queryTimeNanoSec;
+		executedQueryCount++;
+	}
+	
+	public void showWarningIfElapsedTimeIsMoreThanThreshold(long elapsedNano, String methodName) {
+		if (elapsedNano > QUERY_TIME_THRESHOLD_NANO_SEC) {
+			logger.warn("Query execution time:{}ms is more than {} ms for method: {}", elapsedNano / 1_000_000,
+					QUERY_TIME_THRESHOLD_MS_SEC, methodName);
+		}
+	}
+	
+	//**************************************
+	//ATTENTION: Write function above with descriptions while adding new functions
 	//**************************************	
-    
-    //**************************************
-    //ATTENTION 2: What is the reason you don't add descriptions to the functions? 
-    // Ignore this message if you have added descriptions to the new functions.
-    // I'm writing to the one who is ignoring this first message - mekya
-    //**************************************
-    
-    
+
+	//**************************************
+	//ATTENTION 2: What is the reason you don't add descriptions to the functions? 
+	// Ignore this message if you have added descriptions to the new functions.
+	// I'm writing to the one who is ignoring this first message - mekya
+	//**************************************
+
 }

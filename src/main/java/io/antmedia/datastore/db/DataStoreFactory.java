@@ -56,6 +56,8 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	
 	private Vertx vertx;
 	private boolean writeStatsToDatastore;
+	private boolean writeSubscriberEventsToDatastore;
+	private AppSettings appSettings;
 	
 	public String getDbName() {
 		return dbName;
@@ -95,19 +97,19 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 
 	public void init()  
 	{
-		if(dbType.contentEquals(DB_TYPE_MONGODB))
+		if(DB_TYPE_MONGODB.contentEquals(dbType))
 		{
 			dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
 		}
-		else if(dbType .contentEquals(DB_TYPE_MAPDB))
+		else if(DB_TYPE_MAPDB .contentEquals(dbType))
 		{
 			dataStore = new MapDBStore(dbName+".db", vertx);
 		}
-		else if(dbType .contentEquals(DB_TYPE_REDISDB))
+		else if(DB_TYPE_REDISDB .contentEquals(dbType))
 		{
 			dataStore = new RedisStore(dbHost, dbName);
 		}
-		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
+		else if(DB_TYPE_MEMORYDB .contentEquals(dbType))
 		{
 			dataStore = new InMemoryDataStore(dbName);
 		}
@@ -118,7 +120,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		logger.info("Used Datastore:{}  db name:{}", getDbType(), getDbName());
 		
 		if(dataStore != null) {
-			dataStore.setWriteStatsToDatastore(writeStatsToDatastore);
+			dataStore.setAppSettings(appSettings);
 		}
 	}	
 	
@@ -144,8 +146,17 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		hostAddress = serverSettings.getHostAddress();
-		writeStatsToDatastore = ((AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME)).isWriteStatsToDatastore();
+		appSettings = ((AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME));
+		
 		init();
+	}
+	
+	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
+		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
+	}
+	
+	public boolean isWriteSubscriberEventsToDatastore() {
+		return writeSubscriberEventsToDatastore;
 	}
 
 }

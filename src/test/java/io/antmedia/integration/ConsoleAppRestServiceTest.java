@@ -23,12 +23,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.datastore.db.types.*;
 import io.antmedia.datastore.db.types.UserType;
+import io.antmedia.filter.JWTFilter;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
@@ -392,6 +396,116 @@ public class ConsoleAppRestServiceTest{
 		return null;
 	}
 
+	boolean threadStarted = false;
+	boolean breakThread = false;
+
+	/**
+	 * Bug fix test
+     * https://github.com/ant-media/Ant-Media-Server/issues/6933
+	 */
+	@Test
+	public void testRestartServerUnderHttpLoad() {
+
+
+		//give load to the server by sending http requests to m3u8
+		
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
+
+		threadStarted = false;
+		Thread thread = new Thread() {
+			@Override
+			public void run() {
+
+				threadStarted = true;
+
+				log.info("Thread is started");
+				int i = 0;
+
+				while (!breakThread) {
+
+					try {
+						//send http request to m3u8
+						String url = "http://127.0.0.1:5080/live/streams/stream.m3u8";
+
+						CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+
+						HttpUriRequest get = RequestBuilder.get().setUri(url)
+								.build();
+
+						client.execute(get);
+						
+						Thread.sleep(10);
+
+						i++;
+
+						if (i % 200 == 0) {
+							log.info("{} requests are sent to url", i, url);
+						}
+
+					} catch (Exception e) {
+						//don't printout exception because it's expected
+					}
+
+
+				}
+
+				log.info("Thread is finished");
+
+			}
+		};
+
+		thread.start();
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return threadStarted;
+		});
+		//restart the server
+
+		Process process = AppFunctionalV2Test.execute("sudo service antmedia restart");
+		assertEquals(0, process.exitValue());
+
+		//check that live is started
+		Awaitility.await().atMost(30,  TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+		.until(() -> 
+		{	
+			try {
+				User user = new User();
+				user.setEmail(TEST_USER_EMAIL);
+				user.setPassword(TEST_USER_PASS);
+				return callAuthenticateUser(user).isSuccess();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				
+			}
+			return false;
+		});
+
+		Awaitility.await().atMost(30,  TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+		.until(() -> {
+			Applications applicationsTmp = getApplications();
+			if (applicationsTmp.applications.length == appCount) {
+				for (String app : applicationsTmp.applications) {
+					if (app.equals("live")) {
+						return true;
+					}
+					
+				}
+			}
+			else {
+				log.info("applications length is not {}: {}", appCount, applicationsTmp.applications);
+			}
+
+			return false;
+		});
+
+		//finish thread
+		this.breakThread = true;
+
+	}
+
 	@Test
 	public void testCreateCustomApp() 
 	{
@@ -504,7 +618,7 @@ public class ConsoleAppRestServiceTest{
 
 		String content = Files.readString(propertiesFile.toPath());
 		assertTrue(content.contains("db.type=redisdb"));
-		assertTrue(content.contains("db.host=redis://127.0.0.1:6379"));
+		assertTrue(content.contains("db.host=redis://127.0.0.1:6379") || content.contains("db.host=redis\\://127.0.0.1\\:6379"));
 
 
 		result = deleteApplication(appName);
@@ -608,51 +722,48 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	@Test
-	public void testGetAppSettings() {
-		try {
-			// get LiveApp default settings and check the default values
-			// get settings from the app
-			Result result = callIsEnterpriseEdition();
-			String appName = "WebRTCApp";
-			if (result.isSuccess()) {
-				appName = "WebRTCAppEE";
-			}
+	public void testGetAppSettings() throws Exception {
 
-			AppSettings appSettingsModel = callGetAppSettings(appName);
-			assertEquals("", appSettingsModel.getVodFolder());
-
-			appSettingsModel = callGetAppSettings("LiveApp");
-
-			// change app settings - change vod folder
-			String new_vod_folder = "vod_folder";
-			assertNotEquals(new_vod_folder, appSettingsModel.getVodFolder());
-			String defaultValue = appSettingsModel.getVodFolder();
-
-
-			appSettingsModel.setVodFolder(new_vod_folder);
-			result = callSetAppSettings("LiveApp", appSettingsModel);
-			assertTrue(result.isSuccess());
-
-			// get app settings and assert settings has changed - check vod folder has changed
-
-			//for some odd cases, it may be updated via cluster in second turn
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(5, TimeUnit.SECONDS).until(()-> {
-				AppSettings local = callGetAppSettings("LiveApp");
-				return new_vod_folder.equals(local.getVodFolder());
-			});
-
-
-			// check the related file to make sure settings changed for restart
-			// return back to default values
-			appSettingsModel.setVodFolder(defaultValue);
-			result = callSetAppSettings("LiveApp", appSettingsModel);
-			assertTrue(result.isSuccess());
-
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
+		// get LiveApp default settings and check the default values
+		// get settings from the app
+		Result result = callIsEnterpriseEdition();
+		String appName = "WebRTCApp";
+		if (result.isSuccess()) {
+			appName = "WebRTCAppEE";
 		}
+
+		AppSettings appSettingsModel = callGetAppSettings(appName);
+		assertEquals("", appSettingsModel.getVodFolder());
+
+		appSettingsModel = callGetAppSettings("LiveApp");
+
+		// change app settings - change vod folder
+		String new_vod_folder = "vod_folder";
+		assertNotEquals(new_vod_folder, appSettingsModel.getVodFolder());
+		String defaultValue = appSettingsModel.getVodFolder();
+
+
+		appSettingsModel.setVodFolder(new_vod_folder);
+		result = callSetAppSettings("LiveApp", appSettingsModel);
+		assertTrue(result.isSuccess());
+
+		// get app settings and assert settings has changed - check vod folder has changed
+
+		//for some odd cases, it may be updated via cluster in second turn
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(5, TimeUnit.SECONDS).until(()-> {
+			AppSettings local = callGetAppSettings("LiveApp");
+			return new_vod_folder.equals(local.getVodFolder());
+		});
+
+
+		// check the related file to make sure settings changed for restart
+		// return back to default values
+		appSettingsModel.setVodFolder(defaultValue);
+		result = callSetAppSettings("LiveApp", appSettingsModel);
+		assertTrue(result.isSuccess());
+
+
+
 	}
 
 
@@ -1372,8 +1483,29 @@ public class ConsoleAppRestServiceTest{
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
+
+			//only token types 'play' and 'publish' are allowed.
+			Token nullAccessToken1 = null;
+			try {
+				nullAccessToken1 = callGetToken("http://localhost:5080/" + appName + "/rest/v2/broadcasts/" + broadcast.getStreamId() + "/token", "Play", expireDate);
+			} catch (Exception e) {
+				log.info(e.getMessage());
+			}
+			assertNull(nullAccessToken1);
+
+			Token nullAccessToken2 = null;
+			try {
+				nullAccessToken2 = callGetToken("http://localhost:5080/" + appName + "/rest/v2/broadcasts/" + broadcast.getStreamId() + "/token", "Publish", expireDate);
+			} catch (Exception e) {
+				log.info(e.getMessage());
+			}
+			assertNull(nullAccessToken2);
+
+
 			Token accessToken = callGetToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/token", Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken);
+
+
 
 
 			Process rtmpSendingProcess = execute(ffmpegPath
@@ -1884,9 +2016,9 @@ public class ConsoleAppRestServiceTest{
 			String ffmpegBuildConf = (String) jsObject.get(StatsCollector.FFMPEG_BUILD_INFO);
 
 			assertTrue(ffmpegBuildConf.contains("--enable-cuda"));
-			assertTrue(ffmpegBuildConf.contains("--enable-libnpp"));
-			assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
-			assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
+			//	assertTrue(ffmpegBuildConf.contains("--enable-libnpp")); we no longer support libnpp by default.
+			//	assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
+			//	assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
 
 			//crystalhd is not supported in after 20.04 so remove them
 			assertTrue(ffmpegBuildConf.contains("--disable-decoder=h264_crystalhd"));
@@ -2333,30 +2465,30 @@ public class ConsoleAppRestServiceTest{
 
 			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
-			
+
 			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
 			Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
 
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
 				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
 
 			});
-			
+
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollDelay(12, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).
 			until(()-> {
 				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
 				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
 			});
-			
+
 			result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
 			assertTrue(result.isSuccess());
-			
+
 			appSettings.setRestartStreamFetcherPeriod(0);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-			
+
 			StreamFetcherUnitTest.stopCameraEmulator();
 
 		}
@@ -2366,10 +2498,6 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
-
-	//public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
-	//	return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
-	//}
 
 	public static Token callGetToken(String url, String type, long expireDate) throws Exception {
 
@@ -2386,6 +2514,7 @@ public class ConsoleAppRestServiceTest{
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
+
 		System.out.println("result string: " + result.toString());
 
 		return gson.fromJson(result.toString(), Token.class);
@@ -3571,7 +3700,7 @@ public class ConsoleAppRestServiceTest{
 		assertTrue(setAppSettingsResult.isSuccess());
 
 		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
-		
+
 		//user7 has no app3 in its map. nothing is allowed for app3.
 		testBroadcast = callCreateBroadcast(streamId, appName3);
 		assertNull(testBroadcast);
@@ -3616,6 +3745,89 @@ public class ConsoleAppRestServiceTest{
 		assertTrue(deleteUserRes.isSuccess());
 	}
 
+	@Test
+	public void testRestJwtWithBearer() throws Exception {
+		String appName = "LiveApp";
+
+
+		AppSettings appSettings = callGetAppSettings(appName);
+		appSettings.setJwtControlEnabled(true);
+		String jwtSecretKey = "5NwKIVEetEfJzWxmMBz0SeSxFT2aCvNN";
+		appSettings.setJwtSecretKey(jwtSecretKey);
+		appSettings.setIpFilterEnabled(false);
+
+		assertTrue(callSetAppSettings(appName, appSettings).isSuccess());
+
+		String streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		int statusCode = callCreateBroadcastWithRestBearerJwt(appName, streamId, null);
+		assertEquals(HttpStatus.SC_FORBIDDEN, statusCode);
+
+
+		Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+		String jwt = JWT.create().
+				sign(algorithm);
+
+		statusCode = callCreateBroadcastWithRestBearerJwt(appName, streamId, jwt);
+
+		assertEquals(HttpStatus.SC_OK, statusCode);
+
+		statusCode = callDeleteBroadcastWithRestBearerJwt(appName, streamId, jwt);
+
+		assertEquals(HttpStatus.SC_OK, statusCode);
+
+		appSettings.setIpFilterEnabled(true);
+		appSettings.setJwtControlEnabled(false);
+		appSettings.setJwtSecretKey("");
+
+		assertTrue(callSetAppSettings(appName, appSettings).isSuccess());
+
+
+
+	}
+
+	public static int callCreateBroadcastWithRestBearerJwt(String appName, String streamId, String jwt) throws Exception {
+		String url = "http://127.0.0.1:5080/"+appName+"/rest/v2/broadcasts/create/";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(streamId);
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+		if(jwt != null){
+			post.addHeader(HttpHeaders.AUTHORIZATION, JWTFilter.JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX+" "+jwt);
+		}
+
+		HttpResponse response = client.execute(post);
+
+		return response.getStatusLine().getStatusCode();
+
+	}
+
+	public static int callDeleteBroadcastWithRestBearerJwt(String appName, String streamId, String jwt) throws Exception {
+		String url = "http://127.0.0.1:5080/"+appName+"/rest/v2/broadcasts/"+streamId;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(streamId);
+
+		HttpUriRequest delete = RequestBuilder.delete().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+		if(jwt != null){
+			delete.addHeader(HttpHeaders.AUTHORIZATION, JWTFilter.JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX+" "+jwt);
+		}
+
+		HttpResponse response = client.execute(delete);
+
+		return response.getStatusLine().getStatusCode();
+
+	}
+
 	public static List<VoD> callGetVoDList(int offset, int size, String appName) {
 		try {
 
@@ -3651,7 +3863,6 @@ public class ConsoleAppRestServiceTest{
 		try {
 			//"http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/rest/v2";
 			String url =  ROOT_SERVICE_URL +"/request?_path="+ appName  + "/rest/v2/broadcasts/create";
-
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
 

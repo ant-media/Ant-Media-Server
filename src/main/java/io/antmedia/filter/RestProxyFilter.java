@@ -97,12 +97,10 @@ public class RestProxyFilter extends AbstractFilter {
 				 * forward the request to the origin address. This also handles the scenario if the origin server is dead or broadcast stuck
 				 * because AntMediaApplicationAdapter.isStreaming checks the last update time
 				 */
-				else if (broadcast != null && AntMediaApplicationAdapter.isStreaming(broadcast)
+				else if (broadcast != null && AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())
 						&& isHostRunning(broadcast.getOriginAdress(), getServerSettings().getDefaultHttpPort())) 
 				{
-
-
 					forwardRequestToNode(request, response, broadcast.getOriginAdress());
 				}
 				else 

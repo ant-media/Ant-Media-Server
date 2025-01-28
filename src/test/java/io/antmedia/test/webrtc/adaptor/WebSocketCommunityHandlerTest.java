@@ -175,6 +175,7 @@ public class WebSocketCommunityHandlerTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		broadcast.setUpdateTime(System.currentTimeMillis());
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
 		dataStore.save(broadcast);
@@ -192,6 +193,7 @@ public class WebSocketCommunityHandlerTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		broadcast.setUpdateTime(System.currentTimeMillis());
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
 		dataStore.save(broadcast);
@@ -643,6 +645,15 @@ public class WebSocketCommunityHandlerTest {
 		String userAgent = "dummy agent";
 		wsHandler.setUserAgent(userAgent);
 		assertEquals(userAgent, wsHandler.getUserAgent());
+	}
+	
+	@Test
+	public void testClientIP() {
+		assertEquals("N/A", wsHandler.getClientIP());
+
+		String clienTIP = "a.b.c.d";
+		wsHandler.setClientIP(clienTIP);
+		assertEquals(clienTIP, wsHandler.getClientIP());
 	}
 
 	@Test

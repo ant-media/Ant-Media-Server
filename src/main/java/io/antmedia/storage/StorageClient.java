@@ -57,6 +57,7 @@ public abstract class StorageClient {
 
 	private boolean pathStyleAccessEnabled;
 
+	private int transferBufferSize;
 
 	/**
 	 * Delete file from storage
@@ -189,5 +190,14 @@ public abstract class StorageClient {
 
 	public boolean isPathStyleAccessEnabled() {
 		return pathStyleAccessEnabled;
+	}
+	
+	public int getTransferBufferSize() {
+		return transferBufferSize;
+	}
+
+
+	public void setTransferBufferSize(int transferBufferSize) {
+		this.transferBufferSize = transferBufferSize;
 	}
 }

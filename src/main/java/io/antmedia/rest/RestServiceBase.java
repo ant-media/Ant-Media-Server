@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import jakarta.servlet.ServletContext;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -143,6 +144,7 @@ public abstract class RestServiceBase {
 	public static final int HIGH_CPU_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
 	public static final int INVALID_STREAM_NAME_ERROR = -5;
+	public static final int FETCH_REQUEST_REDIRECTED_TO_ORIGIN = -6;
 
 	public static final String HTTP = "http://";
 	public static final String RTSP = "rtsp://";
@@ -156,7 +158,7 @@ public abstract class RestServiceBase {
 	public static final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
 
 	public static final String LOOPBACK_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
-	private static final String REPLACE_CHARS = "[\n|\r|\t]";
+	public static final String REPLACE_CHARS = "[\n|\r|\t]";
 	@Context
 	protected ServletContext servletContext;
 	protected DataStoreFactory dataStoreFactory;
@@ -443,7 +445,7 @@ public abstract class RestServiceBase {
 	}
 
 	public boolean isStreaming(Broadcast broadcast) {
-		return AntMediaApplicationAdapter.isStreaming(broadcast);
+		return AntMediaApplicationAdapter.isStreaming(broadcast.getStatus());
 	}
 
 	/**
@@ -1011,7 +1013,7 @@ public abstract class RestServiceBase {
 			}
 
 			if (logger.isInfoEnabled())  {
-				logger.info("IP: {}", serverAddr.replaceAll("[\n|\r|\t]", "_"));
+				logger.info("IP: {}", serverAddr.replaceAll(REPLACE_CHARS, "_"));
 			}
 
 			if(serverAddr.split("\\.").length == 4 && validateIPaddress(serverAddr)){
@@ -1226,10 +1228,10 @@ public abstract class RestServiceBase {
 		String appScopeName = getScope().getName();
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
-
-			if ("mp4".equalsIgnoreCase(fileExtension) || "webm".equalsIgnoreCase(fileExtension) 
-					||  "mov".equalsIgnoreCase(fileExtension) ||  "avi".equalsIgnoreCase(fileExtension)
-					||  "wmv".equalsIgnoreCase(fileExtension)) {
+			
+		   String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
+		   
+		   if (ArrayUtils.contains(supportedFormats, fileExtension)) {
 
 
 				IStatsCollector statsCollector = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
@@ -1251,9 +1253,12 @@ public abstract class RestServiceBase {
 					}
 					String vodId = RandomStringUtils.randomNumeric(24);
 
-					File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-							"streams/" + vodId + "." + fileExtension));
+					
+					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
 
+					if (!savedFile.toPath().normalize().startsWith(streamsDirectory.toPath().normalize())) {
+			            throw new IOException("Entry is outside of the target directory");
+					} 
 
 					int read = 0;
 					byte[] bytes = new byte[2048];
@@ -1732,37 +1737,28 @@ public abstract class RestServiceBase {
 		return null;
 	}
 
-	protected Object getToken (String streamId, long expireDate, String type, String roomId)
-	{
-		Token token = null;
-		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
-		if(streamId != null && type != null && expireDate > 0) {
-
-			ITokenService tokenService = getTokenService();
-
-			if(tokenService != null)
-			{
-				token = tokenService.createToken(streamId, expireDate, type, roomId);
-				if(token != null)
-				{
-					if (getDataStore().saveToken(token)) {
-						//returns token only everything is OK
-						return token;
-					}
-					else {
-						message = "Cannot save token to the datastore";
-					}
-				}
-				else {
-					message = "Cannot create token. It can be a mock token service";
-				}
-			}
-			else {
-				message = "No token service in this app";
-			}
+	protected Object getToken(String streamId, long expireDate, String type, String roomId) {
+		if (streamId == null || type == null || expireDate <= 0) {
+			return new Result(false, "Define Stream ID, Token Type and Expire Date (unix time)");
+		}
+		if (!type.equals(Token.PLAY_TOKEN) && !type.equals(Token.PUBLISH_TOKEN)) {
+			return new Result(false, "Invalid token type. Supported types are 'play' and 'publish'");
 		}
 
-		return new Result(false, message);
+		ITokenService tokenService = getTokenService();
+		if (tokenService == null) {
+			return new Result(false, "No token service in this app");
+		}
+
+		Token token = tokenService.createToken(streamId, expireDate, type, roomId);
+		if (token == null) {
+			return new Result(false, "Cannot create token. It may be a mock token service");
+		}
+		if (!getDataStore().saveToken(token)) {
+			return new Result(false, "Cannot save token to the datastore");
+		}
+
+		return token;
 	}
 
 	protected Object getJwtToken (String streamId, long expireDate, String type, String roomId)
@@ -1861,7 +1857,7 @@ public abstract class RestServiceBase {
 
 		version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
 
-		logger.info("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
+		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
 		return version;
 	}
 
@@ -1926,11 +1922,11 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static Result addSubTrack(String id, String subTrackId, DataStore store) 
+	public static Result addSubTrack(String mainTrackId, String subTrackId, DataStore store) 
 	{
 		Result result = new Result(false);
 		Broadcast subTrack = store.get(subTrackId);
-		Broadcast mainTrack = store.get(id);
+		Broadcast mainTrack = store.get(mainTrackId);
 		String message = "";
 		if (subTrack != null && mainTrack != null)
 		{
@@ -1940,10 +1936,10 @@ public abstract class RestServiceBase {
 
 			List<String> subTrackStreamIds = mainTrack.getSubTrackStreamIds();
 
-			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(id, null) >= subtrackLimit) 
+			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(mainTrackId, null) >= subtrackLimit) 
 			{
-				message = "Subtrack limit is reached for the main track:" + id;
-				logWarning("Subtrack limit is reached for the main track:{}", id.replaceAll(REPLACE_CHARS, "_"));
+				message = "Subtrack limit is reached for the main track:" + mainTrackId;
+				logWarning("Subtrack limit is reached for the main track:{}", mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 				result.setMessage(message);
 				return result;
 			}
@@ -1952,12 +1948,12 @@ public abstract class RestServiceBase {
 				subTrackStreamIds = new ArrayList<>();
 			}
 
-			subTrack.setMainTrackStreamId(id);
+			subTrack.setMainTrackStreamId(mainTrackId);
 
 
 			//Update subtrack's main Track Id
 			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-			broadcastUpdate.setMainTrackStreamId(id);
+			broadcastUpdate.setMainTrackStreamId(mainTrackId);
 
 			boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 			if (success) 
@@ -1965,21 +1961,25 @@ public abstract class RestServiceBase {
 				subTrackStreamIds.add(subTrackId);
 				broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setSubTrackStreamIds(subTrackStreamIds);
-
-				success = store.updateBroadcastFields(id, broadcastUpdate);
-				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id);
+				
+				//make sure to set the virtual flag to true because it's mainTrack
+				broadcastUpdate.setVirtual(true);
+				
+				
+				success = store.updateBroadcastFields(mainTrackId, broadcastUpdate);
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + mainTrackId);
 			}
 			else
 
 			{
 				message = MAIN_TRACK_OF_THE_STREAM + subTrackId + " cannot be updated";
-				logWarning(MAIN_TRACK_OF_THE_STREAM +":{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+				logWarning(MAIN_TRACK_OF_THE_STREAM +":{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		else
 		{
-			message = "There is no stream with id:" + subTrackId + " as subtrack or " + id + " as mainTrack";
-			logWarning("There is no stream with id:{} as subtrack or {} as mainTrack" , subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+			message = "There is no stream with id:" + subTrackId + " as subtrack or " + mainTrackId + " as mainTrack";
+			logWarning("There is no stream with id:{} as subtrack or {} as mainTrack" , subTrackId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;

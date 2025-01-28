@@ -26,7 +26,6 @@ import io.antmedia.storage.StorageClient;
 @MultipartConfig
 public class UploadHLSChunk extends HttpServlet {
 
-
 	private static final long serialVersionUID = 1L;
 
 	protected static Logger logger = LoggerFactory.getLogger(UploadHLSChunk.class);
@@ -80,6 +79,11 @@ public class UploadHLSChunk extends HttpServlet {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
 	}
+	
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		super.doPut(req, resp);
+	}
 
 	@Override
 	protected void doPut(HttpServletRequest req, HttpServletResponse resp) 
@@ -115,6 +119,7 @@ public class UploadHLSChunk extends HttpServlet {
 
 		String s3FileKey = getS3Key(req, appSettings);
 
+		//TODO: we overwrite progressListener for the ongoing upload here. This may make logs misleading.
 		storageClient.setProgressListener(event -> {
 			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
 			{
@@ -122,7 +127,7 @@ public class UploadHLSChunk extends HttpServlet {
 			}
 			else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
 			{	
-				logger.info("File uploaded to S3 with key: {}", s3FileKey);
+				logger.debug("File uploaded to S3 with key: {}", s3FileKey);
 			}
 		});
 

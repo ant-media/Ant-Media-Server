@@ -22,6 +22,10 @@ jobs:
       GPG_TTY: ${{ secrets.GPG_TTY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: https://sonarcloud.io
+      CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
+      CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
+      GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
     
     steps:
       - name: Checkout code
@@ -69,7 +73,7 @@ jobs:
         run: |
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
-          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/* -Dorg.bytedeco.javacpp.logger.debug=false org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/* -Dorg.bytedeco.javacpp.logger.debug=false org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true
       
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()

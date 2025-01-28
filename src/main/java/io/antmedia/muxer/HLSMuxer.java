@@ -3,7 +3,6 @@ package io.antmedia.muxer;
 import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avutil.AV_OPT_SEARCH_CHILDREN;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,8 +16,6 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avformat;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -31,10 +28,11 @@ public class HLSMuxer extends Muxer  {
 
 	
 	public static final String SEI_USER_DATA = "sei_user_data";
-
-	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
-	private static final String SEGMENT_SUFFIX_FMP4 = "%0"+SEGMENT_INDEX_LENGTH+"d.m4s";
 	
+	private static final String LETTER_DOT = ".";
+	private static final String TS_EXTENSION = "ts";
+	private static final String FMP4_EXTENSION = "fmp4";
+
 	private static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
 	private static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
 
@@ -57,7 +55,7 @@ public class HLSMuxer extends Muxer  {
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
-	
+
 	/**
 	 * HLS Segment Type. It can be "mpegts" or "fmp4"
 	 * 
@@ -78,6 +76,8 @@ public class HLSMuxer extends Muxer  {
 	private ByteBuffer pendingSEIData;
 
 	private AVPacket tmpPacketForSEI;
+
+	private String segmentFileNameSuffix;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
@@ -130,7 +130,6 @@ public class HLSMuxer extends Muxer  {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
 	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate) {
 		if (!isInitialized) {
 
@@ -147,38 +146,41 @@ public class HLSMuxer extends Muxer  {
 
 			logger.info("hls time:{}, hls list size:{} hls playlist type:{} for stream:{}", hlsTime, hlsListSize, this.hlsPlayListType, streamId);
 
-			if (StringUtils.isNotBlank(httpEndpoint)) 			
-			{
-				
+			if (StringUtils.isNotBlank(httpEndpoint)) {
 				segmentFilename = httpEndpoint;
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += (this.subFolder != null ? subFolder : "");
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += initialResourceNameWithoutExtension;
-				
-			}
-			else {
+			} else {
 				segmentFilename = file.getParentFile().toString();
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += initialResourceNameWithoutExtension;
-				
 			}
 			
+			segmentFileNameSuffix = getAppSettings().getHlsSegmentFileSuffixFormat();
+
+			if(segmentFileNameSuffix.contains("%s") || segmentFileNameSuffix.contains("%Y") || segmentFileNameSuffix.contains("%m")) {
+				options.put("strftime", "1");
+			}
+			
+			segmentFilename += getAppSettings().getHlsSegmentFileSuffixFormat();
+
 			//remove double slashes with single slash because it may cause problems
 			segmentFilename = replaceDoubleSlashesWithSingleSlash(segmentFilename);
-			
+
+			segmentFilename += LETTER_DOT;
 			options.put("hls_segment_type", hlsSegmentType);
 			if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
-				
-				segmentInitFilename = initialResourceNameWithoutExtension + "_init.mp4";
+
+				segmentInitFilename = initialResourceNameWithoutExtension + "_" + System.currentTimeMillis() + "_init.mp4";
 				options.put("hls_fmp4_init_filename", segmentInitFilename);
-				segmentFilename += SEGMENT_SUFFIX_FMP4;
-			}
-			else { //if it's mpegts
-				segmentFilename += SEGMENT_SUFFIX_TS;
+				segmentFilename += FMP4_EXTENSION;
+			} else { //if it's mpegts
+				segmentFilename += TS_EXTENSION;
 			}
 			
-					
+
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) 
@@ -206,7 +208,6 @@ public class HLSMuxer extends Muxer  {
 		}
 		return super.getOutputURL();
 	}
-
 
 	public AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
@@ -277,26 +278,38 @@ public class HLSMuxer extends Muxer  {
 		addID3Data(data);
 	}
 
+
+	public static byte[] convertIntToID3v2TagSize(int size) {
+		byte[] tagSizeBytes = new byte[4];
+		tagSizeBytes[0] = (byte) ((size >> 21) & 0x7F);
+		tagSizeBytes[1] = (byte) ((size >> 14) & 0x7F);
+		tagSizeBytes[2] = (byte) ((size >> 7) & 0x7F);
+		tagSizeBytes[3] = (byte) (size & 0x7F);
+		return tagSizeBytes;
+	}
+
 	public synchronized void addID3Data(String data) {
-		
-		
-		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
-		int tagSize = id3TagSize + 10;
+		int frameSizeWithoutFrameHeader = data.length() + 3; // TXXX frame size, 3 is for encoding (1), description (1) and end of string (1) (https://id3.org/id3v2.3.0#User_defined_text_information_frame)
+		int tagSize = frameSizeWithoutFrameHeader + 10; // 10 is for frame header which is "TXXX" frame id (4), frame size info(4) and frame flags (2)  (https://id3.org/id3v2.3.0#ID3v2_frame_overview)
+		int id3ContentSize = tagSize + 10; // 10 is for ID3 header which is "ID3" (3), version (2), flags (1) and size info(4) (https://id3.org/id3v2.3.0#ID3v2_header)
 
-		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize + 10);
+		ByteBuffer byteBuffer = ByteBuffer.allocate(id3ContentSize);
 		
-		logger.info("Adding ID3 data: {} lenght:{} byte length:{} buffer capacacity:{}", data, data.length(), data.getBytes().length, byteBuffer.capacity());
+		logger.debug("Adding ID3 data: {} lenght:{} to streamId:{} endpoint:{}", data, data.length(), byteBuffer.capacity(), streamId, getOutputURL());
 
-
+		// ID3 header (https://id3.org/id3v2.3.0#ID3v2_header)
 		byteBuffer.put("ID3".getBytes());
 		byteBuffer.put(new byte[]{0x03, 0x00}); // version
 		byteBuffer.put((byte) 0x00); // flags
-		byteBuffer.putInt(tagSize); // size
 
-		// TXXX frame
-		byteBuffer.put("TXXX".getBytes());
-		byteBuffer.putInt(id3TagSize); // size
-		byteBuffer.put(new byte[]{0x00, 0x00}); // flags
+		byteBuffer.put(convertIntToID3v2TagSize(tagSize)); // size
+
+		// TXXX frame header (https://id3.org/id3v2.3.0#ID3v2_frame_overview)
+		byteBuffer.put("TXXX".getBytes()); // frame id
+		byteBuffer.putInt(frameSizeWithoutFrameHeader); // frame size without frame header
+		byteBuffer.put(new byte[]{0x00, 0x00}); // frame flags
+
+		//TXXX frame content (https://id3.org/id3v2.3.0#User_defined_text_information_frame)
 		byteBuffer.put((byte) 0x03); // encoding
 		byteBuffer.put((byte) 0x00); // description 00
 		byteBuffer.put(data.getBytes()); // description
@@ -347,6 +360,9 @@ public class HLSMuxer extends Muxer  {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
+		if(!isRunning.get())
+			return;
+
 		super.writeTrailer();
 		
 		if (StringUtils.isBlank(this.httpEndpoint)) 
@@ -356,21 +372,16 @@ public class HLSMuxer extends Muxer  {
 			
 			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000l, l -> 
 			{
-				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
+				//final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 	
 				//SEGMENT_SUFFIX_TS is %09d.ts
 				//convert segmentFileName to regular expression
 				
 				int indexOfSuffix = 0;
-				if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
-					indexOfSuffix = segmentFilename.indexOf(SEGMENT_SUFFIX_FMP4);
-				}
-				else {
-					indexOfSuffix = segmentFilename.indexOf(SEGMENT_SUFFIX_TS);
-				}
+				indexOfSuffix = segmentFilename.indexOf(segmentFileNameSuffix);
 				
 				String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
-				String regularExpression = segmentFileWithoutSuffix + "[0-9]*\\.(?:ts|m4s)$";
+				String regularExpression = segmentFileWithoutSuffix + ".*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
 				File[] files = getHLSFilesInDirectory(regularExpression);
 	
 				if (files != null)
@@ -620,4 +631,5 @@ public class HLSMuxer extends Muxer  {
 	public ByteBuffer getPendingSEIData() {
 		return pendingSEIData;
 	}
+
 }

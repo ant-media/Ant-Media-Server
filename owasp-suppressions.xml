@@ -123,4 +123,24 @@
 	   <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat/tomcat-coyote@10\.1\.19$</packageUrl>
 	   <cve>CVE-2024-34750</cve>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: tomcat-catalina-10.1.34.jar
+	   This vulnerability seems to be fixed in 10.1.34 Otherwise, Ant Media Server works on Linux which is a case sensitve OS. So this doesn't affect the software.   
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat/tomcat-catalina@10\.1\.34$</packageUrl>
+	   <cve>CVE-2024-56337</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   This vulnerability causes problem when Ant Media Server pulls a HLS stream as a stream source. If you're not pulling HLS stream from a source, it will not effect you. 
+	   If you're pulling a stream from a third party resource, then make sure your third party is trusted until there is a fix available for this issue on FFmpeg side. When the fix is available,
+	   we'll update the FFmpeg version in Ant Media Server. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2023-6603</vulnerabilityName>
+	</suppress>
+	
 </suppressions>

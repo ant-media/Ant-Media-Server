@@ -34,6 +34,7 @@ import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IGlobalScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
+import org.red5.server.scope.Scope;
 import org.red5.server.scope.WebScope;
 import org.red5.server.tomcat.WarDeployer;
 import org.red5.server.util.ScopeUtils;
@@ -105,7 +106,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) -> 
-					createApplicationWithURL(appName, warFileURI, secretKey)
+			createApplicationWithURL(appName, warFileURI, secretKey)
 					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
@@ -132,20 +133,20 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			if (StringUtils.isNotBlank(warFileURI)) 
 			{
 				if (warFileURI.startsWith("http"))  //covers both http and https
-                {
+				{
 					File file = downloadWarFile(appName, warFileURI, secretKey);
 					if (file == null) {
 						logger.error("War file cannot be downloaded from {}. App:{} will not be created", warFileURI, appName);
 						return false;
 					}
 					warFileFullPath = file.getAbsolutePath();
-                }
+				}
 				else 
 				{
 					warFileFullPath = warFileURI;
 				}
 				logger.info("war full path: {}", warFileFullPath);
-				
+
 			}
 			result = createApplication(appName, warFileFullPath);
 
@@ -263,8 +264,16 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		java.util.Set<String> names = root.getScopeNames();
 		List<String> apps = new ArrayList<>();
 		for (String name : names) {
-			if(!name.equals("root")) {
-				apps.add(name);
+
+			IScope scope = root.getScope(name);
+
+			if (scope instanceof Scope) {
+
+				Scope appScope = (Scope) scope;
+				if(!name.equals("root") && appScope.isRunning()) {
+					apps.add(name);
+				}
+
 			}
 		}
 
@@ -350,19 +359,19 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileFullPath, appName);
 
 		//check if there is a non-completed deployment 
-		
+
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
 		if (appScope != null && appScope.isRunning()) {
 			logger.info("{} already exists and running", appName);
 			currentApplicationCreationProcesses.remove(appName);
 			return false;
 		}
-		
+
 		String dbConnectionURL = getDataStoreFactory().getDbHost();
 		String mongoUser = getDataStoreFactory().getDbUser();
 		String mongoPass = getDataStoreFactory().getDbPassword();
 		success = runCreateAppScript(appName, isCluster, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
-		
+
 
 		vertx.executeBlocking(() -> {
 			try {
@@ -372,20 +381,20 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				currentApplicationCreationProcesses.remove(appName);
 			}
 			return null;
-		});
+		}, false);
 
 		return success;
 
 	}
-	
+
 	public Queue<String> getCurrentApplicationCreationProcesses() {
 		return currentApplicationCreationProcesses;
 	}
-	
+
 	public static String getJavaTmpDirectory() {
-        return System.getProperty("java.io.tmpdir");
-    }
-	
+		return System.getProperty("java.io.tmpdir");
+	}
+
 	public static File getWarFileInTmpDirectory(String warFileName) 
 	{
 		String tmpsDirectory = getJavaTmpDirectory();
@@ -394,9 +403,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return file;
 		}
 		return null;
-		
+
 	}
-	
+
 	public static String getWarName(String appName) {
 		return appName + ".war";
 	}
@@ -436,7 +445,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		return file;
 	}
-	
+
 	public CloseableHttpClient getHttpClient() {
 		return HttpClients.createDefault();
 	}
@@ -447,7 +456,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		try (CloseableHttpClient client = getHttpClient()) 
 		{
 			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
-			
+
 			String jwtToken = JWTFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "appname", appName);
 
 			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(warFileUrl).addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken).build();
@@ -476,7 +485,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		//appScope is running after application has started
 		if (appScope != null && appScope.isRunning()) 
 		{
-			
+
 			logger.info("Deleting app:{} and appscope is running:{}", 
 					appName, appScope.isRunning());
 			getApplicationAdaptor(appScope).stopApplication(deleteDB);
@@ -499,7 +508,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				logger.error("It detects an non-completed app deployment directory with name {}. It's being deleted.", appName);
 				success = runDeleteAppScript(appName);
 			}
-	
+
 		}
 
 		return success;
@@ -520,7 +529,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				+ " -w true"
 				+ " -p " + webappsPath
 				+ " -c " + isCluster;
-		
+
 		if 	(!DataStoreFactory.DB_TYPE_MAPDB.equals(getDataStoreFactory().getDbType())) {
 			//add db connection url, user and pass if it's not mapdb
 			if (StringUtils.isNotBlank(dbConnectionUrl)) {
@@ -539,7 +548,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			command += " -f " + warFileName;
 
 		}
-		
+
 		log.info("Creating application with command: {}", command);
 		return runCommand(command);
 	}
@@ -587,7 +596,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 						}
 					}
 				}.start();
-				
+
 				result = process.waitFor() == 0;
 			}
 		}
@@ -620,7 +629,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			parametersToRun[i] = param;	
 		}
 
-		
+
 		ProcessBuilder pb = getProcessBuilder(parametersToRun);
 
 		return pb.start();

@@ -29,6 +29,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
@@ -75,12 +76,15 @@ public class StreamFetcherManager {
 	
 	boolean serverShuttingDown = false;
 
+	private ServerSettings serverSettings;
+
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
 		this.datastore = datastore;
 		this.scope=scope;
 		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+		this.serverSettings = (ServerSettings) scope.getContext().getBean(ServerSettings.BEAN_NAME);
 		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
 	}
@@ -119,7 +123,8 @@ public class StreamFetcherManager {
 
 		if (!isStreamLive) {
 			//this stream may be fetching in somewhere in the cluster
-			isStreamLive = AntMediaApplicationAdapter.isStreaming(broadcast);
+			isStreamLive = AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && 
+					AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), serverSettings.getHostAddress(), serverSettings.getDefaultHttpPort(), scope.getName());
 		}
 
 		return isStreamLive;

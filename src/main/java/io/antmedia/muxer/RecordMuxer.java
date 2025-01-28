@@ -9,14 +9,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
-import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
-import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
@@ -25,7 +25,7 @@ public abstract class RecordMuxer extends Muxer {
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
 	protected int resolution;
-	
+
 	protected boolean uploadMP4ToS3 = true;
 
 	protected String previewPath;
@@ -39,7 +39,7 @@ public abstract class RecordMuxer extends Muxer {
 	 * It will be define when record muxer is called by anywhere
 	 */
 	private long startTime = 0;
-	
+
 	private String vodId;
 
 
@@ -50,7 +50,7 @@ public abstract class RecordMuxer extends Muxer {
 		firstAudioDts = -1;
 		firstVideoDts = -1;
 		firstKeyFrameReceived = false;
-		
+
 	}
 
 	protected int[] SUPPORTED_CODECS;
@@ -106,15 +106,19 @@ public abstract class RecordMuxer extends Muxer {
 		}
 		return true;
 	}
-	
-	
+
+
 	@Override
 	public String getOutputURL() {
 		return fileTmp.getAbsolutePath();
 	}
-		
+
 	public void setPreviewPath(String path){
 		this.previewPath = path;
+	}
+
+	public void setFileTmp(File fileTmp){
+		this.fileTmp = fileTmp;
 	}
 
 	/**
@@ -122,9 +126,18 @@ public abstract class RecordMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
+		if(!isRunning.get())
+			return;
 
 		super.writeTrailer();
 
+		if (fileTmp == null || !fileTmp.exists()) {
+
+			logger.error("MP4 temp file does not exist. Streaming is likely not started for streamId:{}", streamId);
+			return;
+		}
+		
+		Broadcast broadcast = getAppAdaptor().getDataStore().get(streamId);
 
 		vertx.executeBlocking(()->{
 			try {
@@ -137,7 +150,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				finalizeRecordFile(f);
 
-				adaptor.muxingFinished(streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
+				adaptor.muxingFinished(broadcast, streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
 
@@ -149,24 +162,20 @@ public abstract class RecordMuxer extends Muxer {
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 
-					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
+					saveToStorage(getS3Prefix(s3FolderPath,subFolder), f, f.getName(), storageClient);
 				}
+
 			} catch (Exception e) {
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 			return null;
-		});
+		}, false);
 
 	}
 
-	public AntMediaApplicationAdapter getAppAdaptor() {
-		IContext context = RecordMuxer.this.scope.getContext();
-		ApplicationContext appCtx = context.getApplicationContext();
-		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		return adaptor;
-	}
 
-	
+
+
 	public static String getS3Prefix(String s3FolderPath, String subFolder) {
 		return replaceDoubleSlashesWithSingleSlash(s3FolderPath + File.separator + (subFolder != null ? subFolder : "" ) + File.separator);
 	}
@@ -177,7 +186,7 @@ public abstract class RecordMuxer extends Muxer {
 		String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
 
 		String prefix = getS3Prefix(s3FolderPath, subFolder);
-		
+
 		String fileName = getFile().getName();
 
 		File f = new File(origFileName);
@@ -216,7 +225,7 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 
-	
+
 
 	public boolean isUploadingToS3(){return uploadMP4ToS3;}
 
