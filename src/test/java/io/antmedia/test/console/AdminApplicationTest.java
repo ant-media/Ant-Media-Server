@@ -403,6 +403,7 @@ public class AdminApplicationTest {
 
 
 		Broadcast broadcast = new Broadcast();
+		broadcast.setUpdateTime(System.currentTimeMillis());
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		String id = dataStore.save(broadcast);
 		assertEquals(1, dataStore.getActiveBroadcastCount());

@@ -2434,8 +2434,8 @@ public class AppSettings implements Serializable{
 	 * The size of encoding queue to keep the frames waiting for encoding in Stream Adaptor
 	 * default: 150 (5 seconds frame for 30 fps stream)
 	 */
-	@Value("${encodingQueueSize:300}")
-	private int encodingQueueSize = 300;
+	@Value("${encodingQueueSize:150}")
+	private int encodingQueueSize = 150;
 	
 	/**
 	 * Write subscriber events to datastore. It's false by default

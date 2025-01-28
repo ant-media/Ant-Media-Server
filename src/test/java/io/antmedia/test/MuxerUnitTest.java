@@ -2820,8 +2820,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		boolean result = muxAdaptor.init(appScope, streamId, false);
 
 		muxAdaptor.getDataStore().save(broadcast);
+		
+		muxAdaptor.setInputQueueSize(10);
 
-		muxAdaptor.updateStreamQualityParameters(streamId, null, 0.99612, 10);
+		muxAdaptor.updateStreamQualityParameters(streamId, 0.99612);
 
 		Awaitility.await().atMost(3, TimeUnit.SECONDS).until(() -> {
 			Broadcast broadcast2 = muxAdaptor.getDataStore().get(streamId);
@@ -2842,7 +2844,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		for (int i = 0; i < 100; i++) {
 			//it should not update because it updates for every 5 seconds
-			muxAdaptor.updateStreamQualityParameters(streamId, null, 0.99612 + Math.random(), 12120);
+			muxAdaptor.updateStreamQualityParameters(streamId, 0.99612 + Math.random());
 		}
 
 		broadcast2 = muxAdaptor.getDataStore().get(streamId);
@@ -2854,9 +2856,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//todo: this is a hack to increase the coverage for webhook things, add better tests to confirm
 		muxAdaptor.getAppSettings().setListenerHookURL("http://127.0.0.1/webhook");
 
+		muxAdaptor.setInputQueueSize(12120);
+
+		
 		Awaitility.await().pollDelay(MuxAdaptor.STAT_UPDATE_PERIOD_MS + 1000, TimeUnit.MILLISECONDS)
 		.atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS * 2, TimeUnit.MILLISECONDS).until(() -> {
-			muxAdaptor.updateStreamQualityParameters(streamId, null, 1.0123, 12120);
+			muxAdaptor.updateStreamQualityParameters(streamId, 1.0123);
 			return true;
 		});
 

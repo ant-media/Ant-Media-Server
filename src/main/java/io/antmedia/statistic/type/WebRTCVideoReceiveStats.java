@@ -16,6 +16,8 @@ public class WebRTCVideoReceiveStats
 	private BigInteger videoBytesReceivedPerSecond = BigInteger.ZERO;
 	private long videoFrameReceivedPerSecond;
 	
+	private double jitter;
+	
 	public long getVideoFirCount() {
 		return videoFirCount;
 	}
@@ -119,5 +121,19 @@ public class WebRTCVideoReceiveStats
 			this.videoBytesReceivedPerSecond = this.videoBytesReceivedPerSecond.add(videoReceiveStats.getVideoBytesReceivedPerSecond());
 			this.videoFrameReceivedPerSecond += videoReceiveStats.getVideoFrameReceivedPerSecond();
 		}
+	}
+
+	/**
+	 * @return the jitter
+	 */
+	public double getJitter() {
+		return jitter;
+	}
+
+	/**
+	 * @param jitter the jitter to set
+	 */
+	public void setJitter(double jitter) {
+		this.jitter = jitter;
 	}
 }

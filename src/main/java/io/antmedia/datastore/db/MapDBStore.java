@@ -127,6 +127,7 @@ public class MapDBStore extends MapBasedDataStore {
 	@Override
 	public void close(boolean deleteDB) {
 		//get db file before closing. They can be used in delete method
+		long startTime = System.nanoTime();
 		Iterable<String> dbFiles = db.getStore().getAllFiles();
 		synchronized (this) {
 			vertx.cancelTimer(timerId);
@@ -151,6 +152,10 @@ public class MapDBStore extends MapBasedDataStore {
 			}
 
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "close(boolean deleteDB)");
 	}
 	
 	public long getLocalLiveBroadcastCount(String hostAddress) {

@@ -635,7 +635,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(-1, appSettings.getWebhookStreamStatusUpdatePeriodMs());
 
-		assertEquals(300, appSettings.getEncodingQueueSize());
+		assertEquals(150, appSettings.getEncodingQueueSize());
 		appSettings.setEncodingQueueSize(200);
 		assertEquals(200, appSettings.getEncodingQueueSize());
 		assertEquals("png", appSettings.getPreviewFormat());

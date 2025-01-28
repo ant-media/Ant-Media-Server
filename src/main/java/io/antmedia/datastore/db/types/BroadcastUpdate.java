@@ -100,7 +100,27 @@ public class BroadcastUpdate {
     private Long startTime = null;
 
     private Long receivedBytes = null;
+    
+	private Integer width = null;
+	
+	private Integer height = null;
+	
+	private Integer encoderQueueSize = null;
+	
+	private Integer dropPacketCountInIngestion = null;
 
+	private Integer dropFrameCountInEncoding = null;
+	
+	private Double packetLostRatio = null;
+	
+	private Integer packetsLost = null;
+	
+	private String remoteIp = null;
+	
+	private Integer jitterMs = null;
+	
+	private Integer rttMs = null;
+    
     private Long bitrate = null;
 
     private String userAgent = null;
@@ -141,6 +161,8 @@ public class BroadcastUpdate {
     private Boolean autoStartStopEnabled = null;
 
     private List<EncoderSettings> encoderSettingsList = null;
+    
+    private Boolean virtual = null;
 
 	public String getStreamId() {
 		return streamId;
@@ -154,6 +176,11 @@ public class BroadcastUpdate {
 		return status;
 	}
 
+	/**
+	 * Pay attention to the status field. Even if you set to BROADCASTING, it will check last update time to understand if it's really broadcasting
+	 * Check the {@link Broadcast#getStatus()}
+	 * @param status
+	 */
 	public void setStatus(String status) {
 		this.status = status;
 	}
@@ -620,6 +647,160 @@ public class BroadcastUpdate {
 
 	public void setEncoderSettingsList(List<EncoderSettings> encoderSettingsList) {
 		this.encoderSettingsList = encoderSettingsList;
+	}
+
+	/**
+	 * @return the width
+	 */
+	public Integer getWidth() {
+		return width;
+	}
+
+	/**
+	 * @param width the width to set
+	 */
+	public void setWidth(Integer width) {
+		this.width = width;
+	}
+
+	/**
+	 * @return the height
+	 */
+	public Integer getHeight() {
+		return height;
+	}
+
+	/**
+	 * @param height the height to set
+	 */
+	public void setHeight(Integer height) {
+		this.height = height;
+	}
+
+	/**
+	 * @return the encoderQueueSize
+	 */
+	public Integer getEncoderQueueSize() {
+		return encoderQueueSize;
+	}
+
+	/**
+	 * @param encoderQueueSize the encoderQueueSize to set
+	 */
+	public void setEncoderQueueSize(Integer encoderQueueSize) {
+		this.encoderQueueSize = encoderQueueSize;
+	}
+
+	/**
+	 * @return the dropPacketCountInIngestion
+	 */
+	public Integer getDropPacketCountInIngestion() {
+		return dropPacketCountInIngestion;
+	}
+
+	/**
+	 * @param dropPacketCountInIngestion the dropPacketCountInIngestion to set
+	 */
+	public void setDropPacketCountInIngestion(Integer dropPacketCountInIngestion) {
+		this.dropPacketCountInIngestion = dropPacketCountInIngestion;
+	}
+
+	/**
+	 * @return the dropFrameCountInEncoding
+	 */
+	public Integer getDropFrameCountInEncoding() {
+		return dropFrameCountInEncoding;
+	}
+
+	/**
+	 * @param dropFrameCountInEncoding the dropFrameCountInEncoding to set
+	 */
+	public void setDropFrameCountInEncoding(Integer dropFrameCountInEncoding) {
+		this.dropFrameCountInEncoding = dropFrameCountInEncoding;
+	}
+
+	/**
+	 * @return the packetLostRatio
+	 */
+	public Double getPacketLostRatio() {
+		return packetLostRatio;
+	}
+
+	/**
+	 * @param packetLostRatio the packetLostRatio to set
+	 */
+	public void setPacketLostRatio(Double packetLostRatio) {
+		this.packetLostRatio = packetLostRatio;
+	}
+
+	/**
+	 * @return the jitterMs
+	 */
+	public Integer getJitterMs() {
+		return jitterMs;
+	}
+
+	/**
+	 * @param jitterMs the jitterMs to set
+	 */
+	public void setJitterMs(Integer jitterMs) {
+		this.jitterMs = jitterMs;
+	}
+
+	/**
+	 * @return the rttMs
+	 */
+	public Integer getRttMs() {
+		return rttMs;
+	}
+
+	/**
+	 * @param rttMs the rttMs to set
+	 */
+	public void setRttMs(Integer rttMs) {
+		this.rttMs = rttMs;
+	}
+
+	/**
+	 * @return the packetsLost
+	 */
+	public Integer getPacketsLost() {
+		return packetsLost;
+	}
+
+	/**
+	 * @param packetsLost the packetsLost to set
+	 */
+	public void setPacketsLost(Integer packetsLost) {
+		this.packetsLost = packetsLost;
+	}
+
+	/**
+	 * @return the remoteIp
+	 */
+	public String getRemoteIp() {
+		return remoteIp;
+	}
+
+	/**
+	 * @param remoteIp the remoteIp to set
+	 */
+	public void setRemoteIp(String remoteIp) {
+		this.remoteIp = remoteIp;
+	}
+
+	/**
+	 * @return the virtual
+	 */
+	public Boolean getVirtual() {
+		return virtual;
+	}
+
+	/**
+	 * @param virtual the virtual to set
+	 */
+	public void setVirtual(Boolean virtual) {
+		this.virtual = virtual;
 	}
     
     

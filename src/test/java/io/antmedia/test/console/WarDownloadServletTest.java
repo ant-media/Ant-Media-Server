@@ -41,6 +41,12 @@ public class WarDownloadServletTest {
 		MockHttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 		
 		request.setRequestURI("/test.war");
+		
+		File file = AdminApplication.getWarFileInTmpDirectory (AdminApplication.getWarName("test"));
+		if (file != null && file.exists()) {
+			assertTrue(file.delete());
+		}
+		 
 		warDownloadServlet.doHead(request, response);
 		verify(response).sendError(HttpServletResponse.SC_NOT_FOUND, "No such war file in the tmp directory");
 		
@@ -146,6 +152,13 @@ public class WarDownloadServletTest {
 		request.removeHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
 		request.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken);
 		response = spy(new MockHttpServletResponse());
+		
+		//delete the file if it exists
+		File file = AdminApplication.getWarFileInTmpDirectory (AdminApplication.getWarName("test"));
+		if (file != null && file.exists()) {
+			assertTrue(file.delete());
+		}
+		
 		warDownloadServlet.doGet(request, response);
 		verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "No such war file in the tmp directory");
 		
