@@ -2062,7 +2062,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * S3 Path Syle Access Enabled
 	 */
-	@Value("${s3PathStyleAccessEnabled::false}")
+	@Value("${s3PathStyleAccessEnabled:false}")
 	private boolean s3PathStyleAccessEnabled = false;
 
 	/*
