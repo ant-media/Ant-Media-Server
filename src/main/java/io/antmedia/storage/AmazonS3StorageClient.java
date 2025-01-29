@@ -72,7 +72,9 @@ public class AmazonS3StorageClient extends StorageClient {
 		builder.withClientConfiguration(
 				new ClientConfiguration().withMaxConnections(100)
 				.withConnectionTimeout(120 * 1000)
-				.withMaxErrorRetry(15));
+				.withMaxErrorRetry(15))
+				.withPathStyleAccessEnabled(isPathStyleAccessEnabled())
+		;
 
 		return builder.build();
 	}
