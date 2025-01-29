@@ -167,6 +167,12 @@ public interface IConnection extends ICoreObject, ICastingAttributeStore {
     public String getPath();
 
     /**
+     * set custom path
+     * @param path
+     */
+    public void setPath(String path);
+
+    /**
      * Get the session id, this may be null.
      * 
      * @return Session id

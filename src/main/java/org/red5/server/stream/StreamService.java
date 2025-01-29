@@ -670,8 +670,17 @@ public class StreamService implements IStreamService {
      * By synching this method, we prevent this problem.
      */
     public synchronized void publish(String name, String mode) {
-    	
+        IConnection conn = Red5.getConnectionLocal();
+
         Map<String, String> params = null;
+        String path = conn.getConnectParams().get("path").toString();
+        if(path.contains("/")){
+            String[] pathSplit = path.split("/");
+            if(pathSplit.length >=2) {
+                conn.setPath(pathSplit[0]);
+                name = pathSplit[1] + "/" + name;
+            }
+        }
         if (name != null && name.contains("?")) {
             // read and utilize the query string values
             params = parseQueryParameters(name);
@@ -682,7 +691,6 @@ public class StreamService implements IStreamService {
         }
 
         log.debug("publish called with name {} and mode {}", name, mode);
-        IConnection conn = Red5.getConnectionLocal();
         if (conn instanceof IStreamCapableConnection) {
             IScope scope = conn.getScope();
             IStreamCapableConnection streamConn = (IStreamCapableConnection) conn;
