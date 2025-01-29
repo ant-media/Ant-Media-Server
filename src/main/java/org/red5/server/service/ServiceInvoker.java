@@ -117,7 +117,6 @@ public class ServiceInvoker implements IServiceInvoker {
     /** {@inheritDoc} */
     public boolean invoke(IServiceCall call, Object service) {
         IConnection conn = Red5.getConnectionLocal();
-        conn.getClient().getScopes();
         String methodName = call.getServiceMethodName();
         log.debug("Service: {} name: {} method: {}", new Object[] { service, call.getServiceName(), methodName });
         // pull off the prefixes since java doesnt allow this on a method name
