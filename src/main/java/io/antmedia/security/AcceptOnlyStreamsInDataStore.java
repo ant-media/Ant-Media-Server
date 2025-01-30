@@ -59,7 +59,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		else 
 		{
 			result = true;
-			if (AntMediaApplicationAdapter.isStreaming(broadcast) && 			
+			if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && 			
 					AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), getAppAdaptor(scope).getServerSettings().getHostAddress(),  getAppAdaptor(scope).getServerSettings().getDefaultHttpPort(), scope.getName()) 
 				) 
 		    {

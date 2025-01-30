@@ -69,6 +69,7 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.analytic.model.PublishEndedEvent;
 import io.antmedia.analytic.model.PublishStartedEvent;
+import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.analytic.model.ViewerCountEvent;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
@@ -676,7 +677,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 				else {
 
-					getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
 
@@ -728,6 +732,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		mainBroadcast.setZombi(true);
 		mainBroadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
 		mainBroadcast.getSubTrackStreamIds().add(streamId);
+		mainBroadcast.setVirtual(true);
 		// don't set  setOriginAdress because it's not a real stream and it causes extra delay  -> mainBroadcast.setOriginAdress(serverSettings.getHostAddress()) 
 		mainBroadcast.setStartTime(System.currentTimeMillis());
 
@@ -1244,7 +1249,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
-			int inputQueueSize, double speed) {
+			int inputQueueSize,  int encodingQueueSize, int dropFrameCountInEncoding, int dropPacketCountInIngestion, double speed) {
 		String listenerHookURL = getListenerHookURL(broadcast);
 
 		if (StringUtils.isNotBlank(listenerHookURL)) {
@@ -1262,6 +1267,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				variables.put("speed", speed);
 				variables.put("timestamp", System.currentTimeMillis());
 				variables.put("streamName",broadcast.getName());
+				variables.put("encodingQueueSize", encodingQueueSize);
+				variables.put("dropFrameCountInEncoding", dropFrameCountInEncoding);
+				variables.put("dropPacketCountInIngestion", dropPacketCountInIngestion);
 
 				try {
 					sendPOST(listenerHookURL, variables, appSettings.getWebhookRetryCount(), appSettings.getWebhookContentType());
@@ -1449,12 +1457,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
 		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
-
-	public static final boolean isStreaming(Broadcast broadcast) {
-		//if updatetime is older than 2 times update period time, regard that it's not streaming
-		return System.currentTimeMillis() - broadcast.getUpdateTime() < STREAM_TIMEOUT_MS &&
-				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
-						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
+	
+	/**
+	 * Important information: Status field of Broadcast class checks the update time to report the status is broadcasting or not.
+	 * {@link Broadcast#getStatus()}
+	*/
+	public static final boolean isStreaming(String status) {
+		
+		return (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)
+						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status));
 	}
 
 	public Result startStreaming(Broadcast broadcast) {
@@ -1611,42 +1622,73 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
-
+	public void setQualityParameters(String streamId, PublishStatsEvent stats, long currentTimeMillis) {
 		vertx.runOnContext(h -> {
 
-			Broadcast broadcastLocal = getDataStore().get(id);
+			Broadcast broadcastLocal = getDataStore().get(streamId);
 			if (broadcastLocal != null)
 			{
-				//round the number to three decimal places,
-				double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
-
-				logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+				
 
 				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setSpeed(roundedSpeed);	
-				broadcastUpdate.setPendingPacketSize(pendingPacketSize);
-				broadcastUpdate.setUpdateTime(updateTimeMs);
-				broadcastUpdate.setQuality(quality);
-				long elapsedTime = System.currentTimeMillis() - broadcastLocal.getStartTime();
-				broadcastUpdate.setDuration(elapsedTime);
+				broadcastUpdate.setSpeed(stats.getSpeed());	
+				broadcastUpdate.setPendingPacketSize(stats.getInputQueueSize());
+				broadcastUpdate.setUpdateTime(currentTimeMillis);
+				long elapsedTimeMs = System.currentTimeMillis() - broadcastLocal.getStartTime();
+				broadcastUpdate.setDuration(elapsedTimeMs);
+				long elapsedSeconds = elapsedTimeMs / 1000;
+				if (elapsedSeconds > 0 ) { //protect by zero division
+					long bitrate = (stats.getTotalByteReceived()/elapsedSeconds)*8;
+					broadcastUpdate.setBitrate(bitrate);
+				}
 
+				
 
-				getDataStore().updateBroadcastFields(id, broadcastUpdate);
+				broadcastUpdate.setWidth(stats.getWidth());
+				broadcastUpdate.setHeight(stats.getHeight());
+				
+				broadcastUpdate.setEncoderQueueSize(stats.getEncodingQueueSize());		
+				broadcastUpdate.setDropPacketCountInIngestion(stats.getDroppedPacketCountInIngestion());
+				broadcastUpdate.setDropFrameCountInEncoding(stats.getDroppedFrameCountInEncoding());
+				broadcastUpdate.setPacketLostRatio(stats.getPacketLostRatio());
+				broadcastUpdate.setPacketsLost(stats.getPacketsLost());
+                broadcastUpdate.setJitterMs(stats.getJitterMs());
+                broadcastUpdate.setRttMs(stats.getRoundTripTimeMs());	
+                
+                broadcastUpdate.setRemoteIp(stats.getRemoteIp());
+                broadcastUpdate.setUserAgent(stats.getUserAgent()); 
+                broadcastUpdate.setReceivedBytes(stats.getTotalByteReceived());
+
+				getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 
 				ViewerCountEvent viewerCountEvent = new ViewerCountEvent();
 				viewerCountEvent.setApp(getScope().getName());
-				viewerCountEvent.setStreamId(id);
+				viewerCountEvent.setStreamId(streamId);
 				viewerCountEvent.setDashViewerCount(broadcastLocal.getDashViewerCount());
 				viewerCountEvent.setHlsViewerCount(broadcastLocal.getHlsViewerCount());
 				viewerCountEvent.setWebRTCViewerCount(broadcastLocal.getWebRTCViewerCount());
 
 				LoggerUtils.logAnalyticsFromServer(viewerCountEvent);
+				
+				logger.debug("update source quality for stream:{} width:{} height:{} bitrate:{} input queue size:{} encoding queue size:{} packetsLost:{} packetLostRatio:{} jitter:{} rtt:{}",
+						
+						streamId, stats.getWidth(), stats.getHeight(), broadcastUpdate.getBitrate(), stats.getInputQueueSize(), stats.getEncodingQueueSize(),
+						stats.getPacketsLost(), stats.getPacketLostRatio(), stats.getJitterMs(), stats.getRoundTripTimeMs());
 			}
 
 		});
+		
+		
+	}
+
+	@Override
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
+		PublishStatsEvent stats = new PublishStatsEvent();
+		stats.setSpeed(speed);
+		stats.setInputQueueSize(pendingPacketSize);
+		
+		setQualityParameters(id, stats, updateTimeMs);
 	}
 
 	@Override
@@ -1722,7 +1764,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							+ " total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
-					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished explicitly");
+					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished_unexpectedly");
 					everythingHasStopped = false;
 					break;
 				}
@@ -1743,8 +1785,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				//if it's not closed properly, let's set the state to failed
 				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 
-				broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-				broadcastUpdate.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+				broadcastUpdate.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 				broadcastUpdate.setWebRTCViewerCount(0);
 				broadcastUpdate.setHlsViewerCount(0);
 				broadcastUpdate.setDashViewerCount(0);
@@ -2292,6 +2334,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		storageClient.setPermission(settings.getS3Permission());
 		storageClient.setStorageClass(settings.getS3StorageClass());
 		storageClient.setCacheControl(settings.getS3CacheControl());
+		storageClient.setPathStyleAccessEnabled(settings.isS3PathStyleAccessEnabled());
 		storageClient.setTransferBufferSize(settings.getS3TransferBufferSizeInBytes());
 		storageClient.reset();
 	}

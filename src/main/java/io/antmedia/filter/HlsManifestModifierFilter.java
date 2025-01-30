@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import com.amazonaws.util.StringUtils;
 
 import io.antmedia.AppSettings;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -107,9 +108,13 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 				    	redirectLocation = HttpForwardFilter.getRedirectUrl(requestURI, httpForwardingBaseURL, httpForwardingExtension);
 				    }
 
-					
+					// Important information: 
+				    // if HLSForwardFilter is active, this filter checks it and download the m3u8 files 
+				    // from redirect location, modify and return it
+				    
 					if (redirectLocation != null) {
-					    logger.info("HLS manifest file will be downloaded from redirect location.");
+						redirectLocation = redirectLocation.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
+					    logger.info("HLS manifest file will be downloaded from redirect location:{}", redirectLocation);
 				    	
 				        // Make a new HTTP request to the redirect URL
 				        URL url = createRedirectURL(redirectLocation);
@@ -133,7 +138,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 				        }
 				        catch (Exception e) {
-						    logger.info("HLS manifest file cannot be downloaded from redirect location.");
+						    logger.info("HLS manifest file cannot be downloaded from redirect location:{}", redirectLocation);
 				        }
 					} 
 					else {

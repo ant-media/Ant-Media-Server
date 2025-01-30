@@ -399,6 +399,10 @@ public class ConsoleAppRestServiceTest{
 	boolean threadStarted = false;
 	boolean breakThread = false;
 
+	/**
+	 * Bug fix test
+     * https://github.com/ant-media/Ant-Media-Server/issues/6933
+	 */
 	@Test
 	public void testRestartServerUnderHttpLoad() {
 

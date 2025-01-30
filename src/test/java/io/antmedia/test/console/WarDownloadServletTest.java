@@ -40,13 +40,21 @@ public class WarDownloadServletTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 		
-		request.setRequestURI("/test1.war");
+		String appName = "test1";
+
+		request.setRequestURI("/"+appName+".war");
+		
+		File file = AdminApplication.getWarFileInTmpDirectory (AdminApplication.getWarName(appName));
+		if (file != null && file.exists()) {
+			assertTrue(file.delete());
+		}
+		 
 		warDownloadServlet.doHead(request, response);
 		verify(response).sendError(HttpServletResponse.SC_NOT_FOUND, "No such war file in the tmp directory");
 		
 		
 		
-		File f = new File(AdminApplication.getJavaTmpDirectory(), "test1.war");
+		File f = new File(AdminApplication.getJavaTmpDirectory(), appName + ".war");
 		assertTrue(f.createNewFile());
 		f.deleteOnExit();
 		
@@ -57,7 +65,7 @@ public class WarDownloadServletTest {
 		
 		
 		warDownloadServlet = Mockito.spy(new WarDownloadServlet());
-		Mockito.doReturn(mock(AntMediaApplicationAdapter.class)).when(warDownloadServlet).getAppAdaptor("test1", request);
+		Mockito.doReturn(mock(AntMediaApplicationAdapter.class)).when(warDownloadServlet).getAppAdaptor(appName, request);
 		response = Mockito.spy(new MockHttpServletResponse());
 		verify(response, never()).sendError(anyInt(), anyString());
 		
@@ -146,6 +154,13 @@ public class WarDownloadServletTest {
 		request.removeHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
 		request.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken);
 		response = spy(new MockHttpServletResponse());
+		
+		//delete the file if it exists
+		File file = AdminApplication.getWarFileInTmpDirectory (AdminApplication.getWarName("test"));
+		if (file != null && file.exists()) {
+			assertTrue(file.delete());
+		}
+		
 		warDownloadServlet.doGet(request, response);
 		verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "No such war file in the tmp directory");
 		

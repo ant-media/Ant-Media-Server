@@ -781,7 +781,10 @@ public class DBStoresUnitTest {
 			for (Broadcast broadcast : broadcastList) {
 				numberOfCall++;
 				logger.info("Updating streamId:{}", broadcast.getStreamId());  //log stream and check it if all of them different when this test fails
-				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+;				assertTrue(dataStore.updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate));
 			}
 
 		}
@@ -1477,6 +1480,7 @@ public class DBStoresUnitTest {
 		}
 
 		Broadcast broadcast1 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, "bbbStream");
+		broadcast1.setUpdateTime(System.currentTimeMillis());
 		broadcast1.setDate(1000);
 		broadcast1.setType(AntMediaApplicationAdapter.LIVE_STREAM);
 		Broadcast broadcast2 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "aaaStream");
@@ -2649,6 +2653,7 @@ public class DBStoresUnitTest {
 		dataStore.save(broadcast2);
 
 		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setUpdateTime(System.currentTimeMillis());
 		broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);	
 		broadcast3.setWebRTCViewerCount(104);
 		broadcast3.setHlsViewerCount(305);
@@ -2656,6 +2661,7 @@ public class DBStoresUnitTest {
 		dataStore.save(broadcast3);
 
 		Broadcast broadcast4 = new Broadcast();
+		broadcast4.setUpdateTime(System.currentTimeMillis());
 		broadcast4.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 		broadcast4.setWebRTCViewerCount(10);
 		broadcast4.setHlsViewerCount(30);
@@ -2817,10 +2823,12 @@ public class DBStoresUnitTest {
 
 		Broadcast ss2 = new Broadcast("ss2");
 		ss2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss2.setUpdateTime(System.currentTimeMillis());
 		ss2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
 		Broadcast ss3 = new Broadcast("ss3");
 		ss3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss3.setUpdateTime(System.currentTimeMillis());
 		ss3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 
 		Broadcast ss4 = new Broadcast("ss4");
@@ -2958,7 +2966,11 @@ public class DBStoresUnitTest {
 		assertEquals(0, broadcastFromStore.getStartTime());
 
 		long now = System.currentTimeMillis();
-		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setUpdateTime(now);
+	    updateData.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+	    updateData.setStartTime(now);
+		dataStore.updateBroadcastFields(streamId, updateData);
 
 		broadcastFromStore = dataStore.get(streamId);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcastFromStore.getStatus());
@@ -3703,9 +3715,9 @@ public class DBStoresUnitTest {
 			if (i < 50) {
 				broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
-				if (i % 2 == 0) {
-					broadcast.setUpdateTime(System.currentTimeMillis());
-				}
+				
+				broadcast.setUpdateTime(System.currentTimeMillis());
+				
 			}
 			else {
 				broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
@@ -3727,22 +3739,22 @@ public class DBStoresUnitTest {
 
 		assertEquals(0, dataStore.getSubtrackCount("nonExistentMainTrack", null, null));
 
-		// it is 25 because 25 subtracks has broadcasting status and their update time is up to date
-		assertEquals(25, dataStore.getActiveSubtracksCount(mainTrackId, null));
+		// it is 50 because 50 subtracks has broadcasting status and their update time is up to date
+		assertEquals(50, dataStore.getActiveSubtracksCount(mainTrackId, null));
 
 		assertEquals(25, dataStore.getActiveSubtracksCount(mainTrackId, role1));
-		assertEquals(0, dataStore.getActiveSubtracksCount(mainTrackId, role2));
+		assertEquals(25, dataStore.getActiveSubtracksCount(mainTrackId, role2));
 		assertEquals(0, dataStore.getActiveSubtracksCount("nonExistentMainTrack", null));
 
 
 		List<Broadcast> activeSubtracks = dataStore.getActiveSubtracks(mainTrackId, null);		
-		assertEquals(25, activeSubtracks.size());
+		assertEquals(50, activeSubtracks.size());
 
 		activeSubtracks = dataStore.getActiveSubtracks(mainTrackId, role1);		
 		assertEquals(25, activeSubtracks.size());
 
 		activeSubtracks = dataStore.getActiveSubtracks(mainTrackId, role2);		
-		assertEquals(0, activeSubtracks.size());
+		assertEquals(25, activeSubtracks.size());
 
 		activeSubtracks = dataStore.getActiveSubtracks("nonExistentMainTrack", null);
 		assertEquals(0, activeSubtracks.size());

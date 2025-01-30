@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AppSettings;
+import io.antmedia.rest.RestServiceBase;
 
 public class HttpForwardFilter extends AbstractFilter {
 
@@ -69,7 +70,7 @@ public class HttpForwardFilter extends AbstractFilter {
 	            String redirectUri = normalizedBaseURL + normalizedSubURI;
 
 	            if (redirectUri.contains(DOUBLE_DOT)) {
-	                throw new IOException("URI is not well formatted");
+	                throw new IOException("URI is not well formatted " + redirectUri.replaceAll(RestServiceBase.REPLACE_CHARS, "_"));
 	            }
 	            return redirectUri;
 	        }

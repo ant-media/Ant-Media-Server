@@ -373,7 +373,7 @@ public class ViewerStats {
 	}
 	
 	public boolean isStreaming(Broadcast broadcast) {
-		return AntMediaApplicationAdapter.isStreaming(broadcast);
+		return AntMediaApplicationAdapter.isStreaming(broadcast.getStatus());
 	}
 	
 	public void setServerSettings(ServerSettings serverSettings) {

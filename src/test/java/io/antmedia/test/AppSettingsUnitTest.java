@@ -598,14 +598,18 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertNull(appSettings.getRecordingSubfolder());
 		assertEquals("application/json", appSettings.getWebhookContentType());
+                        
+		assertFalse(appSettings.isS3PathStyleAccessEnabled());
+
+		appSettings.setS3PathStyleAccessEnabled(true);
+
+		assertTrue(appSettings.isS3PathStyleAccessEnabled());
 
 		assertEquals(2000, appSettings.getIceGatheringTimeoutMs());
 
 		assertNotNull(appSettings.getParticipantVisibilityMatrix());
 
-
 		Map<String, List<String>> trackSelectionMode = appSettings.getParticipantVisibilityMatrix();
-		
 		
 		assertEquals(4, trackSelectionMode.size());
 		assertEquals(1, trackSelectionMode.get("default").size());
@@ -635,7 +639,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(-1, appSettings.getWebhookStreamStatusUpdatePeriodMs());
 
-		assertEquals(300, appSettings.getEncodingQueueSize());
+		assertEquals(150, appSettings.getEncodingQueueSize());
 		appSettings.setEncodingQueueSize(200);
 		assertEquals(200, appSettings.getEncodingQueueSize());
 		assertEquals("png", appSettings.getPreviewFormat());
@@ -685,7 +689,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				199, numberOfFields);
+				200, numberOfFields);
 	}
 
 
