@@ -666,6 +666,7 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_S3_CACHE_CONTROL = "settings.s3CacheControl";
+
 	/**
 	 * @hidden
 	 */
@@ -2056,6 +2057,13 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${s3CacheControl:${"+SETTINGS_S3_CACHE_CONTROL+":no-store, no-cache, must-revalidate, max-age=0}}")
 	private String s3CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
+
+
+	/**
+	 * S3 Path Syle Access Enabled
+	 */
+	@Value("${s3PathStyleAccessEnabled:false}")
+	private boolean s3PathStyleAccessEnabled = false;
 
 	/*
 	 * The permission to use in uploading the files to the S3.
@@ -3685,6 +3693,14 @@ public class AppSettings implements Serializable{
 
 	public void setS3CacheControl(String s3CacheControl) {
 		this.s3CacheControl = s3CacheControl;
+	}
+
+	public boolean isS3PathStyleAccessEnabled() {
+		return s3PathStyleAccessEnabled;
+	}
+
+	public void setS3PathStyleAccessEnabled(boolean s3PathStyleAccessEnabled) {
+		this.s3PathStyleAccessEnabled = s3PathStyleAccessEnabled;
 	}
 
 	public void setDashHttpEndpoint(String dashHttpEndpoint) {
