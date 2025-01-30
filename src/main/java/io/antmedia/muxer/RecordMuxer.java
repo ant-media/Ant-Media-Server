@@ -12,9 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
-import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
-import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -119,11 +117,17 @@ public abstract class RecordMuxer extends Muxer {
 		this.previewPath = path;
 	}
 
+	public void setFileTmp(File fileTmp){
+		this.fileTmp = fileTmp;
+	}
+
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public synchronized void writeTrailer() {
+		if(!isRunning.get())
+			return;
 
 		super.writeTrailer();
 
@@ -158,7 +162,7 @@ public abstract class RecordMuxer extends Muxer {
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 
-					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
+					saveToStorage(getS3Prefix(s3FolderPath,subFolder), f, f.getName(), storageClient);
 				}
 
 			} catch (Exception e) {

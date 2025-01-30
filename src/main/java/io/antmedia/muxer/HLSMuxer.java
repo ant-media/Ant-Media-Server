@@ -360,6 +360,9 @@ public class HLSMuxer extends Muxer  {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
+		if(!isRunning.get())
+			return;
+
 		super.writeTrailer();
 		
 		if (StringUtils.isBlank(this.httpEndpoint)) 

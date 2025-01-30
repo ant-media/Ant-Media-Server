@@ -3,6 +3,9 @@ package io.antmedia.test.console;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.catalina.Container;
 import org.apache.catalina.Host;
@@ -17,6 +20,7 @@ import org.mockito.Mockito;
 import org.red5.server.LoaderBase;
 import org.red5.server.api.IApplicationContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.scope.Scope;
 import org.red5.server.scope.WebScope;
 import org.red5.server.tomcat.TomcatConnector;
 import org.red5.server.tomcat.TomcatLoader;
@@ -350,9 +354,43 @@ public class AdminApplicationTest {
 		runCommand = app.runCommand("");
 		assertFalse(runCommand);
 
-
+	}
+	
+	@Test
+	public void testGetApplication() {
+		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
+		
+		IScope rootScope = Mockito.mock(IScope.class);
+		Mockito.doReturn(rootScope).when(adminApplication).getRootScope();
+		
+		List<String> applications = adminApplication.getApplications();
+		assertTrue(applications.isEmpty());
+		
+		
+		Set<String> scopeNames = new HashSet<>();
+		scopeNames.add("live");
+		scopeNames.add("vod");
+		scopeNames.add("root");
+		
+		Mockito.when(rootScope.getScopeNames()).thenReturn(scopeNames);
+		
+		applications = adminApplication.getApplications();
+		assertTrue(applications.isEmpty());
+		
+		Scope liveScope = Mockito.mock(Scope.class);
+		Mockito.when(rootScope.getScope("live")).thenReturn(liveScope);
+		applications = adminApplication.getApplications();
+		assertTrue(applications.isEmpty());
+		
+		Mockito.when(liveScope.isRunning()).thenReturn(true);
+		applications = adminApplication.getApplications();
+		assertFalse(applications.isEmpty());
+		assertEquals(1, applications.size());
+		
 
 	}
+	
 	@Test
 	public void testLiveStreamCount() {
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
@@ -365,6 +403,7 @@ public class AdminApplicationTest {
 
 
 		Broadcast broadcast = new Broadcast();
+		broadcast.setUpdateTime(System.currentTimeMillis());
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		String id = dataStore.save(broadcast);
 		assertEquals(1, dataStore.getActiveBroadcastCount());

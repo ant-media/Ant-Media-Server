@@ -362,6 +362,7 @@ public class ConsoleRestV2UnitTest {
 		assertTrue(restServiceSpy.isClusterMode());
 
 	}
+	
 
 	@Test
 	public void testUploadApplication(){

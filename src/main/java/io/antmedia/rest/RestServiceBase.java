@@ -485,7 +485,7 @@ public abstract class RestServiceBase {
 	}
 
 	public boolean isStreaming(Broadcast broadcast) {
-		return AntMediaApplicationAdapter.isStreaming(broadcast);
+		return AntMediaApplicationAdapter.isStreaming(broadcast.getStatus());
 	}
 
 	/**
@@ -1897,7 +1897,7 @@ public abstract class RestServiceBase {
 
 		version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
 
-		logger.info("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
+		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
 		return version;
 	}
 
@@ -1962,11 +1962,11 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static Result addSubTrack(String id, String subTrackId, DataStore store) 
+	public static Result addSubTrack(String mainTrackId, String subTrackId, DataStore store) 
 	{
 		Result result = new Result(false);
 		Broadcast subTrack = store.get(subTrackId);
-		Broadcast mainTrack = store.get(id);
+		Broadcast mainTrack = store.get(mainTrackId);
 		String message = "";
 		if (subTrack != null && mainTrack != null)
 		{
@@ -1976,10 +1976,10 @@ public abstract class RestServiceBase {
 
 			List<String> subTrackStreamIds = mainTrack.getSubTrackStreamIds();
 
-			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(id, null) >= subtrackLimit) 
+			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(mainTrackId, null) >= subtrackLimit) 
 			{
-				message = "Subtrack limit is reached for the main track:" + id;
-				logWarning("Subtrack limit is reached for the main track:{}", id.replaceAll(REPLACE_CHARS, "_"));
+				message = "Subtrack limit is reached for the main track:" + mainTrackId;
+				logWarning("Subtrack limit is reached for the main track:{}", mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 				result.setMessage(message);
 				return result;
 			}
@@ -1988,12 +1988,12 @@ public abstract class RestServiceBase {
 				subTrackStreamIds = new ArrayList<>();
 			}
 
-			subTrack.setMainTrackStreamId(id);
+			subTrack.setMainTrackStreamId(mainTrackId);
 
 
 			//Update subtrack's main Track Id
 			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-			broadcastUpdate.setMainTrackStreamId(id);
+			broadcastUpdate.setMainTrackStreamId(mainTrackId);
 
 			boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 			if (success) 
@@ -2001,21 +2001,25 @@ public abstract class RestServiceBase {
 				subTrackStreamIds.add(subTrackId);
 				broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setSubTrackStreamIds(subTrackStreamIds);
-
-				success = store.updateBroadcastFields(id, broadcastUpdate);
-				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id);
+				
+				//make sure to set the virtual flag to true because it's mainTrack
+				broadcastUpdate.setVirtual(true);
+				
+				
+				success = store.updateBroadcastFields(mainTrackId, broadcastUpdate);
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + mainTrackId);
 			}
 			else
 
 			{
 				message = MAIN_TRACK_OF_THE_STREAM + subTrackId + " cannot be updated";
-				logWarning(MAIN_TRACK_OF_THE_STREAM +":{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+				logWarning(MAIN_TRACK_OF_THE_STREAM +":{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		else
 		{
-			message = "There is no stream with id:" + subTrackId + " as subtrack or " + id + " as mainTrack";
-			logWarning("There is no stream with id:{} as subtrack or {} as mainTrack" , subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+			message = "There is no stream with id:" + subTrackId + " as subtrack or " + mainTrackId + " as mainTrack";
+			logWarning("There is no stream with id:{} as subtrack or {} as mainTrack" , subTrackId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;

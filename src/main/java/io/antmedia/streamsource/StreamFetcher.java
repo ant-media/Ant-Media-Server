@@ -35,6 +35,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
@@ -284,7 +285,7 @@ public class StreamFetcher {
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
-				else if (AntMediaApplicationAdapter.isStreaming(broadcast)) {
+				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
 
 					return;
@@ -671,7 +672,12 @@ public class StreamFetcher {
 					logger.info("Stream fetcher will try to fetch source {} after {} ms for streamId:{}", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS, streamId);
 
 					//Update status to finished in all cases
-					getDataStore().updateStatus(streamId, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+					
+					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+					
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
