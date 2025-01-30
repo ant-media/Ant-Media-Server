@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
@@ -151,5 +152,32 @@ public class StreamServiceTest {
 
 	}
 
+	@Test
+	public void testUrlFormat() {
+		StreamService streamService = Mockito.spy(new StreamService());
+		String streamId = "testStream";
+		String token = "test_token";
+		String subscriberId = "test_subscriber_id";
+		String subscriberCode = "test_subscriber_code";
+
+		String name = token+"/"+subscriberId+"/"+subscriberCode;
+
+		IConnection conn = Mockito.mock(IConnection.class);
+		Map<String, Object> mockMap = Mockito.mock(Map.class);
+		Object customObject = new Object() {
+			@Override
+			public String toString() {
+				return "LiveApp/"+streamId;
+			}
+		};
+		Mockito.doReturn(customObject).when(mockMap).get("path");
+		Mockito.doReturn(mockMap).when(conn).getConnectParams();
+		Red5.setConnectionLocal(conn);
+
+		streamService.publish(name,"live");
+		Mockito.verify(streamService).parsePathSegments(streamId + "/" +name);
+
+
+	}
 
 }
