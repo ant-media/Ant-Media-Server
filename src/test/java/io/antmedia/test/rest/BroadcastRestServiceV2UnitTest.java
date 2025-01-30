@@ -2555,7 +2555,7 @@ public class BroadcastRestServiceV2UnitTest {
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(mock(StreamFetcherManager.class));
-		Mockito.when(adaptor.stopStreaming(any(), any())).thenReturn(new Result(false));
+		Mockito.when(adaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(false));
 
 		Broadcast broadcast = new Broadcast();
 		//It means there is no stream to stop
