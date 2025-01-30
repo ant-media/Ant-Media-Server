@@ -887,7 +887,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (ingestingStreamLimit != -1 && activeBroadcastNumber > ingestingStreamLimit)
 				{
 					logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
-					stopStreaming(broadcast);
+					stopStreaming(broadcast, true);
 				}
 
 				for (IStreamListener listener : streamListeners) {
@@ -1297,12 +1297,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return callClusterRestMethod(httpPost, clusterCommunicationToken);
 	}
 	
-	public boolean sendClusterDelete(String url, String clusterCommunicationToken) 
-	{
-		HttpDelete httpDelete = new HttpDelete(url);
-		return callClusterRestMethod(httpDelete, clusterCommunicationToken);
-	}
-	
 	public boolean callClusterRestMethod(HttpRequestBase reuqest, String clusterCommunicationToken) 
 	{
 
@@ -1321,7 +1315,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			try (CloseableHttpResponse httpResponse = httpClient.execute(reuqest)) 
 			{
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
-				logger.info("Cluster POST Response Status: {}", statusCode);
+				logger.info("Cluster POST Response Status: {} for url:{}", statusCode, reuqest.getURI());
 				if (statusCode == HttpStatus.SC_OK) {
 					result = true;
 				} 
@@ -1574,7 +1568,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		});
 	}
 
-	public Result stopStreaming(Broadcast broadcast)
+	public Result stopStreaming(Broadcast broadcast, boolean stopSubtracks)
 	{
 		Result result = new Result(false);
 		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
@@ -1607,7 +1601,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		return result;
 	}
-
+	
 	public OnvifCamera getOnvifCamera(String id) {
 		OnvifCamera onvifCamera = onvifCameraList.get(id);
 		if (onvifCamera == null) {

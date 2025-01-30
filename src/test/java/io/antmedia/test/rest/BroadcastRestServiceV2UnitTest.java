@@ -2111,7 +2111,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restService.setDataStore(ds);
 		restService.setApplication(app);
 
-		restService.stopStreamingV2(streamId);
+		restService.stopStreamingV2(streamId, true);
 
 		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(scope, streamId);
 	}
@@ -2290,7 +2290,7 @@ public class BroadcastRestServiceV2UnitTest {
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
-		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam);
+		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam, false);
 		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
 
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
@@ -2310,7 +2310,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals("rtsp://admin:admin@127.0.0.1:6554/test.flv", newCam.getStreamUrl());
 
 		//stop request should trigger application adaptor stopStreaming
-		assertTrue(streamSourceRest.stopStreamingV2(newCam.getStreamId()).isSuccess());
+		assertTrue(streamSourceRest.stopStreamingV2(newCam.getStreamId(), false).isSuccess());
 
 		//reset stream URL and check whether start rest service is able to get stream URL by connecting to camera using ONVIF
 		newCam.setStreamUrl(null);
@@ -2320,7 +2320,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//start again via rest service
 		assertTrue(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
-		assertTrue(streamSourceRest.stopStreamingV2(newCam.getStreamId()).isSuccess());
+		assertTrue(streamSourceRest.stopStreamingV2(newCam.getStreamId(), false).isSuccess());
 
 
 		{
@@ -2555,7 +2555,7 @@ public class BroadcastRestServiceV2UnitTest {
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(mock(StreamFetcherManager.class));
-		Mockito.when(adaptor.stopStreaming(any())).thenReturn(new Result(false));
+		Mockito.when(adaptor.stopStreaming(any(), any())).thenReturn(new Result(false));
 
 		Broadcast broadcast = new Broadcast();
 		//It means there is no stream to stop
@@ -3794,7 +3794,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		Mockito.when(appAdaptor.stopStreaming(any())).thenReturn(new Result(true));
+		Mockito.when(appAdaptor.stopStreaming(any(), any())).thenReturn(new Result(true));
 
 		restServiceReal.setApplication(appAdaptor);
 		
@@ -3846,8 +3846,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Result result = restServiceReal.deleteBroadcast(mainTrack.getStreamId(), true);
 		
-		verify(appAdaptor).stopStreaming(eq(mainTrack));
-		verify(appAdaptor, times(3)).sendClusterDelete(anyString(), anyString());
+		verify(appAdaptor).stopStreaming(eq(mainTrack), any());
+		verify(appAdaptor, times(3)).sendClusterPost(anyString(), anyString());
 
 	}
 	

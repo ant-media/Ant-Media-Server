@@ -344,14 +344,14 @@ public abstract class RestServiceBase {
 		} 
 		
 		Result result = new Result (false);
-		boolean stopResult = false;
+		Result stopResult = new Result(false);
 		Broadcast broadcast = null;
 
 		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
-			stopResult = stopBroadcastInternal(broadcast);
+			stopResult = stopBroadcastInternal(broadcast, deleteSubtracks);
 
 			//if it's something about scheduled playlist
 			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
@@ -365,7 +365,7 @@ public abstract class RestServiceBase {
 
 			if(result.isSuccess())
 			{
-				if (stopResult) {
+				if (stopResult.isSuccess()) {
 					logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
 					result.setMessage("broadcast is deleted and stopped successfully");
 				}
@@ -389,24 +389,22 @@ public abstract class RestServiceBase {
 		logger.info("{} Subtracks of maintrack {} will also be deleted.", subtrackCount, broadcast.getStreamId());
 		
 		if(subtrackCount > 0) {
+			
 			List<Broadcast> subtracks = getDataStore().getSubtracks(broadcast.getStreamId(), 0, (int)subtrackCount, "");
+			if (subtracks.size() == subtrackCount) {
+				logger.info("Subtracks are fetched successfully for deletion of main track {}", broadcast.getStreamId());
+			} else {
+				logger.error("Subtracks are not fetched successfully for deletion of main track {}", broadcast.getStreamId());
+			}
 			
 			for (Broadcast subtrack : subtracks) {
-				String jwtToken = JWTFilter.generateJwtToken(
-						getAppSettings().getClusterCommunicationKey(),
-						System.currentTimeMillis() + 5000
-						);
-
-				String restRouteOfNode = "http://" + subtrack.getOriginAdress() + ":" +
-						getServerSettings().getDefaultHttpPort() +
-						File.separator + getAppSettings().getAppName() +
-						File.separator + "rest" +
-						File.separator + "v2" +
-						File.separator + "broadcasts" +
-						File.separator + subtrack.getStreamId();
-				
-				result &= getApplication().sendClusterDelete(restRouteOfNode, jwtToken);
+				boolean subtrackDeleted = getDataStore().delete(subtrack.getStreamId());
+				if (!subtrackDeleted) {
+					logger.error("Subtrack {} could not be deleted", subtrack.getStreamId());
+					result = false;
+				}
 			}
+			
 		}
 		
 		
@@ -438,19 +436,7 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	protected boolean stopBroadcastInternal(Broadcast broadcast) {
-		boolean result = false;
-		if (broadcast != null) {
-			result = getApplication().stopStreaming(broadcast).isSuccess();
-			if (result) {
-				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
-			}
-			else {
-				logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
-			}
-		}
-		return result;
-	}
+
 
 	protected Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
@@ -576,10 +562,10 @@ public abstract class RestServiceBase {
 
 		if(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
 		{
-			return getApplication().stopStreaming(broadcast).isSuccess();
+			return getApplication().stopStreaming(broadcast, false).isSuccess();
 		}
 		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
-			return getApplication().stopStreaming(broadcast).isSuccess();
+			return getApplication().stopStreaming(broadcast, false).isSuccess();
 		}
 		else
 		{
@@ -1646,17 +1632,31 @@ public abstract class RestServiceBase {
 
 		return result;
 	}
-
-
-
-	public Result stopStreaming(String id)
-	{
+	
+	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks) {
 		Result result = new Result(false);
-		Broadcast broadcast = getDataStore().get(id);
-		if(broadcast != null) {
-			result = getApplication().stopStreaming(broadcast);
+		if (broadcast != null) {
+			result = getApplication().stopStreaming(broadcast, stopSubrtracks);
+			if (result.isSuccess()) 
+			{
+				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
+			}
+			else {
+				logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
+			}
 		}
 		return result;
+	}
+
+
+
+	public Result stopStreaming(String id, Boolean stopSubtracks)
+	{
+		if (stopSubtracks == null) {
+			stopSubtracks = true;
+		}
+		Broadcast broadcast = getDataStore().get(id);
+		return stopBroadcastInternal(broadcast, stopSubtracks);
 	}
 
 
