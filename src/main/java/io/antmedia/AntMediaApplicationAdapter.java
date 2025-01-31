@@ -1293,36 +1293,39 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean sendClusterPost(String url, String clusterCommunicationToken) 
 	{
-		HttpPost httpPost = new HttpPost(url);
-		return callClusterRestMethod(httpPost, clusterCommunicationToken);
+		
+		return callClusterRestMethod(url, clusterCommunicationToken);
 	}
 	
-	public boolean callClusterRestMethod(HttpRequestBase reuqest, String clusterCommunicationToken) 
+	public boolean callClusterRestMethod(String url, String clusterCommunicationToken) 
 	{
 
 		boolean result = false;
 		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
+			HttpPost request = new HttpPost(url);
+
 			RequestConfig requestConfig = RequestConfig.custom()
 					.setConnectTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.setConnectionRequestTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.setSocketTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.build();
-			reuqest.setConfig(requestConfig);
+			request.setConfig(requestConfig);
 
-			reuqest.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
+			request.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
 
-			try (CloseableHttpResponse httpResponse = httpClient.execute(reuqest)) 
+			try (CloseableHttpResponse httpResponse = httpClient.execute(request)) 
 			{
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
-				logger.info("Cluster POST Response Status: {} for url:{}", statusCode, reuqest.getURI());
+				logger.info("Cluster POST Response Status: {} for url:{}", statusCode, request.getURI());
 				if (statusCode == HttpStatus.SC_OK) {
 					result = true;
 				} 
 			}
 		} 
-		catch (IOException e) 
+		catch (Exception e) 
 		{
+			//Cover all exceptions
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return result;
