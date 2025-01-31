@@ -3844,10 +3844,10 @@ public class BroadcastRestServiceV2UnitTest {
 		store.save(subtrack2);
 		store.save(subtrack3);
 		
-		asserNotNull(store.get(mainTrack.getStreamId()));
-		asserNotNull(store.get(subtrack1.getStreamId()));
-		asserNotNull(store.get(subtrack2.getStreamId()));
-		asserNotNull(store.get(subtrack3.getStreamId()));
+		assertNotNull(store.get(mainTrack.getStreamId()));
+		assertNotNull(store.get(subtrack1.getStreamId()));
+		assertNotNull(store.get(subtrack2.getStreamId()));
+		assertNotNull(store.get(subtrack3.getStreamId()));
 
 		Result result = restServiceReal.deleteBroadcast(mainTrack.getStreamId(), true);
 		
@@ -3861,9 +3861,5 @@ public class BroadcastRestServiceV2UnitTest {
 
 	}
 
-	private void asserNotNull(Broadcast broadcast) {
-		// TODO Auto-generated method stub
-		
-	}
 	
 }
