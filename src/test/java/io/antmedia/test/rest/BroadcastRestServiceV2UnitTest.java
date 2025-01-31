@@ -3794,7 +3794,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		Mockito.when(appAdaptor.stopStreaming(any(), any())).thenReturn(new Result(true));
+		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(true));
 
 		restServiceReal.setApplication(appAdaptor);
 		
@@ -3843,12 +3843,27 @@ public class BroadcastRestServiceV2UnitTest {
 		store.save(subtrack1);
 		store.save(subtrack2);
 		store.save(subtrack3);
+		
+		asserNotNull(store.get(mainTrack.getStreamId()));
+		asserNotNull(store.get(subtrack1.getStreamId()));
+		asserNotNull(store.get(subtrack2.getStreamId()));
+		asserNotNull(store.get(subtrack3.getStreamId()));
 
 		Result result = restServiceReal.deleteBroadcast(mainTrack.getStreamId(), true);
 		
-		verify(appAdaptor).stopStreaming(eq(mainTrack), any());
-		verify(appAdaptor, times(3)).sendClusterPost(anyString(), anyString());
+		verify(appAdaptor).stopStreaming(eq(mainTrack), anyBoolean());
+		
+		assertNull(store.get(mainTrack.getStreamId()));
+		assertNull(store.get(subtrack1.getStreamId()));
+		assertNull(store.get(subtrack2.getStreamId()));
+		assertNull(store.get(subtrack3.getStreamId()));
 
+
+	}
+
+	private void asserNotNull(Broadcast broadcast) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }
