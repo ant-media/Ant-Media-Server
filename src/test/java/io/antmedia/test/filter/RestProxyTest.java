@@ -1,6 +1,7 @@
 package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -126,6 +127,20 @@ public class RestProxyTest {
 
 		streamId = restFilter.getStreamId("rest/v2/broadcasts/123456");
 		assertEquals("123456",streamId);
+	}
+
+	@Test
+	public void testIsRunning() {
+		RestProxyFilter restFilter = spy(new RestProxyFilter());
+
+		
+		assertFalse(restFilter.isHostRunning(null, 1000));
+		
+		assertFalse(restFilter.isHostRunning("", 1000));
+		
+		assertFalse(restFilter.isHostRunning(" ", 1000));
+
+
 	}
 	
 	@Test
