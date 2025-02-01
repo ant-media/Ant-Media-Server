@@ -29,6 +29,8 @@ import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.datastore.db.types.*;
 import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.filter.JWTFilter;
+
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -161,8 +163,6 @@ public class ConsoleAppRestServiceTest{
 				user.setPassword(TEST_USER_PASS);
 				Result createInitialUser = callCreateInitialUser(user);
 				assertTrue(createInitialUser.isSuccess());
-
-
 			}
 
 
@@ -401,14 +401,14 @@ public class ConsoleAppRestServiceTest{
 
 	/**
 	 * Bug fix test
-     * https://github.com/ant-media/Ant-Media-Server/issues/6933
+	 * https://github.com/ant-media/Ant-Media-Server/issues/6933
 	 */
 	@Test
 	public void testRestartServerUnderHttpLoad() {
 
 
 		//give load to the server by sending http requests to m3u8
-		
+
 		Applications applications = getApplications();
 		int appCount = applications.applications.length;
 
@@ -435,7 +435,7 @@ public class ConsoleAppRestServiceTest{
 								.build();
 
 						client.execute(get);
-						
+
 						Thread.sleep(10);
 
 						i++;
@@ -478,7 +478,7 @@ public class ConsoleAppRestServiceTest{
 			}
 			catch (Exception e) {
 				e.printStackTrace();
-				
+
 			}
 			return false;
 		});
@@ -491,7 +491,7 @@ public class ConsoleAppRestServiceTest{
 					if (app.equals("live")) {
 						return true;
 					}
-					
+
 				}
 			}
 			else {
@@ -3103,6 +3103,46 @@ public class ConsoleAppRestServiceTest{
 			log.error(ExceptionUtils.getStackTrace(e));
 			fail(e.getMessage());
 		}
+	}
+
+	@Test
+	public void testContentSecurityHeader() throws Exception 
+	{
+		AppSettings appSettings = callGetAppSettings("live");
+
+		appSettings.setContentSecurityPolicyHeaderValue("frame-ancestors 'self' https://google.com;");
+		Result result = callSetAppSettings("LiveApp", appSettings);
+		assertTrue(result.isSuccess());
+
+		String url = "http://127.0.0.1:5080/live/index.html";
+
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url)
+				.build();
+
+		CloseableHttpResponse response = client.execute(get);
+
+		StringBuffer resultBuffer = readResponse(response);
+		
+		Header[] headers = response.getAllHeaders();
+		
+		boolean found = false;
+		for (Header header : headers) {
+			if (header.getName().equals("Content-Security-Policy")) {
+				
+				assertEquals("frame-ancestors 'self' https://google.com;", header.getValue());
+				found = true;
+			}
+		}
+		
+		assertTrue(found);
+		
+		appSettings.setContentSecurityPolicyHeaderValue(null);
+		result = callSetAppSettings("LiveApp", appSettings);
+		assertTrue(result.isSuccess());
+		
 	}
 
 	@Test
