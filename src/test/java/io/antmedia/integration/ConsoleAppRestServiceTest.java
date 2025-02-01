@@ -3111,7 +3111,7 @@ public class ConsoleAppRestServiceTest{
 		AppSettings appSettings = callGetAppSettings("live");
 
 		appSettings.setContentSecurityPolicyHeaderValue("frame-ancestors 'self' https://google.com;");
-		Result result = callSetAppSettings("LiveApp", appSettings);
+		Result result = callSetAppSettings("live", appSettings);
 		assertTrue(result.isSuccess());
 
 		String url = "http://127.0.0.1:5080/live/index.html";
@@ -3130,6 +3130,7 @@ public class ConsoleAppRestServiceTest{
 		
 		boolean found = false;
 		for (Header header : headers) {
+			log.info("header name: {} header value: {}", header.getName(), header.getValue());
 			if (header.getName().equals("Content-Security-Policy")) {
 				
 				assertEquals("frame-ancestors 'self' https://google.com;", header.getValue());
@@ -3140,7 +3141,7 @@ public class ConsoleAppRestServiceTest{
 		assertTrue(found);
 		
 		appSettings.setContentSecurityPolicyHeaderValue(null);
-		result = callSetAppSettings("LiveApp", appSettings);
+		result = callSetAppSettings("live", appSettings);
 		assertTrue(result.isSuccess());
 		
 	}
