@@ -3772,7 +3772,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	
 	@Test
-	public void testDeleteBroadcastWithSubreacks() {
+	public void testDeleteBroadcastWithSubtracks() {
 		AppSettings settings = new AppSettings();
 		String serverName = "fully.qualified.domain.name";
 		restServiceReal.setAppSettings(settings);
@@ -3785,7 +3785,7 @@ public class BroadcastRestServiceV2UnitTest {
 		when(context.containsBean(any())).thenReturn(false);
 
 
-		DataStore store = new InMemoryDataStore("testdb");
+		DataStore store = Mockito.spy(new InMemoryDataStore("testdb"));
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -3850,13 +3850,28 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotNull(store.get(subtrack3.getStreamId()));
 
 		Result result = restServiceReal.deleteBroadcast(mainTrack.getStreamId(), true);
-		
+		assertTrue(result.isSuccess());
+
 		verify(appAdaptor).stopStreaming(eq(mainTrack), anyBoolean());
 		
 		assertNull(store.get(mainTrack.getStreamId()));
 		assertNull(store.get(subtrack1.getStreamId()));
 		assertNull(store.get(subtrack2.getStreamId()));
 		assertNull(store.get(subtrack3.getStreamId()));
+		
+		
+		store.save(mainTrack);
+		store.save(subtrack1);
+		store.save(subtrack2);
+		
+		Mockito.doReturn(false).when(store).delete(subtrack1.getStreamId());
+		Mockito.doReturn(Arrays.asList(subtrack1)).when(store).getSubtracks(anyString(), anyInt(), anyInt(), anyString());
+
+		result = restServiceReal.deleteBroadcast(mainTrack.getStreamId(), true);
+		assertFalse(result.isSuccess());
+		
+		assertNull(store.get(mainTrack.getStreamId()));
+		assertNotNull(store.get(subtrack1.getStreamId()));
 
 
 	}
