@@ -1277,7 +1277,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
 
-			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId(), false);
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId(), null);
 			assertTrue(result.isSuccess());
 		}
 

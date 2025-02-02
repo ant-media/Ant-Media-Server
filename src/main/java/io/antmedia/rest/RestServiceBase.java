@@ -344,14 +344,13 @@ public abstract class RestServiceBase {
 		} 
 		
 		Result result = new Result (false);
-		Result stopResult = new Result(false);
 		Broadcast broadcast = null;
 
 		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
-			stopResult = stopBroadcastInternal(broadcast, deleteSubtracks);
+			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks);
 
 			//if it's something about scheduled playlist
 			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
