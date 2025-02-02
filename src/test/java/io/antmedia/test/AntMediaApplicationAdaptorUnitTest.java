@@ -39,6 +39,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -2205,6 +2206,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		// Verify the retry logic was triggered
 		//verify(spyAdapter, times(2)).trySendClusterPostWithDelay(eq(testUrl), eq(testToken), eq(0));
 	}
+	
 
 	@Test
 	public void testStreamFetcherNotStartAutomatically() 

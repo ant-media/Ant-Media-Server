@@ -256,8 +256,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteBroadcast(@Parameter(description = " Id of the broadcast", required = true) @PathParam("id") String id) {
-		return super.deleteBroadcast(id);		
+	public Result deleteBroadcast(@Parameter(description = " Id of the broadcast", required = true) @PathParam("id") String id,
+			@Parameter(description = "Deletion request for subtracks also", required = false) @QueryParam("deleteSubtracks") Boolean deleteSubtracks) {
+		return super.deleteBroadcast(id, deleteSubtracks);		
 	}
 
 
@@ -1387,9 +1388,10 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopStreamingV2(@Parameter(description = "the id of the broadcast.", required = true) @PathParam("id") String id) 
+	public Result stopStreamingV2(@Parameter(description = "the id of the broadcast.", required = true) @PathParam("id") String id,
+			@Parameter(description = "Stop also subtracks", required = false) @QueryParam("stopSubtracks") Boolean stopSubtracks) 
 	{
-		return super.stopStreaming(id);
+		return super.stopStreaming(id, stopSubtracks);
 	}
 
 
@@ -1622,7 +1624,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Hidden
 	@Deprecated(since="2.9.1", forRemoval=true)
 	public Result deleteConferenceRoomV2(@Parameter(description = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
-		return deleteBroadcast(roomId);
+		return deleteBroadcast(roomId, false);
 	}
 
 	@Operation(summary = "Add a subtrack to a main track (broadcast)",

@@ -45,7 +45,9 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -885,7 +887,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (ingestingStreamLimit != -1 && activeBroadcastNumber > ingestingStreamLimit)
 				{
 					logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
-					stopStreaming(broadcast);
+					stopStreaming(broadcast, true);
 				}
 
 				for (IStreamListener listener : streamListeners) {
@@ -1291,31 +1293,39 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean sendClusterPost(String url, String clusterCommunicationToken) 
 	{
+		
+		return callClusterRestMethod(url, clusterCommunicationToken);
+	}
+	
+	public boolean callClusterRestMethod(String url, String clusterCommunicationToken) 
+	{
 
 		boolean result = false;
 		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
-			HttpPost httpPost = new HttpPost(url);
+			HttpPost request = new HttpPost(url);
+
 			RequestConfig requestConfig = RequestConfig.custom()
 					.setConnectTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.setConnectionRequestTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.setSocketTimeout(CLUSTER_POST_TIMEOUT_MS)
 					.build();
-			httpPost.setConfig(requestConfig);
+			request.setConfig(requestConfig);
 
-			httpPost.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
+			request.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
 
-			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) 
+			try (CloseableHttpResponse httpResponse = httpClient.execute(request)) 
 			{
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
-				logger.info("Cluster POST Response Status: {}", statusCode);
+				logger.info("Cluster POST Response Status: {} for url:{}", statusCode, request.getURI());
 				if (statusCode == HttpStatus.SC_OK) {
 					result = true;
 				} 
 			}
 		} 
-		catch (IOException e) 
+		catch (Exception e) 
 		{
+			//Cover all exceptions
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return result;
@@ -1561,7 +1571,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		});
 	}
 
-	public Result stopStreaming(Broadcast broadcast)
+	public Result stopStreaming(Broadcast broadcast, boolean stopSubtracks)
 	{
 		Result result = new Result(false);
 		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
@@ -1594,7 +1604,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		return result;
 	}
-
+	
 	public OnvifCamera getOnvifCamera(String id) {
 		OnvifCamera onvifCamera = onvifCameraList.get(id);
 		if (onvifCamera == null) {
