@@ -259,7 +259,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		when(restServiceSpy.getApplication()).thenReturn(adptr);
 
-		when(restServiceSpy.getApplication().stopStreaming(Mockito.any())).thenReturn(result);
+		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean())).thenReturn(result);
 
 		try {
 			playlist.setStreamId("testPlaylistId");
@@ -283,20 +283,20 @@ public class PlaylistRestServiceV2UnitTest {
 		assertEquals("testPlaylistId", streamId);
 		
 
-		result = restServiceReal.deleteBroadcast(playlist.getStreamId());
+		result = restServiceReal.deleteBroadcast(playlist.getStreamId(), false);
 		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
 
 		assertEquals(true, result.isSuccess());
 
 		//If there is no Playlist in DB.
 
-		result = restServiceReal.deleteBroadcast("testDbNullPlaylistId");
+		result = restServiceReal.deleteBroadcast("testDbNullPlaylistId", false);
 
 		assertEquals(false, result.isSuccess());
 
 		// If Playlist ID is null.
 
-		result = restServiceReal.deleteBroadcast(null);
+		result = restServiceReal.deleteBroadcast(null, false);
 
 		assertEquals(false, result.isSuccess());
 
@@ -365,7 +365,7 @@ public class PlaylistRestServiceV2UnitTest {
 		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
 		Mockito.verify(app).schedulePlayList(Mockito.anyLong(), Mockito.any());
 		//because we don't restart for playlist
-		Mockito.verify(app, Mockito.never()).stopStreaming(Mockito.any());
+		Mockito.verify(app, Mockito.never()).stopStreaming(Mockito.any(), Mockito.anyBoolean());
 		Mockito.verify(app, Mockito.never()).startStreaming(Mockito.any());
 		
 		
@@ -483,25 +483,25 @@ public class PlaylistRestServiceV2UnitTest {
 		assertEquals("testPlaylistId", streamId);
 
 		// Playlist current broadcast is empty scenario
-		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
+		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);	
 
 		assertEquals(false, result.isSuccess());
 
 		// Playlist ID is null scenario
 
-		result = restServiceReal.stopStreamingV2(null);		
+		result = restServiceReal.stopStreamingV2(null, false);		
 
 		assertEquals(false, result.isSuccess());
 
 		// Playlist is null scenario
-		result = restServiceReal.stopStreamingV2("nullPlaylist");		
+		result = restServiceReal.stopStreamingV2("nullPlaylist", false);		
 		assertEquals(false, result.isSuccess());
 
 		// Playlist current Broadcast null scenario
 
 		playlist.setCurrentPlayIndex(99);
 
-		result = restServiceReal.stopStreamingV2(playlist.getStreamId());		
+		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);		
 
 		assertEquals(false, result.isSuccess());
 
@@ -515,8 +515,8 @@ public class PlaylistRestServiceV2UnitTest {
 
 
 		when(restServiceSpy.getApplication()).thenReturn(mock(AntMediaApplicationAdapter.class));
-		when(restServiceSpy.getApplication().stopStreaming(Mockito.any())).thenReturn(result);
-		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
+		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean())).thenReturn(result);
+		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);	
 		//it's created because it's not started
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, playlist.getStatus());
 

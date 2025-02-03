@@ -252,7 +252,6 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.IN_USE_JVM_NATIVE_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.MAX_JVM_NATIVE_MEMORY));
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		jsObject = StatsCollector.getSystemResourcesInfo(null);
 		assertTrue(jsObject.has(StatsCollector.CPU_USAGE));
 		assertTrue(jsObject.has(StatsCollector.JVM_MEMORY_USAGE));
@@ -338,7 +337,6 @@ public class StatsCollectorTest {
 		
 		resMonitor.setHeartbeatPeriodMs(3000);
 		resMonitor.setVertx(Vertx.vertx());
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		resMonitor.start();
 		
 		assertTrue(resMonitor.isHeartBeatEnabled());
@@ -384,7 +382,6 @@ public class StatsCollectorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		resMonitor.setKafkaProducer(kafkaProducer);
 		resMonitor.sendInstanceStats(null);
 		
@@ -410,7 +407,6 @@ public class StatsCollectorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		resMonitor.setKafkaProducer(kafkaProducer);
 		
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
@@ -426,7 +422,6 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testCreateKafka() {
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		StatsCollector resMonitor = new StatsCollector();
 		try {
 			Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
@@ -445,7 +440,6 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testCollectAndSendWebRTCStats() {
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		StatsCollector resMonitor = new StatsCollector();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);

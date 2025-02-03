@@ -91,7 +91,7 @@ public class RestProxyFilter extends AbstractFilter {
 						logger.error(e.getMessage());
 					}
 				}
-
+				
 				/** 
 				 * if broadcast is not null and it's streaming and this node is not destined for this node,
 				 * forward the request to the origin address. This also handles the scenario if the origin server is dead or broadcast stuck
@@ -134,16 +134,20 @@ public class RestProxyFilter extends AbstractFilter {
 
 
 	public boolean isHostRunning(String address, int port) {
-
-		try(Socket socket = new Socket()) {
-			
-			SocketAddress sockaddr = new InetSocketAddress(address, port);
-			socket.connect(sockaddr, 5000);
+		boolean result = false;
+		if (StringUtils.isNotBlank(address)) 
+		{
+			try(Socket socket = new Socket()) {
+				
+				SocketAddress sockaddr = new InetSocketAddress(address, port);
+				socket.connect(sockaddr, 5000);
+				result = true;
+			}
+			catch (Exception e) {
+				logger.info("Cannot connect to the host: {} port: {} because of exception: {}", address, port, e.getMessage());
+			}
 		}
-		catch (NumberFormatException | IOException e) {
-			return false;
-		}
-		return true;
+		return result;
 	}
 
 

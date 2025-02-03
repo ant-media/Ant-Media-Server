@@ -40,9 +40,11 @@ public class WarDownloadServletTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 		
-		request.setRequestURI("/test.war");
+		String appName = "test1";
+
+		request.setRequestURI("/"+appName+".war");
 		
-		File file = AdminApplication.getWarFileInTmpDirectory (AdminApplication.getWarName("test"));
+		File file = AdminApplication.getWarFileInTmpDirectory (AdminApplication.getWarName(appName));
 		if (file != null && file.exists()) {
 			assertTrue(file.delete());
 		}
@@ -52,7 +54,7 @@ public class WarDownloadServletTest {
 		
 		
 		
-		File f = new File(AdminApplication.getJavaTmpDirectory(), "test.war");
+		File f = new File(AdminApplication.getJavaTmpDirectory(), appName + ".war");
 		assertTrue(f.createNewFile());
 		f.deleteOnExit();
 		
@@ -63,7 +65,7 @@ public class WarDownloadServletTest {
 		
 		
 		warDownloadServlet = Mockito.spy(new WarDownloadServlet());
-		Mockito.doReturn(mock(AntMediaApplicationAdapter.class)).when(warDownloadServlet).getAppAdaptor("test", request);
+		Mockito.doReturn(mock(AntMediaApplicationAdapter.class)).when(warDownloadServlet).getAppAdaptor(appName, request);
 		response = Mockito.spy(new MockHttpServletResponse());
 		verify(response, never()).sendError(anyInt(), anyString());
 		
@@ -129,7 +131,7 @@ public class WarDownloadServletTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = spy(new MockHttpServletResponse());
 		
-		request.setRequestURI("/test.war");
+		request.setRequestURI("/test123.war");
 		warDownloadServlet.doGet(request, response);
 		verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "Token parameter is missing");
 		
@@ -140,7 +142,7 @@ public class WarDownloadServletTest {
 		
 		
 		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
-		Mockito.doReturn(appAdaptor).when(warDownloadServlet).getAppAdaptor("test", request);
+		Mockito.doReturn(appAdaptor).when(warDownloadServlet).getAppAdaptor("test123", request);
 		AppSettings appSettings = new AppSettings();
 		when(appAdaptor.getAppSettings()).thenReturn(appSettings);
 		response = spy(new MockHttpServletResponse());
@@ -148,7 +150,7 @@ public class WarDownloadServletTest {
 		verify(response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token is not valid");
 		
 		
-		String jwtToken = JWTFilter.generateJwtToken(appSettings.getClusterCommunicationKey(), System.currentTimeMillis() + 60000, "appName", "test");
+		String jwtToken = JWTFilter.generateJwtToken(appSettings.getClusterCommunicationKey(), System.currentTimeMillis() + 60000, "appName", "test123");
 		request.removeHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
 		request.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken);
 		response = spy(new MockHttpServletResponse());
