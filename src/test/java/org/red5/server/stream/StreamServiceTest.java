@@ -153,7 +153,7 @@ public class StreamServiceTest {
 	}
 
 	@Test
-	public void testUrlFormat() {
+	public void testRtmpUrlFormat() {
 		StreamService streamService = Mockito.spy(new StreamService());
 		String streamId = "testStream";
 		String token = "test_token";
