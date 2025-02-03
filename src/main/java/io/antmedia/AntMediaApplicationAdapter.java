@@ -700,7 +700,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
 							null, null, metaData, null);
 				}
-
+				
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
 				publishEndedEvent.setStreamId(streamId);
 				publishEndedEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
