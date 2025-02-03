@@ -296,14 +296,6 @@ public abstract class BaseConnection extends AttributeStore implements IConnecti
     }
 
     /**
-     * set path
-     * @param path
-     */
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    /**
      *
      * @return session id
      */
