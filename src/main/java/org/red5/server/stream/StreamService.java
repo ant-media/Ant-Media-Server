@@ -677,7 +677,6 @@ public class StreamService implements IStreamService {
         if(path.contains("/")){
             String[] pathSplit = path.split("/");
             if(pathSplit.length >=2) {
-                conn.setPath(pathSplit[0]);
                 name = pathSplit[1] + "/" + name;
             }
         }
