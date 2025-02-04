@@ -40,7 +40,7 @@ import org.bytedeco.javacpp.SizeTPointer;
 
 import io.vertx.core.Vertx;
 
-public class RtmpMuxer extends Muxer {
+public class EndpointMuxer extends Muxer {
 
 	private String url;
 	private volatile boolean trailerWritten = false;
@@ -54,25 +54,30 @@ public class RtmpMuxer extends Muxer {
 
 	private AtomicBoolean preparedIO = new AtomicBoolean(false);
 
-	public RtmpMuxer(String url, Vertx vertx) {
+	public EndpointMuxer(String url, Vertx vertx) {
 		super(vertx);
-		format = "flv";
 		this.url = url;
 
-		parseRtmpURL(this.url);
+		parseEndpointURL(this.url);
 	}
-	void parseRtmpURL(String url){
+	void parseEndpointURL(String url){
 		if(url == null)
 			return;
-		 // check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
-		String regex = "rtmp(s)?://[a-zA-Z0-9\\.-]+(:[0-9]+)?/([^/]+)/.*";
+		if(url.startsWith("rtmp")) {
+			format = "flv";
+			// check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
+			String regex = "rtmp(s)?://[a-zA-Z0-9\\.-]+(:[0-9]+)?/([^/]+)/.*";
 
-		Pattern rtmpAppName = Pattern.compile(regex);
-		Matcher checkAppName = rtmpAppName.matcher(url);
+			Pattern rtmpAppName = Pattern.compile(regex);
+			Matcher checkAppName = rtmpAppName.matcher(url);
 
-		if (!checkAppName.matches()) {
-			//this is the fix to send stream for urls without app
-			setOption("rtmp_app","");
+			if (!checkAppName.matches()) {
+				//this is the fix to send stream for urls without app
+				setOption("rtmp_app", "");
+			}
+		}
+		else if(url.startsWith("srt")){
+			format = "mpegts";
 		}
 	}
 	@Override

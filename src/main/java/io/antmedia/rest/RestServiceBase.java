@@ -11,7 +11,6 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -49,15 +48,12 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
-import io.antmedia.filter.JWTFilter;
-import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
-import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
@@ -610,7 +606,7 @@ public abstract class RestServiceBase {
 			if (validateStreamURL(rtmpUrl))
 			{
 				Endpoint endpoint = new Endpoint();
-				endpoint.setRtmpUrl(rtmpUrl);
+				endpoint.setEndpointUrl(rtmpUrl);
 				endpoint.setType(ENDPOINT_GENERIC);
 
 				success = getDataStore().addEndpoint(id, endpoint);
@@ -637,7 +633,7 @@ public abstract class RestServiceBase {
 
 
 		try {
-			if (validateStreamURL(endpoint.getRtmpUrl()))
+			if (validateStreamURL(endpoint.getEndpointUrl()))
 			{
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
@@ -652,7 +648,7 @@ public abstract class RestServiceBase {
 	public Result removeEndpoint(String id, String rtmpUrl)
 	{
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl(rtmpUrl);
+		endpoint.setEndpointUrl(rtmpUrl);
 		endpoint.setType(ENDPOINT_GENERIC);
 
 		boolean removed = getDataStore().removeEndpoint(id, endpoint, true);
@@ -672,15 +668,15 @@ public abstract class RestServiceBase {
 		return !isCluster || originAddress.equals(getServerSettings().getHostAddress());
 	}
 
-	public Result processRTMPEndpoint(String streamId, String originAddress, String rtmpUrl, boolean addEndpoint, int resolution) {
+	public Result processEndpoint(String streamId, String originAddress, String endpointUrl, boolean addEndpoint, int resolution) {
 		Result result = new Result(false);
 		if(isInSameNodeInCluster(originAddress))
 		{
 			if(addEndpoint) {
-				result = getMuxAdaptor(streamId).startRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).startEndpointStreaming(endpointUrl, resolution);
 			}
 			else {
-				result = getMuxAdaptor(streamId).stopRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).stopEndpointStreaming(endpointUrl, resolution);
 			}
 		}
 		else {
@@ -1014,6 +1010,7 @@ public abstract class RestServiceBase {
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
+				url.startsWith("srt://") ||
 				url.startsWith(RTSP))) {
 
 			ipAddrParts = url.split("//");

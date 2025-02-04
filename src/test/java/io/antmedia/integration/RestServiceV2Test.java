@@ -1482,7 +1482,7 @@ public class RestServiceV2Test {
 			String rtmpUrl = "rtmp://127.0.0.1/LiveApp/" + streamId;
 
 			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
+			endpoint.setEndpointUrl(rtmpUrl);
 
 			//GET SETTINGS
 			result = ConsoleAppRestServiceTest.callisFirstLogin();
@@ -1586,7 +1586,7 @@ public class RestServiceV2Test {
 			//add non existin rtmp url bugfix test - issue #3032
 			String rtmpUrl2 = "rtmp://nonexisting.com/abcdef";
 			Endpoint endpoint2 = new Endpoint();
-			endpoint2.setRtmpUrl(rtmpUrl2);
+			endpoint2.setEndpointUrl(rtmpUrl2);
 			// add generic endpoint
 			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint2);
 			// check that it is successfull
@@ -1643,7 +1643,7 @@ public class RestServiceV2Test {
 			String rtmpUrl = "rtmp://127.0.0.1/LiveApp/" + streamId;
 			
 			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
+			endpoint.setEndpointUrl(rtmpUrl);
 			
 			// add generic endpoint
 			Result result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
@@ -1654,7 +1654,7 @@ public class RestServiceV2Test {
 			//add non existin rtmp url bugfix test - issue #3032
 			String rtmpUrl2 = "rtmp://nonexisting.com/abcdef";
 			Endpoint endpoint2 = new Endpoint();
-			endpoint2.setRtmpUrl(rtmpUrl2);
+			endpoint2.setEndpointUrl(rtmpUrl2);
 			// add generic endpoint
 			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint2);
 			// check that it is successfull
@@ -1713,7 +1713,7 @@ public class RestServiceV2Test {
 				String dynamicRtmpURL = "rtmp://127.0.0.1/LiveApp/" + streamIdDynamic;
 				 
 				Endpoint dynamicEndpoint = new Endpoint();
-				dynamicEndpoint.setRtmpUrl(dynamicRtmpURL);
+				dynamicEndpoint.setEndpointUrl(dynamicRtmpURL);
 				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 					//if stream is being prepared, it may return false, so try again 
 					Result tmpRes = addEndpointV2(finalBroadcastStreamId, dynamicEndpoint);

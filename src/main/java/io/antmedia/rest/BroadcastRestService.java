@@ -1,18 +1,11 @@
 package io.antmedia.rest;
 
-import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.UriInfo;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.json.simple.JSONObject;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.util.Base32;
@@ -25,7 +18,6 @@ import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
-import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -451,7 +443,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				result = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
+				result = getMuxAdaptor(id).startEndpointStreaming(rtmpUrl, 0);
 			}
 		}
 		else {
@@ -477,6 +469,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Deprecated
 	public Result addEndpointV3(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
 			@Parameter(description = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
 			@Parameter(description = "Resolution height of the broadcast that is wanted to send to the RTMP endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
@@ -484,45 +477,90 @@ public class BroadcastRestService extends RestServiceBase{
 		String rtmpUrl = null;
 		Result result = new Result(false);
 
-		if(endpoint != null && endpoint.getRtmpUrl() != null) {
+		if (endpoint != null && endpoint.getEndpointUrl() != null) {
 
 			Broadcast broadcast = getDataStore().get(id);
 			if (broadcast != null) {
 
 				List<Endpoint> endpoints = broadcast.getEndPointList();
-				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl()))) 
-				{
-					rtmpUrl = endpoint.getRtmpUrl();
+				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getEndpointUrl().equals(endpoint.getEndpointUrl()))) {
+					rtmpUrl = endpoint.getEndpointUrl();
 
-					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+						result = processEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
+						if (result.isSuccess()) {
+							result = super.addEndpoint(id, endpoint);
+						}
+					} else {
+						result = super.addEndpoint(id, endpoint);
+					}
+
+
+					if (!result.isSuccess()) {
+						result.setMessage("Rtmp endpoint is not added to stream: " + id);
+
+					}
+					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
+				} else {
+					result.setMessage("Rtmp endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getEndpointUrl());
+				}
+			} else {
+				result.setMessage("Missing rtmp url");
+			}
+
+		}
+        return result;
+    }
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/endpoints")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addEndpoint(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
+								@Parameter(description = "Url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
+								@Parameter(description = "Resolution height of the broadcast that is wanted to send to the endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
+
+		String endpointUrl = null;
+		Result result = new Result(false);
+
+		if(endpoint != null && endpoint.getEndpointUrl() != null) {
+
+			Broadcast broadcast = getDataStore().get(id);
+			if (broadcast != null) {
+
+				List<Endpoint> endpoints = broadcast.getEndPointList();
+				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getEndpointUrl().equals(endpoint.getEndpointUrl())))
+				{
+					endpointUrl = endpoint.getEndpointUrl();
+
+					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 					{
-						result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
-						if (result.isSuccess()) 
+						result = processEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpointUrl, true, resolutionHeight);
+						if (result.isSuccess())
 						{
 							result = super.addEndpoint(id, endpoint);
 						}
 					}
-					else 
+					else
 					{
 						result = super.addEndpoint(id, endpoint);
 					}
 
 
-					if (!result.isSuccess()) 
+					if (!result.isSuccess())
 					{
-						result.setMessage("Rtmp endpoint is not added to stream: " + id);
+						result.setMessage("Endpoint is not added to stream: " + id);
 
 					}
 					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
 				}
-				else 
+				else
 				{
-					result.setMessage("Rtmp endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getRtmpUrl());
+					result.setMessage("Endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getEndpointUrl());
 				}
 			}
 		}
 		else {
-			result.setMessage("Missing rtmp url");
+			result.setMessage("Missing Endpoint url");
 		}
 
 		return result;
@@ -530,7 +568,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	private void logRtmpEndpointInfo(String id, Endpoint endpoint, boolean result) {
 		if (logger.isInfoEnabled()) {
-			logger.info("Rtmp endpoint({}) adding to the stream: {} is {}", endpoint.getRtmpUrl().replaceAll(REPLACE_CHARS, "_") , id.replaceAll(REPLACE_CHARS, "_"), result);
+			logger.info("Rtmp endpoint({}) adding to the stream: {} is {}", endpoint.getEndpointUrl().replaceAll(REPLACE_CHARS, "_") , id.replaceAll(REPLACE_CHARS, "_"), result);
 		}
 	}
 
@@ -548,7 +586,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				result = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
+				result = getMuxAdaptor(id).stopEndpointStreaming(rtmpUrl, 0);
 			}
 		}
 		else {	
@@ -588,9 +626,9 @@ public class BroadcastRestService extends RestServiceBase{
 		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty()) 
 		{
 
-			Endpoint endpoint = getRtmpUrlFromList(endpointServiceId, broadcast);
-			if (endpoint != null && endpoint.getRtmpUrl() != null) {
-				rtmpUrl = endpoint.getRtmpUrl();
+			Endpoint endpoint = getEndpointMuxerFromList(endpointServiceId, broadcast);
+			if (endpoint != null && endpoint.getEndpointUrl() != null) {
+				rtmpUrl = endpoint.getEndpointUrl();
 				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);	
 			}
 		} 
@@ -606,7 +644,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 		{
-			result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getRtmpUrl(), false, resolutionHeight);
+			result = processEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getEndpointUrl(), false, resolutionHeight);
 			if (result.isSuccess()) 
 			{
 				result = super.removeRTMPEndpoint(id, endpoint);
@@ -621,7 +659,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 
-	private Endpoint getRtmpUrlFromList(String endpointServiceId, Broadcast broadcast) {
+	private Endpoint getEndpointMuxerFromList(String endpointServiceId, Broadcast broadcast) {
 		Endpoint endpoint = null;
 		for(Endpoint selectedEndpoint: broadcast.getEndPointList()) 
 		{

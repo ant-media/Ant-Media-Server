@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.antmedia.*;
-import io.grpc.Context;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -78,7 +77,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
@@ -131,7 +129,7 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RecordMuxer;
-import io.antmedia.muxer.RtmpMuxer;
+import io.antmedia.muxer.EndpointMuxer;
 import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
@@ -849,9 +847,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.writeTrailer();
 
 
-		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
-		rtmpMuxer.init(appScope, "test", 0, null, 0);
-		rtmpMuxer.addStream(codecParameters, rat, 50);
+		EndpointMuxer endpointMuxer = new EndpointMuxer("any_url", vertx);
+		endpointMuxer.init(appScope, "test", 0, null, 0);
+		endpointMuxer.addStream(codecParameters, rat, 50);
 
 	}
 
@@ -1026,22 +1024,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		ConcurrentHashMap<String, String> statusMap = Mockito.mock(ConcurrentHashMap.class);
 		ReflectionTestUtils.setField(muxAdaptor, "statusMap", statusMap);
-		Mockito.doReturn(null).when(muxAdaptor).getRtmpMuxer(rtmpUrl);
+		Mockito.doReturn(null).when(muxAdaptor).getEndpointMuxer(rtmpUrl);
 
 		Mockito.doReturn(null).when(statusMap).getOrDefault(rtmpUrl, null);
-		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+		assertTrue(muxAdaptor.stopEndpointStreaming(rtmpUrl, resolution).isSuccess());
 
 		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR).when(statusMap).getOrDefault(rtmpUrl, null);
-		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+		assertTrue(muxAdaptor.stopEndpointStreaming(rtmpUrl, resolution).isSuccess());
 
 		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED).when(statusMap).getOrDefault(rtmpUrl, null);
-		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+		assertTrue(muxAdaptor.stopEndpointStreaming(rtmpUrl, resolution).isSuccess());
 
 		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED).when(statusMap).getOrDefault(rtmpUrl, null);
-		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+		assertTrue(muxAdaptor.stopEndpointStreaming(rtmpUrl, resolution).isSuccess());
 
 		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING).when(statusMap).getOrDefault(rtmpUrl, null);
-		assertFalse(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+		assertFalse(muxAdaptor.stopEndpointStreaming(rtmpUrl, resolution).isSuccess());
 	}
 
 	@Test
@@ -1057,31 +1055,31 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String rtmpUrl = "rtmp://localhost";
 		int resolutionHeight = 480;
-		Result result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
+		Result result = muxAdaptor.startEndpointStreaming(rtmpUrl, resolutionHeight);
 		assertFalse(result.isSuccess());
 
 		muxAdaptor.setHeight(480);
-		result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
+		result = muxAdaptor.startEndpointStreaming(rtmpUrl, resolutionHeight);
 		assertTrue(result.isSuccess());
 
 
-		result = muxAdaptor.startRtmpStreaming(rtmpUrl, 0);
+		result = muxAdaptor.startEndpointStreaming(rtmpUrl, 0);
 		assertTrue(result.isSuccess());
 
 
-		RtmpMuxer rtmpMuxer = Mockito.mock(RtmpMuxer.class);
-		Mockito.doReturn(rtmpMuxer).when(muxAdaptor).getRtmpMuxer(Mockito.any());
-		muxAdaptor.stopRtmpStreaming(rtmpUrl, resolutionHeight);
-		Mockito.verify(rtmpMuxer).writeTrailer();
+		EndpointMuxer endpointMuxer = Mockito.mock(EndpointMuxer.class);
+		Mockito.doReturn(endpointMuxer).when(muxAdaptor).getEndpointMuxer(Mockito.any());
+		muxAdaptor.stopEndpointStreaming(rtmpUrl, resolutionHeight);
+		Mockito.verify(endpointMuxer).writeTrailer();
 
 
-		muxAdaptor.stopRtmpStreaming(rtmpUrl, 0);
-		Mockito.verify(rtmpMuxer, Mockito.times(2)).writeTrailer();
+		muxAdaptor.stopEndpointStreaming(rtmpUrl, 0);
+		Mockito.verify(endpointMuxer, Mockito.times(2)).writeTrailer();
 
 
-		muxAdaptor.stopRtmpStreaming(rtmpUrl, 360);
+		muxAdaptor.stopEndpointStreaming(rtmpUrl, 360);
 		//it should be 2 times again because 360 and 480 don't match
-		Mockito.verify(rtmpMuxer, Mockito.times(2)).writeTrailer();
+		Mockito.verify(endpointMuxer, Mockito.times(2)).writeTrailer();
 
 	}
 
@@ -1103,7 +1101,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.setBroadcast(broadcast);
 		Endpoint rtmpEndpoint = new Endpoint();
 		String rtmpUrl = "rtmp://localhost/LiveApp/test12";
-		rtmpEndpoint.setRtmpUrl(rtmpUrl);
+		rtmpEndpoint.setEndpointUrl(rtmpUrl);
 		List<Endpoint> endpointList = new ArrayList<>();
 		endpointList.add(rtmpEndpoint);
 
@@ -1163,12 +1161,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testRTMPCodecSupport() {
-		RtmpMuxer rtmpMuxer = new RtmpMuxer(null, vertx);
+		EndpointMuxer endpointMuxer = new EndpointMuxer(null, vertx);
 
-		assertTrue(rtmpMuxer.isCodecSupported(AV_CODEC_ID_H264));
-		assertTrue(rtmpMuxer.isCodecSupported(AV_CODEC_ID_AAC));
+		assertTrue(endpointMuxer.isCodecSupported(AV_CODEC_ID_H264));
+		assertTrue(endpointMuxer.isCodecSupported(AV_CODEC_ID_AAC));
 
-		assertFalse(rtmpMuxer.isCodecSupported(AV_CODEC_ID_AC3));
+		assertFalse(endpointMuxer.isCodecSupported(AV_CODEC_ID_AC3));
 
 	}
 
@@ -1226,7 +1224,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
-		RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer(null, vertx));
+		EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer(null, vertx));
 
 		AVFormatContext context = new AVFormatContext();
 		int ret = avformat_alloc_output_context2(context, null, "flv", "test.flv");
@@ -1236,11 +1234,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		rtmpMuxer.init(appScope, "", 0, "", 0);
+		endpointMuxer.init(appScope, "", 0, "", 0);
 
-		rtmpMuxer.avWriteFrame(pkt, context);
+		endpointMuxer.avWriteFrame(pkt, context);
 
-		Mockito.verify(rtmpMuxer).addExtradataIfRequired(pkt, false);
+		Mockito.verify(endpointMuxer).addExtradataIfRequired(pkt, false);
 
 		av_packet_free(pkt);
 		avformat_free_context(context);
@@ -1251,23 +1249,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
-		RtmpMuxer rtmpMuxer = new RtmpMuxer(null, vertx);
+		EndpointMuxer endpointMuxer = new EndpointMuxer(null, vertx);
 
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);
 		codecContext.height(480);
 
 
-		boolean addStream = rtmpMuxer.addStream(null, codecContext, 0);
+		boolean addStream = endpointMuxer.addStream(null, codecContext, 0);
 		assertFalse(addStream);
 
 
 		codecContext.codec_id(AV_CODEC_ID_H264);
-		addStream = rtmpMuxer.addStream(null, codecContext, BUFFER_SIZE);
+		addStream = endpointMuxer.addStream(null, codecContext, BUFFER_SIZE);
 		assertTrue(addStream);
 
 
-		addStream = rtmpMuxer.addVideoStream(480, 360, Muxer.avRationalTimeBase, AV_CODEC_ID_H264, 0, true, null);
+		addStream = endpointMuxer.addVideoStream(480, 360, Muxer.avRationalTimeBase, AV_CODEC_ID_H264, 0, true, null);
 		assertTrue(addStream);
 
 	}
@@ -1277,16 +1275,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
-		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://no_server", vertx);
+		EndpointMuxer endpointMuxer = new EndpointMuxer("rtmp://no_server", vertx);
 
 		//it should return false because there is no thing to send.
-		assertFalse(rtmpMuxer.prepareIO());
+		assertFalse(endpointMuxer.prepareIO());
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			return rtmpMuxer.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+			return endpointMuxer.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 		});
 
-		assertFalse(rtmpMuxer.prepareIO());
+		assertFalse(endpointMuxer.prepareIO());
 
 	}
 
@@ -1311,7 +1309,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.setBroadcast(broadcast);
 		Endpoint rtmpEndpoint = new Endpoint();
 		String rtmpUrl = "rtmp://localhost/LiveApp/test12";
-		rtmpEndpoint.setRtmpUrl(rtmpUrl);
+		rtmpEndpoint.setEndpointUrl(rtmpUrl);
 		List<Endpoint> endpointList = new ArrayList<>();
 		endpointList.add(rtmpEndpoint);
 
@@ -1415,33 +1413,33 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		codecParameters.codec_tag(0);
 		AVRational rat = new AVRational().num(1).den(1000);
 
-		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
+		EndpointMuxer endpointMuxer = new EndpointMuxer("any_url", vertx);
 
-		rtmpMuxer.init(appScope, "test", 0, null, 0);
-		rtmpMuxer.addStream(codecParameters, rat, 50);
-		assertTrue(rtmpMuxer.openIO());
+		endpointMuxer.init(appScope, "test", 0, null, 0);
+		endpointMuxer.addStream(codecParameters, rat, 50);
+		assertTrue(endpointMuxer.openIO());
 
-		rtmpMuxer.setIsRunning(new AtomicBoolean(true));
+		endpointMuxer.setIsRunning(new AtomicBoolean(true));
 
 		//This was a crash if we don't check headerWritten after we initialize the context and get isRunning true
 		//To test the scenarios of that crash;
-		rtmpMuxer.writeTrailer();
+		endpointMuxer.writeTrailer();
 
 		//This should work since the trailer is not written yet
-		rtmpMuxer.writeHeader();
+		endpointMuxer.writeHeader();
 
 		//This should work since header is written
-		rtmpMuxer.writeTrailer();
+		endpointMuxer.writeTrailer();
 
 		//This is for testing writeHeader after writeTrailer.
-		rtmpMuxer.writeHeader();
+		endpointMuxer.writeHeader();
 	}
 
 	@Test
 	public void testRtmpUrlWithoutAppName() {
 		{
-			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
-			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
+			AVDictionary opt = endpointMuxer.getOptionDictionary();
 			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
 			assertEquals("rtmp_app", optEntry.key().getString());
 			assertEquals("", optEntry.value().getString());
@@ -1449,22 +1447,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		{
-			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test", vertx)); //RTMP URl without Appname
-			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test", vertx)); //RTMP URl without Appname
+			AVDictionary opt = endpointMuxer.getOptionDictionary();
 			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
 			assertNull(optEntry);
 
 			//if it's different from zero, it means no file is need to be open.
 			//If it's zero, Not "no file" and it means that file is need to be open .
-			assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+			assertEquals(0, endpointMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
 
 
-			rtmpMuxer.clearResource();
+			endpointMuxer.clearResource();
 		}
 
 		{
-			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
-			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
+			AVDictionary opt = endpointMuxer.getOptionDictionary();
 			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
 			assertEquals("rtmp_app", optEntry.key().getString());
 			assertEquals("", optEntry.value().getString());
@@ -1472,32 +1470,32 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		{
-			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test", vertx)); //RTMP URl without Appname
-			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test", vertx)); //RTMP URl without Appname
+			AVDictionary opt = endpointMuxer.getOptionDictionary();
 			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
 			assertNull(optEntry);
 
 			//if it's different from zero, it means no file is need to be open.
 			//If it's zero, Not "no file" and it means that file is need to be open .
-			assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+			assertEquals(0, endpointMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
 
 
-			rtmpMuxer.clearResource();
+			endpointMuxer.clearResource();
 
 		}
 
 		{
-			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://live-api-s.facebook.com:443/rtmp/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
-			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmps://live-api-s.facebook.com:443/rtmp/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
+			AVDictionary opt = endpointMuxer.getOptionDictionary();
 			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
 			assertNull(optEntry);
 
 			//if it's different from zero, it means no file is need to be open.
 			//If it's zero, Not "no file" and it means that file is need to be open .
-			assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+			assertEquals(0, endpointMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
 
 
-			rtmpMuxer.clearResource();
+			endpointMuxer.clearResource();
 		}
 
 	}
