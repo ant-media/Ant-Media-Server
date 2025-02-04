@@ -72,6 +72,9 @@ public class Endpoint {
     public String getEndpointServiceId() {
         return endpointServiceId;
     }
+    public void setRtmpUrl(String rtmpUrl){
+        this.rtmpUrl = rtmpUrl;
+    }
 
     public void setEndpointServiceId(String endpointServiceId) {
         this.endpointServiceId = endpointServiceId;

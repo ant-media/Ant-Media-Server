@@ -56,6 +56,7 @@ public class EndpointMuxer extends Muxer {
 
 	public EndpointMuxer(String url, Vertx vertx) {
 		super(vertx);
+		this.format = "flv";
 		this.url = url;
 
 		parseEndpointURL(this.url);
