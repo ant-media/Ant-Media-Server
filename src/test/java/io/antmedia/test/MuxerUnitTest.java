@@ -68,11 +68,7 @@ import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.SizeTPointer;
 import org.json.simple.JSONObject;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -6054,5 +6050,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
 
+	}
+	@Test
+	public void testParseEndpointURl(){
+		EndpointMuxer endpointMuxer = new EndpointMuxer("rtmp://",vertx);
+		Assert.assertEquals("rtmp", endpointMuxer.muxerType);
+		Assert.assertEquals("flv", endpointMuxer.getFormat());
+
+		endpointMuxer = new EndpointMuxer("srt://",vertx);
+		Assert.assertEquals("srt", endpointMuxer.muxerType);
+		Assert.assertEquals("mpegts", endpointMuxer.getFormat());
 	}
 }

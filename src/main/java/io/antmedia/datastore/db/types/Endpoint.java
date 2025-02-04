@@ -24,15 +24,18 @@ public class Endpoint {
     private String type;
 
     /**
-     * RTMP URL of the endpoint
+     * RTMP Or SRT URL of the endpoint
      */
-    @Schema(description = "URL of the endpoint")
+    @Schema(description = "RTMP or SRT URL of the endpoint")
     private String endpointUrl;
 
     /**
      * RTMP URL of the endpoint
+     *
+     * @deprecated use {@link #endpointUrl}
+     *
      */
-    @Deprecated
+    @Deprecated(since = "3.0" , forRemoval = true)
     @Schema(description = "The RTMP URL of the endpoint")
     private String rtmpUrl;
 

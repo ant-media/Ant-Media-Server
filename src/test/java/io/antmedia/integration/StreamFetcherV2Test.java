@@ -216,7 +216,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		endpoint.setEndpointUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId);
 		try 
 		{
-			result = RestServiceV2Test.addEndpointV2(streamSource.getStreamId(), endpoint);
+			result = RestServiceV2Test.addEndpointV3(streamSource.getStreamId(), endpoint);
 			assertTrue(result.isSuccess());
 			String endpointId = result.getDataId();
 			//check that rtmp endpoint is streaming
