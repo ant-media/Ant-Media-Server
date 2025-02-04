@@ -394,9 +394,16 @@ public abstract class RestServiceBase {
 			
 			for (Broadcast subtrack : subtracks) {
 				boolean subtrackDeleted = getDataStore().delete(subtrack.getStreamId());
-				if (!subtrackDeleted) {
-					logger.error("Subtrack {} could not be deleted", subtrack.getStreamId());
-					result = false;
+				if (!subtrackDeleted ) {
+					
+					//before returning false, check the track exists because it may be deleted automatically if it's zombi and stopped
+					Broadcast subtrackBroadcast = getDataStore().get(subtrack.getStreamId());
+					
+					if (subtrackBroadcast != null) 
+					{
+						logger.error("Subtrack {} could not be deleted", subtrack.getStreamId());
+						result = false;
+					}
 				}
 			}
 			
