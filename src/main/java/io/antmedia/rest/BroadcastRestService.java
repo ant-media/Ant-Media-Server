@@ -440,6 +440,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 			)
 
+	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
