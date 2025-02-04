@@ -674,6 +674,13 @@ public class StreamService implements IStreamService {
 
         Map<String, String> params = null;
         String path = conn.getConnectParams().get("path").toString();
+        /*
+         * When streaming via FFmpeg using an RTMP URL like:
+         * rtmp://IP/LiveApp/stream1/my_token/subscriberid/subscribercode/
+         * FFmpeg interprets "/LiveApp/stream1" as the application name 
+         * instead of just "LiveApp". This code addresses that issue by correctly 
+         * extracting and handling the application name and streamid
+         */
         if(path.contains("/")){
             String[] pathSplit = path.split("/");
             if(pathSplit.length >=2) {
