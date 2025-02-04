@@ -54,6 +54,8 @@ public class EndpointMuxer extends Muxer {
 
 	private AtomicBoolean preparedIO = new AtomicBoolean(false);
 
+	public String muxerType = null;
+
 	public EndpointMuxer(String url, Vertx vertx) {
 		super(vertx);
 		this.format = "flv";
@@ -61,11 +63,17 @@ public class EndpointMuxer extends Muxer {
 
 		parseEndpointURL(this.url);
 	}
+
+	public String getMuxerType() {
+		return muxerType;
+	}
+
 	void parseEndpointURL(String url){
 		if(url == null)
 			return;
 		if(url.startsWith("rtmp")) {
 			format = "flv";
+			muxerType = "rtmp";
 			// check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
 			String regex = "rtmp(s)?://[a-zA-Z0-9\\.-]+(:[0-9]+)?/([^/]+)/.*";
 
@@ -78,6 +86,7 @@ public class EndpointMuxer extends Muxer {
 			}
 		}
 		else if(url.startsWith("srt")){
+			muxerType = "srt";
 			format = "mpegts";
 		}
 	}
@@ -167,7 +176,7 @@ public class EndpointMuxer extends Muxer {
 				{
 					clearResource();
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-					logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
+					logger.error("Cannot initializeOutputFormatContextIO for {} endpoint:{}", muxerType ,url);
 				}
 				
 				return null;
@@ -399,13 +408,13 @@ public class EndpointMuxer extends Muxer {
 	{
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(streamIndex)) {
-			logPacketIssue("Not writing to RTMP muxer because it's not started for {}", url);
+			logPacketIssue("Not writing to {} muxer because it's not started for {}", muxerType,url);
 			return;
 		}
 
 		if (!keyFrameReceived && isKeyFrame) {
 			keyFrameReceived = true;
-			logger.info("Key frame is received to start for rtmp:{}", url);
+			logger.info("Key frame is received to start for {}:{}", muxerType,url);
 		}
 
 		if (keyFrameReceived) {
