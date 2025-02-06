@@ -40,7 +40,7 @@ import org.bytedeco.javacpp.SizeTPointer;
 
 import io.vertx.core.Vertx;
 
-public class RtmpMuxer extends Muxer {
+public class EndpointMuxer extends Muxer {
 
 	private String url;
 	private volatile boolean trailerWritten = false;
@@ -54,25 +54,40 @@ public class RtmpMuxer extends Muxer {
 
 	private AtomicBoolean preparedIO = new AtomicBoolean(false);
 
-	public RtmpMuxer(String url, Vertx vertx) {
+	public String muxerType = null;
+
+	public EndpointMuxer(String url, Vertx vertx) {
 		super(vertx);
-		format = "flv";
+		this.format = "flv";
 		this.url = url;
 
-		parseRtmpURL(this.url);
+		parseEndpointURL(this.url);
 	}
-	void parseRtmpURL(String url){
+
+	public String getMuxerType() {
+		return muxerType;
+	}
+
+	void parseEndpointURL(String url){
 		if(url == null)
 			return;
-		 // check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
-		String regex = "rtmp(s)?://[a-zA-Z0-9\\.-]+(:[0-9]+)?/([^/]+)/.*";
+		if(url.startsWith("rtmp")) {
+			format = "flv";
+			muxerType = "rtmp";
+			// check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
+			String regex = "rtmp(s)?://[a-zA-Z0-9\\.-]+(:[0-9]+)?/([^/]+)/.*";
 
-		Pattern rtmpAppName = Pattern.compile(regex);
-		Matcher checkAppName = rtmpAppName.matcher(url);
+			Pattern rtmpAppName = Pattern.compile(regex);
+			Matcher checkAppName = rtmpAppName.matcher(url);
 
-		if (!checkAppName.matches()) {
-			//this is the fix to send stream for urls without app
-			setOption("rtmp_app","");
+			if (!checkAppName.matches()) {
+				//this is the fix to send stream for urls without app
+				setOption("rtmp_app", "");
+			}
+		}
+		else if(url.startsWith("srt")){
+			muxerType = "srt";
+			format = "mpegts";
 		}
 	}
 	@Override
@@ -161,7 +176,7 @@ public class RtmpMuxer extends Muxer {
 				{
 					clearResource();
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-					logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
+					logger.error("Cannot initializeOutputFormatContextIO for {} endpoint:{}", muxerType ,url);
 				}
 				
 				return null;
@@ -393,13 +408,13 @@ public class RtmpMuxer extends Muxer {
 	{
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(streamIndex)) {
-			logPacketIssue("Not writing to RTMP muxer because it's not started for {}", url);
+			logPacketIssue("Not writing to {} muxer because it's not started for {}", muxerType,url);
 			return;
 		}
 
 		if (!keyFrameReceived && isKeyFrame) {
 			keyFrameReceived = true;
-			logger.info("Key frame is received to start for rtmp:{}", url);
+			logger.info("Key frame is received to start for {}:{}", muxerType,url);
 		}
 
 		if (keyFrameReceived) {
