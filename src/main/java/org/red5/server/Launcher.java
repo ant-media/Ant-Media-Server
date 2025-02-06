@@ -39,6 +39,7 @@ import org.webrtc.PeerConnectionFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AsciiArt;
+import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.rest.RestServiceBase;
 
 /**
@@ -170,17 +171,7 @@ public class Launcher {
 			instanceId.append(UUID.randomUUID().toString());
 		}
 		
-		return hash(instanceId.toString());
-	}
-
-	private static String hash(String input) {
-		try {
-			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-			return Base64.getEncoder().encodeToString(hash);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		return CommonRestService.getMD5Hash(instanceId.toString());
 	}
 
 	public static String getInstanceId() {
