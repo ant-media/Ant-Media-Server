@@ -32,6 +32,8 @@ import static org.mockito.Mockito.*;
 
 import java.io.*;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1239,6 +1241,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		av_packet_free(pkt);
 		avformat_free_context(context);
 	}
+	@Test
+	public void testWriteVideoBuffer(){
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer(null, vertx));
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+
+		endpointMuxer.init(appScope, "", 0, "", 0);
+		endpointMuxer.writeVideoBuffer(null,10,1,1,false,10,10);
+
+		endpointMuxer.setIsRunning(new AtomicBoolean(true));
+		endpointMuxer.getRegisteredStreamIndexList().add(1);
+		endpointMuxer.writeVideoBuffer(null,10,1,1,false,10,10);
+		verify((Muxer)endpointMuxer,times(0)).writeVideoBuffer(any());
+
+		doNothing().when(endpointMuxer).writeVideoBuffer(any());
+		endpointMuxer.writeVideoBuffer(null,10,1,1,true,10,10);
+		verify((Muxer)endpointMuxer,times(1)).writeVideoBuffer(any());
+
+	}
+
 
 	@Test
 	public void testRTMPAddStream() {
