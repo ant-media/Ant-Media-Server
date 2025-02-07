@@ -26,7 +26,7 @@
 
 	<!-- Let the tomcat.cluster depends on warDeployer to make sure it's initialized before tomcat.server which depends on warDeployer -->
 	<!-- cluster start
-	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster" depends-on="warDeployer">
+	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
 		<property name="clusterStore">
 			<bean class="io.antmedia.enterprise.cluster.ClusterStore">
 				<constructor-arg value="${clusterdb.host}" />
@@ -35,12 +35,17 @@
 			</bean>
 		</property>
 	</bean>
+	
 	cluster end -->
 
 
 	<!-- Tomcat without SSL enabled -->
 	<bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader"
-		depends-on="context.loader,warDeployer">
+		depends-on="context.loader,warDeployer" lazy-init="true">
+		<!--  We've add following fields to make sure tomcat.cluster is initialized before TomcatLoader in cluster mode otherwise there maybe initialization exceptions -->
+		<!-- cluster start
+		<property name="clusterNotifier" ref="tomcat.cluster" />
+		cluster end -->
 		<property name="webappFolder" value="${red5.root}/webapps" />
 
 		<property name="connectors">
