@@ -24,8 +24,9 @@
 		value="org.apache.coyote.http11.Http11Protocol" /> Non-blocking I/O: <property 
 		name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" /> -->
 
+	<!-- Let the tomcat.cluster depends on warDeployer to make sure it's initialized before tomcat.server which depends on warDeployer -->
 	<!-- cluster start
-	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
+	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster" depends-on="warDeployer">
 		<property name="clusterStore">
 			<bean class="io.antmedia.enterprise.cluster.ClusterStore">
 				<constructor-arg value="${clusterdb.host}" />
@@ -39,7 +40,7 @@
 
 	<!-- Tomcat without SSL enabled -->
 	<bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader"
-		depends-on="context.loader,warDeployer" lazy-init="true">
+		depends-on="context.loader,warDeployer">
 		<property name="webappFolder" value="${red5.root}/webapps" />
 
 		<property name="connectors">
