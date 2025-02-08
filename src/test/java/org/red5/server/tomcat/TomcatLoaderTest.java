@@ -7,8 +7,11 @@ import org.apache.catalina.Context;
 import org.apache.catalina.Host;
 import org.junit.Test;
 
+import io.antmedia.cluster.IClusterNotifier;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
 
 public class TomcatLoaderTest {
@@ -47,5 +50,20 @@ public class TomcatLoaderTest {
         } catch (ServletException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    @Test
+    public void testClusterNotifier() {
+    	
+        TomcatLoader tomcatLoader = spy(new TomcatLoader());
+
+        assertNull(tomcatLoader.getClusterNotifier());
+        
+        IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
+        tomcatLoader.setClusterNotifier(clusterNotifier);
+        
+        
+        assertEquals(clusterNotifier, tomcatLoader.getClusterNotifier());
+    	
     }
 }
