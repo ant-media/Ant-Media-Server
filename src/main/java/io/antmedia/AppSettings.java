@@ -2431,14 +2431,14 @@ public class AppSettings implements Serializable{
 	@Value("${dropWebRTCIngestIfNoPacketReceived:false}")
 	private boolean dropWebRTCIngestIfNoPacketReceived = false;
 
-	/*
+	/**
 	 * The time in milliseconds to wait for the SRT packets to be received
 	 * check for details: https://github.com/Haivision/srt/blob/master/docs/API/API-socket-options.md#SRTO_RCVLATENCY
 	 */
 	@Value("${srtReceiveLatencyInMs:150}")
 	private int srtReceiveLatencyInMs = 150;
 
-	/*
+	/**
 	 * The size of encoding queue to keep the frames waiting for encoding in Stream Adaptor
 	 * default: 150 (5 seconds frame for 30 fps stream)
 	 */

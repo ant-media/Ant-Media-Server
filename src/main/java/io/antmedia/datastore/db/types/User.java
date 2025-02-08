@@ -3,6 +3,10 @@ package io.antmedia.datastore.db.types;
 import dev.morphia.annotations.*;
 import org.bson.types.ObjectId;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Map;
@@ -22,6 +26,7 @@ public class User {
      * The password of the user. This field is only set for certain user types.
      */
     @Schema(description = "The password of the user")
+	@JsonProperty(access = Access.WRITE_ONLY)
     private String password;
 
     /**
@@ -46,6 +51,7 @@ public class User {
      * The new password of the user. This field is only set for certain user types.
      */
     @Schema(description = "The new password of the user")
+	@JsonProperty(access = Access.WRITE_ONLY)
     private String newPassword;
 
     /**
