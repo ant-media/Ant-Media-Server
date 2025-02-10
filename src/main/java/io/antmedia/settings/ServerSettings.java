@@ -3,8 +3,12 @@ package io.antmedia.settings;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -343,54 +347,20 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	{
 
 		InetAddress noneLoopbackAddress = null;
-		Enumeration<NetworkInterface> interfaces;
-		try 
+		try (final DatagramSocket socket = new DatagramSocket())
 		{
-			interfaces = getNetworkInterfaces();
-
-			while (interfaces.hasMoreElements()) {
-				NetworkInterface networkInterface = interfaces.nextElement();
-
-				// Skip loopback and non-active interfaces
-				if (isLoopBackOrDown(networkInterface)) {
-					continue;
-				}
-				
-				noneLoopbackAddress = getAddress(networkInterface.getInetAddresses());
-				
-				if (noneLoopbackAddress != null) 
-				{
-					//break the outer loop to not to check other interfaces
-                    break;
-				}
-			}
+			SocketAddress sockaddr = new InetSocketAddress("8.8.8.8", 10002); // no need to have 8.8.8.8 reachable and port is not important
+			socket.connect(sockaddr);
+			noneLoopbackAddress = socket.getLocalAddress();;
 
 		} 
-		catch (SocketException e) {
+		catch (Exception e) {
 		  logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		return noneLoopbackAddress;
 
 
-	}
-
-	public static boolean isLoopBackOrDown(NetworkInterface networkInterface) throws SocketException {
-		return networkInterface.isLoopback() || !networkInterface.isUp();
-	}
-
-	public static InetAddress getAddress(Enumeration<InetAddress> inetAddresses) {
-		while (inetAddresses.hasMoreElements()) 
-		{
-			InetAddress address = inetAddresses.nextElement();
-			//check if it's IPv4 address and not loopback
-			if (!address.isLoopbackAddress() && address.getAddress().length == 4) 
-			{
-				logger.info("Non-loopback address: {}", address.getHostAddress());
-				return address;
-			}
-		}
-		return null;
 	}
 
 	public static String getLocalHostAddress() {

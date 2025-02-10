@@ -1399,7 +1399,7 @@ public class CommonRestService {
 		return jsonObject.toString();
 	}
 
-	public String getMD5Hash(String pass){
+	public static String getMD5Hash(String pass){
 		String passResult= "";
 		try {
 			MessageDigest m=MessageDigest.getInstance("MD5");

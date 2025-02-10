@@ -75,6 +75,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.component.AppConfig;
 import jakarta.security.auth.message.config.AuthConfigFactory;
 import jakarta.servlet.ServletContext;
@@ -166,6 +167,11 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	 * Connectors
 	 */
 	protected List<TomcatConnector> connectors;
+
+	/**
+	 * Cluster
+	 */
+	private IClusterNotifier clusterNotifier;
 
 	/**
 	 * Valves
@@ -904,6 +910,20 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	
 	public List<TomcatConnector> getConnectors() {
 		return connectors;
+	}
+
+	/**
+	 * @return the clusterNotifier
+	 */
+	public IClusterNotifier getClusterNotifier() {
+		return clusterNotifier;
+	}
+
+	/**
+	 * @param clusterNotifier the clusterNotifier to set
+	 */
+	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
+		this.clusterNotifier = clusterNotifier;
 	}
 
 }
