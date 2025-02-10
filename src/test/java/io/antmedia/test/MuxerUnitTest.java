@@ -6085,4 +6085,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Assert.assertEquals("srt", endpointMuxer.muxerType);
 		Assert.assertEquals("mpegts", endpointMuxer.getFormat());
 	}
+	@Test
+	public void testGetSetEndpointURl(){
+		String url = "rtmp://test.antmedia.io/LiveApp/test";
+		Endpoint endpoint = new Endpoint();
+		endpoint.setRtmpUrl(url);
+		assertEquals(url,endpoint.getEndpointUrl());
+	}
 }
