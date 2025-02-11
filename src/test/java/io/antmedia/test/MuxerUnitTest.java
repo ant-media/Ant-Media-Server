@@ -1323,6 +1323,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 			return endpointMuxer1.getStatus().equals(BROADCAST_STATUS_BROADCASTING);
 		});
+
 		assert(endpointMuxer1.getIsRunning().get());
 
 		final EndpointMuxer endpointMuxer2 = spy(new EndpointMuxer("rtmp://fakeurl", vertx));
@@ -6129,7 +6130,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		final AVRational inputTimebase = new AVRational().num(1).den(1000);
 		final AVRational outputTimebase = new AVRational().num(1).den(1000);
 		int codecType = 1;
-		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest", vertx));
+
+		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest1", vertx));
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.codec_id(AV_CODEC_ID_AAC);
@@ -6145,7 +6147,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,codecType);
 		verify(endpointMuxer,times(0)).writeFrameInternal(any(),any(),any(),any(),anyInt());
 
-		endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest", vertx));
+		endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest1", vertx));
 
 		codecParameters = new AVCodecParameters();
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
