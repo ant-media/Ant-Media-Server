@@ -288,7 +288,7 @@ public class EndpointMuxer extends Muxer {
 		writeFrameInternal(pkt, inputTimebase, outputTimebase, context, codecType);
 	}
 
-	private synchronized void writeFrameInternal(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
+	public synchronized void writeFrameInternal(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
 			AVFormatContext context, int codecType) 
 	{
 		long pts = pkt.pts();
