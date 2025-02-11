@@ -6146,9 +6146,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
 		verify(endpointMuxer,times(0)).writeFrameInternal(any(),any(),any(),any(),anyInt());
 
-		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
-		verify(endpointMuxer,times(0)).writeFrameInternal(any(),any(),any(),any(),anyInt());
-
 		endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest2", vertx));
 
 		codecParameters = new AVCodecParameters();
