@@ -6129,7 +6129,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		AVPacket pkt = new AVPacket();
 		final AVRational inputTimebase = new AVRational().num(1).den(1000);
 		final AVRational outputTimebase = new AVRational().num(1).den(1000);
-		int codecType = 1;
 
 		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest1", vertx));
 
@@ -6144,7 +6143,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		endpointMuxer.prepareIO();
 		pkt.stream_index(0);
 		// writing audio packet when Header not written
-		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,codecType);
+		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
+		verify(endpointMuxer,times(0)).writeFrameInternal(any(),any(),any(),any(),anyInt());
+
+		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
 		verify(endpointMuxer,times(0)).writeFrameInternal(any(),any(),any(),any(),anyInt());
 
 		endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest2", vertx));
@@ -6179,6 +6181,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(endpointMuxer,times(1)).avWriteFrame(any(),any());
 		verify(endpointMuxer,times(1)).addExtradataIfRequired(any(),anyBoolean());
 		verify(endpointMuxer,times(2)).setStatus(BROADCAST_STATUS_BROADCASTING);
-
+		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
+		verify(endpointMuxer,times(3)).setStatus(BROADCAST_STATUS_BROADCASTING);
 	}
 }
