@@ -6121,7 +6121,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(url,endpoint.getEndpointUrl());
 	}
 	@Test
-	public void testWritePacket() throws NoSuchMethodException {
+	public void testWritePacket() throws  InterruptedException {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
@@ -6165,10 +6165,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		endpointMuxer.addStream(codecParameters, rat, 50);
 		endpointMuxer.prepareIO();
 
-		EndpointMuxer finalEndpointMuxer = endpointMuxer;
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			return finalEndpointMuxer.getStatus().equals(BROADCAST_STATUS_BROADCASTING);
-		});
+		Thread.sleep(10000);
+	 	verify(endpointMuxer).writeHeader();
 
 		pkt = new AVPacket();
 		pkt.stream_index(0);
