@@ -43,10 +43,12 @@ public class AmazonS3StorageClient extends StorageClient {
 
 
 	public AmazonS3 getAmazonS3() {
+
 		if (amazonS3 == null) {
 			amazonS3 = initAmazonS3();
+			getObjects("");
 		}
-		return amazonS3; 
+		return amazonS3;
 	}
 
 	public AmazonS3 initAmazonS3() {
@@ -70,7 +72,9 @@ public class AmazonS3StorageClient extends StorageClient {
 		builder.withClientConfiguration(
 				new ClientConfiguration().withMaxConnections(100)
 				.withConnectionTimeout(120 * 1000)
-				.withMaxErrorRetry(15));
+				.withMaxErrorRetry(15))
+				.withPathStyleAccessEnabled(isPathStyleAccessEnabled())
+		;
 
 		return builder.build();
 	}

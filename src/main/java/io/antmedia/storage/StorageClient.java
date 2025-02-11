@@ -55,6 +55,8 @@ public abstract class StorageClient {
 	
 	protected ProgressListener progressListener;
 
+	private boolean pathStyleAccessEnabled;
+
 	private int transferBufferSize;
 
 	/**
@@ -182,6 +184,14 @@ public abstract class StorageClient {
 		this.cacheControl = cacheControl;
 	}
 
+	public void setPathStyleAccessEnabled(boolean enabled) {
+		this.pathStyleAccessEnabled = enabled;
+	}
+
+	public boolean isPathStyleAccessEnabled() {
+		return pathStyleAccessEnabled;
+	}
+	
 	public int getTransferBufferSize() {
 		return transferBufferSize;
 	}

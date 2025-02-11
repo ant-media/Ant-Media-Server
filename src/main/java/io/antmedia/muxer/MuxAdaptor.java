@@ -33,9 +33,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.annotation.Nonnull;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -73,7 +71,6 @@ import org.red5.server.stream.consumer.FileConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
@@ -989,44 +986,59 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * @param duration,       the total elapsed time in milliseconds
 	 * @param inputQueueSize, input queue size of the packets that is waiting to be processed
 	 */
-	public void updateStreamQualityParameters(String streamId, String quality, double speed, int inputQueueSize) {
+	public void updateStreamQualityParameters(String streamId, double speed) {
 		long now = System.currentTimeMillis();
+		
+		int inputQueueSize = getInputQueueSize();
 
 		latestSpeed = speed;
+		//round the number to three decimal places,
+		double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
+
 		//increase updating time to STAT_UPDATE_PERIOD_MS seconds because it may cause some issues in mongodb updates 
 		//or 
 		//update before STAT_UPDATE_PERIOD_MS if speed something meaningful
+		
+		int encodingQueueSize = getEncodingQueueSize();
+		int dropFrameCountInEncoding = getDroppedFrameCountInEncoding();
+		int dropPacketCountInIngestion = getDroppedPacketCountInIngestion();
+		
 		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS || (lastQualityUpdateTime == 0 && speed > 0.8)) 
 		{
-			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, speed, streamId);
+			
+			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, roundedSpeed, streamId);
 			lastQualityUpdateTime = now;
 			long byteTransferred = totalByteReceived - lastTotalByteReceived;
 			lastTotalByteReceived = totalByteReceived;
 
+			
 
 			PublishStatsEvent publishStatsEvent = new PublishStatsEvent();
 			publishStatsEvent.setApp(scope.getName());
 			publishStatsEvent.setStreamId(streamId);
 			publishStatsEvent.setTotalByteReceived(totalByteReceived);
 			publishStatsEvent.setByteTransferred(byteTransferred);
-			durationMs = System.currentTimeMillis() - broadcast.getStartTime();
+			publishStatsEvent.setSpeed(roundedSpeed);
+			publishStatsEvent.setEncodingQueueSize(encodingQueueSize);
+			publishStatsEvent.setDroppedFrameCountInEncoding(dropFrameCountInEncoding);
+			publishStatsEvent.setDroppedPacketCountInIngestion(dropPacketCountInIngestion);
+			publishStatsEvent.setInputQueueSize(inputQueueSize);
+			
+			durationMs = now - broadcast.getStartTime();
 			publishStatsEvent.setDurationMs(durationMs);
 			publishStatsEvent.setWidth(width);
 			publishStatsEvent.setHeight(height);
+			
+			LoggerUtils.logAnalyticsFromServer(publishStatsEvent);
 
-			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
+			getStreamHandler().setQualityParameters(streamId, publishStatsEvent, now);
 		}
 		
 		long webhookStreamStatusUpdatePeriod = appSettings.getWebhookStreamStatusUpdatePeriodMs();
 		if (webhookStreamStatusUpdatePeriod != -1 && (now - lastWebhookStreamStatusUpdateTime) > webhookStreamStatusUpdatePeriod) {
 			lastWebhookStreamStatusUpdateTime = now;
-			getStreamHandler().notifyWebhookForStreamStatus(getBroadcast(), width, height, totalByteReceived, inputQueueSize, speed);
+			getStreamHandler().notifyWebhookForStreamStatus(getBroadcast(), width, height, totalByteReceived, inputQueueSize, encodingQueueSize, dropFrameCountInEncoding, dropPacketCountInIngestion, roundedSpeed);
 		}
-		
-		
-		
-		
-
 	}
 
 	public double getLatestSpeed() {
@@ -1687,7 +1699,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		totalByteReceived = broadcastStream !=null ? broadcastStream.getBytesReceived() :  totalByteReceived + packetSize;
 
 
-		updateStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
+		updateStreamQualityParameters(this.streamId, speed);
 
 	}
 
@@ -1790,7 +1802,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			audioExtraDataPointer = null;
 		}
 
-		updateStreamQualityParameters(this.streamId, null, 0, getInputQueueSize());
+		updateStreamQualityParameters(this.streamId, 0);
 		getStreamHandler().muxAdaptorRemoved(this);
 
 		isRecording.set(false);
@@ -1875,10 +1887,39 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		logger.info("Calling stop for {} input queue size:{}", streamId, getInputQueueSize());
 		stopRequestExist = true;
 	}
+	
+	public void setInputQueueSize(int size) {
+		queueSize.set(size);
+	}
 
 	public int getInputQueueSize() {
 		return queueSize.get();
 	}
+	/**
+	 * Number of frames waiting to be encoded. It's zero here because MuxAdaptor does not transcode the stream
+	 * @return
+	 */
+	public int getEncodingQueueSize() 
+	{
+		return 0;
+	}
+	
+	/**
+	 * Number of packets dropped in the ingestion
+	 * @return
+	 */
+	public int getDroppedPacketCountInIngestion() {
+		return 0;
+	}
+	
+	/**
+	 * Number of frames dropped in the encoding
+	 * @return
+	 */
+	public int getDroppedFrameCountInEncoding() {
+		return 0;
+	}
+
 
 	public boolean isStopRequestExist() {
 		return stopRequestExist;

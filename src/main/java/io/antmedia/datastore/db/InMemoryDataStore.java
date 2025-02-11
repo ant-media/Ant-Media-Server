@@ -245,6 +245,7 @@ public class InMemoryDataStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		Collection<Broadcast> values = broadcastMap.values();
 
+		long now = System.currentTimeMillis();
 		List<Broadcast> streamsList = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 			String type = broadcast.getType();
@@ -253,6 +254,7 @@ public class InMemoryDataStore extends DataStore {
 			if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 				streamsList.add(broadcast);
 				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				broadcast.setUpdateTime(now);
 				broadcastMap.replace(broadcast.getStreamId(), broadcast);
 			}
 		}
@@ -1130,8 +1132,7 @@ public class InMemoryDataStore extends DataStore {
 		{
 			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
 					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
-					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-					&& (AntMediaApplicationAdapter.isStreaming(broadcast))) 
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))) 
 			{
 				count++;
 			}
@@ -1147,8 +1148,7 @@ public class InMemoryDataStore extends DataStore {
 		{
 			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
 					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
-					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-					&& (AntMediaApplicationAdapter.isStreaming(broadcast))) 
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))) 
 			{
 				subtracks.add(broadcast);
 			}

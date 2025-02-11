@@ -20,10 +20,17 @@ package org.red5.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.util.Base64;
+import java.util.Enumeration;
 import java.util.UUID;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.Red5;
 import org.slf4j.Logger;
@@ -32,6 +39,7 @@ import org.webrtc.PeerConnectionFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AsciiArt;
+import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.rest.RestServiceBase;
 
 /**
@@ -45,11 +53,9 @@ public class Launcher {
 	public static final String RED5_ROOT = "red5.root";
 	private static Logger logger;
 	private static String instanceId = null;
-	private static final String INSTANCE_ID_DEFAULT_PATH = "conf/instanceId";
-	private static String instanceIdFilePath = INSTANCE_ID_DEFAULT_PATH;
 	private static String implementationVersion;
 	private static String versionType = null;  //community or enterprise
-	
+
 	/**
 	 * Launch Red5 under it's own classloader
 	 * 
@@ -57,14 +63,14 @@ public class Launcher {
 	 *             on error
 	 */
 	public void launch()  {
-		
+
 		// check for the logback disable flag
 		boolean useLogback = Boolean.parseBoolean(System.getProperty("useLogback", "true"));
 		if (useLogback && System.getProperty("logback.ContextSelector") == null) {
 			// set our selector
 			System.setProperty("logback.ContextSelector", "org.red5.logging.LoggingContextSelector");
 		}
-		
+
 		Red5LoggerFactory.setUseLogback(useLogback);
 
 		// get the first logger
@@ -74,7 +80,7 @@ public class Launcher {
 		// version info banner
 		log.info("Ant Media Server {} {}", getVersionType(), getVersion());
 		printLogo();
-		
+
 		if (log.isDebugEnabled()) {
 			log.debug("fmsVer: {}", Red5.getFMSVersion());
 		}
@@ -95,7 +101,7 @@ public class Launcher {
 				PeerConnectionFactory.InitializationOptions.builder()
 				.setFieldTrials(null)
 				.createInitializationOptions());
-		
+
 	}
 
 
@@ -125,17 +131,52 @@ public class Launcher {
 		return null;
 	}
 
+	private static byte[] getMacAddress(NetworkInterface networkInterface) {
+		byte[] macAddressBytes = null;
+		try {
+			if (!networkInterface.isVirtual() && !networkInterface.isLoopback()) {
+				macAddressBytes = networkInterface.getHardwareAddress();
+			}
+
+		} catch (SocketException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return macAddressBytes;
+	}
+
+	private static String getHashInstanceId() {
+		StringBuilder instanceId = new StringBuilder();
+		try {
+
+			Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
+			while (networks.hasMoreElements()) {
+				NetworkInterface network = networks.nextElement();
+				byte[] mac = getMacAddress(network);
+				if (mac != null) {
+
+					for (byte b : mac) {
+						instanceId.append(String.format("%02X:", b));
+					}
+					if (instanceId.length() > 0) {
+						instanceId.deleteCharAt(instanceId.length() - 1); // Remove trailing colon
+					}
+					break;
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e.toString());
+		}
+
+		if (instanceId.length() == 0) {
+			instanceId.append(UUID.randomUUID().toString());
+		}
+		
+		return CommonRestService.getMD5Hash(instanceId.toString());
+	}
+
 	public static String getInstanceId() {
-		if (instanceId == null) {
-			File idFile = new File(instanceIdFilePath);
-			if (idFile.exists()) {
-				instanceId = getFileContent(idFile.getAbsolutePath());
-			}
-			else {
-				instanceId =  UUID.randomUUID().toString();
-				writeToFile(idFile.getAbsolutePath(), instanceId);
-				
-			}
+		if (instanceId == null) {			
+			instanceId = getHashInstanceId();
 		}
 		return instanceId;
 	}
@@ -144,21 +185,13 @@ public class Launcher {
 		Launcher.logger = log;
 	}
 
-	/**
-	 * Written for tests. Do not use in code
-	 * @param instanceIdFilePath
-	 */
-	public static void setInstanceIdFilePath(String instanceIdFilePath) {
-		Launcher.instanceIdFilePath = instanceIdFilePath;
-	}
-	
 	public static String getVersion() {
 		if (implementationVersion == null) {
 			implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
 		}
 		return implementationVersion;
 	}
-	
+
 	public static String getVersionType() {
 		if (versionType == null) {
 			versionType = RestServiceBase.isEnterprise() ? "Enterprise" : "Community";

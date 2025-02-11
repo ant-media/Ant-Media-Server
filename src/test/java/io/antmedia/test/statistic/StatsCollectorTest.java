@@ -12,6 +12,8 @@ import static org.mockito.Mockito.*;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,6 +22,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -203,6 +206,64 @@ public class StatsCollectorTest {
 		
 	}
 	
+	private static byte[] getMacAddress(NetworkInterface networkInterface) {
+		byte[] macAddressBytes = null;
+		try {
+			if (!networkInterface.isVirtual() && !networkInterface.isLoopback()) {
+				macAddressBytes = networkInterface.getHardwareAddress();
+			}
+
+		} catch (SocketException e) {
+			//log.error(ExceptionUtils.getStackTrace(e));
+			e.printStackTrace();
+		}
+		return macAddressBytes;
+	}
+
+	
+	private static String getHashInstanceId() {
+		StringBuilder instanceId = new StringBuilder();
+		try {
+
+			Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
+			while (networks.hasMoreElements()) {
+				NetworkInterface network = networks.nextElement();
+				byte[] mac = getMacAddress(network);
+				instanceId = new StringBuilder();
+				if (mac != null) {
+
+					for (byte b : mac) {
+						instanceId.append(String.format("%02X:", b));
+					}
+					if (instanceId.length() > 0) {
+						instanceId.deleteCharAt(instanceId.length() - 1); // Remove trailing colon
+					}
+					System.out.println("ethernet:" + instanceId.toString());
+					System.out.println("instanceId:" + CommonRestService.getMD5Hash(instanceId.toString()));
+					//break;
+				}
+			}
+		} catch (Exception e) {
+			//logger.error(e.toString());
+			e.printStackTrace();
+		}
+
+		if (instanceId.length() == 0) {
+			instanceId.append(UUID.randomUUID().toString());
+		}
+		
+		return CommonRestService.getMD5Hash(instanceId.toString());
+	}
+	
+	@Test
+	public void testInstanceId() {
+		
+		//System.out.println("InstanceId :" + Launcher.getInstanceId());
+		
+		getHashInstanceId();
+		
+	}
+	
 	@Test
 	public void testJSObjects() {
 		
@@ -252,7 +313,6 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.IN_USE_JVM_NATIVE_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.MAX_JVM_NATIVE_MEMORY));
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		jsObject = StatsCollector.getSystemResourcesInfo(null);
 		assertTrue(jsObject.has(StatsCollector.CPU_USAGE));
 		assertTrue(jsObject.has(StatsCollector.JVM_MEMORY_USAGE));
@@ -338,7 +398,6 @@ public class StatsCollectorTest {
 		
 		resMonitor.setHeartbeatPeriodMs(3000);
 		resMonitor.setVertx(Vertx.vertx());
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		resMonitor.start();
 		
 		assertTrue(resMonitor.isHeartBeatEnabled());
@@ -384,7 +443,6 @@ public class StatsCollectorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		resMonitor.setKafkaProducer(kafkaProducer);
 		resMonitor.sendInstanceStats(null);
 		
@@ -410,7 +468,6 @@ public class StatsCollectorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		resMonitor.setKafkaProducer(kafkaProducer);
 		
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
@@ -426,7 +483,6 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testCreateKafka() {
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		StatsCollector resMonitor = new StatsCollector();
 		try {
 			Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
@@ -445,7 +501,6 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testCollectAndSendWebRTCStats() {
-		Launcher.setInstanceIdFilePath("target/instanceId");
 		StatsCollector resMonitor = new StatsCollector();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);

@@ -49,6 +49,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -337,25 +338,33 @@ public abstract class RestServiceBase {
 	}
 
 
-	protected Result deleteBroadcast(String id) {
+	protected Result deleteBroadcast(String id, Boolean deleteSubtracks) {
+		if(deleteSubtracks == null) {
+			deleteSubtracks = true;
+		} 
+		
 		Result result = new Result (false);
-		boolean stopResult = false;
 		Broadcast broadcast = null;
 
 		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
-			stopResult = stopBroadcastInternal(broadcast);
+			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks);
 
 			//if it's something about scheduled playlist
 			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
 
 			result.setSuccess(getDataStore().delete(id));
+			
+			if(deleteSubtracks) {
+				boolean subtrackDeletionResult = deleteSubtracks(broadcast);
+				result.setSuccess(subtrackDeletionResult);
+			}
 
 			if(result.isSuccess())
 			{
-				if (stopResult) {
+				if (stopResult.isSuccess()) {
 					logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
 					result.setMessage("broadcast is deleted and stopped successfully");
 				}
@@ -373,6 +382,43 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
+	private boolean deleteSubtracks(Broadcast broadcast) {
+		boolean result = true;
+		long subtrackCount = getDataStore().getSubtrackCount(broadcast.getStreamId(), "", "");
+		logger.info("{} Subtracks of maintrack {} will also be deleted.", subtrackCount, broadcast.getStreamId());
+		
+		if(subtrackCount > 0) {
+			
+			List<Broadcast> subtracks = getDataStore().getSubtracks(broadcast.getStreamId(), 0, (int)subtrackCount, "");
+			if (subtracks.size() == subtrackCount) {
+				logger.info("Subtracks are fetched successfully for deletion of main track {}", broadcast.getStreamId());
+			} else {
+				logger.error("Subtracks are not fetched successfully for deletion of main track {}", broadcast.getStreamId());
+			}
+			
+			for (Broadcast subtrack : subtracks) {
+				boolean subtrackDeleted = getDataStore().delete(subtrack.getStreamId());
+				if (!subtrackDeleted ) {
+					
+					//before returning false, check the track exists because it may be deleted automatically if it's zombi and stopped
+					Broadcast subtrackBroadcast = getDataStore().get(subtrack.getStreamId());
+					
+					if (subtrackBroadcast != null) 
+					{
+						logger.error("Subtrack {} could not be deleted", subtrack.getStreamId());
+						result = false;
+					}
+				}
+			}
+			
+		}
+		
+		
+		return result;
+	}
+	
+	
+
 	protected Result deleteBroadcasts(String[] streamIds) {
 
 		Result result = new Result(false);
@@ -381,7 +427,7 @@ public abstract class RestServiceBase {
 		{
 			for (String id : streamIds)
 			{
-				result = deleteBroadcast(id);
+				result = deleteBroadcast(id, false);
 				if (!result.isSuccess())
 				{
 					id =  id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_" );
@@ -398,19 +444,7 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	protected boolean stopBroadcastInternal(Broadcast broadcast) {
-		boolean result = false;
-		if (broadcast != null) {
-			result = getApplication().stopStreaming(broadcast).isSuccess();
-			if (result) {
-				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
-			}
-			else {
-				logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
-			}
-		}
-		return result;
-	}
+
 
 	protected Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
@@ -445,7 +479,7 @@ public abstract class RestServiceBase {
 	}
 
 	public boolean isStreaming(Broadcast broadcast) {
-		return AntMediaApplicationAdapter.isStreaming(broadcast);
+		return AntMediaApplicationAdapter.isStreaming(broadcast.getStatus());
 	}
 
 	/**
@@ -536,10 +570,10 @@ public abstract class RestServiceBase {
 
 		if(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
 		{
-			return getApplication().stopStreaming(broadcast).isSuccess();
+			return getApplication().stopStreaming(broadcast, false).isSuccess();
 		}
 		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
-			return getApplication().stopStreaming(broadcast).isSuccess();
+			return getApplication().stopStreaming(broadcast, false).isSuccess();
 		}
 		else
 		{
@@ -1606,17 +1640,31 @@ public abstract class RestServiceBase {
 
 		return result;
 	}
-
-
-
-	public Result stopStreaming(String id)
-	{
+	
+	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks) {
 		Result result = new Result(false);
-		Broadcast broadcast = getDataStore().get(id);
-		if(broadcast != null) {
-			result = getApplication().stopStreaming(broadcast);
+		if (broadcast != null) {
+			result = getApplication().stopStreaming(broadcast, stopSubrtracks);
+			if (result.isSuccess()) 
+			{
+				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
+			}
+			else {
+				logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
+			}
 		}
 		return result;
+	}
+
+
+
+	public Result stopStreaming(String id, Boolean stopSubtracks)
+	{
+		if (stopSubtracks == null) {
+			stopSubtracks = true;
+		}
+		Broadcast broadcast = getDataStore().get(id);
+		return stopBroadcastInternal(broadcast, stopSubtracks);
 	}
 
 
@@ -1857,7 +1905,7 @@ public abstract class RestServiceBase {
 
 		version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
 
-		logger.info("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
+		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
 		return version;
 	}
 
@@ -1922,11 +1970,11 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static Result addSubTrack(String id, String subTrackId, DataStore store) 
+	public static Result addSubTrack(String mainTrackId, String subTrackId, DataStore store) 
 	{
 		Result result = new Result(false);
 		Broadcast subTrack = store.get(subTrackId);
-		Broadcast mainTrack = store.get(id);
+		Broadcast mainTrack = store.get(mainTrackId);
 		String message = "";
 		if (subTrack != null && mainTrack != null)
 		{
@@ -1936,10 +1984,10 @@ public abstract class RestServiceBase {
 
 			List<String> subTrackStreamIds = mainTrack.getSubTrackStreamIds();
 
-			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(id, null) >= subtrackLimit) 
+			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(mainTrackId, null) >= subtrackLimit) 
 			{
-				message = "Subtrack limit is reached for the main track:" + id;
-				logWarning("Subtrack limit is reached for the main track:{}", id.replaceAll(REPLACE_CHARS, "_"));
+				message = "Subtrack limit is reached for the main track:" + mainTrackId;
+				logWarning("Subtrack limit is reached for the main track:{}", mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 				result.setMessage(message);
 				return result;
 			}
@@ -1948,12 +1996,12 @@ public abstract class RestServiceBase {
 				subTrackStreamIds = new ArrayList<>();
 			}
 
-			subTrack.setMainTrackStreamId(id);
+			subTrack.setMainTrackStreamId(mainTrackId);
 
 
 			//Update subtrack's main Track Id
 			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-			broadcastUpdate.setMainTrackStreamId(id);
+			broadcastUpdate.setMainTrackStreamId(mainTrackId);
 
 			boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 			if (success) 
@@ -1961,21 +2009,25 @@ public abstract class RestServiceBase {
 				subTrackStreamIds.add(subTrackId);
 				broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setSubTrackStreamIds(subTrackStreamIds);
-
-				success = store.updateBroadcastFields(id, broadcastUpdate);
-				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id);
+				
+				//make sure to set the virtual flag to true because it's mainTrack
+				broadcastUpdate.setVirtual(true);
+				
+				
+				success = store.updateBroadcastFields(mainTrackId, broadcastUpdate);
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + mainTrackId);
 			}
 			else
 
 			{
 				message = MAIN_TRACK_OF_THE_STREAM + subTrackId + " cannot be updated";
-				logWarning(MAIN_TRACK_OF_THE_STREAM +":{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+				logWarning(MAIN_TRACK_OF_THE_STREAM +":{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		else
 		{
-			message = "There is no stream with id:" + subTrackId + " as subtrack or " + id + " as mainTrack";
-			logWarning("There is no stream with id:{} as subtrack or {} as mainTrack" , subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+			message = "There is no stream with id:" + subTrackId + " as subtrack or " + mainTrackId + " as mainTrack";
+			logWarning("There is no stream with id:{} as subtrack or {} as mainTrack" , subTrackId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;

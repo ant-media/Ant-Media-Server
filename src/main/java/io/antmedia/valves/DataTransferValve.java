@@ -6,6 +6,8 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -25,6 +27,9 @@ import jakarta.ws.rs.HttpMethod;
  *
  */
 public class DataTransferValve extends ValveBase {
+	
+	
+	private Logger logger = LoggerFactory.getLogger(DataTransferValve.class);
 
 	@Override
 	public void invoke(Request request, Response response) throws IOException, ServletException {
@@ -36,6 +41,14 @@ public class DataTransferValve extends ValveBase {
 
 		if (StringUtils.isNotBlank(streamId) && (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))) 
 		{
+			
+			ConfigurableWebApplicationContext context = (ConfigurableWebApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+
+			if (context == null || !context.isRunning()) {
+				logger.debug("Context is not ready yet for request: {}", request.getRequestURI());
+				return;
+			}
+			
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 
 			if (subscriberId != null) {
@@ -46,7 +59,6 @@ public class DataTransferValve extends ValveBase {
 
 			long bytesWritten = response.getBytesWritten(false);
 			
-			ConfigurableWebApplicationContext context = (ConfigurableWebApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
 			PlayerStatsEvent playerStatsEvent = new PlayerStatsEvent();
 			playerStatsEvent.setStreamId(streamId);

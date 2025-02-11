@@ -24,6 +24,7 @@
 		value="org.apache.coyote.http11.Http11Protocol" /> Non-blocking I/O: <property 
 		name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" /> -->
 
+	<!-- Let the tomcat.cluster depends on warDeployer to make sure it's initialized before tomcat.server which depends on warDeployer -->
 	<!-- cluster start
 	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
 		<property name="clusterStore">
@@ -34,13 +35,14 @@
 			</bean>
 		</property>
 	</bean>
+	
 	cluster end -->
 
 
 	<!-- Tomcat without SSL enabled -->
 	<bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader"
 		depends-on="context.loader,warDeployer" lazy-init="true">
-		<!--  make sure tomcat.cluster is initialized before TomcatLoader in cluster mode otherwise there maybe initialization exceptions -->
+		<!--  We've add following fields to make sure tomcat.cluster is initialized before TomcatLoader in cluster mode otherwise there maybe initialization exceptions -->
 		<!-- cluster start
 		<property name="clusterNotifier" ref="tomcat.cluster" />
 		cluster end -->

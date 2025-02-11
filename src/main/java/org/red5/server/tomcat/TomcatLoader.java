@@ -34,14 +34,10 @@ import java.util.concurrent.Future;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-import jakarta.security.auth.message.config.AuthConfigFactory;
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.apache.catalina.Cluster;
 import org.apache.catalina.Container;
 import org.apache.catalina.Context;
 import org.apache.catalina.Engine;
@@ -68,7 +64,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -82,6 +77,9 @@ import org.w3c.dom.NodeList;
 
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.component.AppConfig;
+import jakarta.security.auth.message.config.AuthConfigFactory;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
 
 /**
  * Red5 loader for Tomcat.
@@ -169,7 +167,6 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	 * Connectors
 	 */
 	protected List<TomcatConnector> connectors;
-
 
 	/**
 	 * Cluster

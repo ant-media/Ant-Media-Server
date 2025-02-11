@@ -77,6 +77,11 @@ public class DataTransferValveTest {
 
          // Verify interactions
          verify(nextValve).invoke(request, response);
+         verify(context, times(0)).getBean(AntMediaApplicationAdapter.BEAN_NAME);
+         
+         
+         when(context.isRunning()).thenReturn(true);
+         dataTransferValveSpy.invoke(request, response);
          verify(context, times(1)).getBean(AntMediaApplicationAdapter.BEAN_NAME);
 
          // Verify static method interaction

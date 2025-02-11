@@ -666,6 +666,7 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_S3_CACHE_CONTROL = "settings.s3CacheControl";
+
 	/**
 	 * @hidden
 	 */
@@ -884,8 +885,8 @@ public class AppSettings implements Serializable{
 	 * Number of segments(chunks) in m3u8 files
 	 * Set the maximum number of playlist entries, If 0 the list file will contain all the segments,
 	 */
-	@Value("${hlsListSize:${"+SETTINGS_HLS_LIST_SIZE+":5}}")
-	private String hlsListSize = "5";
+	@Value("${hlsListSize:${"+SETTINGS_HLS_LIST_SIZE+":15}}")
+	private String hlsListSize = "15";
 
 	/**
 	 * Duration of segments in m3u8 files
@@ -2057,6 +2058,13 @@ public class AppSettings implements Serializable{
 	@Value("${s3CacheControl:${"+SETTINGS_S3_CACHE_CONTROL+":no-store, no-cache, must-revalidate, max-age=0}}")
 	private String s3CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
 
+
+	/**
+	 * S3 Path Syle Access Enabled
+	 */
+	@Value("${s3PathStyleAccessEnabled:false}")
+	private boolean s3PathStyleAccessEnabled = false;
+
 	/*
 	 * The permission to use in uploading the files to the S3.
 	 * Following values are accepted. Default value is public-read
@@ -2423,14 +2431,14 @@ public class AppSettings implements Serializable{
 	@Value("${dropWebRTCIngestIfNoPacketReceived:false}")
 	private boolean dropWebRTCIngestIfNoPacketReceived = false;
 
-	/*
+	/**
 	 * The time in milliseconds to wait for the SRT packets to be received
 	 * check for details: https://github.com/Haivision/srt/blob/master/docs/API/API-socket-options.md#SRTO_RCVLATENCY
 	 */
 	@Value("${srtReceiveLatencyInMs:150}")
 	private int srtReceiveLatencyInMs = 150;
 
-	/*
+	/**
 	 * The size of encoding queue to keep the frames waiting for encoding in Stream Adaptor
 	 * default: 150 (5 seconds frame for 30 fps stream)
 	 */
@@ -3685,6 +3693,14 @@ public class AppSettings implements Serializable{
 
 	public void setS3CacheControl(String s3CacheControl) {
 		this.s3CacheControl = s3CacheControl;
+	}
+
+	public boolean isS3PathStyleAccessEnabled() {
+		return s3PathStyleAccessEnabled;
+	}
+
+	public void setS3PathStyleAccessEnabled(boolean s3PathStyleAccessEnabled) {
+		this.s3PathStyleAccessEnabled = s3PathStyleAccessEnabled;
 	}
 
 	public void setDashHttpEndpoint(String dashHttpEndpoint) {

@@ -43,7 +43,8 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
 
-public abstract class MapBasedDataStore extends DataStore {
+public abstract class MapBasedDataStore extends DataStore 
+{
 
 	public static final String INCONSISTENCY_MESSAGE = "Inconsistency in DB. It's likely db file({}) is damaged";
 	protected Map<String, String> map;
@@ -65,10 +66,8 @@ public abstract class MapBasedDataStore extends DataStore {
 	public MapBasedDataStore(String dbName) {
 		this.dbName = dbName;
 
-
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
-
 		available = true;
 	}
 
@@ -97,6 +96,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean updateStatus(String id, String status) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			if (id != null) {
@@ -117,11 +118,17 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateStatus(String id, String status) ");
+		
 		return result;
 	}
 
 	@Override
 	public boolean updateVoDProcessStatus(String id, String status) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			String vodString = vodMap.get(id);
@@ -138,12 +145,18 @@ public abstract class MapBasedDataStore extends DataStore {
 				result = true;
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateVoDProcessStatus(String id, String status)");
 
 		return result;
 	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			if (id != null && endpoint != null) {
@@ -160,11 +173,17 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "addEndpoint(String id, Endpoint endpoint)");
 		return result;
 	}
 
 	@Override
 	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			if (id != null && endpoint != null) {
@@ -197,11 +216,17 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl)");
 		return result;
 	}
 
 	@Override
 	public boolean removeAllEndpoints(String id) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			Broadcast broadcast = getBroadcastFromMap(id);
@@ -211,6 +236,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				result = true;
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "removeAllEndpoints(String id)");
 		return result;
 	}
 
@@ -235,16 +264,23 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean delete(String id) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {			
 			result = map.remove(id) != null;
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "delete(String id)");
 		return result;
 	}
 
 	//GetBroadcastList method may be called without offset and size to get the full list without offset or size
 	//sortAndCrop method returns maximum 50 (hardcoded) of the broadcasts for an offset.
 	public List<Broadcast> getBroadcastListV2(String type, String search) {
+		long startTime = System.nanoTime();
+
 		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 
@@ -282,14 +318,25 @@ public abstract class MapBasedDataStore extends DataStore {
 			logger.info("server side search called for Broadcast searchString = {}", search);
 			list = searchOnServer(list, search);
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getBroadcastListV2(String type, String search) ");
 		return list;
 	}
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
+		long startTime = System.nanoTime();
+
 		List<Broadcast> list = null;
 		list = getBroadcastListV2(type ,search);
-		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
+		List<Broadcast> list2 = sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search)");
+		
+		return list2;
 	}
 
 	public List<VoD> getVodListV2(String streamId, String search) {
@@ -301,13 +348,23 @@ public abstract class MapBasedDataStore extends DataStore {
 	 */
 	@Override
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String streamId, String search) {
+		long startTime = System.nanoTime();
+
 		List<VoD> vods = null;
 		vods = getVodListV2(streamId,search);
-		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
+		List<VoD> vodsList = sortAndCropVodList(vods, offset, size, sortBy, orderBy);
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getVodList(int offset, int size, String sortBy, String orderBy, String streamId, String search)");
+	
+		return vodsList;
 	}
 
 	@Override
 	public String addVod(VoD vod) {
+		long startTime = System.nanoTime();
+
 		String id = null;
 		synchronized (this) {
 			try {
@@ -325,14 +382,22 @@ public abstract class MapBasedDataStore extends DataStore {
 			}
 
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "addVod(VoD vod)");
+	
 		return id;
 	}
 
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
+		long startTime = System.nanoTime();
+
 		List<Broadcast> streamsList = new ArrayList<>();
 		synchronized (this) {
+			long now = System.currentTimeMillis();
 			Object[] objectArray = map.values().toArray();
 			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 			for (int i = 0; i < objectArray.length; i++) {
@@ -342,23 +407,33 @@ public abstract class MapBasedDataStore extends DataStore {
 				String type = broadcastArray[i].getType();
 				String status = broadcastArray[i].getStatus();
 
-				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
+				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) 
+						&& (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 					broadcastArray[i].setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+					broadcastArray[i].setUpdateTime(now);
 					setBroadcastToMap(broadcastArray[i], broadcastArray[i].getStreamId());
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getExternalStreamsList()");
 		return streamsList;
 	}
 
 	@Override
 	public boolean deleteVod(String id) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 
 		synchronized (this) {
 			result = vodMap.remove(id) != null;
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "deleteVod(String id)");
 		return result;
 	}
 
@@ -369,12 +444,19 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public long getPartialVodNumber(String search){
+		long startTime = System.nanoTime();
+
 		List<VoD> vods = getVodListV2(null, search);
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getPartialVodNumber(String search)");
 		return vods.size();
 	}
 
 	@Override
 	public int fetchUserVodList(File filedir) {
+		long startTime = System.nanoTime();
+
 		if (filedir == null) {
 			return 0;
 		}
@@ -445,6 +527,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "fetchUserVodList(File filedir)");
 
 		return numberOfSavedFiles;
 	}
@@ -461,6 +547,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
+		long startTime = System.nanoTime();
+
 		synchronized (this) {
 			try {
 				if (detectedObjects != null) {
@@ -474,10 +562,15 @@ public abstract class MapBasedDataStore extends DataStore {
 				logger.error(e.getMessage());
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects)");
 	}
 
 	@Override
 	public List<TensorFlowObject> getDetection(String id) {
+		
 		return super.getDetection(detectionMap, id, gson);
 	}
 
@@ -500,6 +593,8 @@ public abstract class MapBasedDataStore extends DataStore {
 	 */
 	@Override
 	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			try {
@@ -517,11 +612,16 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 
 		logger.debug("result inside updateBroadcastFields:{} ", result);
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateBroadcastFields(String streamId, BroadcastUpdate broadcast)");
 		return result;
 	}
 
 	@Override
 	protected synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 
@@ -537,11 +637,18 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateHLSViewerCountLocal(String streamId, int diffCount)");
+		
 		return result;
 	}
 
 	@Override
 	protected synchronized boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 
@@ -557,11 +664,16 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateDASHViewerCountLocal(String streamId, int diffCount)");
 		return result;
 	}
 
 	@Override
 	protected synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
@@ -582,11 +694,16 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateWebRTCViewerCountLocal(String streamId, boolean increment)");
 		return result;
 	}
 
 	@Override
 	protected synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
@@ -606,6 +723,9 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateRtmpViewerCountLocal(String streamId, boolean increment)");
 		return result;
 	}
 
@@ -620,6 +740,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean saveToken(Token token) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 
 		synchronized (this) {
@@ -634,12 +756,18 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "saveToken(Token token)");
 
 		return result;
 	}
 
 	@Override
 	public Token validateToken(Token token) {
+		long startTime = System.nanoTime();
+
 		Token fetchedToken = null;
 
 		synchronized (this) {
@@ -667,12 +795,17 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "validateToken(Token token)");
 
 		return fetchedToken;
 	}
 
 	@Override
 	public boolean revokeTokens(String streamId) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 
 		synchronized (this) {
@@ -693,6 +826,9 @@ public abstract class MapBasedDataStore extends DataStore {
 
 			}
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "revokeTokens(String streamId)");
 		return result;
 	}
 
@@ -708,6 +844,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 
 		if (subscriber != null) {
@@ -724,12 +862,18 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "addSubscriber(String streamId, Subscriber subscriber)");
 
 		return result;
 	}
 
 	@Override
 	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
+		long startTime = System.nanoTime();
+
 		List<ConnectionEvent> list = new ArrayList<>();		
 		synchronized (this) {
 			String key = Subscriber.getDBKey(streamId, subscriberId);
@@ -756,11 +900,16 @@ public abstract class MapBasedDataStore extends DataStore {
 			}
 		}
 
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getConnectionEvents(String streamId, String subscriberId, int offset, int size)");
+		
 		return getReturningConnectionEventsList(offset, size, list);
 
 	}
 
 	public static List<ConnectionEvent> getReturningConnectionEventsList(int offset, int size, List<ConnectionEvent> list) {
+
 		List<ConnectionEvent> returnList = new ArrayList<>();
 
 		int t = 0;
@@ -785,6 +934,7 @@ public abstract class MapBasedDataStore extends DataStore {
 
 			}
 		}
+		
 
 		return returnList;
 	}
@@ -792,6 +942,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	protected boolean addConnectionEvent(ConnectionEvent event) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		if (event != null && StringUtils.isNoneBlank(event.getStreamId(), event.getSubscriberId())) {
 			synchronized (this) {
@@ -820,10 +972,16 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "addConnectionEvent(ConnectionEvent event)");
 		return result;
 	}
 
 	public boolean blockSubscriber(String streamId, String subscriberId, String blockedType, int seconds) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 
@@ -847,6 +1005,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "blockSubscriber(String streamId, String subscriberId, String blockedType, int seconds)");
 
 
 		return result;
@@ -854,6 +1016,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean deleteSubscriber(String streamId, String subscriberId) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 
 		synchronized (this) {
@@ -865,11 +1029,18 @@ public abstract class MapBasedDataStore extends DataStore {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "deleteSubscriber(String streamId, String subscriberId)");
+
 		return result;
 	}
 
 	@Override
 	public boolean revokeSubscribers(String streamId) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 
 		synchronized (this) {
@@ -892,6 +1063,11 @@ public abstract class MapBasedDataStore extends DataStore {
 
 			connectionEventsMap.keySet().removeIf(key -> key.startsWith(streamId + "-"));
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "revokeSubscribers(String streamId)");
+
 
 		return result;
 	}
@@ -903,6 +1079,9 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean resetSubscribersConnectedStatus() {
+		long startTime = System.nanoTime();
+
+		boolean result = false;
 		synchronized (this) {
 			try {
 				Collection<String> subcribersRaw = subscriberMap.values();
@@ -918,21 +1097,31 @@ public abstract class MapBasedDataStore extends DataStore {
 					}
 				}
 
-				return true;
+				result = true;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
-				return false;
+				
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "resetSubscribersConnectedStatus()");
+		
+		return result;
+
 	}
 
 	@Override
 	public int resetBroadcasts(String hostAddress) {
+		long startTime = System.nanoTime();
+		
+		int updateOperations = 0;
+		int zombieStreamCount = 0;
+
 		synchronized (this) {
 
 			int size = map.size();
-			int updateOperations = 0;
-			int zombieStreamCount = 0;
 
 			Set<Entry<String,String>> entrySet = map.entrySet();
 
@@ -975,9 +1164,13 @@ public abstract class MapBasedDataStore extends DataStore {
 
 			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations",
 					zombieStreamCount, updateOperations);
-
-			return updateOperations + zombieStreamCount;
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "resetBroadcasts(String hostAddress)");
+
+		return updateOperations + zombieStreamCount;
 	}
 
 	@Override
@@ -987,6 +1180,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
@@ -1001,11 +1196,18 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "setMp4Muxing(String streamId, int enabled)");
+		
 		return result;
 	}
 
 	@Override
 	public boolean setWebMMuxing(String streamId, int enabled) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
@@ -1020,16 +1222,27 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "setWebMMuxing(String streamId, int enabled)");
 		return result;
 	}
 
 	@Override
 	public boolean deleteToken(String tokenId) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 
 		synchronized (this) {
 			result = tokenMap.remove(tokenId) != null;
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "deleteToken(String tokenId)");
+		
 		return result;
 	}
 
@@ -1058,6 +1271,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			Broadcast broadcast = getBroadcastFromMap(mainTrackId);
@@ -1074,12 +1289,18 @@ public abstract class MapBasedDataStore extends DataStore {
 				result = true;
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, " addSubTrack(String mainTrackId, String subTrackId)");
 
 		return result;
 	}
 
 	@Override
 	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
@@ -1092,6 +1313,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "removeSubTrack(String mainTrackId, String subTrackId)");
 		return result;
 	}
 
@@ -1104,6 +1329,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public void saveViewerInfo(WebRTCViewerInfo info) {
+		long startTime = System.nanoTime();
+
 		synchronized (this) {
 			if (info != null) {
 				try {
@@ -1113,6 +1340,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "saveViewerInfo(WebRTCViewerInfo info)");
 	}
 
 	@Override
@@ -1123,13 +1354,23 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean deleteWebRTCViewerInfo(String viewerId) {
+		long startTime = System.nanoTime();
+		boolean result = false;
 		synchronized (this) {
-			return webRTCViewerMap.remove(viewerId) != null;
+			result = webRTCViewerMap.remove(viewerId) != null;
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "deleteWebRTCViewerInfo(String viewerId)");
+		
+		return result;
 	}
 
 	@Override
 	public boolean updateStreamMetaData(String streamId, String metaData) {
+		long startTime = System.nanoTime();
+
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
@@ -1141,6 +1382,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "updateStreamMetaData(String streamId, String metaData)");
 		return result;
 	}
 
@@ -1168,21 +1413,37 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata) {
-		metadata.setSubscriberId(subscriberId);
-		subscriberMetadataMap.put(subscriberId, gson.toJson(metadata));
+		long startTime = System.nanoTime();
+		synchronized (this) {
+			metadata.setSubscriberId(subscriberId);
+			subscriberMetadataMap.put(subscriberId, gson.toJson(metadata));
+		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata)");
 	}
 
 	@Override
 	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
-		String jsonString = subscriberMetadataMap.get(subscriberId);
-		if(jsonString != null) {
-			return gson.fromJson(jsonString, SubscriberMetadata.class);
+		long startTime = System.nanoTime();
+		SubscriberMetadata metadata = null;
+		synchronized (this) {
+			String jsonString = subscriberMetadataMap.get(subscriberId);
+			if(jsonString != null) {
+				metadata = gson.fromJson(jsonString, SubscriberMetadata.class);
+			}
 		}
-		return null;
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getSubscriberMetaData(String subscriberId)");
+		return metadata;
 	}
 
 	public void migrateConferenceRoomsToBroadcasts() 
 	{
+		long startTime = System.nanoTime();
+
 		if (conferenceRoomMap.values() != null) {
 			List <String> roomIdList = new ArrayList<>(); 
 			for (String conferenceString : conferenceRoomMap.values()) 
@@ -1206,6 +1467,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				conferenceRoomMap.remove(roomId);
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "migrateConferenceRoomsToBroadcasts");
 	}
 
 	public Map<String, String> getConferenceRoomMap() {
@@ -1219,6 +1484,8 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
+		long startTime = System.nanoTime();
+
 		List<Broadcast> subtracks = new ArrayList<>();
 		synchronized (this) {
 			for (String broadcastString : map.values()) {
@@ -1231,11 +1498,17 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getSubtracks(String mainTrackId, int offset, int size, String role, String status)");
+		
 		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
 	}
 
 	@Override
 	public long getSubtrackCount(String mainTrackId, String role, String status) {
+		long startTime = System.nanoTime();
 
 		int count = 0;
 		synchronized (this) {
@@ -1248,12 +1521,19 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getSubtracks(String mainTrackId, int offset, int size, String role, String status)");
+		
 		return count;
 
 	}
 
 	@Override
 	public long getActiveSubtracksCount(String mainTrackId, String role) {
+		long startTime = System.nanoTime();
+
 		List<Broadcast> subtracks = new ArrayList<>();
 		int count = 0;
 		synchronized (this) {
@@ -1261,20 +1541,25 @@ public abstract class MapBasedDataStore extends DataStore {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				if ( mainTrackId.equals(broadcast.getMainTrackStreamId())
 						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role)) 
-						&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-						&& (AntMediaApplicationAdapter.isStreaming(broadcast))
+						&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))
 						) 
 				{
 					count++;
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getActiveSubtracksCount(String mainTrackId, String role)");
 
 		return count;
 	}
 
 	@Override
 	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) {
+		long startTime = System.nanoTime();
+
 		List<Broadcast> subtracks = new ArrayList<>();
 		synchronized (this) {
 			for (String broadcastString : map.values()) 
@@ -1282,20 +1567,24 @@ public abstract class MapBasedDataStore extends DataStore {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				if ( mainTrackId.equals(broadcast.getMainTrackStreamId())
 						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role)) 
-						&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-						&& (AntMediaApplicationAdapter.isStreaming(broadcast))
+						&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))
 						) 
 				{
 					subtracks.add(broadcast);
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getActiveSubtracks(String mainTrackId, String role)");
 
 		return subtracks;
 	}
 
 	@Override
 	public boolean hasSubtracks(String streamId) {
+		long startTime = System.nanoTime();
 
 		synchronized (this) {
 			for (String broadcastString : map.values()) 
@@ -1307,6 +1596,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "hasSubtracks(String streamId)");
 
 		return false;
 	}
