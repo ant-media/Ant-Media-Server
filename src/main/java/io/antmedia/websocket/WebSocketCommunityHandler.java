@@ -244,6 +244,17 @@ public class WebSocketCommunityHandler {
 		sendMessage(jsonObj, session);
 	}
 	
+	@SuppressWarnings("unchecked")
+	public  void sendStreamingStartedMessage(String streamId, Session session) {
+		
+		JSONObject jsonObj = new JSONObject();
+		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
+		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.STREAMING_STARTED);
+		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
+
+		sendMessage(jsonObj, session);
+	}
+	
 	public void sendStreamIdInUse(String streamId, Session session) {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
