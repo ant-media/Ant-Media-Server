@@ -319,7 +319,7 @@ public class EndpointMuxer extends Muxer {
 					return;
 				}
 
-				while (av_bsf_receive_packet(bsfFilterContextList.get(0), getTmpPacket()) == 0)
+				while ((ret = av_bsf_receive_packet(bsfFilterContextList.get(0), getTmpPacket())) == 0)
 				{
 					if (!headerWritten)
 					{
@@ -348,6 +348,11 @@ public class EndpointMuxer extends Muxer {
 						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 						logger.warn("Header is not written yet for writing video packet for stream: {}", file.getName());
 					}
+				}
+				if (ret < 0) {
+					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+					logger.error("bit stream filter receive packet failed {}", file.getName());
+					return;
 				}
 			}
 			else
