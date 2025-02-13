@@ -289,6 +289,10 @@ public abstract class Muxer {
 		logger = LoggerFactory.getLogger(this.getClass());
 	}
 
+	public List<AVBSFContext> getBsfFilterContextList() {
+		return bsfFilterContextList;
+	}
+
 	public static File getPreviewFile(IScope scope, String name, String extension) {
 		String appScopeName = ScopeUtils.findApplication(scope).getName();
 		return new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
