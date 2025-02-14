@@ -65,6 +65,11 @@
 							<entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/> 
 							<entry key="processorCache" value="${http.processor_cache}"/> 
 							<entry key="relaxedQueryChars" value="{}" />
+							<entry key="compression" value="on" />
+							<entry key="compressionMinSize" value="2048" />
+							<entry key="compressibleMimeType" value="application/vnd.apple.mpegurl,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml" />
+				
+							
 						</map>
 					</property>
 				</bean>
@@ -93,6 +98,10 @@
 				                                <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
 				                                <entry key="processorCache" value="${http.processor_cache}"/>
 				                                <entry key="relaxedQueryChars" value="{}" />
+				                                <entry key="compression" value="on" />
+												<entry key="compressionMinSize" value="2048" />
+												<entry key="compressibleMimeType" value="application/vnd.apple.mpegurl,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml" />
+				
 							</map> 
 						</property> 
 					</bean>
