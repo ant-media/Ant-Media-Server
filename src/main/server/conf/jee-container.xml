@@ -123,6 +123,10 @@
 					<property name="requestAttributesEnabled" value="true" />
 					<property name="fileDateFormat" value="" />
 				</bean>
+				<bean id="valve.access" class="org.apache.catalina.valves.ErrorReportValve">
+					<property name="showReport" value="true" />
+					<property name="showServerInfo" value="false" />
+				</bean>
 				<bean class="io.antmedia.valves.DataTransferValve" >
 					<property name="asyncSupported" value="true" />
 				</bean>
