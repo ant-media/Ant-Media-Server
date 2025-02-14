@@ -1138,7 +1138,7 @@ public class MongoStore extends DataStore {
 					updates.add(set(META_DATA, broadcast.getMetaData()));
 				}
 
-				if (broadcast.getUpdateTime() != null) {
+				if (broadcast.getUpdateTime() != null && broadcast.getUpdateTime() > 0) {
 					updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
 				}
 

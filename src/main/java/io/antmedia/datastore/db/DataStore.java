@@ -1024,7 +1024,7 @@ public abstract class DataStore {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
 		}		
 
-		if (newBroadcast.getUpdateTime() != null) {
+		if (newBroadcast.getUpdateTime() != null && newBroadcast.getUpdateTime() > 0) {
 			broadcast.setUpdateTime(newBroadcast.getUpdateTime());
 		}
 
