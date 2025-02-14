@@ -185,7 +185,16 @@ public class AppFunctionalV2Test {
 			e.printStackTrace();
 		}
 	}
-
+	@Test
+	public void testHideTomcatVersion() throws IOException {
+		String url = "http://localhost:5080/nonexistantapp";
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		HttpUriRequest get = RequestBuilder.get().setUri(url).build();
+		CloseableHttpResponse response = client.execute(get);
+		StringBuffer result = readResponse(response);
+		boolean haveVersion = result.toString().contains("Tomcat") || result.toString().contains("Apache") ;
+		assert(!haveVersion);
+	}
 	@Test
 	public void testRegularExp() {
 		String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
