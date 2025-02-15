@@ -1015,7 +1015,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		//just delete broadcast instead of calling stop
-		Result result = service.stopStreaming(newCam.getStreamId(), false);
+		Result result = service.stopStreaming(newCam.getStreamId(), false, app, dataStore);
 
 		assertTrue(result.isSuccess());
 		//stop emulator

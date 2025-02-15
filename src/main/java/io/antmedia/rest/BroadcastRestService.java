@@ -255,10 +255,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
 	public Result deleteBroadcast(@Parameter(description = " Id of the broadcast", required = true) @PathParam("id") String id,
 			@Parameter(description = "Deletion request for subtracks also", required = false) @QueryParam("deleteSubtracks") Boolean deleteSubtracks) {
-		return super.deleteBroadcast(id, deleteSubtracks);		
+		return deleteBroadcast(id, deleteSubtracks, getApplication(), getDataStore());		
 	}
 
 
@@ -371,6 +370,10 @@ public class BroadcastRestService extends RestServiceBase{
 			else 
 			{
 				result = super.updateBroadcast(id, broadcast);
+			}
+			
+			if(broadcast.getPlannedEndDate() > System.currentTimeMillis()) {
+				getApplication().putBroadcastToAutoStopMap(broadcast.getStreamId(), broadcast.getPlannedEndDate());
 			}
 
 		}
@@ -1391,7 +1394,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result stopStreamingV2(@Parameter(description = "the id of the broadcast.", required = true) @PathParam("id") String id,
 			@Parameter(description = "Stop also subtracks", required = false) @QueryParam("stopSubtracks") Boolean stopSubtracks) 
 	{
-		return super.stopStreaming(id, stopSubtracks);
+		return super.stopStreaming(id, stopSubtracks, getApplication(), getDataStore());
 	}
 
 
