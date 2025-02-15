@@ -2600,4 +2600,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.statsCollector = statsCollector;
 	}
 
+	public void streamStartedOnAnotherNode(String id) {
+		//no need to implement here
+	}
+
 }
