@@ -387,7 +387,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		long now = System.currentTimeMillis();
 		for (Map.Entry<String, Long> entry : mapAutoStopMap.entrySet()) {
 			if(now > entry.getValue()) {
-				RestServiceBase.deleteBroadcast(entry.getKey(), true, this, getDataStore());
+				Broadcast mainTrack = getDataStore().get(entry.getKey());
+				Result result = stopStreaming(mainTrack, true);
+				if(result.isSuccess()) {
+					mapAutoStopMap.remove(entry.getKey());
+				}
 			}
 		}
 	}

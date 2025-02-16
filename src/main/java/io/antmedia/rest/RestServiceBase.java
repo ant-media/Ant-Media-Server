@@ -57,7 +57,6 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
-import io.antmedia.logger.AntmediaAppender;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
@@ -343,7 +342,7 @@ public abstract class RestServiceBase {
 	}
 
 
-	public static Result deleteBroadcast(String id, Boolean deleteSubtracks, AntMediaApplicationAdapter application, DataStore store) {
+	protected Result deleteBroadcast(String id, Boolean deleteSubtracks) {
 		if(deleteSubtracks == null) {
 			deleteSubtracks = true;
 		} 
@@ -351,19 +350,19 @@ public abstract class RestServiceBase {
 		Result result = new Result (false);
 		Broadcast broadcast = null;
 
-		if (id != null && (broadcast = store.get(id)) != null)
+		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
-			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks, application);
+			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks);
 
 			//if it's something about scheduled playlist
-			application.cancelPlaylistSchedule(broadcast.getStreamId());
+			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
 
-			result.setSuccess(store.delete(id));
+			result.setSuccess(getDataStore().delete(id));
 			
 			if(deleteSubtracks) {
-				boolean subtrackDeletionResult = deleteSubtracks(broadcast, store);
+				boolean subtrackDeletionResult = deleteSubtracks(broadcast);
 				result.setSuccess(subtrackDeletionResult);
 			}
 
@@ -387,14 +386,14 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	private static boolean deleteSubtracks(Broadcast broadcast, DataStore store) {
+	private boolean deleteSubtracks(Broadcast broadcast) {
 		boolean result = true;
-		long subtrackCount = store.getSubtrackCount(broadcast.getStreamId(), "", "");
+		long subtrackCount = getDataStore().getSubtrackCount(broadcast.getStreamId(), "", "");
 		logger.info("{} Subtracks of maintrack {} will also be deleted.", subtrackCount, broadcast.getStreamId());
 		
 		if(subtrackCount > 0) {
 			
-			List<Broadcast> subtracks = store.getSubtracks(broadcast.getStreamId(), 0, (int)subtrackCount, "");
+			List<Broadcast> subtracks = getDataStore().getSubtracks(broadcast.getStreamId(), 0, (int)subtrackCount, "");
 			if (subtracks.size() == subtrackCount) {
 				logger.info("Subtracks are fetched successfully for deletion of main track {}", broadcast.getStreamId());
 			} else {
@@ -402,11 +401,11 @@ public abstract class RestServiceBase {
 			}
 			
 			for (Broadcast subtrack : subtracks) {
-				boolean subtrackDeleted = store.delete(subtrack.getStreamId());
+				boolean subtrackDeleted = getDataStore().delete(subtrack.getStreamId());
 				if (!subtrackDeleted ) {
 					
 					//before returning false, check the track exists because it may be deleted automatically if it's zombi and stopped
-					Broadcast subtrackBroadcast = store.get(subtrack.getStreamId());
+					Broadcast subtrackBroadcast = getDataStore().get(subtrack.getStreamId());
 					
 					if (subtrackBroadcast != null) 
 					{
@@ -432,7 +431,7 @@ public abstract class RestServiceBase {
 		{
 			for (String id : streamIds)
 			{
-				result = deleteBroadcast(id, false, getApplication(), getDataStore());
+				result = deleteBroadcast(id, false);
 				if (!result.isSuccess())
 				{
 					id =  id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_" );
@@ -1646,10 +1645,10 @@ public abstract class RestServiceBase {
 		return result;
 	}
 	
-	private static Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks, AntMediaApplicationAdapter application) {
+	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks) {
 		Result result = new Result(false);
 		if (broadcast != null) {
-			result = application.stopStreaming(broadcast, stopSubrtracks);
+			result = getApplication().stopStreaming(broadcast, stopSubrtracks);
 			if (result.isSuccess()) 
 			{
 				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
@@ -1663,13 +1662,13 @@ public abstract class RestServiceBase {
 
 
 
-	public static Result stopStreaming(String id, Boolean stopSubtracks, AntMediaApplicationAdapter application, DataStore store)
+	public Result stopStreaming(String id, Boolean stopSubtracks)
 	{
 		if (stopSubtracks == null) {
 			stopSubtracks = true;
 		}
-		Broadcast broadcast = store.get(id);
-		return stopBroadcastInternal(broadcast, stopSubtracks, application);
+		Broadcast broadcast = getDataStore().get(id);
+		return stopBroadcastInternal(broadcast, stopSubtracks);
 	}
 
 
