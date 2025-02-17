@@ -923,7 +923,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				LoggerUtils.logAnalyticsFromServer(event);
 				
-				notifyClusterPublishStarted(streamId);
+				notifyPublishStarted(streamId);
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -968,7 +968,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 
-	protected void notifyClusterPublishStarted(String streamId) {
+	protected void notifyPublishStarted(String streamId) {
 		// no need to implement here
 		
 	}
