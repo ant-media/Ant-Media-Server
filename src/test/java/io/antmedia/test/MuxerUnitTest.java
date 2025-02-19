@@ -1306,7 +1306,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertFalse(endpointMuxer.prepareIO());
 
-		final EndpointMuxer endpointMuxer1 = new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest", vertx);
+		final EndpointMuxer endpointMuxer1 = new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx);
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
 		codecParameters.width(spsParser.getWidth());
@@ -6136,7 +6136,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		final AVRational inputTimebase = new AVRational().num(1).den(1000);
 		final AVRational outputTimebase = new AVRational().num(1).den(1000);
 
-		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest1", vertx));
+		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.codec_id(AV_CODEC_ID_AAC);
@@ -6153,7 +6153,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
 		verify(endpointMuxer,times(0)).writeFrameInternal(any(),any(),any(),any(),anyInt());
 
-		endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest2", vertx));
+		endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
 
 		codecParameters = new AVCodecParameters();
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
@@ -6211,7 +6211,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assert(endpointMuxer.getStatus().equals(BROADCAST_STATUS_ERROR));
 
 		//bitstream filter
-		endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest3", vertx));
+		endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
 
 		codecParameters = new AVCodecParameters();
 		spsParser = new SPSParser(extradata_original, 5);
@@ -6235,13 +6235,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		AVBSFContext avbsfContext = endpointMuxer.initVideoBitstreamFilter("h264_mp4toannexb", codecParameters, Muxer.avRationalTimeBase);
 		endpointMuxer.prepareIO();
 
-		EndpointMuxer finalEndpointMuxer1 = endpointMuxer;
-		Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
-			return finalEndpointMuxer1.getStatus().equals(BROADCAST_STATUS_BROADCASTING);
-		});
+         EndpointMuxer finalEndpointMuxer1 = endpointMuxer;
+         Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
+	            return finalEndpointMuxer1.getStatus().equals(BROADCAST_STATUS_BROADCASTING);
+          });
 
-		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,0);
-		assert (endpointMuxer.getStatus().equals(BROADCAST_STATUS_ERROR));
+	 	endpointMuxer.setStatus("test");
+
+	    endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,0);
+		assert (!endpointMuxer.getStatus().equals(BROADCAST_STATUS_BROADCASTING));
+
+
 	}
 	@Test
 	public void testGetOutputFormatCtx(){

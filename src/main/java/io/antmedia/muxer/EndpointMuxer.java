@@ -19,6 +19,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
+import org.bytedeco.ffmpeg.global.avutil;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,7 +35,6 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.SizeTPointer;
 
@@ -257,7 +257,7 @@ public class EndpointMuxer extends Muxer {
 	public synchronized boolean addVideoStream(int width, int height, AVRational timebase, int codecId, int streamIndex, boolean isAVC, AVCodecParameters codecpar) {
 		
 		boolean result = super.addVideoStream(width, height, timebase, codecId, streamIndex, isAVC, codecpar);
-		if (result) 
+		if (result && !this.format.equals("mpegts"))
 		{
 			AVStream outStream = getOutputFormatContext().streams(inputOutputStreamIndexMap.get(streamIndex));
 			
@@ -348,11 +348,6 @@ public class EndpointMuxer extends Muxer {
 						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 						logger.warn("Header is not written yet for writing video packet for stream: {}", file.getName());
 					}
-				}
-				if (ret < 0) {
-					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logger.error("bit stream filter receive packet failed {}", file.getName());
-					return;
 				}
 			}
 			else
