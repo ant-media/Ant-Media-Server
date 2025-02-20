@@ -6,7 +6,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Arrays;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,9 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -30,6 +32,10 @@ import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
+
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
+import org.apache.commons.io.FilenameUtils;
 
 public class AmazonS3StorageClient extends StorageClient {
 
@@ -40,7 +46,6 @@ public class AmazonS3StorageClient extends StorageClient {
 	private long multipartUploadThreshold = 5L * 1024 * 1024;
 
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
-
 
 	public AmazonS3 getAmazonS3() {
 
@@ -98,6 +103,19 @@ public class AmazonS3StorageClient extends StorageClient {
 			list.add(s3ObjectSummary.getKey());
 		}
 	}
+
+  public void deleteMultipleFiles(String key, String fileExtensions){
+
+    List<String> objectList = getObjects(key);
+    ArrayList<String> extensionList = new ArrayList<>(Arrays.asList(fileExtensions.split(",")));
+
+    for (String object : objectList) {
+      String fileExtension = FilenameUtils.getExtension(object);
+        if(extensionList.contains(fileExtension)){
+          delete(object);
+        }
+      }
+  }
 
 	public void delete(String key) {
 		if (isEnabled()) 
@@ -194,6 +212,7 @@ public class AmazonS3StorageClient extends StorageClient {
 	}
 
 	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+
 		upload.addProgressListener((ProgressListener)event -> 
 		{
 			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)

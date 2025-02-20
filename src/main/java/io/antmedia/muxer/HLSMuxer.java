@@ -79,6 +79,9 @@ public class HLSMuxer extends Muxer  {
 
 	private String segmentFileNameSuffix;
 
+	public void setStreamId(String streamId){
+		this.streamId = streamId;
+	}
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
 		this.storageClient = storageClient;
@@ -389,7 +392,6 @@ public class HLSMuxer extends Muxer  {
 	
 					for (int i = 0; i < files.length; i++) 
 					{
-						
 						handleFinalization(files[i]);
 					}
 				}
@@ -398,25 +400,33 @@ public class HLSMuxer extends Muxer  {
 					handleFinalization(new File(file.getParentFile() + File.separator + segmentInitFilename));					
 				}
 				
-				
-				
 			});
 		}
 		else {
-			logger.info("http endpoint is {} so skipping delete or upload the m3u8 or ts files", httpEndpoint);
-		}
-
-
+      if(deleteFileOnExit){
+        String filePath = replaceDoubleSlashesWithSingleSlash(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder : "") + File.separator + streamId);
+        deleteFilesAfterUpload(filePath);
+      }
 	}
+	}
+  public void deleteFilesAfterUpload(String path){
+      vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000l, l -> 
+      {
+        storageClient.deleteMultipleFiles(path,"ts,m3u8");
+        logger.info("deleting files from s3");
+      });
+  }
 
 	private void handleFinalization(File file) {
-		
 		try {
 			if (uploadHLSToS3 && storageClient.isEnabled()) 
 			{
 				String path = replaceDoubleSlashesWithSingleSlash(s3StreamsFolderPath + File.separator
 						+ (subFolder != null ? subFolder : "") + File.separator + file.getName());
 				storageClient.save(path, file, deleteFileOnExit);
+
+				if(deleteFileOnExit)
+				  deleteFilesAfterUpload(path);
 			} else if (deleteFileOnExit) {
 				Files.deleteIfExists(file.toPath());
 			}
