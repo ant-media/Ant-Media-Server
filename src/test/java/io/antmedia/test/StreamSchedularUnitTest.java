@@ -745,6 +745,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streamFetcherList.put(streamId, fetcher);
 		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
 		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
+		
+		when(fetcher.isStreamAlive()).thenReturn(true);
+		when(fetcher.isStreamBlocked()).thenReturn(false);
 
 		Broadcast broadcast = mock(Broadcast.class);
 		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
@@ -772,9 +775,45 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		listenerCaptor.getValue().streamFinished(null);;
 		Mockito.verify(streamFetcherManager).startStreaming(broadcast);
 
-
-
 	}
+	
+	
+	@Test
+	public void testRestartIsAliveAndNotBlocked() {
+		
+		DataStore dataStore = Mockito.mock(DataStore.class); 
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+
+		streamFetcherManager.controlStreamFetchers(false);
+
+		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
+
+		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
+		String streamId = "stream123456";
+		String streamUrl = "streamurl";
+		streamFetcherList.put(streamId, fetcher);
+		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
+		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
+		
+		Broadcast broadcast = mock(Broadcast.class);
+		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
+		when(broadcast.getStreamId()).thenReturn(streamId);
+		when(broadcast.getStreamUrl()).thenReturn("streamurl");
+
+
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+		
+		when(fetcher.isStreamAlive()).thenReturn(false);
+		when(fetcher.isStreamBlocked()).thenReturn(false);
+		
+		streamFetcherManager.controlStreamFetchers(false);
+		
+		verify(fetcher, times(1)).stopStream();
+		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());
+		
+	}
+	
+	
 	@Test
 	public void testControlStreamFetchers() {
 		//create a test db
@@ -819,6 +858,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
 		when(broadcast.getStreamId()).thenReturn(streamId);
 		when(broadcast.getStreamUrl()).thenReturn("streamurl");
+		
+		when(fetcher.isStreamAlive()).thenReturn(true);
+		when(fetcher.isStreamBlocked()).thenReturn(false);
 
 		streamFetcherManager.controlStreamFetchers(false);
 		//it will not change above stream is alive and broadcast is not null
@@ -880,8 +922,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streamFetcherManager.controlStreamFetchers(true);
 		//it willl not change because restart is true
 		verify(fetcher, times(4)).stopStream();
-		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());
-
+		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());	
+		
 		streamFetcherManager.stopStreaming(streamId);
 
 

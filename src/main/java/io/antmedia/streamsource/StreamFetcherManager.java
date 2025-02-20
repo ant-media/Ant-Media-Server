@@ -535,7 +535,17 @@ public class StreamFetcherManager {
 				logger.info("Stream:{} is alive -> {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
+				
+				if (!streamScheduler.isStreamBlocked() && !streamScheduler.isStreamAlive()) {
+					// if it's not blocked and it's not alive, stop the stream 
+					logger.info("Stopping and it will start the stream because it's not alive and not blocked for streamId:{}", streamScheduler.getStreamId());
+					stopStreaming(streamScheduler.getStreamId());
+					//turn restart to true because we restart the stream to reconnect
+					restart = true;
+				}
 			}
+			
+			
 			
 			//start streaming if broadcast object is in db(it means not deleted)
 			if (restart && broadcast != null) 
@@ -553,7 +563,8 @@ public class StreamFetcherManager {
 						}
 					});
 				}
-				else {
+				else 
+				{
 					startStreaming(broadcast);
 				}
 			}
