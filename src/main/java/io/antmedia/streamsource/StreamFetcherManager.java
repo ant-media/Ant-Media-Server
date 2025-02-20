@@ -536,9 +536,10 @@ public class StreamFetcherManager {
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
 				
-				if (!streamScheduler.isStreamBlocked() && !streamScheduler.isStreamAlive()) {
+				if (!streamScheduler.isStreamBlocked() && !streamScheduler.isStreamAlive() && 
+						broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
 					// if it's not blocked and it's not alive, stop the stream 
-					logger.info("Stopping and it will start the stream because it's not alive and not blocked for streamId:{}", streamScheduler.getStreamId());
+					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
 					stopStreaming(streamScheduler.getStreamId());
 					//turn restart to true because we restart the stream to reconnect
 					restart = true;

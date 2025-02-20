@@ -799,6 +799,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
 		when(broadcast.getStreamId()).thenReturn(streamId);
 		when(broadcast.getStreamUrl()).thenReturn("streamurl");
+		
+		when(broadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 
 
 		streamFetcherManager.setStreamFetcherList(streamFetcherList);
