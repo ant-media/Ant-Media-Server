@@ -29,8 +29,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 	@Index(fields = @Field("status")) })
 public class Broadcast {
 
-	private static final Logger logger = LoggerFactory.getLogger(Broadcast.class);
-
 	@JsonIgnore
 	@Id
 	private ObjectId dbId;
