@@ -26,9 +26,12 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import com.amazonaws.util.Base32;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.security.ITokenService;
+import io.antmedia.security.TOTPGenerator;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -49,7 +52,6 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.EndpointMuxer;
 import io.antmedia.rest.model.Result;
@@ -907,7 +909,51 @@ public class MuxingTest {
         
         return content.toString();
 	}
+	@Test
+	public void testRTMPURlFormat() throws Exception {
+		// rtmp://localhost/LiveApp/stream/token/subid/subcode
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
 
-	
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
 
+		String appName = "live";
+		String restUrl = "http://127.0.0.1:5080/" + appName +"/rest";
+		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings(appName);
+
+		appSettings.setEnableTimeTokenForPublish(true);
+		appSettings.setTimeTokenSecretForPublish("random_thing");
+		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+
+		String streamId = "stream_" + (int) (Math.random()*10000);
+		String subscriberId = "sub12345";
+		String secret = "abcdabcd";
+		String type = "publish";
+
+		result = ConsoleAppRestServiceTest.callCreateTOTPSubscriber(restUrl ,subscriberId, secret, streamId, type);
+		assertTrue(result.isSuccess());
+
+		byte[] secretBytes = Base32.decode(secret);
+		String code = TOTPGenerator.generateTOTP(secretBytes, appSettings.getTimeTokenPeriod(), 6, ITokenService.HMAC_SHA1);
+
+		String rtmpURL = "rtmp://127.0.0.1/" + appName + "/" + streamId + "/token/" + subscriberId +"/" + code;
+		Process process = execute(ffmpegPath + " -re -i src/test/resources/test.flv "
+				+ "-c copy -f flv " + rtmpURL);
+
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcast	= ConsoleAppRestServiceTest.callGetBroadcast(restUrl,streamId);
+			return broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus());
+		});
+
+		appSettings.setEnableTimeTokenForPublish(false);
+		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+
+		process.destroy();
+	}
 }

@@ -65,6 +65,12 @@
 							<entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/> 
 							<entry key="processorCache" value="${http.processor_cache}"/> 
 							<entry key="relaxedQueryChars" value="{}" />
+							<entry key="compression" value="on" />
+							<entry key="compressionMinSize" value="2048" />
+							<entry key="noCompressionUserAgents" value="gozilla,traviata" />
+							<entry key="compressibleMimeType" value="application/vnd.apple.mpegurl,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml" />
+				
+							
 						</map>
 					</property>
 				</bean>
@@ -93,6 +99,11 @@
 				                                <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
 				                                <entry key="processorCache" value="${http.processor_cache}"/>
 				                                <entry key="relaxedQueryChars" value="{}" />
+				                                <entry key="compression" value="on" />
+												<entry key="compressionMinSize" value="2048" />
+							                    <entry key="noCompressionUserAgents" value="gozilla,traviata" />
+							                    <entry key="compressibleMimeType" value="application/vnd.apple.mpegurl,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml" />
+							
 							</map> 
 						</property> 
 					</bean>
@@ -122,6 +133,10 @@
 					<property name="rotatable" value="true" />
 					<property name="requestAttributesEnabled" value="true" />
 					<property name="fileDateFormat" value="" />
+				</bean>
+				<bean id="valve.access" class="org.apache.catalina.valves.ErrorReportValve">
+					<property name="showReport" value="true" />
+					<property name="showServerInfo" value="false" />
 				</bean>
 				<bean class="io.antmedia.valves.DataTransferValve" >
 					<property name="asyncSupported" value="true" />

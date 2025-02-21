@@ -2871,7 +2871,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		boolean result = muxAdaptor.init(appScope, streamId, false);
 
 		muxAdaptor.getDataStore().save(broadcast);
-		
+
 		muxAdaptor.setInputQueueSize(10);
 
 		muxAdaptor.updateStreamQualityParameters(streamId, 0.99612);
@@ -2909,7 +2909,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		muxAdaptor.setInputQueueSize(12120);
 
-		
+
 		Awaitility.await().pollDelay(MuxAdaptor.STAT_UPDATE_PERIOD_MS + 1000, TimeUnit.MILLISECONDS)
 		.atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS * 2, TimeUnit.MILLISECONDS).until(() -> {
 			muxAdaptor.updateStreamQualityParameters(streamId, 1.0123);
@@ -4182,6 +4182,86 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
+
+	}
+
+	@Test
+	public void testDontSendPacketsForTimeoutPeriod() throws IOException {
+		//av_log_set_level (40);
+		int hlsListSize = 3;
+		int hlsTime = 2;
+
+		getAppSettings().setMp4MuxingEnabled(false);
+		getAppSettings().setAddDateTimeToMp4FileName(false);
+		getAppSettings().setHlsMuxingEnabled(true);
+		getAppSettings().setDeleteHLSFilesOnEnded(true);
+		getAppSettings().setHlsTime(String.valueOf(hlsTime));
+		getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
+
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+
+		File file = null;
+
+
+		file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+		final FLVReader flvReader = new FLVReader(file);
+
+		logger.info("f path: {}", file.getAbsolutePath());
+		assertTrue(file.exists());
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("hls_video_subtitle");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		broadcast.setListenerHookURL("any_url");
+
+		muxAdaptor.setBroadcast(broadcast);
+
+
+		boolean result = muxAdaptor.init(appScope, "hls_video_subtitle", false);
+		assert (result);
+		
+
+		muxAdaptor.getDataStore().save(broadcast);
+
+		muxAdaptor.start();
+		
+		Application.resetFields();
+
+		feedMuxAdaptor(flvReader, Arrays.asList(muxAdaptor), info);
+
+		Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> {
+			return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(muxAdaptor.getDataStore().get(broadcast.getStreamId()).getStatus());
+		});
+
+		//wait about time period 
+		Awaitility.await().atMost(AntMediaApplicationAdapter.STREAM_TIMEOUT_MS+5000, TimeUnit.MILLISECONDS).until(() -> {
+			return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(muxAdaptor.getDataStore().get(broadcast.getStreamId()).getStatus());
+		});
+		
+		
+		assertFalse(muxAdaptor.isRecording());
+
+		flvReader.close();
+
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+
+		assertTrue(Application.notifyHookAction.contains(AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM));
 
 	}
 
