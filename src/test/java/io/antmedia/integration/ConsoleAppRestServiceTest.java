@@ -2383,8 +2383,7 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
-
-
+	
 
 	public void rtspSource(List<EncoderSettings> appEncoderSettings) {
 		try {
@@ -2443,6 +2442,49 @@ public class ConsoleAppRestServiceTest{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	// bug-fix test: https://github.com/ant-media/Ant-Media-Server/issues/7055
+	@Test
+	public void testUpdateStreamSourceDoesnotRestart() throws Exception {
+		StreamFetcherUnitTest.startCameraEmulator();
+		
+		String streamUrl= "rtsp://127.0.0.1:6554/test.flv";
+		//String streamUrl = "rtsp://rtspstream:gkrR0oWLi1_PR3hd7NxHi@zephyr.rtsp.stream/pattern";
+		Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, streamUrl,
+				AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		
+		String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
+		Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+			return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+
+		});
+		
+		String streamId = addStreamSourceResult.getDataId();
+		
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setName("newName");
+		
+		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		RestServiceV2Test.callUpdateBroadcast(null, streamId, broadcastUpdate);
+		
+		
+		
+		Awaitility.await().atMost(25, TimeUnit.SECONDS).pollDelay(AntMediaApplicationAdapter.STREAM_TIMEOUT_MS , TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+			return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+
+		});
+		
+		Result result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
+		assertTrue(result.isSuccess());
+		
+		StreamFetcherUnitTest.stopCameraEmulator();
+		
 	}
 
 	/**
