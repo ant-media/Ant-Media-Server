@@ -121,10 +121,18 @@ public class StreamFetcherManager {
 			isStreamLive = true;
 		}
 
-		if (!isStreamLive) {
+		if (!isStreamLive) 
+		{
 			//this stream may be fetching in somewhere in the cluster
-			isStreamLive = AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && 
-					AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), serverSettings.getHostAddress(), serverSettings.getDefaultHttpPort(), scope.getName());
+			
+			boolean isStatusStreaming = AntMediaApplicationAdapter.isStreaming(broadcast.getStatus());
+			boolean isInstanceRunning = false;
+			if (isStatusStreaming) {
+				isInstanceRunning = AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), serverSettings.getHostAddress(), serverSettings.getDefaultHttpPort(), scope.getName());
+			}
+			isStreamLive = isStatusStreaming && isInstanceRunning;
+					
+			logger.info("Stream is live:{}, originInstanceRunning:{} and streamId:{}", isStreamLive, isInstanceRunning, broadcast.getStreamId());
 		}
 
 		return isStreamLive;
