@@ -1447,11 +1447,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 				
 				long now = System.currentTimeMillis();
-				if ((now - lastQualityUpdateTime) > AntMediaApplicationAdapter.STREAM_TIMEOUT_MS) 
+				if (lastQualityUpdateTime != 0 && (now - lastQualityUpdateTime) > AntMediaApplicationAdapter.STREAM_TIMEOUT_MS) 
 				{
 					//It's not updated for timeout period, it means that stream is not sending packets and it is accepted as offline
 					//close Rtmp Connection
-					logger.info("Closing Rtmp Connection because it's not updated for {} ms for stream:{}", AntMediaApplicationAdapter.STREAM_TIMEOUT_MS, streamId);
+					logger.info("Closing Rtmp Connection because it's not updated for {}ms last update time:{} for stream:{}", AntMediaApplicationAdapter.STREAM_TIMEOUT_MS, lastQualityUpdateTime, streamId);
 					closeRtmpConnection();
 					stopRequestExist = true;
 				}
