@@ -501,12 +501,17 @@ public class StreamFetcherManager {
 	
 	public boolean isToBeStoppedAutomatically(Broadcast broadcast) 
 	{
-		// broadcast autoStartEnabled and there is nobody watching and it's started more than streamCheckerIntervalMs ago
-		logger.info("broadcast is autoStartStopEnabled:{} isAnyonewatching:{} startTime:{} streamCheckerIntervalMs:{}",
-				broadcast.isAutoStartStopEnabled(), broadcast.isAnyoneWatching(), broadcast.getStartTime(),  streamCheckerIntervalMs);
 		
-		return broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching() && 
-				broadcast.getStartTime() != 0 && (System.currentTimeMillis() > (broadcast.getStartTime() + streamCheckerIntervalMs));
+		boolean timeout = broadcast.getStartTime() != 0 && (System.currentTimeMillis() > (broadcast.getStartTime() + streamCheckerIntervalMs));
+		
+		// broadcast autoStartEnabled and there is nobody watching and it's started more than streamCheckerIntervalMs ago
+		boolean  isTobeStopped = broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching() && timeout;
+		
+		logger.info("Stream:{} isToBeStoppedAutomatically decision is {}  - details autoStartStopEnabled:{} isAnyonewatching:{} timeout:{} streamCheckerIntervalMs:{}",
+					broadcast.getStreamId(), isTobeStopped, broadcast.isAutoStartStopEnabled(), broadcast.isAnyoneWatching(), timeout,  streamCheckerIntervalMs);
+				
+		return isTobeStopped;
+				
 	}
 
 	public void controlStreamFetchers(boolean restart) {
