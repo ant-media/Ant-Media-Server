@@ -176,7 +176,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private boolean firstKeyFrameReceivedChecked = false;
 	private long lastKeyFramePTS =0;
 	protected String streamId;
-	protected long startTime;
+	private long startTime;
 
 	protected IScope scope;
 
@@ -957,7 +957,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 
-		startTime = System.currentTimeMillis();
 	}
 
 	public void prepareMuxerIO() 
@@ -975,7 +974,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 			}
 		}
-		startTime = System.currentTimeMillis();
 
 	}
 
@@ -1448,7 +1446,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				
 				long now = System.currentTimeMillis();
 				//check that at least timeout period has passed since last update time
-				if ((now - broadcast.getStartTime()) > AntMediaApplicationAdapter.STREAM_TIMEOUT_MS && 
+				if ((now - startTime) > AntMediaApplicationAdapter.STREAM_TIMEOUT_MS && 
 						(now - lastQualityUpdateTime) > AntMediaApplicationAdapter.STREAM_TIMEOUT_MS) 
 				{
 					//It's not updated for timeout period, it means that stream is not sending packets and it is accepted as offline
@@ -1843,6 +1841,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void start() {
 		logger.info("Number of items in the queue while adaptor is being started to prepare is {}", getInputQueueSize());
 
+		startTime = System.currentTimeMillis();
 		vertx.executeBlocking(() -> {
 			logger.info("before prepare for {}", streamId);
 			Boolean successful = false;
@@ -2135,10 +2134,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public boolean isPreviewOverwrite() {
 		return previewOverwrite;
-	}
-
-	public long getStartTime() {
-		return startTime;
 	}
 
 
