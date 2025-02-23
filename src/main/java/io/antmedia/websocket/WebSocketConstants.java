@@ -652,4 +652,14 @@ public class WebSocketConstants {
 	 * For example in conference case a participant use same websocket to publish its stream and to play the others
 	 */
 	public static final String USER_PUBLISH_ID = "userPublishId";
+	
+	/**
+	 * Notification to notify a new subtrack addition to a main track
+	 */
+	public static final String SUBTRACK_ADDED = "subtrackAdded";
+	
+	/**
+	 * Notification to notify a new subtrack removal to a main track
+	 */
+	public static final String SUBTRACK_REMOVED = "subtrackRemoved";
 }

@@ -783,6 +783,9 @@ public class StatsCollectorTest {
 			mockedSystemUtils.when(SystemUtils::isContainerized).thenReturn(false);
 			mockedSystemUtils.when(SystemUtils::availablePhysicalBytes).thenReturn(availableMemory);
 
+			// Reset the state for containerized scenario
+			SystemUtils.containerized = null;
+			
 			long nonContainerizedResult = SystemUtils.osAvailableMemory();
 			assertEquals(availableMemory, nonContainerizedResult);
 

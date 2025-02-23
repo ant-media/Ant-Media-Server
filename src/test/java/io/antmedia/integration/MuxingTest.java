@@ -954,6 +954,9 @@ public class MuxingTest {
 			return broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus());
 		});
 
+		appSettings.setEnableTimeTokenForPublish(false);
+		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+
 		process.destroy();
 		
 		appSettings.setEnableTimeTokenForPublish(false);

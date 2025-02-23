@@ -75,7 +75,7 @@ public class VoD implements Serializable {
     @Schema(description = "The size of the VoD file in bytes")
     private long fileSize;
 
-    @Schema(description = "The path of the VoD")
+    @Schema(description = "The relative path of the VoD after app name such as streams/{vodId}.mp4")
     private String filePath;
 
     @Schema(description = "The id of the VoD")

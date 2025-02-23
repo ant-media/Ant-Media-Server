@@ -687,8 +687,8 @@ public class StreamFetcher {
 				}
 				else
 				{
-					logger.info("Stream fetcher will not try again for streamUrl:{} because stopRequestReceived:{} and restartStream:{}",
-							streamUrl, stopRequestReceived, restartStream);
+					logger.info("Stream fetcher will not try again for streamUrl:{} and streamId:{} because stopRequestReceived:{} and restartStream:{}",
+							streamUrl, streamId, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
 						getInstance().closeBroadcast(streamId);

@@ -142,5 +142,15 @@
 	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2023-6603</vulnerabilityName>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   We're not using immersive audio so that this vulnerability does not have an impact to Ant Media Server. When the fix is available,
+	   we'll also update the FFmpeg version in Ant Media Server. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-25469</vulnerabilityName>
+	</suppress>
 	
 </suppressions>
