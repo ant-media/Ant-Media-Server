@@ -6153,6 +6153,36 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(hlsMuxer).deleteFilesAfterUpload("streams/testing");
 		Thread.sleep(5000);
 		verify(client).deleteMultipleFiles("streams/testing","ts,m3u8");
+
+
+		vertx = Vertx.vertx();
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		client = Mockito.mock(StorageClient.class);
+		doReturn(true).when(client).isEnabled();
+		hlsMuxer = spy(new HLSMuxer(vertx,client , "streams", 7, "", false));
+		hlsMuxer.setIsRunning(new AtomicBoolean(true));
+		String streamId = "stream_name_" + (int) (Math.random() * 10000);
+		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
+
+		//init
+		hlsMuxer.init(appScope, streamId, 0, null, 0);
+		File[] mockFiles = {
+				new File("test.ts"),
+				new File("test123.ts"),
+				new File("test123.m3u8"),
+				new File("test.mp4")
+		};
+
+		doReturn(mockFiles).when(hlsMuxer).getHLSFilesInDirectory(anyString());
+
+		hlsMuxer.setStreamId("testing");
+		hlsMuxer.setHlsListSize("1");
+		hlsMuxer.setHlsTime("1");
+		hlsMuxer.writeTrailer();
+		Thread.sleep(6000);
+		verify(hlsMuxer).deleteFilesAfterUpload("streams/test.ts");
+		verify(hlsMuxer).deleteFilesAfterUpload("streams/test123.m3u8");
+		
 	}
 
 }
