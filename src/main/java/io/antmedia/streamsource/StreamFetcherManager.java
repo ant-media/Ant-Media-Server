@@ -121,10 +121,18 @@ public class StreamFetcherManager {
 			isStreamLive = true;
 		}
 
-		if (!isStreamLive) {
+		if (!isStreamLive) 
+		{
 			//this stream may be fetching in somewhere in the cluster
-			isStreamLive = AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && 
-					AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), serverSettings.getHostAddress(), serverSettings.getDefaultHttpPort(), scope.getName());
+			
+			boolean isStatusStreaming = AntMediaApplicationAdapter.isStreaming(broadcast.getStatus());
+			boolean isInstanceRunning = false;
+			if (isStatusStreaming) {
+				isInstanceRunning = AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), serverSettings.getHostAddress(), serverSettings.getDefaultHttpPort(), scope.getName());
+			}
+			isStreamLive = isStatusStreaming && isInstanceRunning;
+					
+			logger.info("Stream is live:{}, originInstanceRunning:{} and streamId:{}", isStreamLive, isInstanceRunning, broadcast.getStreamId());
 		}
 
 		return isStreamLive;
@@ -493,12 +501,17 @@ public class StreamFetcherManager {
 	
 	public boolean isToBeStoppedAutomatically(Broadcast broadcast) 
 	{
-		// broadcast autoStartEnabled and there is nobody watching and it's started more than streamCheckerIntervalMs ago
-		logger.info("broadcast is autoStartStopEnabled:{} isAnyonewatching:{} startTime:{} streamCheckerIntervalMs:{}",
-				broadcast.isAutoStartStopEnabled(), broadcast.isAnyoneWatching(), broadcast.getStartTime(),  streamCheckerIntervalMs);
 		
-		return broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching() && 
-				broadcast.getStartTime() != 0 && (System.currentTimeMillis() > (broadcast.getStartTime() + streamCheckerIntervalMs));
+		boolean timeout = broadcast.getStartTime() != 0 && (System.currentTimeMillis() > (broadcast.getStartTime() + streamCheckerIntervalMs));
+		
+		// broadcast autoStartEnabled and there is nobody watching and it's started more than streamCheckerIntervalMs ago
+		boolean  isTobeStopped = broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching() && timeout;
+		
+		logger.info("Stream:{} isToBeStoppedAutomatically decision is {}  - details autoStartStopEnabled:{} isAnyonewatching:{} timeout:{} streamCheckerIntervalMs:{}",
+					broadcast.getStreamId(), isTobeStopped, broadcast.isAutoStartStopEnabled(), broadcast.isAnyoneWatching(), timeout,  streamCheckerIntervalMs);
+				
+		return isTobeStopped;
+				
 	}
 
 	public void controlStreamFetchers(boolean restart) {
@@ -535,7 +548,18 @@ public class StreamFetcherManager {
 				logger.info("Stream:{} is alive -> {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
+				
+				if (!streamScheduler.isStreamBlocked() && !streamScheduler.isStreamAlive() && 
+						broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
+					// if it's not blocked and it's not alive, stop the stream 
+					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
+					stopStreaming(streamScheduler.getStreamId());
+					//turn restart to true because we restart the stream to reconnect
+					restart = true;
+				}
 			}
+			
+			
 			
 			//start streaming if broadcast object is in db(it means not deleted)
 			if (restart && broadcast != null) 
@@ -553,7 +577,8 @@ public class StreamFetcherManager {
 						}
 					});
 				}
-				else {
+				else 
+				{
 					startStreaming(broadcast);
 				}
 			}

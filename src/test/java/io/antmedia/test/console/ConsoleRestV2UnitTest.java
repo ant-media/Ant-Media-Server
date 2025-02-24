@@ -50,12 +50,15 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.console.rest.RestServiceV2;
+import io.antmedia.console.rest.SupportRequest;
+import io.antmedia.console.rest.SupportRestService;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.StatsCollector;
 import io.vertx.core.Vertx;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -258,6 +261,27 @@ public class ConsoleRestV2UnitTest {
 			e.printStackTrace();
 		}
 
+	}
+	
+	@Test
+	public void testSupportRequest() {
+		SupportRestService supportRestService = Mockito.spy(new SupportRestService());
+		
+		SupportRequest supportRequest = new SupportRequest();
+		supportRequest.setEmail("fromci@gmail.com");
+		supportRequest.setDescription("This is coming from CI to test this endpoint. You can delete this message");
+		supportRequest.setTitle("Test Message");
+		supportRequest.setName("ci antmedia");
+		
+		ServerSettings serverSettings = new ServerSettings();
+		serverSettings.setLicenceKey("license-key");
+		Mockito.doReturn(serverSettings).when(supportRestService).getServerSettings();
+		
+		StatsCollector collector = new StatsCollector();
+		Mockito.doReturn(collector).when(supportRestService).getStatsCollector();
+		
+		Result result = supportRestService.sendSupportRequest(supportRequest);
+		assertTrue(result.isSuccess());
 	}
 
 	@Test

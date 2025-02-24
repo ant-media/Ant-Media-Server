@@ -1,6 +1,7 @@
 package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -360,7 +361,8 @@ public class PlaylistRestServiceV2UnitTest {
 
 		result = restServiceReal.updateBroadcast(playlist.getStreamId(), broadcastUpdate);
 		
-		assertTrue(restServiceReal.isStreaming(dataStore.get(playlist.getStreamId())));
+		//it will not update the status 
+		assertFalse(AntMediaApplicationAdapter.isStreaming(dataStore.get(playlist.getStreamId()).getStatus()));
 		
 		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
 		Mockito.verify(app).schedulePlayList(Mockito.anyLong(), Mockito.any());
