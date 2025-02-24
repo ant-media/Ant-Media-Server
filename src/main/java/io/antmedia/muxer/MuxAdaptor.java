@@ -176,7 +176,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private boolean firstKeyFrameReceivedChecked = false;
 	private long lastKeyFramePTS =0;
 	protected String streamId;
-	protected long startTime;
+	private long startTime;
 
 	protected IScope scope;
 
@@ -957,7 +957,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 
-		startTime = System.currentTimeMillis();
 	}
 
 	public void prepareMuxerIO() 
@@ -975,7 +974,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 			}
 		}
-		startTime = System.currentTimeMillis();
 
 	}
 
@@ -1362,11 +1360,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 					if (stopRequestExist) {
 						logger.info("Stop request exists for stream:{}", streamId);
-						broadcastStream.removeStreamListener(MuxAdaptor.this);
-						logger.warn("closing adaptor for {} ", streamId);
-						closeResources();
-						logger.warn("closed adaptor for {}", streamId);
-						getStreamHandler().stopPublish(streamId);
+						clearAndStopStream();
 						//finally code execute and reset the isPipeReaderJobRunning
 						return;
 
@@ -1439,7 +1433,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 					updateQualityParameters(dts, TIME_BASE_FOR_MS, 0, isKeyFrame);
 					
-
 					if (bufferTimeMs == 0) 
 					{
 						writeStreamPacket(packet);
@@ -1450,13 +1443,23 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					}
 
 				}
+				
+				long now = System.currentTimeMillis();
+				//check that at least timeout period has passed since last update time
+				if ((now - startTime) > AntMediaApplicationAdapter.STREAM_TIMEOUT_MS && 
+						(now - lastQualityUpdateTime) > AntMediaApplicationAdapter.STREAM_TIMEOUT_MS) 
+				{
+					//It's not updated for timeout period, it means that stream is not sending packets and it is accepted as offline
+					//close Rtmp Connection
+					logger.info("Closing Rtmp Connection because it's not updated for {}ms last update time:{} for stream:{}", AntMediaApplicationAdapter.STREAM_TIMEOUT_MS, lastQualityUpdateTime, streamId);
+					closeRtmpConnection();
+					stopRequestExist = true;
+				}
+				
 
 				if (stopRequestExist) {
-					broadcastStream.removeStreamListener(MuxAdaptor.this);
-					logger.warn("closing adaptor for {} ", streamId);
-					closeResources();
-					logger.warn("closed adaptor for {}", streamId);
-					getStreamHandler().stopPublish(streamId);
+					logger.info("Stop request exists for stream:{}", streamId);
+					clearAndStopStream();
 				}	
 			}
 			finally {
@@ -1465,6 +1468,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				isPipeReaderJobRunning.compareAndSet(true, false);
 			}
 		}
+	}
+	
+	public void clearAndStopStream() {
+		broadcastStream.removeStreamListener(MuxAdaptor.this);
+		logger.warn("closing adaptor for {} ", streamId);
+		closeResources();
+		logger.warn("closed adaptor for {}", streamId);
+		getStreamHandler().stopPublish(streamId);
 	}
 
 
@@ -1830,6 +1841,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void start() {
 		logger.info("Number of items in the queue while adaptor is being started to prepare is {}", getInputQueueSize());
 
+		startTime = System.currentTimeMillis();
 		vertx.executeBlocking(() -> {
 			logger.info("before prepare for {}", streamId);
 			Boolean successful = false;
@@ -2122,10 +2134,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public boolean isPreviewOverwrite() {
 		return previewOverwrite;
-	}
-
-	public long getStartTime() {
-		return startTime;
 	}
 
 

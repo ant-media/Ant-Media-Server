@@ -29,8 +29,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 	@Index(fields = @Field("status")) })
 public class Broadcast {
 
-	private static final Logger logger = LoggerFactory.getLogger(Broadcast.class);
-
 	@JsonIgnore
 	@Id
 	private ObjectId dbId;
@@ -252,7 +250,7 @@ public class Broadcast {
 	 * rest service or management console It is false by default
 	 *
 	 */
-	@Schema(description ="is true, if a broadcast that is not added to data store through rest service or management console It is false by default")
+	@Schema(description ="This value is true when a broadcast is created directly through streaming without created earlier through rest service. It is false by default")
 	private boolean zombi = false;
 
 	/**
