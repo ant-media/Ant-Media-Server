@@ -505,8 +505,8 @@ public abstract class RestServiceBase {
 
 		//Stop if it's streaming and type is not playlist
 		if (isStreamingActive && !isPlayList) {
-			boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
-			waitStopStreaming(broadcastInDB, resultStopStreaming);
+			checkStopStreaming(broadcastInDB);
+			waitStopStreaming(broadcastInDB);
 		}
 
 		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcastInDB.getType()) && 
@@ -538,12 +538,13 @@ public abstract class RestServiceBase {
 
 		}
 
-
 		removeEmptyPlayListItems(updatedBroadcast.getPlayListItemList());
 
 		updatePlayListItemDurationsIfApplicable(updatedBroadcast.getPlayListItemList(), updatedBroadcast.getStreamId());
 
-
+		//don't update the status - this is the fix for this issue -> https://github.com/ant-media/Ant-Media-Server/issues/7055
+		//test code is ConsoleAppRestServiceTest#testUpdateStreamSourceDoesnotRestart
+		updatedBroadcast.setStatus(null);
 		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
 
 		if (result) {
@@ -560,7 +561,6 @@ public abstract class RestServiceBase {
 				//start streaming again if it was streaming and it's not Playlist
 				Broadcast fetchedBroadcast = getDataStore().get(streamId);
 				getApplication().startStreaming(fetchedBroadcast);
-
 			}
 		}
 
@@ -586,12 +586,12 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public boolean waitStopStreaming(Broadcast broadcast, Boolean resultStopStreaming) {
+	public boolean waitStopStreaming(Broadcast broadcast) {
 
 		int i = 0;
 		int waitPeriod = 250;
 		// Broadcast status finished is not enough to be sure about broadcast's status.
-		while (!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(getDataStore().get(broadcast.getStreamId()).getStatus()) && !resultStopStreaming.equals(true)) {
+		while (!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(getDataStore().get(broadcast.getStreamId()).getStatus())) {
 			try {
 				i++;
 				logger.info("Waiting for stop broadcast: {} Total wait time: {}ms", broadcast.getStreamId() , i*waitPeriod);

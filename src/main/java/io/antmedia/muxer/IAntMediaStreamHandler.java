@@ -65,9 +65,10 @@ public interface IAntMediaStreamHandler {
 	 * @param file video file that muxed is finished
 	 * @param duration of the video in milliseconds
 	 * @param resolution height of the video 
+	 * @param previewFilePath path of the preview file
 	 * 
 	 */
-	public void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration , int resolution, String path, String vodId);
+	public void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration , int resolution, String previewFilePath, String vodId);
 	
 	/**
 	 * Update stream quality, speed and number of pending packet size and update time

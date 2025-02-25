@@ -8,12 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -35,6 +30,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
@@ -2387,8 +2383,7 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
-
-
+	
 
 	public void rtspSource(List<EncoderSettings> appEncoderSettings) {
 		try {
@@ -2447,6 +2442,49 @@ public class ConsoleAppRestServiceTest{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	// bug-fix test: https://github.com/ant-media/Ant-Media-Server/issues/7055
+	@Test
+	public void testUpdateStreamSourceDoesnotRestart() throws Exception {
+		StreamFetcherUnitTest.startCameraEmulator();
+		
+		String streamUrl= "rtsp://127.0.0.1:6554/test.flv";
+		//String streamUrl = "rtsp://rtspstream:gkrR0oWLi1_PR3hd7NxHi@zephyr.rtsp.stream/pattern";
+		Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, streamUrl,
+				AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		
+		String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
+		Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+			return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+
+		});
+		
+		String streamId = addStreamSourceResult.getDataId();
+		
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setName("newName");
+		
+		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		RestServiceV2Test.callUpdateBroadcast(null, streamId, broadcastUpdate);
+		
+		
+		
+		Awaitility.await().atMost(25, TimeUnit.SECONDS).pollDelay(AntMediaApplicationAdapter.STREAM_TIMEOUT_MS , TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+			return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+
+		});
+		
+		Result result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
+		assertTrue(result.isSuccess());
+		
+		StreamFetcherUnitTest.stopCameraEmulator();
+		
 	}
 
 	/**
@@ -4124,5 +4162,78 @@ public class ConsoleAppRestServiceTest{
 		}
 		return null;
 
+	}
+	public static Result callCreateTOTPSubscriber(String restUrl,String subscriberId, String secret, String streamId, String type) {
+
+		try {
+			String url = restUrl +"/v2/broadcasts/"+ streamId +"/subscribers";
+			JSONObject jsonObject = new JSONObject();
+			jsonObject.put("subscriberId", subscriberId);
+			jsonObject.put("b32Secret", secret);
+			jsonObject.put("type", type);
+
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(jsonObject.toJSONString()))
+					.build();
+
+			HttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Result tmp = gson.fromJson(result.toString(), Result.class);
+			assertNotNull(tmp);
+
+			return tmp;
+
+
+
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+		return new Result(false);
+
+
+	}
+	public static Broadcast callGetBroadcast(String restUrl, String streamId) throws Exception {
+		String url = restUrl + "/v2/broadcasts/" + streamId;
+
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.build();
+
+		CloseableHttpResponse response = client.execute(get);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() == 404) {
+			return null;
+		}
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+
+		return gson.fromJson(result.toString(), Broadcast.class);
 	}
 }
