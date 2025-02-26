@@ -253,7 +253,7 @@ public abstract class RestServiceBase {
 			getApplication().schedulePlayList(now, createdBroadcast);	
 		}
 		
-		if(broadcast.getPlannedEndDate() > System.currentTimeMillis()) {
+		if(broadcast != null && broadcast.getPlannedEndDate() > System.currentTimeMillis()) {
 			getApplication().putBroadcastToAutoStopMap(broadcast.getStreamId(), broadcast.getPlannedEndDate());
 		}
 
