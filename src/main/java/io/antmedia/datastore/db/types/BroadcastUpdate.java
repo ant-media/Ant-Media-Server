@@ -38,9 +38,9 @@ public class BroadcastUpdate {
 
     private Long date = null;
 
-    private Long plannedStartDate = null;
+    private Long plannedStartDate = 0L;
 
-    private Long plannedEndDate = null;
+    private Long plannedEndDate = 0L;
 
     private Long duration = null;
 
