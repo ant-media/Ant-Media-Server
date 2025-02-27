@@ -66,6 +66,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.VoD;
@@ -264,10 +265,10 @@ public class RestServiceV2Test {
 	}
 
 	public static Result callUpdateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl, String type, List<PlayListItem> playList) {
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
+		
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		Broadcast broadcast = new Broadcast();
+		
+		BroadcastUpdate broadcast = new BroadcastUpdate();
 		try {
 			broadcast.setStreamId(id);
 		} catch (Exception e1) {
@@ -286,6 +287,15 @@ public class RestServiceV2Test {
 			broadcast.setPlayListItemList(playList);
 		}
 
+		return callUpdateBroadcast(socialNetworks, id, broadcast);
+	}
+
+	public static Result callUpdateBroadcast(String socialNetworks, String id,
+			BroadcastUpdate broadcast) {
+		
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
+		
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		try {
 			Gson gson = new Gson();
 			HttpUriRequest post = RequestBuilder.put().setUri(url + "?socialNetworks=" + socialNetworks)

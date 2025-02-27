@@ -603,7 +603,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(hlsMuxer.getFile().exists());
 		String[] filesInStreams = hlsMuxer.getFile().getParentFile().list();
 		boolean initFileFound = false;
-        String regex = streamId + "_" + System.currentTimeMillis()/10000 + "\\d{4}_init.mp4";
+        String regex = streamId + "_" + System.currentTimeMillis()/1000000 + "\\d{6}_init.mp4";
 		System.out.println("regex:"+regex);
 
 		for (int i = 0; i < filesInStreams.length; i++) {

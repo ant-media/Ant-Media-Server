@@ -2604,7 +2604,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(true, result.isSuccess());
 
 		Awaitility.await().atMost(25*250, TimeUnit.MILLISECONDS)
-		.until(() -> streamSourceRest.waitStopStreaming(streamSource,false));
+		.until(() -> streamSourceRest.waitStopStreaming(streamSource));
 
 		// Test line 392 if condition
 
