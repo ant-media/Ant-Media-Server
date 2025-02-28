@@ -256,8 +256,9 @@ public abstract class RestServiceBase {
 		return createdBroadcast;
 	}
 	
-	public static Broadcast configureBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
+	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
 			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs, boolean isVirtual) {
+
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
@@ -265,46 +266,33 @@ public abstract class RestServiceBase {
 		broadcast.setStatus(status);
 		broadcast.setDate(System.currentTimeMillis());
 		broadcast.setVirtual(isVirtual);
-		
+
 		String listenerHookURL = broadcast.getListenerHookURL();
 
 		if ((listenerHookURL == null || listenerHookURL.isEmpty())
 				&& settingsListenerHookURL != null && !settingsListenerHookURL.isEmpty()) {
-
 			broadcast.setListenerHookURL(settingsListenerHookURL);
 		}
 		String fqdn = serverSettings.getServerName();
-
 		if (fqdn == null || fqdn.length() == 0) {
 			fqdn = serverSettings.getHostAddress();
 		}
 		broadcast.setOriginAdress(serverSettings.getHostAddress());
 		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
-
 		removeEmptyPlayListItems(broadcast.getPlayListItemList());
-
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 		}
 
 		updatePlayListItemDurationsIfApplicable(broadcast.getPlayListItemList(), broadcast.getStreamId());
-		return broadcast;
-	}
 
-	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
-		Broadcast configuredBroadcast = configureBroadcast(broadcast, status, scopeName, dataStore, settingsListenerHookURL, serverSettings, absoluteStartTimeMs, false);
-
-		dataStore.save(configuredBroadcast);
+		dataStore.save(broadcast);
 		return broadcast;
 	}
 	
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs, boolean isVirtual) {
-		Broadcast configuredBroadcast = configureBroadcast(broadcast, status, scopeName, dataStore, settingsListenerHookURL, serverSettings, absoluteStartTimeMs, isVirtual);
-
-		dataStore.save(configuredBroadcast);
-		return broadcast;
+			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
+		return saveBroadcast(broadcast, status, scopeName, dataStore, settingsListenerHookURL, serverSettings, absoluteStartTimeMs, false);
 	}
 
 	public static void updatePlayListItemDurationsIfApplicable(List<PlayListItem> playListItemList, String streamId) 
