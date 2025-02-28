@@ -264,6 +264,7 @@ public abstract class RestServiceBase {
 
 		broadcast.setStatus(status);
 		broadcast.setDate(System.currentTimeMillis());
+		broadcast.setVirtual(isVirtual);
 		
 		String listenerHookURL = broadcast.getListenerHookURL();
 
