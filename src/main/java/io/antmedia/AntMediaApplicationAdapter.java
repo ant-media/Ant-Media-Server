@@ -976,7 +976,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		{
 
 			logger.info("Saving zombi broadast to data store with streamId:{}", streamId);
-			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "", "");
+			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "", "", false);
 		}
 		else {
 
@@ -1007,7 +1007,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role) {
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role, boolean isVirtual) {
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -1024,7 +1024,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			return RestServiceBase.saveBroadcast(newBroadcast,
 					streamStatus, appAdapter.getScope().getName(), appAdapter.getDataStore(),
-					appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), absoluteStartTimeMs);
+					appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), absoluteStartTimeMs, isVirtual);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}

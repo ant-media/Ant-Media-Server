@@ -244,7 +244,7 @@ public abstract class RestServiceBase {
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
 		Broadcast createdBroadcast = saveBroadcast(broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0, false);
 
 		if (AntMediaApplicationAdapter.PLAY_LIST.equals(createdBroadcast.getType())) 
 		{
@@ -257,7 +257,7 @@ public abstract class RestServiceBase {
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
+			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs, boolean isVirtual) {
 
 		if (broadcast == null) {
 			broadcast = new Broadcast();
@@ -265,7 +265,8 @@ public abstract class RestServiceBase {
 
 		broadcast.setStatus(status);
 		broadcast.setDate(System.currentTimeMillis());
-
+		broadcast.setVirtual(isVirtual);
+		
 		String listenerHookURL = broadcast.getListenerHookURL();
 
 		if ((listenerHookURL == null || listenerHookURL.isEmpty())
@@ -936,7 +937,7 @@ public abstract class RestServiceBase {
 
 				stream.setDate(unixTime);
 
-				Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+				Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0, false);
 
 				connResult = getApplication().startStreaming(savedBroadcast);
 				//if IP Camera is not being started while adding, do not record it to datastore
@@ -1125,7 +1126,7 @@ public abstract class RestServiceBase {
 			stream.setDate(unixTime);
 
 
-			Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+			Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0, false);
 
 			result = getApplication().startStreaming(savedBroadcast);
 
