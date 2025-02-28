@@ -922,6 +922,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				event.setApp(scope.getName());
 
 				LoggerUtils.logAnalyticsFromServer(event);
+				
+				notifyPublishStarted(streamId);
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -965,6 +967,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
+	protected void notifyPublishStarted(String streamId) {
+		// no need to implement here
+	}
 
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
 		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
