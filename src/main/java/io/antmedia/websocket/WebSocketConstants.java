@@ -76,8 +76,6 @@ public class WebSocketConstants {
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
 	
-	public static final String STREAMING_STARTED = "streaming_started";
-
 
 	/**
 	 * Please use {@link #MAIN_TRACK} instead
