@@ -244,7 +244,7 @@ public abstract class RestServiceBase {
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
 		Broadcast createdBroadcast = saveBroadcast(broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0, false);
+				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 		if (AntMediaApplicationAdapter.PLAY_LIST.equals(createdBroadcast.getType())) 
 		{
@@ -255,17 +255,15 @@ public abstract class RestServiceBase {
 
 		return createdBroadcast;
 	}
-
-	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
+	
+	public static Broadcast configureBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
 			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs, boolean isVirtual) {
-
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
 
 		broadcast.setStatus(status);
 		broadcast.setDate(System.currentTimeMillis());
-		broadcast.setVirtual(isVirtual);
 		
 		String listenerHookURL = broadcast.getListenerHookURL();
 
@@ -289,8 +287,22 @@ public abstract class RestServiceBase {
 		}
 
 		updatePlayListItemDurationsIfApplicable(broadcast.getPlayListItemList(), broadcast.getStreamId());
+		return broadcast;
+	}
 
-		dataStore.save(broadcast);
+	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
+			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
+		Broadcast configuredBroadcast = configureBroadcast(broadcast, status, scopeName, dataStore, settingsListenerHookURL, serverSettings, absoluteStartTimeMs, false);
+
+		dataStore.save(configuredBroadcast);
+		return broadcast;
+	}
+	
+	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
+			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs, boolean isVirtual) {
+		Broadcast configuredBroadcast = configureBroadcast(broadcast, status, scopeName, dataStore, settingsListenerHookURL, serverSettings, absoluteStartTimeMs, isVirtual);
+
+		dataStore.save(configuredBroadcast);
 		return broadcast;
 	}
 
@@ -937,7 +949,7 @@ public abstract class RestServiceBase {
 
 				stream.setDate(unixTime);
 
-				Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0, false);
+				Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 				connResult = getApplication().startStreaming(savedBroadcast);
 				//if IP Camera is not being started while adding, do not record it to datastore
@@ -1126,7 +1138,7 @@ public abstract class RestServiceBase {
 			stream.setDate(unixTime);
 
 
-			Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0, false);
+			Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 			result = getApplication().startStreaming(savedBroadcast);
 

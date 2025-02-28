@@ -975,8 +975,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (broadcast == null)
 		{
 
-			logger.info("Saving zombi broadast to data store with streamId:{}", streamId);
-			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "", "", false);
+			logger.info("Saving zombi broadcast to data store with streamId:{}", streamId);
+			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "", "");
 		}
 		else {
 
@@ -1006,18 +1006,41 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return serverSettings;
 	}
 
-
-	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role, boolean isVirtual) {
-		Broadcast newBroadcast = new Broadcast();
+	public static Broadcast configureBroadcast(String streamName, String mainTrackStreamId, String metaData, String role) {
+		Broadcast broadcast = new Broadcast();
 		long now = System.currentTimeMillis();
-		newBroadcast.setDate(now);
-		newBroadcast.setStartTime(now);
-		newBroadcast.setUpdateTime(now);
-		newBroadcast.setZombi(true);
-		newBroadcast.setName(streamName);
-		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
-		newBroadcast.setMetaData(metaData);
-		newBroadcast.setRole(role);
+		broadcast.setDate(now);
+		broadcast.setStartTime(now);
+		broadcast.setUpdateTime(now);
+		broadcast.setZombi(true);
+		broadcast.setName(streamName);
+		broadcast.setMainTrackStreamId(mainTrackStreamId);
+		broadcast.setMetaData(metaData);
+		broadcast.setRole(role);
+		
+		return broadcast;
+	}
+
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role) {
+		Broadcast newBroadcast = configureBroadcast(streamName, mainTrackStreamId, metaData, role);
+
+		try {
+			newBroadcast.setStreamId(streamId);
+			newBroadcast.setPublishType(publishType);
+
+			return RestServiceBase.saveBroadcast(newBroadcast,
+					streamStatus, appAdapter.getScope().getName(), appAdapter.getDataStore(),
+					appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), absoluteStartTimeMs);
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return null;
+	}
+	
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role, boolean isVirtual) {
+		Broadcast newBroadcast = configureBroadcast(streamName, mainTrackStreamId, metaData, role);
+
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);
@@ -1031,6 +1054,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		return null;
 	}
+	
 
 	@Override
 	@Deprecated
