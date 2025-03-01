@@ -152,5 +152,23 @@
 	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2025-25469</vulnerabilityName>
 	</suppress>
+		<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   Ant Media Server get files only as Stream Source and it is on the Admin Control. So Ant Media Server will not be affected by users. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22919</vulnerabilityName>
+	</suppress>
+		<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   We're not accepting jpeg as source in Ant Media Server. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22921</vulnerabilityName>
+	</suppress>
 	
 </suppressions>
