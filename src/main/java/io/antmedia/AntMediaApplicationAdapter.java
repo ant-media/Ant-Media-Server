@@ -1014,6 +1014,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		newBroadcast.setUpdateTime(now);
 		newBroadcast.setZombi(true);
 		newBroadcast.setName(streamName);
+		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
+		newBroadcast.setMetaData(metaData);
+		newBroadcast.setRole(role);
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);
