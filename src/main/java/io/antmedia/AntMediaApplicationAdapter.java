@@ -1028,17 +1028,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role) {
 		Broadcast broadcast = createZombiBroadcast(streamId, streamName, streamStatus, publishType, mainTrackStreamId, metaData, role);
-		
-		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
-		return RestServiceBase.saveBroadcast(broadcast,
-				streamStatus, appAdapter.getScope().getName(), appAdapter.getDataStore(),
-				appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), absoluteStartTimeMs);
+		if (broadcast != null) {
+
+			broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
+			return RestServiceBase.saveBroadcast(broadcast,
+					streamStatus, appAdapter.getScope().getName(), appAdapter.getDataStore(),
+					appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), absoluteStartTimeMs);
+		}
+		return null;
 	}
-	
+
 	public static Broadcast saveBroadcast(Broadcast broadcast, AntMediaApplicationAdapter appAdapter) {
 		return RestServiceBase.saveBroadcast(broadcast,
 				null, appAdapter.getScope().getName(), appAdapter.getDataStore(),
-				appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), -1);
+				appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), 0);
 	}
 
 

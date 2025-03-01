@@ -2497,6 +2497,38 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 	}
+	
+	@Test
+	public void testSaveBroadcast() throws Exception {
+		DataStore dataStore = new InMemoryDataStore("test");
+		
+		adapter.setDataStore(dataStore);
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		IContext context = mock(IContext.class);
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
+		when(appContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+
+		when(scope.getContext()).thenReturn(context);
+
+		adapter.setAppSettings(new AppSettings());
+
+		adapter.setScope(scope);
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("test123");
+		
+		assertNull(dataStore.get(broadcast.getStreamId()));
+		AntMediaApplicationAdapter.saveBroadcast(broadcast, adapter);
+		
+		assertNotNull(dataStore.get(broadcast.getStreamId()));
+
+
+	}
+	
 
 	@Test
 	public void testSaveMainBroadcast() 
