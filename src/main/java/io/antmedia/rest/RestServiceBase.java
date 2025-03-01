@@ -257,15 +257,15 @@ public abstract class RestServiceBase {
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs, boolean isVirtual) {
+			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
 
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
-
-		broadcast.setStatus(status);
+		if (StringUtils.isNotBlank(status)) {
+			broadcast.setStatus(status);
+		}
 		broadcast.setDate(System.currentTimeMillis());
-		broadcast.setVirtual(isVirtual);
 
 		String listenerHookURL = broadcast.getListenerHookURL();
 
@@ -278,7 +278,9 @@ public abstract class RestServiceBase {
 			fqdn = serverSettings.getHostAddress();
 		}
 		broadcast.setOriginAdress(serverSettings.getHostAddress());
-		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
+		if (absoluteStartTimeMs != 0) {
+			broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
+		}
 		removeEmptyPlayListItems(broadcast.getPlayListItemList());
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
@@ -288,11 +290,6 @@ public abstract class RestServiceBase {
 
 		dataStore.save(broadcast);
 		return broadcast;
-	}
-	
-	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
-		return saveBroadcast(broadcast, status, scopeName, dataStore, settingsListenerHookURL, serverSettings, absoluteStartTimeMs, false);
 	}
 
 	public static void updatePlayListItemDurationsIfApplicable(List<PlayListItem> playListItemList, String streamId) 
