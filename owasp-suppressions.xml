@@ -152,5 +152,25 @@
 	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2025-25469</vulnerabilityName>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   Ant Media Server does not decode JPEGs so that this vulnerability does not have an impact to Ant Media Server. When the fix is available,
+	   we'll also update the FFmpeg version in Ant Media Server.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22921</vulnerabilityName>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   This vulnerability is about opening a crafted AAC file. This case can only happen when putting that file as a stream source. 
+	   For this scenario, we recommend users to open the trusted files and when the fix is available, we'll update the FFmpeg version in Ant Media Server. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22919</vulnerabilityName>
+	</suppress>
 	
 </suppressions>
