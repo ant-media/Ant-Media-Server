@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Rule;
@@ -308,5 +309,21 @@ public class AmazonS3StorageClientTest {
 
 		
 		
+	}
+	@Test
+	public void testDeleteMultipleFile(){
+
+		AmazonS3StorageClient s3client = Mockito.spy(AmazonS3StorageClient.class);
+
+		ArrayList<String> objects = new ArrayList<>(Arrays.asList("test.mp4","test.abc","test.m3u8","test0000001.ts","test.ts"));
+		doReturn(objects).when(s3client).getObjects("test");
+
+		s3client.deleteMultipleFiles("test","ts,m3u8");
+		verify(s3client).delete("test.ts");
+		verify(s3client).delete("test.m3u8");
+		verify(s3client).delete("test0000001.ts");
+		verify(s3client,times(0)).delete("test.mp4");
+		verify(s3client,times(0)).delete("test.abc");
+
 	}
 }
