@@ -266,27 +266,26 @@ public abstract class RestServiceBase {
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
-
-		broadcast.setStatus(status);
+		if (StringUtils.isNotBlank(status)) {
+			broadcast.setStatus(status);
+		}
 		broadcast.setDate(System.currentTimeMillis());
 
 		String listenerHookURL = broadcast.getListenerHookURL();
 
 		if ((listenerHookURL == null || listenerHookURL.isEmpty())
 				&& settingsListenerHookURL != null && !settingsListenerHookURL.isEmpty()) {
-
 			broadcast.setListenerHookURL(settingsListenerHookURL);
 		}
 		String fqdn = serverSettings.getServerName();
-
 		if (fqdn == null || fqdn.length() == 0) {
 			fqdn = serverSettings.getHostAddress();
 		}
 		broadcast.setOriginAdress(serverSettings.getHostAddress());
-		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
-
+		if (absoluteStartTimeMs != 0) {
+			broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
+		}
 		removeEmptyPlayListItems(broadcast.getPlayListItemList());
-
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 		}
