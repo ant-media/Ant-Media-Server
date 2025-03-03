@@ -3888,6 +3888,61 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 	}
+	
+	@Test
+	public void testAutoStopMaintrack() {
+		AppSettings settings = new AppSettings();
+		String serverName = "fully.qualified.domain.name";
+		restServiceReal.setAppSettings(settings);
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+		DataStore store = Mockito.spy(new InMemoryDataStore("testdb"));
+		restServiceReal.setDataStore(store);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		restServiceReal.setScope(scope);
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(true));
+
+		restServiceReal.setApplication(appAdaptor);
+
+		long now = System.currentTimeMillis();
+		long endTime = now + 5000;
+		
+		Broadcast mainTrack = new Broadcast();
+		try {
+			mainTrack.setStreamId("mainTrack");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		mainTrack.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		mainTrack.setUpdateTime(System.currentTimeMillis());
+		mainTrack.setPlannedEndDate(endTime);
+		
+		restServiceReal.createBroadcast(mainTrack, false);
+		
+		verify(appAdaptor, times(1)).putBroadcastToAutoStopMap(mainTrack.getStreamId(), endTime);
+		
+		
+		long endTime2 = now + 150000;
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStreamId(mainTrack.getStreamId());
+		broadcastUpdate.setPlannedEndDate(endTime2);
+		
+		restServiceReal.updateBroadcast(mainTrack.getStreamId(), broadcastUpdate);
+
+		verify(appAdaptor, times(1)).putBroadcastToAutoStopMap(mainTrack.getStreamId(), endTime2);
+		
+	}
 
 
 }
