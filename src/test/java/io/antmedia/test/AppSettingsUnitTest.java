@@ -683,7 +683,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1, mapEncoderParameters.size());
 		assertEquals("quality", mapEncoderParameters.get("libopenh264").get("rc_mode"));
 		
-		assertEquals(90, appSettings.getAudioLevelThreshold());
+		assertEquals(120, appSettings.getAudioLevelThreshold());
 		appSettings.setAudioLevelThreshold(100);
 		assertEquals(100, appSettings.getAudioLevelThreshold());
 

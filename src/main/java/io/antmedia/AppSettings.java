@@ -2293,11 +2293,12 @@ public class AppSettings implements Serializable{
 	
 	/**
 	 *  
-	 * Audio level threshold to assign an audio track to stream in case of limited audio tracks in conference
+	 * Audio level threshold to assign an audio track to stream in case of limited audio tracks in conference.
+	 * 127 is the max value which is silent. 0 is the min value which is max audio level.
 	 * 
 	 */
-	@Value("${audioLevelThreshold:90}")
-	private int audioLevelThreshold = 90;
+	@Value("${audioLevelThreshold:120}")
+	private int audioLevelThreshold = 120;
 
 	/**
 	 * Enable/disable video frame scaling in GPU when there is an adaptive bitrate.
