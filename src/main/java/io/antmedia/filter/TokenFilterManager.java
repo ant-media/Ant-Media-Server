@@ -209,14 +209,12 @@ public class TokenFilterManager extends AbstractFilter   {
 		if (endIndex != -1) {
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
-		
-		
-		//let's have the rule for streamId. 
+		//let's have the rule for streamId.
 		//StreamId cannot have double __ in it
 		//We can get the stream id in two ways
 		//1. If it directly ends with extension (m3u8), then it's {streamId}.m3u8,
 		//2. If it contains __ then it's {streamId}__{ANYTHING}.m3u8
-		//3. if there is a single underscore at last of stream id the {streamId_}_{ANYTHING}.m3u8
+		//3. In case of adaptive streaming we add an underscore example streamid_720p2000kbps.m3u8 if stream id already have underscore at the end it will lead to double streamid_720p2000kbps.m3u8
 
 		String tsRegex = "(.*)/(.*)__(.*)$";
 		Pattern pattern = Pattern.compile(tsRegex);
@@ -224,8 +222,11 @@ public class TokenFilterManager extends AbstractFilter   {
 		// Create a matcher for the input string
         java.util.regex.Matcher matcher = pattern.matcher(requestURI);
 		if (matcher.matches()) 
-		{	
-			return matcher.group(2)+"_";
+		{
+			if(matcher.group(3).contains("kbps")){
+				return matcher.group(2)+ "_";
+			}
+			return matcher.group(2);
 		}
 
 		//if specific bitrate is requested
