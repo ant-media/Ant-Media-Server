@@ -217,8 +217,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		//1. If it directly ends with extension (m3u8), then it's {streamId}.m3u8,
 		//2. If it contains __ then it's {streamId}__{ANYTHING}.m3u8
 
-		
-		String tsRegex = "(.*)/(.*)__(.*)$"; 
+		String tsRegex = "(.*)/(.*)_(.*)$";
 		Pattern pattern = Pattern.compile(tsRegex);
 		
 		// Create a matcher for the input string
