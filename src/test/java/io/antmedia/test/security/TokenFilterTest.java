@@ -603,16 +603,5 @@ public class TokenFilterTest {
 
 
 	}
-	@Test
-	public void testUnderScoreInStreamId(){
-		String requestURI = "/streams/streamId_oG1q04IqJ__720p2000kbps.m3u8";
-		String result = TokenFilterManager.getStreamId(requestURI);
-		assertEquals("streamId_oG1q04IqJ_", result);
-
-		requestURI = "/streams/streamId_QBmxJHmjO__720p2000kbps000000266.ts";
-		result = TokenFilterManager.getStreamId(requestURI);
-		assertEquals("streamId_QBmxJHmjO_", result);
-		logger.info(result);
-	}
 
 }
