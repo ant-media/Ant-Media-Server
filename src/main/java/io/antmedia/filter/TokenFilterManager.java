@@ -214,7 +214,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		//We can get the stream id in two ways
 		//1. If it directly ends with extension (m3u8), then it's {streamId}.m3u8,
 		//2. If it contains __ then it's {streamId}__{ANYTHING}.m3u8
-		//3. In case of adaptive streaming we add an underscore example streamid_720p2000kbps.m3u8 if stream id already have underscore at the end it will lead to double streamid_720p2000kbps.m3u8
+		//3. In case of adaptive streaming we add an underscore example streamid_720p2000kbps.m3u8 if stream id already have underscore at the end it will lead to double underscore streamid__720p2000kbps.m3u8
 
 		String tsRegex = "(.*)/(.*)__(.*)$";
 		Pattern pattern = Pattern.compile(tsRegex);
