@@ -147,7 +147,7 @@ public abstract class RecordMuxer extends Muxer {
 			broadcastForMuxingFinished = broadcast;
         }
 		else {
-			logger.info("broadcast:{} is not in the db. It should be deleted if it's zombi stream. It's zombi:{}", streamId, broadcastForMuxingFinished.isZombi());
+			logger.info("broadcast:{} is not in the db. It should be deleted if it's zombi stream. It's zombi:{}", streamId, broadcastForMuxingFinished != null ? broadcastForMuxingFinished.isZombi() : null);
 		}
 		
 		
