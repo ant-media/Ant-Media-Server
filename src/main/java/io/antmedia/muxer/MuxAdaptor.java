@@ -1462,6 +1462,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					clearAndStopStream();
 				}	
 			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 			finally {
 				//make sure pipeReader is set again no matter if there is an exception above. 
 				//Because isPipeReaderJobRunning is not set, it may fill the memory and causes Out Of Memory
@@ -1995,6 +1998,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
 						bufferLogCounter = 0;
 					}
+				}
+				catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 				finally {
 					isBufferedWriterRunning.compareAndSet(true, false);

@@ -75,10 +75,7 @@ public abstract class RecordMuxer extends Muxer {
 		this.streamId = name;
 		this.resolution = resolutionHeight;
 
-
-
 		this.startTime = System.currentTimeMillis();
-
 	}
 
 
@@ -137,7 +134,14 @@ public abstract class RecordMuxer extends Muxer {
 			return;
 		}
 		
+		//Update broadcast if it's in the db
 		Broadcast broadcast = getAppAdaptor().getDataStore().get(streamId);
+		
+		if (broadcast == null) {
+			logger.info("broadcast:{} is not in the db. It should be deleted before recording has finished if it's a zombi stream.", streamId);
+		}
+		
+		
 
 		vertx.executeBlocking(()->{
 			try {

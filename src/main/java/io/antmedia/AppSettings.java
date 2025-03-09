@@ -1613,6 +1613,7 @@ public class AppSettings implements Serializable{
 	 * If encoder cannot encode a frame in this timeout, streaming is finished by server. 
 	 */
 	@Value("${encodingTimeout:${" + SETTINGS_ENCODING_TIMEOUT +":5000}}")
+	@Deprecated(forRemoval = true, since = "2.14.0")
 	private int encodingTimeout = 5000;
 
 	/**

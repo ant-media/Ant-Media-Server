@@ -1079,7 +1079,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			altitude = broadcast.getAltitude();
 		}
 		else {
-			logger.error("Broadcast is null for muxingFinished for stream: {} it's not supposed to happen", streamId);
+			logger.error("Broadcast is null for muxingFinished for stream: {}. This happens if the broadcast is deleted before muxing has finished. "
+					+ "If there is a webhook specific to broadcast, it will not be called", streamId);
 		}
 
 		String vodName = file.getName();

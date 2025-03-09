@@ -103,6 +103,9 @@ public class MapDBStore extends MapBasedDataStore {
 									}
 								}
 							}
+							catch (Exception e) {
+								logger.error(ExceptionUtils.getStackTrace(e));
+							}
 							finally {
 								committing.compareAndSet(true, false);
 							}
