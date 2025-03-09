@@ -1374,7 +1374,11 @@ public class CommonRestService {
 					}
 
 				}
-			} finally {
+			} 
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			finally {
 				try {
 					if (ous != null)
 						ous.close();
