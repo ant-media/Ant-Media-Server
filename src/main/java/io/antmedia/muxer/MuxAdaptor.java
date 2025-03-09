@@ -18,6 +18,9 @@ import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
@@ -2265,6 +2268,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		else {
 			logger.error("Unrecognized record type: {}", recordType);
 		}
+
+		LocalDateTime ldt = LocalDateTime.now();
+		muxer.setCurrentVoDTimeStamp(ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
 
 		return muxer;
 	}
