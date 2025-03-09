@@ -1374,6 +1374,8 @@ public class CommonRestService {
 					}
 
 				}
+				
+				logContent = ous.toString("UTF-8");
 			} 
 			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1394,7 +1396,7 @@ public class CommonRestService {
 				}
 			}
 
-			logContent = ous.toString("UTF-8");
+		
 		}
 		jsonObject.addProperty(LOG_CONTENT, logContent);
 		jsonObject.addProperty(LOG_CONTENT_SIZE, contentSize);
