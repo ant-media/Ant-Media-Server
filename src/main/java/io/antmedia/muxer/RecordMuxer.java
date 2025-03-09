@@ -54,7 +54,6 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 	protected int[] SUPPORTED_CODECS;
-	private Broadcast broadcastForMuxingFinished;
 
 	public boolean isCodecSupported(int codecId) {
 		for (int i=0; i< SUPPORTED_CODECS.length; i++) {
@@ -76,12 +75,7 @@ public abstract class RecordMuxer extends Muxer {
 		this.streamId = name;
 		this.resolution = resolutionHeight;
 
-
-
 		this.startTime = System.currentTimeMillis();
-		
-		broadcastForMuxingFinished = getAppAdaptor().getDataStore().get(streamId);
-
 	}
 
 
@@ -143,11 +137,8 @@ public abstract class RecordMuxer extends Muxer {
 		//Update broadcast if it's in the db
 		Broadcast broadcast = getAppAdaptor().getDataStore().get(streamId);
 		
-		if (broadcast != null) {
-			broadcastForMuxingFinished = broadcast;
-        }
-		else {
-			logger.info("broadcast:{} is not in the db. It should be deleted if it's zombi stream. It's zombi:{}", streamId, broadcastForMuxingFinished != null ? broadcastForMuxingFinished.isZombi() : null);
+		if (broadcast == null) {
+			logger.info("broadcast:{} is not in the db. It should be deleted before recording has finished if it's a zombi stream.", streamId);
 		}
 		
 		
@@ -163,7 +154,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				finalizeRecordFile(f);
 
-				adaptor.muxingFinished(broadcastForMuxingFinished, streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
+				adaptor.muxingFinished(broadcast, streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
 
