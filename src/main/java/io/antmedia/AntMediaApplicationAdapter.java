@@ -238,7 +238,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private Random random = new Random();
 
 	private IStatsCollector statsCollector;
-	
+
 	private Set<IAppSettingsUpdateListener> settingsUpdateListenerSet = new ConcurrentHashSet<IAppSettingsUpdateListener>();
 
 	@Override
@@ -701,7 +701,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
 							null, null, metaData, null);
 				}
-				
+
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
 				publishEndedEvent.setStreamId(streamId);
 				publishEndedEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
@@ -1007,7 +1007,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return serverSettings;
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role, boolean isVirtual) {
+	public static Broadcast createZombiBroadcast(String streamId, String streamName, String streamStatus, String publishType, String mainTrackStreamId, String metaData, String role)  {
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -1021,20 +1021,33 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);
-
-			return RestServiceBase.saveBroadcast(newBroadcast,
-					streamStatus, appAdapter.getScope().getName(), appAdapter.getDataStore(),
-					appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), absoluteStartTimeMs, isVirtual);
-		} catch (Exception e) {
+			newBroadcast.setStatus(streamStatus);
+			return newBroadcast;
+		}
+		catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
-	
+
 	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role) {
-		return saveUndefinedBroadcast(streamId, streamName, appAdapter, streamStatus, absoluteStartTimeMs, publishType, mainTrackStreamId, metaData, role, false);
+		Broadcast broadcast = createZombiBroadcast(streamId, streamName, streamStatus, publishType, mainTrackStreamId, metaData, role);
+		if (broadcast != null) {
+
+			broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
+			return RestServiceBase.saveBroadcast(broadcast,
+					streamStatus, appAdapter.getScope().getName(), appAdapter.getDataStore(),
+					appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), absoluteStartTimeMs);
+		}
+		return null;
 	}
-	
+
+	public static Broadcast saveBroadcast(Broadcast broadcast, AntMediaApplicationAdapter appAdapter) {
+		return RestServiceBase.saveBroadcast(broadcast,
+				null, appAdapter.getScope().getName(), appAdapter.getDataStore(),
+				appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), 0);
+	}
+
 
 	@Override
 	@Deprecated
@@ -1046,7 +1059,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
-		
+
 		String listenerHookURL = null;
 		String streamName = file.getName();
 		String description = null;
@@ -1067,9 +1080,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			altitude = broadcast.getAltitude();
 		}
 		else {
-			logger.error("Broadcast is null for muxingFinished for stream: {} it's not supposed to happen", streamId);
+			logger.error("Broadcast is null for muxingFinished for stream: {}. This happens if the broadcast is deleted before muxing has finished. "
+					+ "If there is a webhook specific to broadcast, it will not be called", streamId);
 		}
-		
+
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
@@ -1095,7 +1109,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		newVod.setLongitude(longitude);
 		newVod.setLatitude(latitude);
 		newVod.setAltitude(altitude);
-		
+
 
 
 		if (getDataStore().addVod(newVod) == null) {
@@ -1297,10 +1311,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean sendClusterPost(String url, String clusterCommunicationToken) 
 	{
-		
+
 		return callClusterRestMethod(url, clusterCommunicationToken);
 	}
-	
+
 	public boolean callClusterRestMethod(String url, String clusterCommunicationToken) 
 	{
 
@@ -1471,15 +1485,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
 		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
-	
+
 	/**
 	 * Important information: Status field of Broadcast class checks the update time to report the status is broadcasting or not.
 	 * {@link Broadcast#getStatus()}
-	*/
+	 */
 	public static final boolean isStreaming(String status) {
-		
+
 		return (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)
-						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status));
+				||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status));
 	}
 
 	public Result startStreaming(Broadcast broadcast) {
@@ -1608,7 +1622,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		return result;
 	}
-	
+
 	public OnvifCamera getOnvifCamera(String id) {
 		OnvifCamera onvifCamera = onvifCameraList.get(id);
 		if (onvifCamera == null) {
@@ -1643,7 +1657,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			Broadcast broadcastLocal = getDataStore().get(streamId);
 			if (broadcastLocal != null)
 			{
-				
+
 
 				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setSpeed(stats.getSpeed());	
@@ -1657,22 +1671,22 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					broadcastUpdate.setBitrate(bitrate);
 				}
 
-				
+
 
 				broadcastUpdate.setWidth(stats.getWidth());
 				broadcastUpdate.setHeight(stats.getHeight());
-				
+
 				broadcastUpdate.setEncoderQueueSize(stats.getEncodingQueueSize());		
 				broadcastUpdate.setDropPacketCountInIngestion(stats.getDroppedPacketCountInIngestion());
 				broadcastUpdate.setDropFrameCountInEncoding(stats.getDroppedFrameCountInEncoding());
 				broadcastUpdate.setPacketLostRatio(stats.getPacketLostRatio());
 				broadcastUpdate.setPacketsLost(stats.getPacketsLost());
-                broadcastUpdate.setJitterMs(stats.getJitterMs());
-                broadcastUpdate.setRttMs(stats.getRoundTripTimeMs());	
-                
-                broadcastUpdate.setRemoteIp(stats.getRemoteIp());
-                broadcastUpdate.setUserAgent(stats.getUserAgent()); 
-                broadcastUpdate.setReceivedBytes(stats.getTotalByteReceived());
+				broadcastUpdate.setJitterMs(stats.getJitterMs());
+				broadcastUpdate.setRttMs(stats.getRoundTripTimeMs());	
+
+				broadcastUpdate.setRemoteIp(stats.getRemoteIp());
+				broadcastUpdate.setUserAgent(stats.getUserAgent()); 
+				broadcastUpdate.setReceivedBytes(stats.getTotalByteReceived());
 
 				getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 
@@ -1684,16 +1698,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				viewerCountEvent.setWebRTCViewerCount(broadcastLocal.getWebRTCViewerCount());
 
 				LoggerUtils.logAnalyticsFromServer(viewerCountEvent);
-				
+
 				logger.debug("update source quality for stream:{} width:{} height:{} bitrate:{} input queue size:{} encoding queue size:{} packetsLost:{} packetLostRatio:{} jitter:{} rtt:{}",
-						
+
 						streamId, stats.getWidth(), stats.getHeight(), broadcastUpdate.getBitrate(), stats.getInputQueueSize(), stats.getEncodingQueueSize(),
 						stats.getPacketsLost(), stats.getPacketLostRatio(), stats.getJitterMs(), stats.getRoundTripTimeMs());
 			}
 
 		});
-		
-		
+
+
 	}
 
 	@Override
@@ -1701,7 +1715,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		PublishStatsEvent stats = new PublishStatsEvent();
 		stats.setSpeed(speed);
 		stats.setInputQueueSize(pendingPacketSize);
-		
+
 		setQualityParameters(id, stats, updateTimeMs);
 	}
 
@@ -2193,18 +2207,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else {
 			logger.warn("Settings cannot be saved for {}", getScope().getName());
 		}
-		
+
 		notifySettingsUpdateListeners(appSettings);
 
 		return result;
 	}
-	
+
 	public void notifySettingsUpdateListeners(AppSettings appSettings) {
 		for (IAppSettingsUpdateListener listener : settingsUpdateListenerSet) {
 			listener.settingsUpdated(appSettings);
 		}
 	}
-	
+
 	@Override
 	public void addSettingsUpdateListener(IAppSettingsUpdateListener listener) {
 		settingsUpdateListenerSet.add(listener);
@@ -2488,7 +2502,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
 	}
-	
+
 	public IFrameListener createCustomBroadcast(String streamId) {
 		throw new IllegalStateException("This method is not implemented in Community Edition");
 	}
