@@ -639,7 +639,31 @@ public class TokenFilterTest {
 		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+streamId + "/"+ streamId + "_anything.ts"; 
 		assertNull(TokenFilterManager.getStreamId(requestURI));
 		
-				
+		//parse with suffix
+		requestURI = "/LiveApp/streams/"+streamId + "_240p300kbps-20250310-1741579422.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%Y%m%d-%s"));
+		
+		requestURI = "/LiveApp/streams/"+streamId + "_240p300kbpsx20250310#1741579422.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "x%Y%m%d#%s"));
+		
+		requestURI = "/LiveApp/streams/"+streamId + "_240p300kbps-0310-1741579422.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%m%d-%s"));
+		
+		requestURI = "/LiveApp/streams/"+streamId + "_240p300kbps-10-1741579422.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%d-%s"));
+		
+		requestURI = "/LiveApp/streams/"+streamId + "_240p300kbps-1741579422.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%s"));
+		
+		requestURI = "/LiveApp/streams/"+streamId + "_240p300kbps1741579422.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "%s"));
+		
+		requestURI = "/LiveApp/streams/"+streamId + "_240p300kbps000000003.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "%9d"));
+		
+		requestURI = "/LiveApp/streams/"+streamId + "-1741579422.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%s"));
+						
 	}
 	
 

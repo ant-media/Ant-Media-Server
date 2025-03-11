@@ -36,7 +36,7 @@ public class DataTransferValve extends ValveBase {
 
 		getNext().invoke(request, response);
 		
-		String streamId = TokenFilterManager.getStreamId(request.getRequestURI());
+		String streamId = TokenFilterManager.getStreamId(request.getRequestURI(), "");
 		String method = request.getMethod();
 
 		if (StringUtils.isNotBlank(streamId) && (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))) 
