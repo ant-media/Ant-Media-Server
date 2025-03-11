@@ -980,22 +980,28 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else {
 
-			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-			broadcastUpdate.setStatus(status);
-			long now = System.currentTimeMillis();
-			broadcastUpdate.setStartTime(now);
-			broadcastUpdate.setUpdateTime(now);
-			broadcastUpdate.setOriginAdress(getServerSettings().getHostAddress());
-			broadcastUpdate.setWebRTCViewerCount(0);
-			broadcastUpdate.setHlsViewerCount(0);
-			broadcastUpdate.setDashViewerCount(0);
-			broadcastUpdate.setPublishType(publishType);
+			BroadcastUpdate broadcastUpdate = getBroadcastUpdateForStatus(publishType, status);
 			//updateBroadcastFields just updates broadcast with the updated fields. No need to give real object
 			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 
 			logger.info(" Status of stream {} is set to {} with result: {}", broadcast.getStreamId(), status, result);
 		}
 		return broadcast;
+	}
+
+	public BroadcastUpdate getBroadcastUpdateForStatus(String publishType, String status) {
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStatus(status);
+		long now = System.currentTimeMillis();
+		broadcastUpdate.setStartTime(now);
+		broadcastUpdate.setUpdateTime(now);
+		broadcastUpdate.setOriginAdress(getServerSettings().getHostAddress());
+		broadcastUpdate.setWebRTCViewerCount(0);
+		broadcastUpdate.setHlsViewerCount(0);
+		broadcastUpdate.setDashViewerCount(0);
+		broadcastUpdate.setPublishType(publishType);
+		broadcastUpdate.setVirtual(false);
+		return broadcastUpdate;
 	}
 
 	public ServerSettings getServerSettings()
