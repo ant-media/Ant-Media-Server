@@ -1,0 +1,205 @@
+package io.antmedia.whep;
+
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.UUID;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.UriInfo;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConnectionEvent;
+import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.rest.model.Result;
+import io.antmedia.webrtc.VideoCodec;
+import io.antmedia.webrtc.PlayParameters;
+import io.antmedia.webrtc.api.IWebRTCClient;
+import io.antmedia.websocket.WebSocketConstants;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.info.Contact;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.info.License;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.ExternalDocumentation;
+
+@OpenAPIDefinition(
+        info = @Info(
+                description = "Ant Media Server WHEP endpoint",
+                version = "v2.0",
+                title = "Ant Media Server WHEP Endpoint",
+                contact = @Contact(name = "Ant Media Info", email = "contact@antmedia.io", url = "https://antmedia.io"),
+                license = @License(name = "Apache 2.0", url = "https://www.apache.org/licenses/LICENSE-2.0")),
+        externalDocs = @ExternalDocumentation(description = "Rest Guide", url="https://antmedia.io/docs")
+)
+@Component
+//we bind it to /whep path in web.xml
+@Path("/")
+public class WhepEndpoint extends RestServiceBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(WhepEndpoint.class);
+
+    /**
+     * Start WebRTC playback through WebRTC-HTTP egress protocol (WHEP)
+     * @param uriInfo
+     * @param streamId
+     * @param subscriberId
+     * @param token
+     * @return SDP Offer
+     */
+    @Operation(summary = "Play a webrtc stream through WebRTC-HTTP egress protocol(WHEP). HTTP for signaling.")
+    @GET
+    @Consumes({ "application/sdp" })
+    @Path("/{streamId}")
+    @Produces("application/sdp")
+    public CompletableFuture<Response> startWhepPlay(@Context UriInfo uriInfo, 
+                                                   @PathParam(WebSocketConstants.STREAM_ID) String streamId,
+                                                   @QueryParam(WebSocketConstants.SUBSCRIBER_ID) String subscriberId,
+                                                   @QueryParam("viewerInfo") String viewerInfo,
+                                                   @HeaderParam("Authorization") String token
+                                                    ) {
+
+        logger.info("Starting WHEP playback for stream: {}", streamId);
+        
+        // Generate a unique session ID
+        String sessionId = UUID.randomUUID().toString();
+        
+        // Create play parameters
+        PlayParameters playParameters = new PlayParameters(streamId);
+        playParameters.setToken(token);
+        playParameters.setSubscriberId(subscriberId);
+        playParameters.setViewerInfo(viewerInfo);
+        playParameters.setRole("default");
+        
+        // Start HTTP signaling for playback
+        CompletableFuture<Result> startHttpSignaling = getApplication().startWhepHttpSignaling(playParameters, sessionId);
+        
+        return startHttpSignaling.thenApply(result -> {
+            logger.info("WHEP playback started successfully for stream: {} waiting for answer SDP", streamId);
+            return prepareResponse(result, sessionId, uriInfo);
+        }).exceptionally(e -> {
+            // Complete future with error hides the exception so we need to explicitly log it and return it
+            logger.error("Error during WHEP playback for stream: {}", streamId, e);
+            return Response.serverError().build();
+        });
+    }
+
+    /**
+     * Get the answer from the client and start the playback
+     * @param uriInfo
+     * @param streamId
+     * @param subscriberId
+     * @param token
+     * @param sdp Answer from the client
+     * @return SDP Offer
+     */
+    @Operation(summary = "Play a webrtc stream through WebRTC-HTTP egress protocol(WHEP). HTTP for signaling.")
+    @POST
+    @Consumes({ "application/sdp" })
+    @Path("/{streamId}/{eTag}")
+    @Produces("application/sdp")
+    public CompletableFuture<Response> setRemoteDescription(@Context UriInfo uriInfo, 
+                                                   @PathParam(WebSocketConstants.STREAM_ID) String streamId,
+                                                   @PathParam("eTag") String eTag,
+                                                   @QueryParam(WebSocketConstants.SUBSCRIBER_ID) String subscriberId,
+                                                   @QueryParam("viewerInfo") String viewerInfo,
+                                                   @HeaderParam("Authorization") String token, 
+                                                   @Parameter String sdp) {
+        
+        // Generate a unique session ID
+        String sessionId = eTag;
+        
+        // Start HTTP signaling for playback
+        CompletableFuture<Result> setRemoteDescription = getApplication().setWhepRemoteDescription(streamId, sdp, sessionId);
+        
+        return setRemoteDescription.thenApply(result -> {
+            return prepareResponse(result, sessionId, uriInfo);
+        }).exceptionally(e -> {
+            // Complete future with error hides the exception so we need to explicitly log it and return it
+            logger.error("Error during WHEP playback for stream: {}, error: {}", streamId, e);
+            return Response.serverError().build();
+        });
+    }
+    
+    /**
+     * Prepares the HTTP response for a WHEP session
+     * @param result
+     * @param eTag
+     * @param uriInfo
+     * @return HTTP Response
+     */
+    public Response prepareResponse(Result result, String eTag, UriInfo uriInfo) {
+        try {
+            if (!result.isSuccess()) {
+                return Response.status(Status.FORBIDDEN).entity(result.getMessage()).build();
+            }
+            
+            List<String> extensions = new ArrayList<>();
+            
+            // Create resource URI with eTag
+            String resource = uriInfo.getRequestUri().toString()+"/"+eTag;
+            URI uri = URI.create(resource);
+            
+            return Response.created(uri)
+                    .status(Status.CREATED)
+                    .entity(result.getMessage())
+                    .header("ETag", eTag)
+                    .header("Link", String.join(",", extensions))
+                    .type("application/sdp")
+                    .build();
+        }
+        catch (Exception e) {
+            // Complete future with error hides the exception so we need to explicitly log it and return it
+            logger.error("Error in prepareResponse: {}", ExceptionUtils.getStackTrace(e));
+            return Response.serverError().build();
+        }
+    }
+
+    /**
+     * Stop a WebRTC playback through WebRTC-HTTP egress protocol (WHEP)
+     * @param streamId
+     * @param eTag
+     * @return Result
+     */
+    @Operation(summary = "Stop a webrtc playback through WebRTC-HTTP egress protocol(WHEP). HTTP for signaling.")
+    @DELETE
+    @Consumes({ "application/sdp" })
+    @Path("/{streamId}/{eTag}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response stopWhepPlay(@PathParam("streamId") String streamId, @PathParam("eTag") String eTag){
+        
+        Result result = getApplication().stopWhepPlay(streamId, eTag);
+        if(result.isSuccess()){
+            return Response.ok().entity(result).build();
+        }
+        return Response.status(Status.NOT_FOUND).entity(result).build();
+    }
+} 
