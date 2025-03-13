@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.antmedia.*;
-import io.grpc.Context;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -78,7 +77,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
@@ -6059,6 +6057,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public static class  StorageClientMock extends StorageClient{
 		static  Boolean saveCalledWithCorrectParams = false;
 
+    @Override
+    public void deleteMultipleFiles(String key, String fileExtensions){
+
+    }
 		@Override
 		public void delete(String key) {
 
@@ -6138,4 +6140,50 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
 
 	}
+	@Test
+	public void testDeleteS3afterUpload() throws InterruptedException {
+
+		vertx = Vertx.vertx();
+		StorageClient client = Mockito.mock(StorageClient.class);
+		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx,client , "streams", 7, "https://testEndpoint", false));
+		hlsMuxer.setIsRunning(new AtomicBoolean(true));
+		hlsMuxer.setStreamId("testing");
+		hlsMuxer.setHlsListSize("1");
+		hlsMuxer.setHlsTime("1");
+		hlsMuxer.writeTrailer();
+		verify(hlsMuxer).deleteFilesAfterUpload("streams/testing");
+		Thread.sleep(5000);
+		verify(client).deleteMultipleFiles("streams/testing","ts,m3u8");
+
+
+		vertx = Vertx.vertx();
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		client = Mockito.mock(StorageClient.class);
+		doReturn(true).when(client).isEnabled();
+		hlsMuxer = spy(new HLSMuxer(vertx,client , "streams", 7, "", false));
+		hlsMuxer.setIsRunning(new AtomicBoolean(true));
+		String streamId = "stream_name_" + (int) (Math.random() * 10000);
+		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
+
+		//init
+		hlsMuxer.init(appScope, streamId, 0, null, 0);
+		File[] mockFiles = {
+				new File("test.ts"),
+				new File("test123.ts"),
+				new File("test123.m3u8"),
+				new File("test.mp4")
+		};
+
+		doReturn(mockFiles).when(hlsMuxer).getHLSFilesInDirectory(anyString());
+
+		hlsMuxer.setStreamId("testing");
+		hlsMuxer.setHlsListSize("1");
+		hlsMuxer.setHlsTime("1");
+		hlsMuxer.writeTrailer();
+		Thread.sleep(6000);
+		verify(hlsMuxer).deleteFilesAfterUpload("streams/test.ts");
+		verify(hlsMuxer).deleteFilesAfterUpload("streams/test123.m3u8");
+		
+	}
+
 }
