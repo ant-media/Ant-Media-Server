@@ -1,14 +1,11 @@
 package io.antmedia.whep;
 
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.UUID;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -29,17 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.ConnectionEvent;
-import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.RestServiceBase;
-import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.Result;
-import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.PlayParameters;
-import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,8 +36,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 
 @OpenAPIDefinition(
@@ -140,13 +127,12 @@ public class WhepEndpoint extends RestServiceBase {
         // Start HTTP signaling for playback
         CompletableFuture<Result> setRemoteDescription = getApplication().setWhepRemoteDescription(streamId, sdp, sessionId);
         
-        return setRemoteDescription.thenApply(result -> {
-            return prepareResponse(result, sessionId, uriInfo);
-        }).exceptionally(e -> {
-            // Complete future with error hides the exception so we need to explicitly log it and return it
-            logger.error("Error during WHEP playback for stream: {}, error: {}", streamId, e);
-            return Response.serverError().build();
-        });
+        return setRemoteDescription.thenApply(result -> prepareResponse(result, sessionId, uriInfo))
+                .exceptionally(e -> {
+                    // Complete future with error hides the exception so we need to explicitly log it and return it
+                    logger.error("Error during WHEP playback for stream: {}, error: {}", streamId, e);
+                    return Response.serverError().build();
+                });
     }
     
     /**
