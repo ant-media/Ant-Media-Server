@@ -2558,7 +2558,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @param sessionId Unique session ID
 	 * @return Result with SDP answer
 	 */
-	public CompletableFuture<Result> startWhepHttpSignaling(PlayParameters playParameters, String sessionId){
+	public CompletableFuture<Result> startWhepHttpSignaling(PlayParameters playParameters, String sdp, String sessionId){
 		//for enterprise
 		return null;
 	}

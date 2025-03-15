@@ -61,7 +61,7 @@ public class WhepEndpoint extends RestServiceBase {
      * @param subscriberId
      * @param token
      * @return SDP Offer
-     */
+     *
     @Operation(summary = "Play a webrtc stream through WebRTC-HTTP egress protocol(WHEP). HTTP for signaling.")
     @GET
     @Consumes({ "application/sdp" })
@@ -97,7 +97,7 @@ public class WhepEndpoint extends RestServiceBase {
             logger.error("Error during WHEP playback for stream: {}", streamId, e);
             return Response.serverError().build();
         });
-    }
+    }*/
 
     /**
      * Get the answer from the client and start the playback
@@ -106,33 +106,51 @@ public class WhepEndpoint extends RestServiceBase {
      * @param subscriberId
      * @param token
      * @param sdp Answer from the client
-     * @return SDP Offer
+     * @return SDP Answer
      */
     @Operation(summary = "Play a webrtc stream through WebRTC-HTTP egress protocol(WHEP). HTTP for signaling.")
     @POST
     @Consumes({ "application/sdp" })
-    @Path("/{streamId}/{eTag}")
+    @Path("/{streamId}")
     @Produces("application/sdp")
-    public CompletableFuture<Response> setRemoteDescription(@Context UriInfo uriInfo, 
+    public CompletableFuture<Response> startWhepPlay(@Context UriInfo uriInfo, 
                                                    @PathParam(WebSocketConstants.STREAM_ID) String streamId,
-                                                   @PathParam("eTag") String eTag,
                                                    @QueryParam(WebSocketConstants.SUBSCRIBER_ID) String subscriberId,
                                                    @QueryParam("viewerInfo") String viewerInfo,
                                                    @HeaderParam("Authorization") String token, 
                                                    @Parameter String sdp) {
         
         // Generate a unique session ID
-        String sessionId = eTag;
+        String sessionId = UUID.randomUUID().toString();
+
+        // Create play parameters
+        PlayParameters playParameters = new PlayParameters(streamId);
+        playParameters.setToken(token);
+        playParameters.setSubscriberId(subscriberId);
+        playParameters.setViewerInfo(viewerInfo);
+        playParameters.setRole("default");
         
         // Start HTTP signaling for playback
-        CompletableFuture<Result> setRemoteDescription = getApplication().setWhepRemoteDescription(streamId, sdp, sessionId);
+        CompletableFuture<Result> startHttpSignaling = getApplication().startWhepHttpSignaling(playParameters, sdp, sessionId);
+        
+        return startHttpSignaling.thenApply(result -> {
+            logger.info("WHEP playback started successfully for stream: {} waiting for answer SDP", streamId);
+            return prepareResponse(result, sessionId, uriInfo);
+        }).exceptionally(e -> {
+            // Complete future with error hides the exception so we need to explicitly log it and return it
+            logger.error("Error during WHEP playback for stream: {}", streamId, e);
+            return Response.serverError().build();
+        });
+        
+        // Start HTTP signaling for playback
+        /*CompletableFuture<Result> setRemoteDescription = getApplication().setWhepRemoteDescription(streamId, sdp, sessionId);
         
         return setRemoteDescription.thenApply(result -> prepareResponse(result, sessionId, uriInfo))
                 .exceptionally(e -> {
                     // Complete future with error hides the exception so we need to explicitly log it and return it
                     logger.error("Error during WHEP playback for stream: {}, error: {}", streamId, e);
                     return Response.serverError().build();
-                });
+                });*/
     }
     
     /**
