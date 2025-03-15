@@ -676,7 +676,7 @@ public class SystemUtils {
 	public static Integer getSystemCpuLoad() {
 		final OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
 		if (osBean instanceof UnixOperatingSystemMXBean) {
-			return (int) (((UnixOperatingSystemMXBean) osBean).getCpuLoad() * 100.0);
+			return (int) (((UnixOperatingSystemMXBean) osBean).getSystemCpuLoad() * 100.0);
 		} else {
 			try {
 				Method m = osBean.getClass().getDeclaredMethod("getSystemCpuLoad");
