@@ -207,6 +207,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
+	private Queue<Integer> processCpuMeasurements = new ConcurrentLinkedQueue<>();
 
 	private static Gson gson = new Gson();
 
@@ -214,7 +215,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private int measurementPeriod = 1000;
 	private int staticSendPeriod = 15000;
 
-	private int cpuLoad;
+	private static int cpuLoad;
+	private static int processCpuLoad;
 	private int cpuLimit = 75;
 	
 	
@@ -345,9 +347,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
 		{
-			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
+			addCpuMeasurement(SystemUtils.getSystemCpuLoad(), SystemUtils.getProcessCpuLoad());
 
-
+			
 			//log every 5 minute
 			if (300000/measurementPeriod == time2Log) {
 				if(logger != null) 
@@ -561,8 +563,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static JsonObject getCPUInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty(PROCESS_CPU_TIME, SystemUtils.getProcessCpuTime());
-		jsonObject.addProperty(SYSTEM_CPU_LOAD, SystemUtils.getSystemCpuLoad());
-		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
+		jsonObject.addProperty(SYSTEM_CPU_LOAD,  cpuLoad);
+		jsonObject.addProperty(PROCESS_CPU_LOAD, processCpuLoad);
 		jsonObject.addProperty(SYSTEM_LOAD_AVERAGE_IN_LAST_MINUTE, SystemUtils.getSystemLoadAverageLastMinute());
 		return jsonObject;
 	}
@@ -840,12 +842,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(IP_ADDRESS, ServerSettings.getGlobalHostAddress());
 
 		send2Kafka(jsonObject, INSTANCE_STATS_TOPIC_NAME); 
-
 	}
 
-	public void send2Kafka(JsonElement jsonElement, String topicName) {
+	public void send2Kafka(String jsonString, String topicName) {
 		ProducerRecord<Long, String> record = new ProducerRecord<>(topicName,
-				gson.toJson(jsonElement));
+				jsonString);
 		try {
 			kafkaProducer.send(record).get();
 		} 
@@ -857,8 +858,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 	}
 
-	public void addCpuMeasurement(int measurment) {
-		cpuMeasurements.add(measurment);
+	public void send2Kafka(JsonElement jsonElement, String topicName) {
+		send2Kafka(gson.toJson(jsonElement), topicName);
+	}
+
+	public void addCpuMeasurement(int systemCpuLoad, int processCpu) {
+		cpuMeasurements.add(systemCpuLoad);
 		if(cpuMeasurements.size() > windowSize) {
 			cpuMeasurements.poll();
 		}
@@ -867,7 +872,21 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		for (int msrmnt : cpuMeasurements) {
 			total += msrmnt;
 		}		
-		cpuLoad = total/cpuMeasurements.size();
+		StatsCollector.cpuLoad = total/cpuMeasurements.size();
+		
+		
+		
+		processCpuMeasurements.add(processCpu);
+		if (processCpuMeasurements.size() > windowSize) {
+			processCpuMeasurements.poll();
+		}
+		
+		total = 0;
+		for (int msrmnt : processCpuMeasurements) {
+			total += msrmnt;
+		}
+		
+		StatsCollector.processCpuLoad = total/processCpuMeasurements.size();
 	}
 	
 
@@ -1003,12 +1022,16 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	}
 
 	public void setCpuLoad(int cpuLoad) {
-		this.cpuLoad = cpuLoad;
+		StatsCollector.cpuLoad = cpuLoad;
 	}
 
 	@Override
 	public int getCpuLoad() {
 		return cpuLoad;
+	}
+	
+	public static int getProcessCpuLoad() {
+		return processCpuLoad;
 	}
 
 
