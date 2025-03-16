@@ -617,6 +617,22 @@ public class WebSocketConstants {
 	 * status field in websocket communication
 	 */
 	public static final String STATUS = "status";
+	
+	/**
+	 * sort field used for sorting subtracks
+	 */
+	public static final String SORT_BY = "sortBy";
+
+	/**
+	 * order (asc, desc) field used for ordering subtracks
+	 */
+	public static final String ORDER_BY = "orderBy";
+	
+	/**
+	 * search field used for searching subtracks
+	 */
+	public static final String SEARCH = "search";
+
 
 	/*
 	 * count field in websocket communication
@@ -660,4 +676,5 @@ public class WebSocketConstants {
 	 * Notification to notify a new subtrack removal to a main track
 	 */
 	public static final String SUBTRACK_REMOVED = "subtrackRemoved";
+
 }
