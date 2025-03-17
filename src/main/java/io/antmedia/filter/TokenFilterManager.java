@@ -257,7 +257,7 @@ public class TokenFilterManager extends AbstractFilter   {
             .replaceAll("%y", "[0-9]{2}")   // Year as 2 digits
             .replaceAll("%m", "[0-9]{2}")   // Month as 2 digits
             .replaceAll("%d", "[0-9]{2}")   // Day as 2 digits
-            .replaceAll("%s", "[0-9]+");     // Seconds since epoch as digits
+            .replaceAll("%s", "[0-9]{10}+");     // Seconds since epoch as digits
 
 		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+" + suffixRegex + "\\.(ts|fmp4)$";  // matches file format with extension
 		if (StringUtils.isNotBlank(suffixFormat) && requestURI.matches(tsRegex)) {

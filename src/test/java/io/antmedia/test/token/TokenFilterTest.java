@@ -663,7 +663,10 @@ public class TokenFilterTest {
 		
 		requestURI = "/LiveApp/streams/"+streamId + "-1741579422.ts"; 
 		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%s"));
-						
+		
+		streamId = "f6867e64-c9a1-a7dd-1d14-6b4312c8c8ee";
+		requestURI = "/LiveApp/streams/"+streamId + "-1741579422.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%s"));
 	}
 	
 
