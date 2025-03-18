@@ -2269,9 +2269,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.error("Unrecognized record type: {}", recordType);
 		}
 
-		LocalDateTime ldt = LocalDateTime.now();
-		muxer.setCurrentVoDTimeStamp(ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-
 		return muxer;
 	}
 
