@@ -64,6 +64,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.rest.model.Version;
 import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
@@ -136,6 +137,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String INSTANCE_TYPE = "instanceType";
 
 	public static final String INSTANCE_VERSION = "instanceVersion";
+	
+	public static final String INSTANCE_BUILD_NUMBER = "instanceBuildNumber";
 
 	public static final String JVM_MEMORY_USAGE = "jvmMemoryUsage";
 
@@ -343,6 +346,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private long unexpectedShutDownDelayMs = 30000;
 
+	private Version version;
+
 
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
@@ -386,7 +391,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		if (heartBeatEnabled) {
 
-			logger.warn("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
+			logger.warn("Starting heartbeats for the version:{} and type:{}", version.getVersionName() , version.getVersionType());
 
 			getVertx().setPeriodic(heartbeatPeriodMs, l -> startAnalytic());
 		}
@@ -1109,6 +1114,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 
 		setWebRTCVertx((Vertx) applicationContext.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME));
+		
+		version = RestServiceBase.getSoftwareVersion();
 
 	}
 
@@ -1184,13 +1191,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public void startAnalytic() {
 
 		String instanceId = Launcher.getInstanceId();
-		String version = Launcher.getVersion();
-		String type = Launcher.getVersionType();
 
 		JsonObject instance = new JsonObject();
 		instance.addProperty(INSTANCE_ID, instanceId);
-		instance.addProperty(INSTANCE_TYPE, type);
-		instance.addProperty(INSTANCE_VERSION, version);
+		instance.addProperty(INSTANCE_TYPE, version.getVersionType());
+		instance.addProperty(INSTANCE_VERSION, version.getVersionName());
+		instance.addProperty(INSTANCE_BUILD_NUMBER, version.getBuildNumber());
 		instance.addProperty(MARKETPLACE_NAME, marketplace);
 
 
