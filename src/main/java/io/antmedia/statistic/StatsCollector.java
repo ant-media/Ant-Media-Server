@@ -391,7 +391,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		if (heartBeatEnabled) {
 
-			logger.warn("Starting heartbeats for the version:{} and type:{}", version.getVersionName() , version.getVersionType());
+			logger.warn("Starting heartbeats for the version:{} and type:{}", getVersion().getVersionName() , getVersion().getVersionType());
 
 			getVertx().setPeriodic(heartbeatPeriodMs, l -> startAnalytic());
 		}
@@ -1115,8 +1115,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		setWebRTCVertx((Vertx) applicationContext.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME));
 		
-		version = RestServiceBase.getSoftwareVersion();
-
 	}
 
 	public int getStaticSendPeriod() {
@@ -1194,9 +1192,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		JsonObject instance = new JsonObject();
 		instance.addProperty(INSTANCE_ID, instanceId);
-		instance.addProperty(INSTANCE_TYPE, version.getVersionType());
-		instance.addProperty(INSTANCE_VERSION, version.getVersionName());
-		instance.addProperty(INSTANCE_BUILD_NUMBER, version.getBuildNumber());
+		instance.addProperty(INSTANCE_TYPE, getVersion().getVersionType());
+		instance.addProperty(INSTANCE_VERSION, getVersion().getVersionName());
+		instance.addProperty(INSTANCE_BUILD_NUMBER, getVersion().getBuildNumber());
 		instance.addProperty(MARKETPLACE_NAME, marketplace);
 
 
@@ -1310,6 +1308,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			this.memoryLimit = memoryLimit;
 		}
 		
+	}
+	
+	public Version getVersion() {
+		if (version == null) {
+			version = RestServiceBase.getSoftwareVersion();
+		}
+		return version;
 	}
 
 
