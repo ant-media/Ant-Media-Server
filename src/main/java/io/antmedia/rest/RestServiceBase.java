@@ -1881,31 +1881,39 @@ public abstract class RestServiceBase {
 			Class<RestServiceBase> clazz = RestServiceBase.class;
 			String className = clazz.getSimpleName() + ".class";
 			String classPath = clazz.getResource(className).toString();
-			String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) +
-					"/META-INF/MANIFEST.MF";
+			String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
 
 			version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
 
-			try {
-				URL url = new URL(manifestPath);
-
-				try (InputStream is = url.openStream()) 
-				{
-					Manifest manifest = new Manifest(is);
-					version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
-				}
-				
-				logger.debug("Version Name:{} Version Type:{} Build Number:{}", version.getVersionName(), version.getVersionType(), version.getBuildNumber());
-
-			}
-			catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-
+			
+			version.setBuildNumber(getBuildNumber(manifestPath));
+			
+			logger.debug("Version Name:{} Version Type:{} Build Number:{}", version.getVersionName(), version.getVersionType(), version.getBuildNumber());
 
 		}
 
 		return version;
+	}
+	
+	public static String getBuildNumber(String manifestPath) {
+		
+		String buildNumber = null;
+		try 
+		{
+			URL url = new URL(manifestPath);
+
+			try (InputStream is = url.openStream()) 
+			{
+				Manifest manifest = new Manifest(is);
+				buildNumber = manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER);
+			}
+		}
+		catch (Exception e) 
+		{
+			logger.error(e.getMessage());
+		}
+		
+		return buildNumber;
 	}
 
 	public static boolean isEnterprise() {

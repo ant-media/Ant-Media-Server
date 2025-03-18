@@ -2,6 +2,7 @@ package io.antmedia.test.launcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,11 +53,15 @@ public class LauncherUnitTest {
 	
 	@Test
 	public void testLaunch() {
-		Launcher launcher = new Launcher();
 		Version version = RestServiceBase.getSoftwareVersion();
 		assertEquals("Community Edition", version.getVersionType());
 		assertNotEquals("Community", version.getBuildNumber()); //increase coverage
 		assertNotEquals("Community", version.getVersionName());
+		
+		//jar:file:/Users/mekya/softwares/ant-media-server/ant-media-server.jar!/META-INF/MANIFEST.MF 
+		assertEquals("20250318_1130", RestServiceBase.getBuildNumber("file:src/test/resources/MANIFEST.MF"));
+		
+		assertNull(RestServiceBase.getBuildNumber("src/test/resources/MANIFEST.MF"));
 		
 	}
 	
