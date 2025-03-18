@@ -4867,6 +4867,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Muxer mp4Muxer = spy(new Mp4Muxer(null, null, "streams"));
 
 		assertEquals("test_400p", mp4Muxer.getExtendedName("test", 400, 1000000, ""));
+		
+		//this is the assertion for this fix https://github.com/ant-media/Ant-Media-Server/issues/7079
+		assertNotEquals(0, mp4Muxer.getCurrentVoDTimeStamp());
+		
 		assertEquals("test_400p1000kbps", mp4Muxer.getExtendedName("test", 400, 1000000, "%r%b"));
 		assertEquals("test_1000kbps", mp4Muxer.getExtendedName("test", 400, 1000000, "%b"));
 		assertEquals("test_400p", mp4Muxer.getExtendedName("test", 400, 1000000, "%r"));
