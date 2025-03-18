@@ -33,7 +33,9 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
 import javax.annotation.Nonnull;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -71,6 +73,7 @@ import org.red5.server.stream.consumer.FileConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
@@ -1462,6 +1465,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					clearAndStopStream();
 				}	
 			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 			finally {
 				//make sure pipeReader is set again no matter if there is an exception above. 
 				//Because isPipeReaderJobRunning is not set, it may fill the memory and causes Out Of Memory
@@ -1995,6 +2001,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
 						bufferLogCounter = 0;
 					}
+				}
+				catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 				finally {
 					isBufferedWriterRunning.compareAndSet(true, false);

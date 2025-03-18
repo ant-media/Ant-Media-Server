@@ -2759,6 +2759,74 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 	
 	@Test
+	public void testUpdateBroadcastStatus() {
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		DataStore db = new InMemoryDataStore("db");
+		spyAdapter.setDataStore(db);
+
+		spyAdapter.setServerSettings(new ServerSettings());
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		IContext context = Mockito.mock(IContext.class);
+		when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+		when(scope.getContext()).thenReturn(context);
+
+		spyAdapter.setScope(scope);
+		
+		spyAdapter.setAppSettings(new AppSettings());
+		
+		String streamId = "stream1";
+		spyAdapter.updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, null);
+		
+		assertNotNull(db.get(streamId));
+		
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, db.get(streamId).getStatus());
+		
+		
+		spyAdapter.updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, db.get(streamId), null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		Broadcast broadcast = db.get(streamId);
+		assertNotNull(broadcast);
+		assertFalse(broadcast.isVirtual());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, db.get(streamId).getStatus());
+		
+		
+		BroadcastUpdate broadcastUpdateForStatus = spyAdapter.getFreshBroadcastUpdateForStatus(IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		broadcastUpdateForStatus.setVirtual(true);
+		spyAdapter.updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, db.get(streamId), broadcastUpdateForStatus, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		broadcast = db.get(streamId);
+		assertNotNull(broadcast);
+		assertTrue(broadcast.isVirtual());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, db.get(streamId).getStatus());
+		
+	}
+	
+	@Test
+	public void testGetBroadcastUpdateForStatus() {
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		DataStore db = new InMemoryDataStore("db");
+		spyAdapter.setDataStore(db);
+
+		spyAdapter.setServerSettings(new ServerSettings());
+	
+		BroadcastUpdate broadcastUpdateForStatus = spyAdapter.getFreshBroadcastUpdateForStatus(IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+	
+		//we don't set virtual in the method above so getVirtual is null
+		assertNull(broadcastUpdateForStatus.getVirtual());
+		
+		assertEquals(IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, broadcastUpdateForStatus.getPublishType());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, broadcastUpdateForStatus.getStatus());
+		assertNotNull(broadcastUpdateForStatus.getStartTime());
+		assertNotNull(broadcastUpdateForStatus.getUpdateTime());
+		assertEquals(spyAdapter.getServerSettings().getHostAddress(), broadcastUpdateForStatus.getOriginAdress());
+		assertEquals(0, broadcastUpdateForStatus.getWebRTCViewerCount().intValue());
+		assertEquals(0, broadcastUpdateForStatus.getHlsViewerCount().intValue());
+		assertEquals(0, broadcastUpdateForStatus.getDashViewerCount().intValue());
+		
+		
+		
+	}
+	
+	@Test
 	public void testAutoStopMaintrack() {
 		long now = System.currentTimeMillis();
 		long endTime = now + 2000;

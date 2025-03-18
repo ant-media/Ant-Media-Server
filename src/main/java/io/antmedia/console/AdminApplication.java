@@ -377,6 +377,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			try {
 				warDeployer.deploy(true);
 			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 			finally {
 				currentApplicationCreationProcesses.remove(appName);
 			}
