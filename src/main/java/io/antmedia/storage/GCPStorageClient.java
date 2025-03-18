@@ -31,6 +31,10 @@ public class GCPStorageClient extends StorageClient {
 		return storage;
 	}
 
+  public void deleteMultipleFiles(String key, String fileExtensions){
+
+  }
+
 	public void delete(String key) {
 		if (isEnabled()) 
 		{
