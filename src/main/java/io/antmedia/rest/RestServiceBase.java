@@ -1874,34 +1874,37 @@ public abstract class RestServiceBase {
 	public static Version getSoftwareVersion() {
 
 		if (version == null) {
-			try 
-			{
-				version = new Version();
-				version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 
-				Class<RestServiceBase> clazz = RestServiceBase.class;
-				String className = clazz.getSimpleName() + ".class";
-				String classPath = clazz.getResource(className).toString();
-				String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) +
-						"/META-INF/MANIFEST.MF";
+			version = new Version();
+			version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 
-				version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
+			Class<RestServiceBase> clazz = RestServiceBase.class;
+			String className = clazz.getSimpleName() + ".class";
+			String classPath = clazz.getResource(className).toString();
+			String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) +
+					"/META-INF/MANIFEST.MF";
 
+			version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
+
+			try {
 				URL url = new URL(manifestPath);
-				
+
 				try (InputStream is = url.openStream()) 
 				{
 					Manifest manifest = new Manifest(is);
 					version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
 				}
+				
 				logger.debug("Version Name:{} Version Type:{} Build Number:{}", version.getVersionName(), version.getVersionType(), version.getBuildNumber());
-			} 
-			catch (IOException e) {
-				logger.error(e.getMessage());
-				version = null;
+
 			}
+			catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+
+
 		}
-		
+
 		return version;
 	}
 
