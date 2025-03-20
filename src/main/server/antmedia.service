@@ -6,13 +6,13 @@ After=syslog.target network.target
 Type=simple
 Environment=JVM_MEMORY_OPTIONS=
 Environment=JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-LimitNOFILE=65536
+LimitNOFILE=131072
 Environment=ANTMEDIA_HOME=/usr/local/antmedia
 WorkingDirectory=/usr/local/antmedia
 RemainAfterExit=no
 Restart=on-failure
 RestartSec=5s
-TasksMax=36000
+TasksMax=64000
 TimeoutStopSec=10
 SuccessExitStatus=143
 User=antmedia
