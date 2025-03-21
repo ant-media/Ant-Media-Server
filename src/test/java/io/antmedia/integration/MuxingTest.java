@@ -926,7 +926,7 @@ public class MuxingTest {
 		assertTrue(result.isSuccess());
 
 		String appName = "live";
-		String restUrl = "http://localhost:5080/" + appName +"/rest";
+		String restUrl = "http://" + ServerSettings.getLocalHostAddress() +":5080/" + appName +"/rest";
 		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings(appName);
 
 		appSettings.setEnableTimeTokenForPublish(true);
