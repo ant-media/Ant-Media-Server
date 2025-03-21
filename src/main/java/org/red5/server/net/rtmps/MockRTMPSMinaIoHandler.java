@@ -1,15 +1,16 @@
-package org.red5.server.net.rtmp;
+package org.red5.server.net.rtmps;
 
 import java.util.Set;
 
 import org.apache.mina.core.service.IoHandler;
 import org.apache.mina.core.service.IoHandlerAdapter;
+import org.red5.server.net.rtmp.IRTMPHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MockRTMPMinaIoHandler extends IoHandlerAdapter {
+public class MockRTMPSMinaIoHandler extends IoHandlerAdapter {
 
-  private static Logger log = LoggerFactory.getLogger(MockRTMPMinaIoHandler.class);
+  private static Logger log = LoggerFactory.getLogger(MockRTMPSMinaIoHandler.class);
 
   /**
    * Mock RTMP events handler

@@ -6,6 +6,9 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 import static org.red5.server.net.rtmp.status.StatusCodes.NS_FAILED;
 
+import org.red5.server.net.rtmps.MockRTMPSMinaIoHandler;
+
+import java.util.Set;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.Callable;
@@ -25,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.mockito.internal.handler.MockHandlerImpl;
 import org.red5.io.object.StreamAction;
 import org.red5.io.utils.IOUtils;
 import org.red5.server.Context;
@@ -383,4 +387,22 @@ public class ServerRTMPHandshakeTest {
 		}
 
 	}
+  public void mockTestRTMPs(){
+      MockRTMPSMinaIoHandler mockTestRTMPs = new MockRTMPSMinaIoHandler();
+
+      mockTestRTMPs.setHandler(null);
+      mockTestRTMPs.setKeystorePassword("securePassword123");
+      mockTestRTMPs.setKeystoreFile("/path/to/keystore.jks");
+      mockTestRTMPs.setTruststorePassword("trustPassword123");
+      mockTestRTMPs.setTruststoreFile("/path/to/truststore.jks");
+      mockTestRTMPs.setCipherSuites(new String[]{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"});
+      mockTestRTMPs.setProtocols(new String[]{"TLSv1.2"});
+      mockTestRTMPs.setIoHandler(null); // Replace with actual IoHandler implementation
+      mockTestRTMPs.setAddresses(Set.of("127.0.0.1", "192.168.1.1"));
+      mockTestRTMPs.setIoThreads(4);
+      mockTestRTMPs.setTcpNoDelay(true);
+
+      mockTestRTMPs.start();
+      mockTestRTMPs.stop();  
+  }
 }
