@@ -926,7 +926,7 @@ public class MuxingTest {
 		assertTrue(result.isSuccess());
 
 		String appName = "live";
-		String restUrl = "http://127.0.0.1:5080/" + appName +"/rest";
+		String restUrl = "http://localhost:5080/" + appName +"/rest";
 		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings(appName);
 
 		appSettings.setEnableTimeTokenForPublish(true);
@@ -944,7 +944,7 @@ public class MuxingTest {
 		byte[] secretBytes = Base32.decode(secret);
 		String code = TOTPGenerator.generateTOTP(secretBytes, appSettings.getTimeTokenPeriod(), 6, ITokenService.HMAC_SHA1);
 
-		String rtmpURL = "rtmp://127.0.0.1/" + appName + "/" + streamId + "/token/" + subscriberId +"/" + code;
+		String rtmpURL = "rtmp://localhost/" + appName + "/" + streamId + "/token/" + subscriberId +"/" + code;
 		Process process = execute(ffmpegPath + " -re -i src/test/resources/test.flv "
 				+ "-c copy -f flv " + rtmpURL);
 
