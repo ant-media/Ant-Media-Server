@@ -387,6 +387,7 @@ public class ServerRTMPHandshakeTest {
 		}
 
 	}
+  @Test
   public void mockTestRTMPs(){
       MockRTMPSMinaIoHandler mockTestRTMPs = new MockRTMPSMinaIoHandler();
 
