@@ -55,51 +55,6 @@ public class WhepEndpoint extends RestServiceBase {
     private static final Logger logger = LoggerFactory.getLogger(WhepEndpoint.class);
 
     /**
-     * Start WebRTC playback through WebRTC-HTTP egress protocol (WHEP)
-     * @param uriInfo
-     * @param streamId
-     * @param subscriberId
-     * @param token
-     * @return SDP Offer
-     *
-    @Operation(summary = "Play a webrtc stream through WebRTC-HTTP egress protocol(WHEP). HTTP for signaling.")
-    @GET
-    @Consumes({ "application/sdp" })
-    @Path("/{streamId}")
-    @Produces("application/sdp")
-    public CompletableFuture<Response> startWhepPlay(@Context UriInfo uriInfo, 
-                                                   @PathParam(WebSocketConstants.STREAM_ID) String streamId,
-                                                   @QueryParam(WebSocketConstants.SUBSCRIBER_ID) String subscriberId,
-                                                   @QueryParam("viewerInfo") String viewerInfo,
-                                                   @HeaderParam("Authorization") String token
-                                                    ) {
-
-        logger.info("Starting WHEP playback for stream: {}", streamId);
-        
-        // Generate a unique session ID
-        String sessionId = UUID.randomUUID().toString();
-        
-        // Create play parameters
-        PlayParameters playParameters = new PlayParameters(streamId);
-        playParameters.setToken(token);
-        playParameters.setSubscriberId(subscriberId);
-        playParameters.setViewerInfo(viewerInfo);
-        playParameters.setRole("default");
-        
-        // Start HTTP signaling for playback
-        CompletableFuture<Result> startHttpSignaling = getApplication().startWhepHttpSignaling(playParameters, sessionId);
-        
-        return startHttpSignaling.thenApply(result -> {
-            logger.info("WHEP playback started successfully for stream: {} waiting for answer SDP", streamId);
-            return prepareResponse(result, sessionId, uriInfo);
-        }).exceptionally(e -> {
-            // Complete future with error hides the exception so we need to explicitly log it and return it
-            logger.error("Error during WHEP playback for stream: {}", streamId, e);
-            return Response.serverError().build();
-        });
-    }*/
-
-    /**
      * Get the answer from the client and start the playback
      * @param uriInfo
      * @param streamId
@@ -141,16 +96,6 @@ public class WhepEndpoint extends RestServiceBase {
             logger.error("Error during WHEP playback for stream: {}", streamId, e);
             return Response.serverError().build();
         });
-        
-        // Start HTTP signaling for playback
-        /*CompletableFuture<Result> setRemoteDescription = getApplication().setWhepRemoteDescription(streamId, sdp, sessionId);
-        
-        return setRemoteDescription.thenApply(result -> prepareResponse(result, sessionId, uriInfo))
-                .exceptionally(e -> {
-                    // Complete future with error hides the exception so we need to explicitly log it and return it
-                    logger.error("Error during WHEP playback for stream: {}, error: {}", streamId, e);
-                    return Response.serverError().build();
-                });*/
     }
     
     /**
