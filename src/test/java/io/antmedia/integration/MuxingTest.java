@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 import com.amazonaws.util.Base32;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
