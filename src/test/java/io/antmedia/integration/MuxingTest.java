@@ -957,6 +957,7 @@ public class MuxingTest {
 		});
 
 		appSettings.setEnableTimeTokenForPublish(false);
+		appSettings.setIpFilterEnabled(true);
 		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
 
 		process.destroy();
