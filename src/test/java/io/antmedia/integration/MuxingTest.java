@@ -932,6 +932,7 @@ public class MuxingTest {
 
 		appSettings.setEnableTimeTokenForPublish(true);
 		appSettings.setTimeTokenSecretForPublish("random_thing");
+		appSettings.setIpFilterEnabled(false);
 		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
 
 		String streamId = "stream_" + (int) (Math.random()*10000);
