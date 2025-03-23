@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.times;
+import static org.junit.Assert.assertNotNull;
 
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
