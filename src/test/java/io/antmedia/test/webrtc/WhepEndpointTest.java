@@ -49,6 +49,7 @@ public class WhepEndpointTest {
 		assertEquals("subscriber456", playParamsCaptor.getValue().getSubscriberId());
 		assertEquals("viewerInfo", playParamsCaptor.getValue().getViewerInfo());
 		assertEquals("Bearer token456", playParamsCaptor.getValue().getToken());
+        assertNotNull(playParamsCaptor.getValue().getLinkedSessionForSignaling());
 	}
 
 	@Test

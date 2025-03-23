@@ -84,6 +84,7 @@ public class WhepEndpoint extends RestServiceBase {
         playParameters.setSubscriberId(subscriberId);
         playParameters.setViewerInfo(viewerInfo);
         playParameters.setRole("default");
+        playParameters.setLinkedSessionForSignaling(sessionId);
         
         // Start HTTP signaling for playback
         CompletableFuture<Result> startHttpSignaling = getApplication().startWhepHttpSignaling(playParameters, sdp, sessionId);
