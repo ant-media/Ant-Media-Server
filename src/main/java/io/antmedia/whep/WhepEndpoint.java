@@ -8,7 +8,6 @@ import java.util.UUID;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -115,20 +114,19 @@ public class WhepEndpoint extends RestServiceBase {
             List<String> extensions = new ArrayList<>();
             
             // Create resource URI with eTag
-            String resource = uriInfo.getRequestUri().toString()+"/"+eTag;
+            String resource = uriInfo.getRequestUri().toString();
             URI uri = URI.create(resource);
             
             return Response.created(uri)
-                    .status(Status.CREATED)
+                    .status(Status.ACCEPTED)
                     .entity(result.getMessage())
-                    .header("ETag", eTag)
                     .header("Link", String.join(",", extensions))
                     .type("application/sdp")
                     .build();
         }
         catch (Exception e) {
             // Complete future with error hides the exception so we need to explicitly log it and return it
-            logger.error("Error in prepareResponse: {}", ExceptionUtils.getStackTrace(e));
+            logger.error("Error preparing the response, error: {}", ExceptionUtils.getStackTrace(e));
             return Response.serverError().build();
         }
     }
