@@ -118,6 +118,8 @@ import jakarta.validation.constraints.NotNull;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
+	public static final String NOT_ASSIGNED = "NOT_ASSIGNED";
+
 	/**
 	 * Timeout value that stream is considered as finished or stuck
 	 */
@@ -682,6 +684,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					broadcastUpdate.setOriginAdress(NOT_ASSIGNED);
 					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);

@@ -1175,4 +1175,17 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return false;
 	}
+
+	@Override
+	public List<Broadcast> getBroadcastListByHost(String hostAddress) {
+		List<Broadcast> broadcastList = new ArrayList<>();
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (hostAddress.equals(broadcast.getOriginAdress()))  
+			{
+				broadcastList.add(broadcast);
+			}
+		}
+		return broadcastList;
+	}
 }

@@ -1611,4 +1611,27 @@ public abstract class MapBasedDataStore extends DataStore
 
 		return false;
 	}
+	
+	@Override
+	public List<Broadcast> getBroadcastListByHost(String hostAddress) {
+		long startTime = System.nanoTime();
+
+		List<Broadcast> broadcastList = new ArrayList<>();
+		synchronized (this) {
+			for (String broadcastString : map.values()) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if (hostAddress.equals(broadcast.getOriginAdress()))  
+				{
+					broadcastList.add(broadcast);
+				}
+			}
+		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getBroadcastListByHost(String hostAddress)");
+
+		return broadcastList;
+	}
 }

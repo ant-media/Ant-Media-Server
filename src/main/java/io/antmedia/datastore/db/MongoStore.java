@@ -1173,6 +1173,10 @@ public class MongoStore extends DataStore {
 				if (broadcast.getQuality() != null) {
 					updates.add(set("quality", broadcast.getQuality()));
 				}
+				
+				if (broadcast.getOriginAdress() != null) {
+					updates.add(set(ORIGIN_ADDRESS, broadcast.getOriginAdress()));
+				}
 
 
 				prepareFields(broadcast, updates);
@@ -2397,6 +2401,23 @@ public class MongoStore extends DataStore {
 		}
 
 		return subscriberCache;
+	}
+	
+	@Override
+	public List<Broadcast> getBroadcastListByHost(String hostAddress) {
+		long startTime = System.nanoTime();
+
+		List<Broadcast> broadcastList = new ArrayList<>();
+		synchronized(this) {
+			broadcastList = datastore.find(Broadcast.class).filter(Filters.eq(ORIGIN_ADDRESS, hostAddress))
+					.iterator().toList();
+		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getActiveSubtracks");
+
+		return broadcastList;
 	}
 
 }
