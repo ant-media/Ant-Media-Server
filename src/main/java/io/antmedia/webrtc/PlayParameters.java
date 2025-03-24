@@ -22,13 +22,6 @@ public class PlayParameters {
     }
     
     /**
-     * Default constructor for JSON serialization and reflection
-     */
-    public PlayParameters() {
-        this.streamId = null;
-    }
-    
-    /**
      * @return the streamId
      */
     public String getStreamId() {
