@@ -153,7 +153,7 @@
 	   file name: spring-security-crypto-6.2.8.jar
 	   This vulnerability is about BCryptPasswordEncoder and it is not used by Ant Media Server.  
 	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/org\.springframework/security\-.*@.*$</packageUrl>
+       <packageUrl regex="true">^pkg:maven/org\.springframework/security/spring\-security\-crypto@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2025-22228</vulnerabilityName>
 	</suppress>
 	
