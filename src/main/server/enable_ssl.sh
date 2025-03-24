@@ -491,6 +491,8 @@ fi
 
 $SUDO sed -i "/server.name=/c\server.name=$domain"  "$INSTALL_DIRECTORY/conf/red5.properties"
 
+$SUDO sed -i "/rtmps.enabled=/c\rtmps.enabled=true"  "$INSTALL_DIRECTORY/conf/red5.properties"
+
 #restore iptables redirect rule
 ipt_restore
 
