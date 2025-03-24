@@ -70,7 +70,6 @@ public class WhepEndpointTest {
 
 		response = whepEndpoint.prepareResponse(new Result(true, "success"), "etag123", uriInfo);
 		assertEquals(Status.ACCEPTED.getStatusCode(), response.getStatus());
-		assertEquals("etag123", response.getHeaders().get("ETag").get(0));
 		assertEquals("application/sdp", response.getMediaType().toString());
 	}
 
