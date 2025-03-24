@@ -69,7 +69,7 @@ public class WhepEndpointTest {
 		Mockito.doReturn(URI.create("http://localhost:5080")).when(uriInfo).getRequestUri();
 
 		response = whepEndpoint.prepareResponse(new Result(true, "success"), "etag123", uriInfo);
-		assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+		assertEquals(Status.ACCEPTED.getStatusCode(), response.getStatus());
 		assertEquals("etag123", response.getHeaders().get("ETag").get(0));
 		assertEquals("application/sdp", response.getMediaType().toString());
 	}
