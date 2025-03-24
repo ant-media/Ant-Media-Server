@@ -9,13 +9,13 @@ public class Version {
      * Gives information about the version name.
      */
     @Schema(description = "Version of the software")
-    public String versionName;
+    private String versionName;
 
     /**
      * Gives information about the version type
      */
     @Schema(description = "Version type of the software (Community or Enterprise)")
-    public String versionType;
+    private String versionType;
 
     @Schema(description = "Build number(timestamp) of the software.")
     private String buildNumber;
