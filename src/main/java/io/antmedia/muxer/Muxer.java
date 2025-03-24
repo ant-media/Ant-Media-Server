@@ -728,10 +728,12 @@ public abstract class Muxer {
 		String format = fileNameFormat.replaceAll("\\{.*?}", "%c");
 
 		// Add date-time to the resource name if the flag is set
-		if (addDateTimeToResourceName) {
-			LocalDateTime ldt = LocalDateTime.now();
+		LocalDateTime ldt = LocalDateTime.now();
+		currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+		
+		if (addDateTimeToResourceName) 
+		{
 			result.append("-").append(ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
-			currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 		}
 
 		// Process the format string if it's not empty
