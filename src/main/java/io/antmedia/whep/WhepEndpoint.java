@@ -90,7 +90,7 @@ public class WhepEndpoint extends RestServiceBase {
         
         return startHttpSignaling.thenApply(result -> {
             logger.info("WHEP playback started successfully for stream: {} waiting for answer SDP", streamId);
-            return prepareResponse(result, sessionId, uriInfo);
+            return prepareResponse(result, uriInfo);
         }).exceptionally(e -> {
             // Complete future with error hides the exception so we need to explicitly log it and return it
             logger.error("Error during WHEP playback for stream: {}", streamId, e);
@@ -105,7 +105,7 @@ public class WhepEndpoint extends RestServiceBase {
      * @param uriInfo
      * @return HTTP Response
      */
-    public Response prepareResponse(Result result, String eTag, UriInfo uriInfo) {
+    public Response prepareResponse(Result result, UriInfo uriInfo) {
         try {
             if (!result.isSuccess()) {
                 return Response.status(Status.FORBIDDEN).entity(result.getMessage()).build();

@@ -3,7 +3,6 @@ package io.antmedia.test.webrtc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.times;
 import static org.junit.Assert.assertNotNull;
 
 import java.net.URI;
@@ -58,17 +57,17 @@ public class WhepEndpointTest {
 	public void testPrepareResponse() {
 		WhepEndpoint whepEndpoint = Mockito.spy(new WhepEndpoint());
 
-		Response response = whepEndpoint.prepareResponse(new Result(false, "forbidden"), "etag123", null);
+		Response response = whepEndpoint.prepareResponse(new Result(false, "forbidden")	, null);
 		assertEquals(403, response.getStatus());
 		assertEquals("forbidden", response.getEntity());
 
-		response = whepEndpoint.prepareResponse(new Result(true, "success"), "etag123", null);
+		response = whepEndpoint.prepareResponse(new Result(true, "success"), null);
 		assertEquals(500, response.getStatus());
 
 		UriInfo uriInfo = Mockito.mock(UriInfo.class);
 		Mockito.doReturn(URI.create("http://localhost:5080")).when(uriInfo).getRequestUri();
 
-		response = whepEndpoint.prepareResponse(new Result(true, "success"), "etag123", uriInfo);
+		response = whepEndpoint.prepareResponse(new Result(true, "success"), uriInfo);
 		assertEquals(Status.ACCEPTED.getStatusCode(), response.getStatus());
 		assertEquals("application/sdp", response.getMediaType().toString());
 	}

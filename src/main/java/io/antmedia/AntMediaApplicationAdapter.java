@@ -2589,17 +2589,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		//for enterprise
 		return null;
 	}
-
-	/**	
-	 * Set the remote description for WHEP protocol (playback)
-	 * @param sdp SDP offer from client
-	 * @param sessionId unique session ID
-	 * @return CompletableFuture with Result containing SDP answer
-	 */
-	public CompletableFuture<Result> setWhepRemoteDescription(String streamId, String sdp, String sessionId){
-		//for enterprise
-		return null;
-	}
 	
 	/**
 	 * Stop WebRTC playback through HTTP signaling (WHEP)
