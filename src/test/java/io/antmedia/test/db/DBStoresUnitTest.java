@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 
 import io.antmedia.datastore.db.*;
 
-import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -27,7 +26,6 @@ import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -1635,11 +1633,11 @@ public class DBStoresUnitTest {
 		assertEquals(1, broadcast2.getEndPointList().size());
 
 		// endpoint2 should be in the list, check stream id
-		assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
+		assertEquals(broadcast2.getEndPointList().get(0).getEndpointUrl(), rtmpUrl);
 
 		//
 		Endpoint endPoint3Clone = new Endpoint(
-				endPoint2.getRtmpUrl(), endPoint2.getType(), null, "finished");
+				endPoint2.getEndpointUrl(), endPoint2.getType(), null, "finished");
 
 		// remove end point2
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, true);
@@ -1710,11 +1708,11 @@ public class DBStoresUnitTest {
 		assertEquals(1, broadcast2.getEndPointList().size());
 
 		// endpoint2 should be in the list, check stream id
-		assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
+		assertEquals(broadcast2.getEndPointList().get(0).getEndpointUrl(), rtmpUrl);
 
 		//
 		Endpoint endPoint3Clone = new Endpoint(
-				endPoint2.getRtmpUrl(), endPoint2.getType(), "generic_2", "finished");
+				endPoint2.getEndpointUrl(), endPoint2.getType(), "generic_2", "finished");
 
 		// remove end point2
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, false);
@@ -1853,7 +1851,7 @@ public class DBStoresUnitTest {
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
 			assertEquals(1, broadcast2.getEndPointList().size());
-			assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
+			assertEquals(broadcast2.getEndPointList().get(0).getEndpointUrl(), rtmpUrl);
 
 			rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 			endPoint = new Endpoint(rtmpUrl, "facebook", null, "finished");
@@ -1864,7 +1862,7 @@ public class DBStoresUnitTest {
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
 			assertEquals(2, broadcast2.getEndPointList().size());
-			assertEquals(broadcast2.getEndPointList().get(1).getRtmpUrl(), rtmpUrl);
+			assertEquals(broadcast2.getEndPointList().get(1).getEndpointUrl(), rtmpUrl);
 
 			Broadcast broadcast3 = new Broadcast("test3");
 			broadcast3.setQuality("poor");
@@ -2903,7 +2901,7 @@ public class DBStoresUnitTest {
 
 		BroadcastUpdate updateData = new BroadcastUpdate();
 		for (Endpoint tmpEndpoint : endPointList) {
-			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl)) {
+			if (tmpEndpoint.getEndpointUrl().equals(rtmpUrl)) {
 				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 
 				break;
@@ -2921,7 +2919,7 @@ public class DBStoresUnitTest {
 		tmpBroadcast = dataStore.get(broadcast.getStreamId());
 		endPointList = tmpBroadcast.getEndPointList();
 		for (Endpoint tmpEndpoint : endPointList) {
-			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl2)) {
+			if (tmpEndpoint.getEndpointUrl().equals(rtmpUrl2)) {
 				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 				break;
 			}
@@ -2938,10 +2936,10 @@ public class DBStoresUnitTest {
 		List<Endpoint> endpList = updated.getEndPointList();
 		for(int i = 0; i < endpList.size(); i++){
 			Endpoint e = endpList.get(i);
-			if(e.getRtmpUrl().equals(rtmpUrl)){
+			if(e.getEndpointUrl().equals(rtmpUrl)){
 				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED, e.getStatus());
 			}
-			else if(e.getRtmpUrl().equals(rtmpUrl2)){
+			else if(e.getEndpointUrl().equals(rtmpUrl2)){
 				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, e.getStatus());
 			}
 			else{
