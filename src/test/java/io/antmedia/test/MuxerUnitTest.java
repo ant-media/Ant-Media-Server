@@ -5139,7 +5139,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		DataStore ds1 = spy(new InMemoryDataStore("testdb"));
 		doReturn(ds1).when(muxAdaptor1).getDataStore();
 		doReturn(new Broadcast()).when(muxAdaptor1).getBroadcast();
-		muxAdaptor1.registerToMainTrackIfExists();
+		muxAdaptor1.registerToMainTrackIfExists(mainTrackId);
 		verify(ds1, times(1)).updateBroadcastFields(anyString(), any());
 
 		ArgumentCaptor<Broadcast> argument = ArgumentCaptor.forClass(Broadcast.class);
@@ -5156,7 +5156,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor2.setStreamId(sub2);
 		doReturn(new Broadcast()).when(muxAdaptor2).getBroadcast();
 		doReturn(ds1).when(muxAdaptor2).getDataStore();
-		muxAdaptor2.registerToMainTrackIfExists();
+		muxAdaptor2.registerToMainTrackIfExists(mainTrackId);
 
 		ArgumentCaptor<Broadcast> argument2 = ArgumentCaptor.forClass(Broadcast.class);
 		verify(ds1, times(1)).save(argument2.capture());
@@ -5172,7 +5172,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor3.setStreamId("stream3");
 		DataStore ds2 = mock(DataStore.class);
 		doReturn(ds2).when(muxAdaptor3).getDataStore();
-		muxAdaptor3.registerToMainTrackIfExists();
+		muxAdaptor3.registerToMainTrackIfExists(mainTrackId);
 		verify(ds2, never()).updateBroadcastFields(anyString(), any());
 
 	}

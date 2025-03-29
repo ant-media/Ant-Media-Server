@@ -795,33 +795,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		prepareMuxerIO();
 
-		registerToMainTrackIfExists();
+		if(broadcastStream!=null && broadcastStream.getParameters().get("mainTrack")!=null)
+			registerToMainTrackIfExists(broadcastStream.getParameters().get("mainTrack"));
 		return true;
 	}
 
 
-	public void registerToMainTrackIfExists() {
-		if(broadcastStream.getParameters() != null) {
-			String mainTrack = broadcastStream.getParameters().get("mainTrack");
-			if(mainTrack != null) {
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setMainTrackStreamId(mainTrack);
+	public void registerToMainTrackIfExists(String mainTrack) {
+		if(mainTrack != null) {
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setMainTrackStreamId(mainTrack);
 
-				getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+			getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 
-				Broadcast mainBroadcast = getDataStore().get(mainTrack);
-				if(mainBroadcast == null) 
-				{
-					mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
-				}
-				else 
-				{
-					mainBroadcast.getSubTrackStreamIds().add(streamId);
-					BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
-					broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
+			Broadcast mainBroadcast = getDataStore().get(mainTrack);
+			if(mainBroadcast == null)
+			{
+				mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
+			}
+			else
+			{
+				mainBroadcast.getSubTrackStreamIds().add(streamId);
+				BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
+				broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
 
-					getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
-				}
+				getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
 			}
 		}
 	}
