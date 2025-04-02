@@ -66,7 +66,14 @@ public abstract class StorageClient {
 	 * @param type
 	 */
 	public abstract void delete(String key);
-	
+	/**
+	 * Delete Multiple files from storage
+	 * 
+	 * @param fileName
+	 * @param fileExtensions
+	 */
+
+  public abstract void deleteMultipleFiles(String key, String fileExtensions);
 	/**
 	 * Save input stream to the storage with key parameter
 	 * 
