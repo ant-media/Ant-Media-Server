@@ -5172,7 +5172,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor3.setStreamId("stream3");
 		DataStore ds2 = mock(DataStore.class);
 		doReturn(ds2).when(muxAdaptor3).getDataStore();
-		muxAdaptor3.registerToMainTrackIfExists(mainTrackId);
+		muxAdaptor3.registerToMainTrackIfExists(null);
 		verify(ds2, never()).updateBroadcastFields(anyString(), any());
 
 	}
