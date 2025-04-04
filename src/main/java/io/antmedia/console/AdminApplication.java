@@ -17,8 +17,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.RequestBuilder;
@@ -31,6 +34,7 @@ import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IGlobalScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
+import org.red5.server.scope.Scope;
 import org.red5.server.scope.WebScope;
 import org.red5.server.tomcat.WarDeployer;
 import org.red5.server.util.ScopeUtils;
@@ -38,9 +42,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import com.google.common.net.HttpHeaders;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.filter.JWTFilter;
+import io.antmedia.filter.TokenFilterManager;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
 
@@ -51,6 +60,9 @@ import jakarta.annotation.Nullable;
  * @author The Red5 Project (red5@osflash.org)
  */
 public class AdminApplication extends MultiThreadedApplicationAdapter {
+	private static final int JWT_TOKEN_TIMEOUT_MS = 60000;
+
+
 	private static final Logger log = LoggerFactory.getLogger(AdminApplication.class);
 
 
@@ -93,8 +105,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerCreateAppListener( (appName, warFileURI) -> 
-			createApplicationWithURL(appName, warFileURI)
+			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) -> 
+			createApplicationWithURL(appName, warFileURI, secretKey)
 					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
@@ -106,7 +118,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return super.appStart(app);
 	}
 
-	public boolean createApplicationWithURL(String appName, String warFileURI) 
+	public boolean createApplicationWithURL(String appName, String warFileURI, String secretKey) 
 	{
 		//If installation takes long, prevent redownloading war and starting installation again
 		if(currentApplicationCreationProcesses.contains(appName)) {
@@ -114,15 +126,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return false;
 		}
 
-		log.info("Creating application with name {}", appName);
+		log.info("Creating application with name {} and uri:{}", appName, warFileURI);
 		boolean result = false;
 		try {
 			String warFileFullPath = null;
-			if (warFileURI != null && !warFileURI.isEmpty()) 
+			if (StringUtils.isNotBlank(warFileURI)) 
 			{
-				warFileFullPath = downloadWarFile(appName, warFileURI).getAbsolutePath();
-			}
+				if (warFileURI.startsWith("http"))  //covers both http and https
+				{
+					File file = downloadWarFile(appName, warFileURI, secretKey);
+					if (file == null) {
+						logger.error("War file cannot be downloaded from {}. App:{} will not be created", warFileURI, appName);
+						return false;
+					}
+					warFileFullPath = file.getAbsolutePath();
+				}
+				else 
+				{
+					warFileFullPath = warFileURI;
+				}
+				logger.info("war full path: {}", warFileFullPath);
 
+			}
 			result = createApplication(appName, warFileFullPath);
 
 		} 
@@ -239,8 +264,16 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		java.util.Set<String> names = root.getScopeNames();
 		List<String> apps = new ArrayList<>();
 		for (String name : names) {
-			if(!name.equals("root")) {
-				apps.add(name);
+
+			IScope scope = root.getScope(name);
+
+			if (scope instanceof Scope) {
+
+				Scope appScope = (Scope) scope;
+				if(!name.equals("root") && appScope.isRunning()) {
+					apps.add(name);
+				}
+
 			}
 		}
 
@@ -326,43 +359,58 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileFullPath, appName);
 
 		//check if there is a non-completed deployment 
-		
+
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
 		if (appScope != null && appScope.isRunning()) {
 			logger.info("{} already exists and running", appName);
 			currentApplicationCreationProcesses.remove(appName);
 			return false;
 		}
-		
-		if(isCluster) {
-			String dbConnectionURL = getDataStoreFactory().getDbHost();
-			String mongoUser = getDataStoreFactory().getDbUser();
-			String mongoPass = getDataStoreFactory().getDbPassword();
 
-			boolean result = runCreateAppScript(appName, true, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
-			success = result;
-		}
-		else {
-			boolean result = runCreateAppScript(appName, warFileFullPath);
-			success = result;
-		}
+		String dbConnectionURL = getDataStoreFactory().getDbHost();
+		String mongoUser = getDataStoreFactory().getDbUser();
+		String mongoPass = getDataStoreFactory().getDbPassword();
+		success = runCreateAppScript(appName, isCluster, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
+
 
 		vertx.executeBlocking(() -> {
 			try {
 				warDeployer.deploy(true);
 			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 			finally {
 				currentApplicationCreationProcesses.remove(appName);
 			}
 			return null;
-		});
+		}, false);
 
 		return success;
 
 	}
-	
+
 	public Queue<String> getCurrentApplicationCreationProcesses() {
 		return currentApplicationCreationProcesses;
+	}
+
+	public static String getJavaTmpDirectory() {
+		return System.getProperty("java.io.tmpdir");
+	}
+
+	public static File getWarFileInTmpDirectory(String warFileName) 
+	{
+		String tmpsDirectory = getJavaTmpDirectory();
+		File file = new File(tmpsDirectory + File.separator + warFileName);
+		if (file.exists()) {
+			return file;
+		}
+		return null;
+
+	}
+
+	public static String getWarName(String appName) {
+		return appName + ".war";
 	}
 
 	@Nullable
@@ -373,7 +421,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		try {
 
-			String tmpsDirectory = System.getProperty("java.io.tmpdir");
+			String tmpsDirectory =  getJavaTmpDirectory();
 
 			File savedFile = new File(tmpsDirectory + File.separator + appName + "." + fileExtension);
 
@@ -400,22 +448,30 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		return file;
 	}
-	
+
 	public CloseableHttpClient getHttpClient() {
 		return HttpClients.createDefault();
 	}
 
-	public File downloadWarFile(String appName, String warFileUrl) throws IOException
+	public File downloadWarFile(String appName, String warFileUrl, String jwtSecretKey) throws IOException
 	{
 
 		try (CloseableHttpClient client = getHttpClient()) 
 		{
 			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
-			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(warFileUrl).build();
+			String jwtToken = JWTFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "appname", appName);
+
+			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(warFileUrl).addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken).build();
 			get.setConfig(requestConfig);
 
 			HttpResponse response = client.execute(get);
+			Header contentLengthHeader = response.getFirstHeader(HttpHeaders.CONTENT_LENGTH);
+			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK || (contentLengthHeader != null && contentLengthHeader.getValue().equals("0"))) {
+				logger.error("Cannot download war file from URL: {} Response code: {} length:{}", warFileUrl,
+						response.getStatusLine().getStatusCode(), response.getFirstHeader(HttpHeaders.CONTENT_LENGTH).getValue());
+				return null;
+			}
 
 			try (BufferedInputStream in = new BufferedInputStream(response.getEntity().getContent())) 
 			{
@@ -432,7 +488,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		//appScope is running after application has started
 		if (appScope != null && appScope.isRunning()) 
 		{
-			
+
 			logger.info("Deleting app:{} and appscope is running:{}", 
 					appName, appScope.isRunning());
 			getApplicationAdaptor(appScope).stopApplication(deleteDB);
@@ -455,15 +511,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				logger.error("It detects an non-completed app deployment directory with name {}. It's being deleted.", appName);
 				success = runDeleteAppScript(appName);
 			}
-	
+
 		}
 
 		return success;
-	}
-
-
-	public boolean runCreateAppScript(String appName, String warFilePath) {
-		return runCreateAppScript(appName, false, null, null, null, warFilePath);
 	}
 
 	public boolean runCreateAppScript(String appName) {
@@ -471,36 +522,34 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String mongoHost, String mongoUser, String mongoPass, String warFileName) {
+			String dbConnectionUrl, String dbUser, String dbPass, String warFileName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
-		String command;
 
-		if(warFileName != null && !warFileName.isEmpty())
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster
-					+ " -f " + warFileName;
+		String command = "/bin/bash create_app.sh"
+				+ " -n " + appName
+				+ " -w true"
+				+ " -p " + webappsPath
+				+ " -c " + isCluster;
 
+		if 	(!DataStoreFactory.DB_TYPE_MAPDB.equals(getDataStoreFactory().getDbType())) {
+			//add db connection url, user and pass if it's not mapdb
+			if (StringUtils.isNotBlank(dbConnectionUrl)) {
+				command +=  " -m " + dbConnectionUrl;
+			}
+			if (StringUtils.isNotBlank(dbUser)) {
+				command += " -u " + dbUser;
+			}
+			if (StringUtils.isNotBlank(dbPass)) {
+				command += " -s " + dbPass;
+			}
 		}
-		else
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster;
-		} 
 
-		if(isCluster) 
+		if(StringUtils.isNotBlank(warFileName))
 		{
-			command += " -m " + mongoHost
-					+ " -u "  + mongoUser
-					+ " -s "  + mongoPass;
+			command += " -f " + warFileName;
+
 		}
 
 		log.info("Creating application with command: {}", command);
@@ -550,7 +599,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 						}
 					}
 				}.start();
-				
+
 				result = process.waitFor() == 0;
 			}
 		}
@@ -583,7 +632,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			parametersToRun[i] = param;	
 		}
 
-		
+
 		ProcessBuilder pb = getProcessBuilder(parametersToRun);
 
 		return pb.start();

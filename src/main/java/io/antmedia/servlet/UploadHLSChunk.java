@@ -1,5 +1,6 @@
 package io.antmedia.servlet;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -19,16 +20,13 @@ import org.springframework.web.context.WebApplicationContext;
 import com.amazonaws.event.ProgressEventType;
 
 import io.antmedia.AppSettings;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.storage.StorageClient;
 
 @MultipartConfig
 public class UploadHLSChunk extends HttpServlet {
 
-
 	private static final long serialVersionUID = 1L;
-
-	public static final String STREAMS = "/streams";
-	public static final String WEBAPPS = "webapps";
 
 	protected static Logger logger = LoggerFactory.getLogger(UploadHLSChunk.class);
 
@@ -81,6 +79,11 @@ public class UploadHLSChunk extends HttpServlet {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
 	}
+	
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		super.doPut(req, resp);
+	}
 
 	@Override
 	protected void doPut(HttpServletRequest req, HttpServletResponse resp) 
@@ -116,6 +119,7 @@ public class UploadHLSChunk extends HttpServlet {
 
 		String s3FileKey = getS3Key(req, appSettings);
 
+		//TODO: we overwrite progressListener for the ongoing upload here. This may make logs misleading.
 		storageClient.setProgressListener(event -> {
 			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
 			{
@@ -123,18 +127,18 @@ public class UploadHLSChunk extends HttpServlet {
 			}
 			else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
 			{	
-				logger.info("File uploaded to S3 with key: {}", s3FileKey);
+				logger.debug("File uploaded to S3 with key: {}", s3FileKey);
 			}
 		});
 
 		storageClient.save(s3FileKey, inputStream, true);
 
-
 	}
 
-	private String getS3Key(HttpServletRequest req, AppSettings appSettings) {
+	public static String getS3Key(HttpServletRequest req, AppSettings appSettings) {
 		//No need have File.separator between the below strings because req.getPathInfo() starts with "/"
-		return appSettings.getS3StreamsFolderPath() + req.getPathInfo();
+		//req.getPathInfo(); includes only the part after /hls-upload/. In other words, just {SUB_FOLDER} + (M3U8 or TS files)
+		return Muxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + req.getPathInfo());
 	}
 
 }

@@ -3,6 +3,7 @@ package io.antmedia.cluster;
 import java.util.List;
 
 import io.antmedia.AppSettings;
+import io.antmedia.statistic.StatsCollector;
 
 public interface IClusterStore 
 {
@@ -30,4 +31,10 @@ public interface IClusterStore
 	 * @return number of deleted records. It should be 1. 
 	 */
 	public long deleteAppSettings(String appName);
+	
+	/**
+	 * Set the stats collector to the cluster store
+	 * @param statsCollector
+	 */
+	public void setStatsCollector(StatsCollector statsCollector);
 }

@@ -1,6 +1,7 @@
 package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
+import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -126,6 +128,20 @@ public class RestProxyTest {
 		streamId = restFilter.getStreamId("rest/v2/broadcasts/123456");
 		assertEquals("123456",streamId);
 	}
+
+	@Test
+	public void testIsRunning() {
+		RestProxyFilter restFilter = spy(new RestProxyFilter());
+
+		
+		assertFalse(restFilter.isHostRunning(null, 1000));
+		
+		assertFalse(restFilter.isHostRunning("", 1000));
+		
+		assertFalse(restFilter.isHostRunning(" ", 1000));
+
+
+	}
 	
 	@Test
 	public void testDoFilterPassCluster() throws IOException, ServletException {
@@ -234,7 +250,10 @@ public class RestProxyTest {
 		MockFilterChain filterChain = new MockFilterChain();
 
 		try {
-			endpointProxy.initTarget("http://127.0.0.1");
+			ServletConfig servletConfig = RestProxyFilter.getServletConfig("http://127.0.0.1");
+			assertEquals("ams-proxy-servlet", servletConfig.getServletName());
+			assertEquals("http://127.0.0.1", servletConfig.getInitParameter("targetUri"));
+			endpointProxy.init(servletConfig);
 			HttpResponse response = mock(HttpResponse.class);
 			StatusLine statusLine = mock(StatusLine.class);
 			Mockito.when(statusLine.getStatusCode()).thenReturn(304);

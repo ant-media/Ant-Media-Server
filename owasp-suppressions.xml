@@ -93,12 +93,63 @@
 	</suppress>
 	<suppress>
 	   <notes><![CDATA[
-	   file name: ffmpeg-5.1.2-1.5.8.jar,ffmpeg-platform-5.1.2-1.5.8.jar, cuda-11.8-8.6-1.5.8.jar, cuda-platform-11.8-8.6-1.5.8.jar
-	   This vulnerability is about to github actions of the original repo. It's not related to Ant Media Server.
+	   file name: tomcat-coyote-10.1.19.jar
+	   This vulnerability is about Tomcat fails to handle some cases of excessive HTTP headers correctly. We don't have problem with our headers in our end
 	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/(ffmpeg|cuda).*@.*$</packageUrl>
-	   <cve>CVE-2023-34112</cve>
+	   <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat/tomcat-coyote@10\.1\.19$</packageUrl>
+	   <cve>CVE-2024-34750</cve>
 	</suppress>
-
+	<suppress>
+	   <notes><![CDATA[
+	   file name: tomcat-catalina-10.1.34.jar
+	   This vulnerability seems to be fixed in 10.1.34 Otherwise, Ant Media Server works on Linux which is a case sensitve OS. So this doesn't affect the software.   
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat/tomcat-catalina@10\.1\.34$</packageUrl>
+	   <cve>CVE-2024-56337</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   This vulnerability causes problem when Ant Media Server pulls a HLS stream as a stream source. If you're not pulling HLS stream from a source, it will not effect you. 
+	   If you're pulling a stream from a third party resource, then make sure your third party is trusted until there is a fix available for this issue on FFmpeg side. When the fix is available,
+	   we'll update the FFmpeg version in Ant Media Server. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2023-6603</vulnerabilityName>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   We're not using immersive audio so that this vulnerability does not have an impact to Ant Media Server. When the fix is available,
+	   we'll also update the FFmpeg version in Ant Media Server. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-25469</vulnerabilityName>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   Ant Media Server does not decode JPEGs so that this vulnerability does not have an impact to Ant Media Server. When the fix is available,
+	   we'll also update the FFmpeg version in Ant Media Server.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22921</vulnerabilityName>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   This vulnerability is about opening a crafted AAC file. This case can only happen when putting that file as a stream source. 
+	   For this scenario, we recommend users to open the trusted files and when the fix is available, we'll update the FFmpeg version in Ant Media Server. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22919</vulnerabilityName>
+	</suppress>
+	
+	
+	
 	
 </suppressions>

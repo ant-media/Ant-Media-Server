@@ -1,7 +1,6 @@
 package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -23,6 +22,8 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.quartz.Scheduler;
+import org.quartz.impl.StdSchedulerFactory;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -155,7 +156,6 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 	}
 
 
-
 	@Test
 	public void testUpdateStreamSource() {
 		RestServiceV2Test restService = new RestServiceV2Test();
@@ -168,7 +168,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		assertEquals(streamUrl, streamSource.getStreamUrl());
 
 		name = "test2";
-		String streamUrl2 = "rtmp://localhost/LiveApp/test1234";
+		String streamUrl2 = "rtmp://127.0.0.1/LiveApp/test1234";
 		Result result = restService.callUpdateBroadcast(streamSource.getStreamId(), name, null, "", streamUrl2, "streamSource", null);
 		assertTrue(result.isSuccess());
 
@@ -215,7 +215,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		//add rtmp endpoint 
 		Endpoint endpoint = new Endpoint();
 		String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
-		endpoint.setRtmpUrl("rtmp://localhost/LiveApp/" + endpointStreamId); 
+		endpoint.setRtmpUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId); 
 		try 
 		{
 			result = RestServiceV2Test.addEndpointV2(streamSource.getStreamId(), endpoint);
@@ -301,7 +301,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		app.setDataStoreFactory(dsf);
 
 		//create stream fetcher
-		StreamFetcher streamFetcher = new StreamFetcher(localStream.getStreamUrl(), localStream.getStreamId(), localStream.getType(), appScope, Vertx.vertx());
+		StreamFetcher streamFetcher = new StreamFetcher(localStream.getStreamUrl(), localStream.getStreamId(), localStream.getType(), appScope, Vertx.vertx(), 0);
 
 		//start stream fetcher
 		streamFetcher.startStream();

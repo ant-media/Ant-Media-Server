@@ -9,25 +9,31 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.junit.Assert.*;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.ProcessHandle.Info;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Iterator;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.amazonaws.util.Base32;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.security.ITokenService;
+import io.antmedia.security.TOTPGenerator;
 import org.awaitility.Awaitility;
-import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -48,9 +54,7 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
+
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
@@ -73,6 +77,8 @@ public class MuxingTest {
 	public static boolean videoExists;
 	
 	protected static Logger logger = LoggerFactory.getLogger(MuxingTest.class);
+	public static long videoDuration;
+	public static long audioDuration;
 
 
 	static {
@@ -139,6 +145,7 @@ public class MuxingTest {
 		assertTrue("duplicate test AppFunctionalV2Test#testSendRTMPStream", true);
 	}
 
+	
 
 	@Test
 	public void testSupportVideoCodecUnSupportedAudioCodec() {
@@ -363,6 +370,57 @@ public class MuxingTest {
 		assertTrue("This test is merged with RestServiceV2Test#testAddEndpointCrossCheckV2", true);
 	}
 
+	
+	@Test
+	public void testHEVCWithRTMP() throws Exception {
+		
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
+
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
+		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("live");
+		boolean mp4Enabled = appSettings.isMp4MuxingEnabled();
+		appSettings.setMp4MuxingEnabled(true);
+		
+		boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
+		appSettings.setHlsMuxingEnabled(true);
+		ConsoleAppRestServiceTest.callSetAppSettings("live", appSettings);
+
+		
+		String streamId = "hevc"  + (int)(Math.random() * 999999);
+
+		Process rtmpSendingProcess = execute(
+				ffmpegPath + " -re -i src/test/resources/test_hevc.flv -codec copy -f flv rtmp://"
+						+ SERVER_ADDR + "/live/" + streamId);
+		
+		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/live/streams/" + streamId+ ".m3u8");
+		});
+		
+		assertTrue(MuxingTest.videoExists);
+		assertTrue(MuxingTest.audioExists);
+		
+		
+		rtmpSendingProcess.destroy();
+		
+		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/live/streams/" + streamId+ ".mp4");
+		});
+		
+		
+		appSettings.setMp4MuxingEnabled(mp4Enabled);
+		appSettings.setHlsMuxingEnabled(hlsEnabled);
+		ConsoleAppRestServiceTest.callSetAppSettings("live", appSettings);
+		
+		
+	}
 
 	@Test
 	public void testMp4Muxing() {
@@ -392,6 +450,21 @@ public class MuxingTest {
 			Process rtmpSendingProcess = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
 							+ SERVER_ADDR + "/LiveApp/" + streamName);
+			
+			try {
+				Process finalProcess = rtmpSendingProcess;
+				Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+					return finalProcess.isAlive();
+				});
+			}
+			catch (Exception e) {
+				//try one more time because it may give high resource usage
+				 rtmpSendingProcess = execute(
+							ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+									+ SERVER_ADDR + "/LiveApp/" + streamName);
+            }
+			
+			
 
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
@@ -463,8 +536,14 @@ public class MuxingTest {
 			System.out.println("cannot allocate input context");
 			return false;
 		}
+		
+		//allowed_extensions
+		
+		AVDictionary optionsDictionary = new AVDictionary();
+			
+		av_dict_set(optionsDictionary, "allowed_extensions", "ALL", 0);
 
-		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
+		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) optionsDictionary)) < 0) {
 			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}
@@ -498,6 +577,9 @@ public class MuxingTest {
 				assertTrue(codecpar.height() != 0);
 				assertTrue(codecpar.format() != AV_PIX_FMT_NONE);
 				videoStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				
+				videoDuration = av_rescale_q(inputFormatContext.streams(i).duration(),  inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+
 
 				videoExists = true;
 				streamExists = true;
@@ -505,6 +587,8 @@ public class MuxingTest {
 			{
 				assertTrue(codecpar.sample_rate() != 0);
 				audioStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				
+				audioDuration = av_rescale_q(inputFormatContext.streams(i).duration(),  inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 				audioExists = true;
 				streamExists = true;
 			}
@@ -524,6 +608,8 @@ public class MuxingTest {
 			}
 			i++;
 			avcodec.av_packet_unref(pkt);
+			pkt.close();
+			pkt = null;
 		}
 
 		if (inputFormatContext.duration() != AV_NOPTS_VALUE) {
@@ -724,7 +810,153 @@ public class MuxingTest {
 		}
 		return null;
 	}
-
 	
+	@Test
+	public void testHLSSegmentFileName() {
 
+		try {
+			ConsoleAppRestServiceTest.resetCookieStore();
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
+			appSettings.setHlsMuxingEnabled(true);
+			String hlsSegmentFileNameFormat = appSettings.getHlsSegmentFileSuffixFormat();
+			appSettings.setHlsSegmentFileSuffixFormat("-%Y%m%d-%s");
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+			// send rtmp stream with ffmpeg to red5
+			String streamName = "live_test"  + (int)(Math.random() * 999999);
+
+			// make sure that ffmpeg is installed and in path
+			Process rtmpSendingProcess = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+							+ SERVER_ADDR + "/LiveApp/" + streamName);
+			
+			try {
+				Process finalProcess = rtmpSendingProcess;
+				Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+					return finalProcess.isAlive();
+				});
+			}
+			catch (Exception e) {
+				//try one more time because it may give high resource usage
+				 rtmpSendingProcess = execute(
+							ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+									+ SERVER_ADDR + "/LiveApp/" + streamName);
+            }
+			
+			
+
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
+			});
+
+			
+			String content = getM3U8Content("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
+			
+			
+			long now = System.currentTimeMillis();
+	        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+	        String formattedTime = formatter.format(new Date(now));
+
+	        //(now/10000) we can not guarantee we will have a ts created just now so use regex like live_test873835-20241218-1734XXXX.ts
+	        String regex = streamName+"-"+formattedTime+"-"+(now/10000000) + "\\d{4}\\.ts";
+	        System.out.println("regex for ts name:"+regex);
+
+			Pattern pattern = Pattern.compile(regex);
+	        Matcher matcher = pattern.matcher(content);
+	        assertTrue (matcher.find());
+			
+			rtmpSendingProcess.destroyForcibly();
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.getBroadcast(streamName);
+			});
+			
+			appSettings.setHlsMuxingEnabled(hlsEnabled);
+			appSettings.setHlsSegmentFileSuffixFormat(hlsSegmentFileNameFormat);
+			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+	private String getM3U8Content(String urlString) throws Exception {
+		URL url = new URL(urlString);
+
+        // Open a connection and create a BufferedReader
+        BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+
+        // Read the URL content into a StringBuilder
+        StringBuilder content = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            content.append(line).append("\n");
+        }
+
+        // Close the reader
+        reader.close();
+
+        // Print the content
+        System.out.println("URL Content:");
+        System.out.println(content.toString());
+        
+        return content.toString();
+	}
+	@Test
+	public void testRTMPURlFormat() throws Exception {
+		// rtmp://localhost/LiveApp/stream/token/subid/subcode
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
+
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
+
+		String appName = "live";
+		String restUrl = "http://127.0.0.1:5080/" + appName +"/rest";
+		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings(appName);
+
+		appSettings.setEnableTimeTokenForPublish(true);
+		appSettings.setTimeTokenSecretForPublish("random_thing");
+		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+
+		String streamId = "stream_" + (int) (Math.random()*10000);
+		String subscriberId = "sub12345";
+		String secret = "abcdabcd";
+		String type = "publish";
+
+		result = ConsoleAppRestServiceTest.callCreateTOTPSubscriber(restUrl ,subscriberId, secret, streamId, type);
+		assertTrue(result.isSuccess());
+
+		byte[] secretBytes = Base32.decode(secret);
+		String code = TOTPGenerator.generateTOTP(secretBytes, appSettings.getTimeTokenPeriod(), 6, ITokenService.HMAC_SHA1);
+
+		String rtmpURL = "rtmp://127.0.0.1/" + appName + "/" + streamId + "/token/" + subscriberId +"/" + code;
+		Process process = execute(ffmpegPath + " -re -i src/test/resources/test.flv "
+				+ "-c copy -f flv " + rtmpURL);
+
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcast	= ConsoleAppRestServiceTest.callGetBroadcast(restUrl,streamId);
+			return broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus());
+		});
+
+		appSettings.setEnableTimeTokenForPublish(false);
+		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+
+		process.destroy();
+	}
 }

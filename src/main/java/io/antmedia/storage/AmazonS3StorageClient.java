@@ -43,10 +43,12 @@ public class AmazonS3StorageClient extends StorageClient {
 
 
 	public AmazonS3 getAmazonS3() {
+
 		if (amazonS3 == null) {
 			amazonS3 = initAmazonS3();
+			getObjects("");
 		}
-		return amazonS3; 
+		return amazonS3;
 	}
 
 	public AmazonS3 initAmazonS3() {
@@ -70,7 +72,9 @@ public class AmazonS3StorageClient extends StorageClient {
 		builder.withClientConfiguration(
 				new ClientConfiguration().withMaxConnections(100)
 				.withConnectionTimeout(120 * 1000)
-				.withMaxErrorRetry(15));
+				.withMaxErrorRetry(15))
+				.withPathStyleAccessEnabled(isPathStyleAccessEnabled())
+		;
 
 		return builder.build();
 	}
@@ -154,7 +158,9 @@ public class AmazonS3StorageClient extends StorageClient {
 			{
 				putRequest = new PutObjectRequest(getStorageName(), key, inputStream, metadata);
 			}
-
+			
+			putRequest.getRequestClientOptions().setReadLimit(getTransferBufferSize());
+			
 			putRequest.setCannedAcl(getCannedAcl());
 
 			if(checkStorageClass(getStorageClass())){
@@ -187,7 +193,7 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 	}
 
-	private void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
 		upload.addProgressListener((ProgressListener)event -> 
 		{
 			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)

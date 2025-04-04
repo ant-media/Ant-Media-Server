@@ -1,7 +1,7 @@
 package io.antmedia.websocket;
 
 public class WebSocketConstants {
-	
+
 
 	private WebSocketConstants() {
 	}
@@ -76,6 +76,10 @@ public class WebSocketConstants {
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
 
+	/**
+	 * Please use {@link #MAIN_TRACK} instead
+	 */
+	@Deprecated(forRemoval = true, since = "2.11.3")
 	public static final String ROOM = "room";
 
 	public static final String JOIN_COMMAND = "join";
@@ -152,6 +156,13 @@ public class WebSocketConstants {
 	 */
 	public static final String NOT_ALLOWED_UNREGISTERED_STREAM = "not_allowed_unregistered_streams";
 	
+	
+	/**
+	 * This is sent back to the user if mainTrack 
+	 */
+	public static final String MAX_SUBTRACK_COUNT_REACHED = "main_track_has_max_subtrack_count__not_allowed_to_add_more_subtracks";
+
+	
 	/**
 	 * This is sent back to the user when there is no room specified in 
 	 * joining the video conference
@@ -168,8 +179,8 @@ public class WebSocketConstants {
 	 * joining the video conference
 	 */
 	public static final String ROOM_TIME_INVALID = "room_not_active_or_expired";
-	
-	
+
+
 	/**
 	 * This is sent back to the user when stream plannedStartDate and plannedEndDate 
 	 * values are in interval or not.
@@ -581,5 +592,88 @@ public class WebSocketConstants {
 	 */
 	public static final String PUSH_NOTIFICATION_CONTENT = "pushNotificationContent";
 
+	/**
+	 * Participant role in the room
+	 */
+	public static final String ROLE = "role";
+
+	/**
+	 * Command to get subtrack infos for a main track
+	 */
+	public static final String GET_SUBTRACKS_COMMAND = "getSubtracks";
+
+	/**
+	 * Command to get subtrack count for a main track
+	 */
+	public static final String GET_SUBTRACKS_COUNT_COMMAND = "getSubtracksCount";
+
+	/**
+	 * subtrack (broadcast) object list notification
+	 */
+	public static final String SUBTRACK_LIST_NOTIFICATION = "subtrackList";
+
+	/**
+	 * status field in websocket communication
+	 */
+	public static final String STATUS = "status";
 	
+	/**
+	 * sort field used for sorting subtracks
+	 */
+	public static final String SORT_BY = "sortBy";
+
+	/**
+	 * order (asc, desc) field used for ordering subtracks
+	 */
+	public static final String ORDER_BY = "orderBy";
+	
+	/**
+	 * search field used for searching subtracks
+	 */
+	public static final String SEARCH = "search";
+
+
+	/*
+	 * count field in websocket communication
+	 */
+	public static final String COUNT = "count";
+
+	/**
+	 * subtrack (broadcast) object count notification
+	 */
+	public static final String SUBTRACK_COUNT_NOTIFICATION = "subtrackCount";
+
+	/**
+	 * subtrack (broadcast) object list
+	 */
+	public static final String SUBTRACK_LIST = "subtrackList";
+
+	/**
+	 * This is the error definition that is sent when the stream does not get video or audio packet for the timeout duration.
+	 * Currently it's implemented for WebRTC ingest
+	 */
+	public static final String NO_PACKET_RECEIVED_FOR_TIMEOUT_DURATION = "noPacketReceivedForTimeoutDuration";
+	
+	/**
+	 * This is the error definition that is sent when mainTrack cannot be created or updated in publishing process.
+	 */
+	public static final String MAINTRACK_DB_OPERATION_FAILED = "mainTrackDBOperationFailed";
+
+
+	/**
+	 * This is passed in play websocket method to define the publisher stream id (if available) which uses same websocket channel with player
+	 * For example in conference case a participant use same websocket to publish its stream and to play the others
+	 */
+	public static final String USER_PUBLISH_ID = "userPublishId";
+	
+	/**
+	 * Notification to notify a new subtrack addition to a main track
+	 */
+	public static final String SUBTRACK_ADDED = "subtrackAdded";
+	
+	/**
+	 * Notification to notify a new subtrack removal to a main track
+	 */
+	public static final String SUBTRACK_REMOVED = "subtrackRemoved";
+
 }

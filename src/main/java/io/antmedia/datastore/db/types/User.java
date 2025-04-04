@@ -1,109 +1,95 @@
 package io.antmedia.datastore.db.types;
 
+import dev.morphia.annotations.*;
 import org.bson.types.ObjectId;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
-import dev.morphia.annotations.Entity;
-import dev.morphia.annotations.Field;
-import dev.morphia.annotations.Id;
-import dev.morphia.annotations.Index;
-import dev.morphia.annotations.Indexes;
-import dev.morphia.utils.IndexType;
-import io.antmedia.rest.model.UserType;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel(value="User", description="The basic user class for accessing the web panel")
+import java.util.Map;
+
+@Schema(description = "The user information")
 @Entity(value = "user")
 @Indexes({ @Index(fields = @Field("email")), @Index(fields = @Field("fullName")) })
 public class User {
 	
 	/**
-	 * Email of the user
-	 */
-	@ApiModelProperty(value = "the email of the user")
-	private String email;
-	
-	/**
-	 * Password of the user, ignore password and this field is not set for all user types
-	 */
-	@ApiModelProperty(value = "the password of the user")
-	@JsonProperty(access = Access.WRITE_ONLY)
-	private String password;
-	
-	/**
-	 * ADMIN can do anything in its scope.
-	 *   If it's scope is system, it can CRUD anything
-	 *   If it's scope is an application, it can CRUD anything in the application. 
-	 *      it cannot access the web panel services
-	 * 	  
-	 * READ_ONLY can read anything in its scope.
-	 *   If it's scope is system, it can READ anything 
-	 *   If it's scope is an application, it can only READ anything in the application
-	 *      it cannot access the web panel services
-	 * 
-	 * USER can do anything but cannot change the settings in its scope.
-	 *   If it's scope is system, it can CRUD content but cannot change system settings/application settings
-	 *   If it's scope is an application, it can CRUD content but cannot change application settings
-	 *      it cannot access the web panel services
-	 */
-	@ApiModelProperty(value = "the type of the user", allowableValues = "ADMIN, READ-ONLY, USER")
-	private UserType userType;
+     * The email of the user.
+     */
+    @Schema(description = "The email of the user")
+    private String email;
 
-	/**
-	 * Scope of the user. If it's scope is system, it can access the stuff in system-level
-	 * It's scope is an application, it can access the stuff in application-level
-	 * 
-	 * It makes more sense with UserType
-	 */
-	@ApiModelProperty(value = "Scope can be 'system' or name of the application. Scope of the user. If it's scope is system, it can "
-			+ "access the stuff in system-level. If it's scope is an application, it can access the stuff in application-level"
-			+ "It makes more sense with UserType")
-	private String scope;
-
-	
-	/**
-	 * New password of the user, below field is not set  for all user types
-	 */
-	@ApiModelProperty(value = "the new password of the user")
+    /**
+     * The password of the user. This field is only set for certain user types.
+     */
+    @Schema(description = "The password of the user")
 	@JsonProperty(access = Access.WRITE_ONLY)
-	private String newPassword;
-	
-	/**
-	 * Name of the user. Use firstname and lastname
-	 */
+    private String password;
+
+    /**
+     * The type of the user.
+     */
 	@Deprecated
-	@ApiModelProperty(value = "the name of the user")
-	private String fullName;
-	
-	@ApiModelProperty(value = "Fist name of the user")
-	private String firstName;
-	
-	@ApiModelProperty(value = "last name of the user")
-	private String lastName;
-	
+	@Schema(description = "The type of the user", allowableValues = {"ADMIN", "READ-ONLY", "USER"})
+    private UserType userType;
+
+
+    /**
+     * The scope of the user. It can be 'system' or the name of the application.
+     */
+	@Deprecated
+    @Schema(description = "The scope of the user. If it's 'system', it can access system-level stuff. If it's an application name, it can access application-level stuff.")
+    private String scope;
+
+	@Schema(description = "Holds app -> scope of access data. After 2.9.1 users can have multiple app access with different access types.")
+	private Map<String, String> appNameUserType;
+
 	/**
-	 * URL of the picture if exists
-	 */
-	@ApiModelProperty(value = "the URL of the user picture")
-	private String picture;
-	
-	/**
-	 * ID of the user
-	 */
-	@ApiModelProperty(value = "the id of the user")
-	@JsonIgnore
-	@Id
-	private ObjectId id;
-	
-	public User(String email, String password, UserType userType, String scope) {
+     * The new password of the user. This field is only set for certain user types.
+     */
+    @Schema(description = "The new password of the user")
+	@JsonProperty(access = Access.WRITE_ONLY)
+    private String newPassword;
+
+    /**
+     * The first name of the user.
+     */
+    @Schema(description = "The first name of the user")
+    private String firstName;
+
+    /**
+     * The last name of the user.
+     */
+    @Schema(description = "The last name of the user")
+    private String lastName;
+    
+    @Deprecated
+    @Schema(description = "The full name of the user")
+    private String fullName;
+
+
+    /**
+     * The URL of the user's picture.
+     */
+    @Schema(description = "The URL of the user's picture")
+    private String picture;
+
+    /**
+     * The id of the user.
+     */
+    @Schema(description = "The id of the user")
+    @Id
+    private ObjectId id;
+
+	public User(String email, String password, UserType userType, String scope, Map<String, String> appNameUserTypeMap) {
 		this.email = email;
 		this.password = password;
 		this.userType = userType;
 		this.scope = scope;
+		this.appNameUserType = appNameUserTypeMap;
 	}
 
 	public User() {
@@ -186,5 +172,13 @@ public class User {
 
 	public void setLastName(String lastName) {
 		this.lastName = lastName;
-	}	
+	}
+
+	public Map<String, String> getAppNameUserType() {
+		return appNameUserType;
+	}
+
+	public void setAppNameUserType(Map<String, String> appNameUserType) {
+		this.appNameUserType = appNameUserType;
+	}
 }

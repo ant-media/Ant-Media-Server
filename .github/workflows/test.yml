@@ -1,0 +1,276 @@
+
+name: Ant Media Server Community Edition Test
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'ams-v*'
+  pull_request:
+    branches:
+      - '**'
+  
+      
+env:
+  RUNNER: ubuntu-22.04      
+      
+jobs:  
+  run-unit-tests:
+    runs-on: ubuntu-22.04
+    env:
+      GPG_TTY: ${{ secrets.GPG_TTY }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: https://sonarcloud.io
+      CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
+      CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
+      GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt' #openjdk
+          java-version: '17'
+          cache: 'maven'
+        
+      - name: Add MongoDB 6.0 GPG key and repository
+        run: |
+          if [ ! -f /usr/share/keyrings/mongodb-server-6.0.gpg ]; then
+            curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+          fi
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+      
+      - name: Add Redis repository
+        run: |
+            sudo rm -rf /usr/share/keyrings/redis-archive-keyring.gpg
+            curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+          
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+
+      - name: Start Redis
+        run: sudo systemctl start redis-server
+
+      - name: Start MongoDB
+        run: sudo systemctl start mongod
+
+      - name: Install Onvif Simulator
+        run: sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
+
+      - name: Build projects
+        uses: ./.github/actions/build-projects 
+        with:
+          branch_name: ${{ github.ref_name }}
+           
+          
+      - name: Run tests and SonarCloud analysis
+        run: |
+          export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
+          echo $RELEASE_VERSION
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/* -Dorg.bytedeco.javacpp.logger.debug=false org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true
+      
+      - name: Show MongoDB Log, Crash Log and Servis Status on failure
+        if: failure()
+        run: |
+          if [[ -f /var/log/mongodb/mongod.log ]]; then
+            sudo cat /var/log/mongodb/mongod.log
+          fi
+          if [[ -f hs_err_pid*.log ]]; then
+            cat hs_err_pid*.log
+          else
+            echo "No hs_err_pid*.log file found"
+          fi
+          sudo service mongod status
+          sudo service redis-server status
+
+  check-vulnerabilities:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt' #openjdk
+          java-version: '17'
+          cache: 'maven'
+        
+      - name: Build projects
+        uses: ./.github/actions/build-projects 
+        with:
+          branch_name: ${{ github.ref_name }}
+           
+      - name: Check vulnerabilities
+        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false
+
+
+      - name: Show MongoDB Log, Crash Log and Servis Status on failure
+        if: failure()
+        run: |
+          if [[ -f /var/log/mongodb/mongod.log ]]; then
+            sudo cat /var/log/mongodb/mongod.log
+          fi
+          if [[ -f hs_err_pid*.log ]]; then
+            cat hs_err_pid*.log
+          else
+            echo "No hs_err_pid*.log file found"
+          fi
+          sudo service mongod status
+          sudo service redis-server status           
+          
+  run-integration-tests:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt' #openjdk
+          java-version: '17'
+          cache: 'maven'
+          
+    
+      - name: Add MongoDB 6.0 GPG key and repository
+        run: |
+          if [ ! -f /usr/share/keyrings/mongodb-server-6.0.gpg ]; then
+            curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+          fi
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+      
+      - name: Add Redis repository
+        run: |
+            sudo rm -rf /usr/share/keyrings/redis-archive-keyring.gpg
+            curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+      
+      - name: Add ffmpeg7 repo
+        run: sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg7 -y
+            
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+
+      - name: Start Redis
+        run: sudo systemctl start redis-server
+
+      - name: Start MongoDB
+        run: sudo systemctl start mongod
+
+      - name: Install Chrome
+        run: |
+         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+         sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+         
+      - name: Install Onvif Simulator
+        run: sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
+
+      - name: Build projects
+        uses: ./.github/actions/build-projects 
+        with:
+          branch_name: ${{ github.ref_name }}
+     
+      - name: Package Ant Media Server
+        run: mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
+        
+      - name: Install Ant Media Server
+        run: |
+          wget https://raw.githubusercontent.com/ant-media/Scripts/${{ github.ref_name }}/install_ant-media-server.sh -O target/install_ant-media-server.sh || wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh
+          chmod 755 target/install_ant-media-server.sh
+          cd target
+          sudo ./install_ant-media-server.sh -i ant-media-server-community*.zip
+          cd ..
+          sleep 20
+          sudo cp src/test/resources/preset-red5-web.properties /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
+          sudo cp src/test/resources/preset-red5-web.db /usr/local/antmedia/liveapp.db
+          sudo sed -i 's^server.cpu_limit=.*^server.cpu_limit=100^' /usr/local/antmedia/conf/red5.properties
+          sudo sed -i 's^server.memory_limit_percentage=.*^server.memory_limit_percentage=100^' /usr/local/antmedia/conf/red5.properties
+          sudo chown -R antmedia:antmedia /usr/local/antmedia/
+          sudo service antmedia stop
+          sudo service antmedia start
+          sleep 10
+          
+      - name: Run integration tests
+        run: |
+          export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
+          echo $RELEASE_VERSION
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=*/integration/* -Dmaven.javadoc.skip=true --quiet
+      
+
+      - name: Show Ant Media Server Error Log on failure
+        if: failure()
+        run: cat /usr/local/antmedia/log/antmedia-error.log
+          
+      - name: Show Ant Media Server Log on failure
+        if: failure()
+        run: cat /usr/local/antmedia/log/ant-media-server.log
+          
+      - name: Show MongoDB Log, Crash Log and Servis Status on failure
+        if: failure()
+        run: |
+          if [[ -f /var/log/mongodb/mongod.log ]]; then
+            sudo cat /var/log/mongodb/mongod.log
+          fi
+          if [[ -f /usr/local/antmedia/hs_err_pid*.log ]]; then
+            cat /usr/local/antmedia/hs_err_pid*.log
+          fi
+          if [[ -f hs_err_pid*.log ]]; then
+            cat hs_err_pid*.log
+          else
+            echo "No hs_err_pid*.log file found"
+          fi
+          sudo service mongod status
+          sudo service redis-server status    
+   
+   
+  deploy:   
+    runs-on: ubuntu-22.04
+    needs: [run-unit-tests, check-vulnerabilities, run-integration-tests]    
+    env:
+      CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
+      CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
+      GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                  
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt' #openjdk
+          java-version: '17'
+          cache: 'maven'
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          
+      - name: Build projects # there is low probability that if somethings has pushed to the related branch while running test and before this job, it may build something not exactly same
+        uses: ./.github/actions/build-projects 
+        with:
+          branch_name: ${{ github.ref_name }}
+      - name: Deploy snapshots
+      #if it is a master branch
+        if: github.ref == 'refs/heads/master' #if it is a master branch
+        run: |
+          echo "Deploy to snapshots"
+          mvn deploy -P assemble -DskipTests --settings mvn-settings.xml
+          echo "Deploy to snapshots exited with $?"
+
+      - name: Deploy release
+       #if it is a tagged 
+        if: startsWith(github.ref, 'refs/tags/ams-v')
+        run: |
+          echo "Deploy to release"
+          mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet
+          echo "Deploy to release exited with $?"
+
+

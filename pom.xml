@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>2.8.3-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -69,6 +69,8 @@
         <finalName>${project.artifactId}</finalName>
         <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
+        <sonar.projectKey>io.antmedia:ant-media-server</sonar.projectKey>
+		<sonar.organization>ant-media</sonar.organization>
         <!-- keep it blank -->
 		<enterprise.profile></enterprise.profile>
     </properties>
@@ -146,6 +148,9 @@
             </plugin>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+						<verbose>false</verbose>
+				</configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
@@ -191,8 +196,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
-                    <argLine>@{argLine} -Xmx1500M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
-                	<skipAfterFailureCount>1</skipAfterFailureCount>
+                    <argLine>@{argLine} -Xmx3000M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
+                	<skipAfterFailureCount>10</skipAfterFailureCount>
                 </configuration>
             </plugin>
              <plugin>
@@ -214,44 +219,13 @@
 			        </execution>
 			    </executions>
 			</plugin>      
-            <plugin>
-                <groupId>com.github.kongchen</groupId>
-                <artifactId>swagger-maven-plugin</artifactId>
-                <version>3.1.8</version>
-                <configuration>
-                    <apiSources>
-                        <apiSource>
-                            <springmvc>false</springmvc>
-                            <locations>
-                             	<location>io.antmedia.rest</location> 
-                            	<location>io.antmedia.console.rest</location>
-                            </locations>
-                            <swaggerDirectory>target/swagger</swaggerDirectory>
-                            <swaggerFileName>swagger</swaggerFileName>
-                            <outputFormats>json</outputFormats>
-                            <info>
-                   				 <title>Ant Media Server REST API Reference</title>
-                   				 <version>${project.parent.version}</version>
-                   			</info>
-                   			<host>test.antmedia.io:5443/Sandbox/rest/</host>
-                        </apiSource>
-                    </apiSources>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+          
             <plugin>
               <groupId>org.owasp</groupId>
               <artifactId>dependency-check-maven</artifactId>
               <version>${owasp.version}</version>
 			  <configuration>
-				 <failBuildOnCVSS>8</failBuildOnCVSS>
+				 <failBuildOnCVSS>7</failBuildOnCVSS>
 				 <suppressionFile>owasp-suppressions.xml</suppressionFile>
 			   </configuration>
               <executions>
@@ -339,10 +313,41 @@
             <artifactId>spring-webmvc</artifactId>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-config</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-authorization-server</artifactId>
+		</dependency>
+
+
+		<!-- OAuth2 dependencies -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
+       <dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
@@ -382,16 +387,10 @@
 		    <version>${morphia.version}</version>
 		</dependency>
 		<dependency>
-            <groupId>io.swagger</groupId>
-            <artifactId>swagger-jersey2-jaxrs</artifactId>
-            <version>${swagger-jersey2-jaxrs.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jersey-container-servlet-core</artifactId>
-                    <groupId>org.glassfish.jersey.containers</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+      		<groupId>io.swagger.core.v3</groupId>
+	      	<artifactId>swagger-jaxrs2-jakarta</artifactId>
+	      	<version>${swagger-jaxrs2-jakarta.version}</version>
+	   	</dependency>
         <dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-dropwizard-metrics</artifactId>
@@ -417,42 +416,7 @@
 		    <artifactId>commons-io</artifactId>
 		    <version>${commons-io}</version>
 		</dependency>
-        <dependency>
-            <groupId>org.red5</groupId>
-            <artifactId>red5-io</artifactId>
-            <version>${red5-io.version}</version>
-            <type>jar</type>
-            <exclusions>
-                <exclusion>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                    <groupId>org.bouncycastle</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>mina-core</artifactId>
-                    <groupId>org.apache.mina</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>mina-integration-jmx</artifactId>
-                    <groupId>org.apache.mina</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>mina-integration-beans</artifactId>
-                    <groupId>org.apache.mina</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-beanutils</artifactId>
-                    <groupId>commons-beanutils</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-codec</artifactId>
-                    <groupId>commons-codec</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-lang3</artifactId>
-                    <groupId>org.apache.commons</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+
         <dependency>
             <artifactId>mina-integration-beans</artifactId>
             <groupId>org.apache.mina</groupId>
@@ -511,6 +475,12 @@
             <groupId>com.googlecode.json-simple</groupId>
     		<artifactId>json-simple</artifactId>
     		<version>${json-simple.version}</version>
+    		<exclusions>
+				<exclusion>
+					<groupId>junit</groupId>
+					<artifactId>junit</artifactId>
+				</exclusion>
+			</exclusions>
         </dependency>
         <dependency>
 			<groupId>com.google.code.gson</groupId>
@@ -555,6 +525,7 @@
             <artifactId>jersey-media-sse</artifactId>
             <version>${jersey.version}</version>
         </dependency>
+ 
         <dependency>
             <groupId>org.mapdb</groupId>
             <artifactId>mapdb</artifactId>
@@ -594,6 +565,15 @@
             <artifactId>httpmime</artifactId>
             <version>${httpmime.version}</version>
         </dependency>
+          <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+                <!-- We explicityly overwrite below to resolve the CVE-2020-13956 vulnerability (We don't need to add this dependency explicitly, it's already added by other dependencies) ) 
+             We need to upgrade the httpclient to 5 later when all other dependent libs are up to date
+             mekya   -->
+    
+            <version>4.5.13</version>
+        </dependency>
         <dependency>
 		    <groupId>org.apache.kafka</groupId>
 		    <artifactId>kafka-streams</artifactId>
@@ -617,8 +597,23 @@
 		<dependency>
 		  <groupId>com.google.firebase</groupId>
 		  <artifactId>firebase-admin</artifactId>
-		  <version>9.2.0</version>
+		  <version>${firebase.version}</version>
 		</dependency>
+		<dependency>
+		    <groupId>com.eatthepath</groupId>
+		    <artifactId>pushy</artifactId>
+		    <version>${pushy.version}</version>
+		</dependency>
+        <dependency>
+            <groupId>io.lindstrom</groupId>
+            <artifactId>m3u8-parser</artifactId>
+            <version>0.27</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>
@@ -704,6 +699,7 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
+                            
                         </executions>
                     </plugin>
                     <plugin>
@@ -721,6 +717,33 @@
 							    <executable>mkdir</executable>
 									<arguments>
 										<argument>target/webapps</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+							    <id>create-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>live</argument>
+										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+							    <id>show-enterprise-feature-message-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/assembly/show_enterprise_feature_message.sh</executable>
+									<arguments>
+										<argument>${project.build.directory}/webapps/live</argument>
 									</arguments>
 								</configuration>
 							</execution>
@@ -778,6 +801,8 @@
 									</arguments>
 								</configuration>
 							</execution>
+							
+							
 						</executions>
 			        </plugin>
                     <plugin>
@@ -833,6 +858,11 @@
 		           	<version>${javacpp.srt.version}</version>
 		            <scope>provided</scope>
         		</dependency>
+                <dependency>
+                    <groupId>com.google.cloud</groupId>
+                    <artifactId>google-cloud-storage</artifactId>
+                    <version>2.37.0</version>
+                </dependency>
             </dependencies>
             <build>
                 <plugins>
@@ -932,6 +962,20 @@
 								</configuration>
 							</execution>
 							<execution>
+							    <id>create-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>live</argument>
+										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
 							    <id>create-liveapp</id>
 								<phase>package</phase>
 								<goals>
@@ -960,6 +1004,7 @@
 								</configuration>
 							</execution>
 						</executions>
+						
 			        </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,15 +16,21 @@ import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import ch.qos.logback.classic.Logger;
+import com.esotericsoftware.minlog.Log;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -35,6 +42,8 @@ import io.vertx.core.Vertx;
 public class DashViewerStatsTest {
 	
 	static Vertx vertx;	
+	
+	private static Logger log = LoggerFactory.getLogger(DashViewerStatsTest.class);
 	
 	@BeforeClass
 	public static void beforeClass() {
@@ -99,6 +108,10 @@ public class DashViewerStatsTest {
 		viewerStats.setVertx(vertx);
 
 		DataStore dataStore = new InMemoryDataStore("datastore");
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWriteSubscriberEventsToDatastore(true);
+		
+		dataStore.setAppSettings(appSettings);
 		viewerStats.setDataStore(dataStore);
 		viewerStats.setServerSettings(new ServerSettings());
 		
@@ -122,7 +135,7 @@ public class DashViewerStatsTest {
 				boolean eventExist = false;
 				Subscriber subData = dataStore.getSubscriber(streamId, subscriberPlay.getSubscriberId());
 				
-				List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+				List<ConnectionEvent> events = dataStore.getConnectionEvents(streamId, subscriberPlay.getSubscriberId(), 0, 50); 
 				
 				if(events.size() == 1) {
 					ConnectionEvent event2 = events.get(0);
@@ -157,7 +170,7 @@ public class DashViewerStatsTest {
 	public void testSetApplicationContextSubscribers() {
 		ApplicationContext context = mock(ApplicationContext.class);
 
-		try {
+		
 
 			DataStoreFactory dsf = new DataStoreFactory();
 			dsf.setDbType("memorydb");
@@ -172,11 +185,18 @@ public class DashViewerStatsTest {
 
 			//set dash fragment duration to 0.5
 			settings.setDashFragmentDuration("0.5");
+			settings.setWriteSubscriberEventsToDatastore(true);
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
-			DashViewerStats viewerStats = new DashViewerStats();
+			AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adapter);
+			
+			when(adapter.getScope()).thenReturn(Mockito.mock(IScope.class));
+
+			
+			DashViewerStats viewerStats = Mockito.spy(new DashViewerStats());
 			
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
@@ -184,8 +204,12 @@ public class DashViewerStatsTest {
 			Broadcast broadcast = new Broadcast();
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			doReturn(true).when(viewerStats).isStreaming(Mockito.any());			
 			
 			dsf.setWriteStatsToDatastore(true);
+			dsf.setWriteSubscriberEventsToDatastore(true);
+			
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
 
@@ -239,15 +263,22 @@ public class DashViewerStatsTest {
 					boolean eventExist = false;
 					Subscriber subData = dsf.getDataStore().getSubscriber(streamId, subscriberPlay.getSubscriberId());
 					
-					List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+					List<ConnectionEvent> events = dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay.getSubscriberId(), 0, 50);
 					
 					if(events.size() == 2) {
 						ConnectionEvent event = events.get(0);
-						eventExist = ConnectionEvent.CONNECTED_EVENT == event.getEventType();
+						
+						eventExist = ConnectionEvent.CONNECTED_EVENT == events.get(0).getEventType();
 					}
+					log.info("isConnected: {} currentConcurrentConnections: {} events.size:{} eventExist: {}", subData.isConnected(), subData.getCurrentConcurrentConnections(), events.size(), eventExist);
 
 					return subData.isConnected() && subData.getCurrentConcurrentConnections() == 2 && eventExist; 
 			});
+			
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			BroadcastUpdate update = new BroadcastUpdate();
+			update.setUpdateTime(broadcast.getUpdateTime());
+			dsf.getDataStore().updateBroadcastFields(streamId, update);
 			
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
@@ -264,7 +295,7 @@ public class DashViewerStatsTest {
 			// a disconnection event should be added 
 			Subscriber subData = dsf.getDataStore().getSubscriber(streamId, subscriberPlay2.getSubscriberId());
 			
-			List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+			List<ConnectionEvent> events = dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay2.getSubscriberId(), 0, 50);
 			
 			assertEquals(4, events.size());
 			ConnectionEvent eventDis = events.get(3);
@@ -273,6 +304,8 @@ public class DashViewerStatsTest {
 			// Broadcast finished test
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			dsf.getDataStore().save(broadcast);
+			doReturn(false).when(viewerStats).isStreaming(Mockito.any());			
+
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
@@ -305,16 +338,13 @@ public class DashViewerStatsTest {
 
 			Subscriber subData2 = dsf.getDataStore().getSubscriber(streamId, subscriberPlay3.getSubscriberId());
 			
-			List<ConnectionEvent> events2 = subData2.getStats().getConnectionEvents();
+			List<ConnectionEvent> events2 = dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay3.getSubscriberId(), 0, 50);
 			
 			assertEquals(2, events2.size());	
 			ConnectionEvent eventDis2 = events2.get(1);
 			assertSame(ConnectionEvent.DISCONNECTED_EVENT, eventDis2.getEventType());		
 			
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		
 		
 	}	
 
@@ -340,7 +370,12 @@ public class DashViewerStatsTest {
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
-			DashViewerStats viewerStats = new DashViewerStats();
+			AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adapter);
+			
+			when(adapter.getScope()).thenReturn(Mockito.mock(IScope.class));
+			
+			DashViewerStats viewerStats = Mockito.spy(new DashViewerStats());
 			
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
@@ -349,6 +384,8 @@ public class DashViewerStatsTest {
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
 			
+			doReturn(true).when(viewerStats).isStreaming(Mockito.any());			
+
 			dsf.setWriteStatsToDatastore(true);
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
@@ -387,7 +424,8 @@ public class DashViewerStatsTest {
 			// Broadcast finished test
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			dsf.getDataStore().save(broadcast);
-			
+			doReturn(false).when(viewerStats).isStreaming(Mockito.any());			
+
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			

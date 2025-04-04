@@ -66,6 +66,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.VoD;
@@ -148,10 +149,8 @@ public class RestServiceV2Test {
 	}
 
 	public static Broadcast createBroadcast(String name, String type, String streamUrl, String subFolder) {
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		Gson gson = new Gson();
+		
 		Broadcast broadcast = new Broadcast();
 		if (name != null) {
 			broadcast.setName(name);
@@ -168,6 +167,14 @@ public class RestServiceV2Test {
 		if(subFolder != null)
 			broadcast.setSubFolder(subFolder);
 
+		return createBroadcast(broadcast);
+	}
+	
+	public static Broadcast createBroadcast(Broadcast broadcast) {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+		Gson gson = new Gson();
 		try {
 
 			HttpUriRequest post = RequestBuilder.post().setUri(url)
@@ -191,6 +198,7 @@ public class RestServiceV2Test {
 			fail(e.getMessage());
 		}
 		return null;
+
 	}
 
 
@@ -257,10 +265,10 @@ public class RestServiceV2Test {
 	}
 
 	public static Result callUpdateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl, String type, List<PlayListItem> playList) {
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
+		
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		Broadcast broadcast = new Broadcast();
+		
+		BroadcastUpdate broadcast = new BroadcastUpdate();
 		try {
 			broadcast.setStreamId(id);
 		} catch (Exception e1) {
@@ -279,6 +287,15 @@ public class RestServiceV2Test {
 			broadcast.setPlayListItemList(playList);
 		}
 
+		return callUpdateBroadcast(socialNetworks, id, broadcast);
+	}
+
+	public static Result callUpdateBroadcast(String socialNetworks, String id,
+			BroadcastUpdate broadcast) {
+		
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
+		
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		try {
 			Gson gson = new Gson();
 			HttpUriRequest post = RequestBuilder.put().setUri(url + "?socialNetworks=" + socialNetworks)
@@ -306,7 +323,7 @@ public class RestServiceV2Test {
 	@Test
 	public void testBroadcastCreateFunctionalWithoutName() {
 
-		createBroadcast(null);
+		createBroadcast((String)null);
 	}
 
 	@Test
@@ -428,7 +445,8 @@ public class RestServiceV2Test {
 
 			StringBuffer result = readResponse(response);
 
-			assertEquals(404, response.getStatusLine().getStatusCode() );
+			//it should be 405 because it is not allowed and it's DELETE method
+			assertEquals(405, response.getStatusLine().getStatusCode() );
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1007,7 +1025,7 @@ public class RestServiceV2Test {
 
 			Thread.sleep(1500);
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://127.0.0.1/LiveApp/" + broadcast.getStreamId());
 
 			Thread.sleep(3000);
 
@@ -1021,7 +1039,7 @@ public class RestServiceV2Test {
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
 			execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastTemp.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://127.0.0.1/LiveApp/" + broadcastTemp.getStreamId());
 
 
 			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
@@ -1057,7 +1075,7 @@ public class RestServiceV2Test {
 
 			// publish stream
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://127.0.0.1/LiveApp/" + broadcast.getStreamId());
 
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
@@ -1236,7 +1254,7 @@ public class RestServiceV2Test {
 
 		System.out.println("Running testUpdate");
 		// create broadcast
-		Broadcast broadcast = createBroadcast(null);
+		Broadcast broadcast = createBroadcast((String)null);
 
 		String name = "string name";
 		String description = "String descriptio";
@@ -1467,11 +1485,11 @@ public class RestServiceV2Test {
 		try{
 			List<Broadcast> broadcastList = callGetBroadcastList();
 			int size = broadcastList.size();
-			Broadcast broadcast = createBroadcast(null);
+			Broadcast broadcast = createBroadcast((String)null);
 
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 
-			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
+			String rtmpUrl = "rtmp://127.0.0.1/LiveApp/" + streamId;
 
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(rtmpUrl);
@@ -1514,7 +1532,7 @@ public class RestServiceV2Test {
 			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, broadcast.getEndPointList().get(0).getStatus());
 
 			Process execute = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 							+ broadcast.getStreamId());
 
 			appSettingsModel.setEndpointRepublishLimit(9);
@@ -1628,11 +1646,11 @@ public class RestServiceV2Test {
 			
 			logger.info("total number of broadcasts is {}", size);
 			
-			Broadcast broadcast = createBroadcast(null);
+			Broadcast broadcast = createBroadcast((String)null);
 
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 			
-			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
+			String rtmpUrl = "rtmp://127.0.0.1/LiveApp/" + streamId;
 			
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(rtmpUrl);
@@ -1671,7 +1689,7 @@ public class RestServiceV2Test {
 			
 
 			Process execute = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 							+ broadcast.getStreamId());
 
 
@@ -1702,7 +1720,7 @@ public class RestServiceV2Test {
 			
 				//add dynamic endpoint test
 				String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
-				String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
+				String dynamicRtmpURL = "rtmp://127.0.0.1/LiveApp/" + streamIdDynamic;
 				 
 				Endpoint dynamicEndpoint = new Endpoint();
 				dynamicEndpoint.setRtmpUrl(dynamicRtmpURL);
@@ -1880,7 +1898,7 @@ public class RestServiceV2Test {
 
 			// publish stream
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastFetched.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://127.0.0.1/LiveApp/" + broadcastFetched.getStreamId());
 
 			/// get broadcast	
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(()-> {
@@ -1938,7 +1956,7 @@ public class RestServiceV2Test {
 			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
 			assertTrue(result.isSuccess());
 			Random r = new Random();
-			String streamId = "streamId" + r.nextInt();
+			String streamId = "streamId" +  Integer.toUnsignedString(r.nextInt());
 
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 

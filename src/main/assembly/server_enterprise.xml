@@ -106,6 +106,8 @@
 				<exclude>cuda*ppc64le.jar</exclude>
 				<exclude>cuda*macosx*.jar</exclude>
 				<exclude>cuda*windows*.jar</exclude>
+				
+
 			</excludes>
 		</fileSet>
 		<fileSet>

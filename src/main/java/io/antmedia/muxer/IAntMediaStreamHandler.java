@@ -2,6 +2,13 @@ package io.antmedia.muxer;
 
 import java.io.File;
 
+import org.onvif.ver10.device.wsdl.GetScopes;
+import org.red5.server.api.scope.IScope;
+
+import io.antmedia.AppSettings;
+import io.antmedia.IAppSettingsUpdateListener;
+import io.antmedia.analytic.model.PublishStatsEvent;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
@@ -17,12 +24,18 @@ public interface IAntMediaStreamHandler {
 	public static final String BROADCAST_STATUS_PREPARING = "preparing";
 	public static final String BROADCAST_STATUS_ERROR = "error";
 	public static final String BROADCAST_STATUS_FAILED = "failed";
+	public static final String BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY = "terminated_unexpectedly";
 	
 	public static final String PUBLISH_TYPE_PULL = "Pull";
 	public static final String PUBLISH_TYPE_RTMP = "RTMP";
 	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
 	public static final String PUBLISH_TYPE_SRT = "SRT";
 	
+	public static final String DEFAULT_USER_ROLE = "default";
+	
+	
+	public static final String WEBAPPS_PATH = "webapps/";
+
 	
 	/**
 	 * Called by some muxer like MP4Muxer
@@ -34,9 +47,28 @@ public interface IAntMediaStreamHandler {
 	 * @param file video file that muxed is finished
 	 * @param duration of the video in milliseconds
 	 * @param resolution height of the video 
+	 * 
+	 * @Deprecated use {@link #muxingFinished(Broadcast, File, long, long, int, String, String)} because Broadcast object may be deleted when this method is called
 	 */
+	@Deprecated
 	public void muxingFinished(String id, File file, long startTime, long duration , int resolution, String path, String vodId);
 	
+	
+	/**
+	 * Called by some muxer like MP4Muxer
+	 * 
+	 * id actually is the name of the file however in some cases file name and the id may be different
+	 * in some cases like there is already a file with that name
+	 * 
+	 * @param broadcast object that muxed is finished
+	 * @param streamId is the id of the stream
+	 * @param file video file that muxed is finished
+	 * @param duration of the video in milliseconds
+	 * @param resolution height of the video 
+	 * @param previewFilePath path of the preview file
+	 * 
+	 */
+	public void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration , int resolution, String previewFilePath, String vodId);
 	
 	/**
 	 * Update stream quality, speed and number of pending packet size and update time
@@ -52,8 +84,30 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @param pendingPacketSize
 	 * Number of packets pending to be processed
+	 * 
+	 * @param totalByteReceived
+	 * @param byteTransferred 
+	 * @param currentTimeMillis
+	 * 
+	 * @Deprecated {@link #setQualityParameters(String, PublishStatsEvent, long)} should be used instead of this method
 	 */
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs);
+	@Deprecated
+	public void setQualityParameters(String streamId, String quality, double speed, int inputQueueSize, long currentTimeMillis);
+	
+	
+	/**
+	 * Sets quality parameters for the given stream ID.
+
+	 * This method is called to update quality-related parameters 
+	 * for the specified stream during the publishing process. 
+
+	 * @param streamId The unique identifier of the stream.
+	 * @param stats The current publishing statistics for the stream.
+	 * @param currentTimeMillis The current timestamp in milliseconds.
+	 */
+	public default void setQualityParameters(String streamId, PublishStatsEvent stats, long currentTimeMillis) {
+		
+	}
 
     /***
      * Adds a MuxAdaptor when a muxAdaptor is created
@@ -100,7 +154,7 @@ public interface IAntMediaStreamHandler {
 	 * Update broadcast status to BROADCASTING
 	 * 
 	 * @param streamId is the id of the stream.
-	 * @param absoluteStartTimeMs: It's the absolute start time if available
+	 * @param absoluteStartTimeMs: @deprecated It's not used anymore. It's the absolute start time if available 
 	 * @param publishType: It's RTMP, WebRTC, StreamSource
 	 * @param broadcast: It's the broadcast object. If it's null, a new record will be created
 	 * 
@@ -171,6 +225,18 @@ public interface IAntMediaStreamHandler {
 	 */
 	public IFrameListener createCustomBroadcast(String streamId);
 	
+	
+	/**
+	 * Create another broadcast. It's useful to create another manipulated version of the original broadcast
+	 * in the plugins. The returning frame listener should be feed with raw audio and video frames
+	 * 
+	 * @param streamId
+	 * @param height
+	 * @param bitrate
+	 * @return
+	 */
+	public IFrameListener createCustomBroadcast(String streamId, int height, int bitrate);
+	
 	/**
 	 * Stop the custom broadcast that is being created. Stop encoders and make database operations.
 	 * 
@@ -185,4 +251,40 @@ public interface IAntMediaStreamHandler {
 	 * @return
 	 */
 	public MuxAdaptor getMuxAdaptor(String streamId);
+	
+	/**	
+	 * Get the AppSettings of the application
+	 * @return AppSettings
+	 */
+	public AppSettings getAppSettings();
+
+
+	/**
+	 * Get the DataStore of the application
+	 * 
+	 * @return DataStore
+	 */
+	public DataStore getDataStore();
+
+	/**
+	 * Get the scope
+	 * @return
+	 */
+	public IScope getScope();
+
+
+	/**
+	 * Notify the webhook about the stream status
+	 * 
+	 * @param streamName
+	 * @param absoluteStartTimeMs
+	 */
+	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
+			int inputQueueSize, int encodingQueueSize, int dropFrameCountInEncoding, int dropPacketCountInIngestion, double speed);
+	
+	/**
+	 * Add listener that is notified when the settings are updated
+	 * @param listener
+	 */
+	public void addSettingsUpdateListener(IAppSettingsUpdateListener listener);
 }

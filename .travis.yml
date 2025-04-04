@@ -2,7 +2,7 @@ dist: jammy
 language: java
 jdk:
   - openjdk17
-node_js: "16.20.2"
+
 
 git:
   depth: false
@@ -32,6 +32,8 @@ services:
 
 
 before_install:
+  - nvm install 16.20.2
+  - nvm use 16.20.2
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
   - export GPG_TTY=$(tty) #-> https://github.com/keybase/keybase-issues/issues/2798
   - gpg2 --batch --fast-import codesigning.asc
@@ -49,6 +51,10 @@ before_install:
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
+  #install chrome
+  - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+  - sudo apt install ./google-chrome-stable_current_amd64.deb -y
+
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
   - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
@@ -103,7 +109,6 @@ before_install:
         cp -rf "$HOME/.antmedia/cache/node_modules" .;
     fi)
   - npm install
-  - export NODE_OPTIONS=--openssl-legacy-provider
   - ng build --prod
   - cp -a ./dist/. ../src/main/server/webapps/root/
   #update the cache directory
@@ -143,11 +148,11 @@ before_install:
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
   - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
   - sudo sed -i 's^server.cpu_limit=.*^server.cpu_limit=100^' /usr/local/antmedia/conf/red5.properties
+  - sudo sed -i 's^server.memory_limit_percentage=.*^server.memory_limit_percentage=100^' /usr/local/antmedia/conf/red5.properties
   - sudo service antmedia stop
   - sudo service antmedia start
   - sleep 10
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
-
 
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
@@ -173,18 +178,20 @@ cache:
     
 after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
-  - echo "----------------------------------------------"
   - sudo cat /usr/local/antmedia/log/antmedia-error.log
-  - sudo service mongod status
-  - sudo service redis-server status
   - sudo cat /var/log/mongodb/mongod.log
   - sudo cat /usr/local/antmedia/hs_err_pid*.log  # cat hs_err_pid file if it exists
   - sudo cat hs_err_pid*.log  # cat hs_err_pid file if it exists
+  - sudo service mongod status
+  - sudo service redis-server status
  
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
+    script: |
+      echo "Deploy to snapshots"
+      mvn deploy -P assemble -DskipTests --settings mvn-settings.xml
+      echo "Deploy to snapshots exited with $?"
     skip_cleanup: true
     on:
       tags: false
@@ -193,7 +200,10 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
+    script: | 
+      echo "Deploy to release"
+      mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet
+      echo "Deploy to release exited with $?"
     skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged

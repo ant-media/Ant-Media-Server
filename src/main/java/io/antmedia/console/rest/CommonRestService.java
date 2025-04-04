@@ -13,11 +13,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -67,7 +63,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.SslConfigurationType;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.SslConfigurator;
 import io.antmedia.settings.ServerSettings;
@@ -197,7 +193,7 @@ public class CommonRestService {
 		String message = "";
 		if (user != null) 
 		{
-			if (!getDataStore().doesUsernameExist(user.getEmail()) && user.getPassword() != null && user.getEmail() != null && user.getUserType() != null)
+			if (!getDataStore().doesUsernameExist(user.getEmail()) && user.getPassword() != null && user.getEmail() != null)
 			{
 				user.setPassword(getMD5Hash(user.getPassword()));
 				result = getDataStore().addUser(user);
@@ -205,7 +201,7 @@ public class CommonRestService {
 
 				new Thread() {
 					public void run() {
-						sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString());
+						sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString(), user.getAppNameUserType());
 					};
 				}.start();
 			}
@@ -227,12 +223,17 @@ public class CommonRestService {
 
 
 
+
 	public Result addInitialUser(User user) {
 		boolean result = false;
 		int errorId = -1;
 		user.setPassword(getMD5Hash(user.getPassword()));
 		user.setUserType(UserType.ADMIN);
 		user.setScope(SCOPE_SYSTEM);
+		Map<String, String> appNameUserType = new HashMap<>();
+		appNameUserType.put(SCOPE_SYSTEM, UserType.ADMIN.toString());
+		user.setAppNameUserType(appNameUserType);
+
 		if (getDataStore().getNumberOfUserRecords() == 0) {
 			result = getDataStore().addUser(user);
 		}
@@ -245,7 +246,7 @@ public class CommonRestService {
 			@Override
 			public void run() 
 			{
-				sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString());
+				sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString(), user.getAppNameUserType());
 			}
 		}.start();
 
@@ -257,7 +258,7 @@ public class CommonRestService {
 		return  HttpClients.createDefault();
 	}
 
-	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType) 
+	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType, Map<String,String> appNameUserTypeMap)
 	{
 		boolean success = false;
 
@@ -296,6 +297,10 @@ public class CommonRestService {
 			builder.addTextBody("instanceId", instanceId);
 			builder.addTextBody("userScope", scope);
 			builder.addTextBody("userType", userType);
+			String jsonAppNameUserType = gson.toJson(appNameUserTypeMap);
+			builder.addTextBody("appNameUserType", jsonAppNameUserType);
+
+
 
 
 			HttpEntity httpEntity = builder.build();
@@ -388,7 +393,20 @@ public class CommonRestService {
 				session.setAttribute(USER_EMAIL, user.getEmail());
 				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
 				user = getDataStore().getUser(user.getEmail());
-				message = user.getScope() + "/" + user.getUserType();
+				if(user.getScope() != null && user.getUserType() != null){
+					message = user.getScope() + "/" + user.getUserType();
+
+				}else if(user.getAppNameUserType() != null){
+					JsonObject appNameUserTypeJson = new JsonObject();
+					for (Map.Entry<String, String> entry : user.getAppNameUserType().entrySet()) {
+						String appName = entry.getKey();
+						String userType = entry.getValue();
+
+						appNameUserTypeJson.addProperty(appName, userType);
+					}
+
+					message = appNameUserTypeJson.toString();
+				}
 				getDataStore().resetInvalidLoginCount(user.getEmail());
 			} 
 			else 
@@ -407,6 +425,16 @@ public class CommonRestService {
 		return new Result(result, message);
 
 	}
+	
+	
+	public Result deleteSession() {
+		HttpSession session = servletRequest.getSession();
+		session.invalidate();
+		
+		return new Result(true);
+	}
+	
+	
 	public void setRequestForTest(HttpServletRequest testRequest){
 		servletRequest = testRequest;
 	}
@@ -1346,7 +1374,13 @@ public class CommonRestService {
 					}
 
 				}
-			} finally {
+				
+				logContent = ous.toString("UTF-8");
+			} 
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			finally {
 				try {
 					if (ous != null)
 						ous.close();
@@ -1362,7 +1396,7 @@ public class CommonRestService {
 				}
 			}
 
-			logContent = ous.toString("UTF-8");
+		
 		}
 		jsonObject.addProperty(LOG_CONTENT, logContent);
 		jsonObject.addProperty(LOG_CONTENT_SIZE, contentSize);
@@ -1371,7 +1405,7 @@ public class CommonRestService {
 		return jsonObject.toString();
 	}
 
-	public String getMD5Hash(String pass){
+	public static String getMD5Hash(String pass){
 		String passResult= "";
 		try {
 			MessageDigest m=MessageDigest.getInstance("MD5");
@@ -1417,6 +1451,8 @@ public class CommonRestService {
 				tempSetting.setAppName(appName);
 				tempSetting.setPullWarFile(true);
 				tempSetting.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
+				tempSetting.setAppStatus(AppSettings.APPLICATION_STATUS_INSTALLING);
+				tempSetting.setAppInstallationTime(System.currentTimeMillis());
 
 				clusterNotifier.getClusterStore().saveSettings(tempSetting);
 			}
@@ -1447,15 +1483,31 @@ public class CommonRestService {
 				    Thread.currentThread().interrupt();
 				}
 			}
-			
+
 			if (!applicationCreated) {
 				result.setSuccess(applicationCreated);
 				result.setMessage("Application " + appName + "is not created in the 20 seconds.");
 			}
 
 		}
-		
+
+		updateAppStatus(appName, result.isSuccess() ? AppSettings.APPLICATION_STATUS_INSTALLED
+				: AppSettings.APPLICATION_STATUS_INSTALLATION_FAILED);
+
 		return result;
+	}
+
+	private void updateAppStatus(String appName, String status) {
+		AppSettings appSettings = getSettings(appName);
+		logger.info("Update Application Status for {} from {} to {}", appName, appSettings.getAppStatus(), status);
+		appSettings.setAppStatus(status);
+
+		//TODO: following if statement will be removed because toBeDeleted is deprecated
+		if(AppSettings.APPLICATION_STATUS_DELETED.equals(status)) {
+			appSettings.setToBeDeleted(true);
+		}
+
+		changeSettings(appName, appSettings);
 	}
 
 
@@ -1468,10 +1520,7 @@ public class CommonRestService {
 			AppSettings appSettings = getSettings(appName);
 			
 			if (appSettings != null) {
-				appSettings.setToBeDeleted(true);
-				//change settings on the db to let undeploy the app
-				changeSettings(appName, appSettings);
-
+				updateAppStatus(appName, AppSettings.APPLICATION_STATUS_DELETED);
 				result = getApplication().deleteApplication(appName, deleteDB);
 			}
 			else {

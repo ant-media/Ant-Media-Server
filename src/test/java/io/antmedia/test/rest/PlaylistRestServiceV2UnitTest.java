@@ -1,7 +1,9 @@
 package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -22,9 +24,12 @@ import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
@@ -127,6 +132,7 @@ public class PlaylistRestServiceV2UnitTest {
 		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
 		playlist.setPlayListItemList(broadcastList);
 		
+		
 
 		StatsCollector monitor = mock(StatsCollector.class);
 
@@ -168,6 +174,8 @@ public class PlaylistRestServiceV2UnitTest {
 
 		jakarta.ws.rs.core.Response response = restServiceReal.createBroadcast(playlist, false);
 		
+		Mockito.verify(app, Mockito.never()).schedulePlayList(Mockito.anyLong(), Mockito.any());
+
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 		// Test already invalid created playlist Id  
 
@@ -187,6 +195,8 @@ public class PlaylistRestServiceV2UnitTest {
 			when(context.getBean(StatsCollector.BEAN_NAME)).thenReturn(monitor);
 	
 			response = restServiceReal.createBroadcast(playlist2, false);
+			Mockito.verify(app).schedulePlayList(Mockito.anyLong(), Mockito.any());
+
 			
 			Broadcast broadcast = (Broadcast) response.getEntity();
 	
@@ -250,7 +260,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		when(restServiceSpy.getApplication()).thenReturn(adptr);
 
-		when(restServiceSpy.getApplication().stopStreaming(Mockito.any())).thenReturn(result);
+		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean())).thenReturn(result);
 
 		try {
 			playlist.setStreamId("testPlaylistId");
@@ -274,19 +284,20 @@ public class PlaylistRestServiceV2UnitTest {
 		assertEquals("testPlaylistId", streamId);
 		
 
-		result = restServiceReal.deleteBroadcast(playlist.getStreamId());
+		result = restServiceReal.deleteBroadcast(playlist.getStreamId(), false);
+		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
 
 		assertEquals(true, result.isSuccess());
 
 		//If there is no Playlist in DB.
 
-		result = restServiceReal.deleteBroadcast("testDbNullPlaylistId");
+		result = restServiceReal.deleteBroadcast("testDbNullPlaylistId", false);
 
 		assertEquals(false, result.isSuccess());
 
 		// If Playlist ID is null.
 
-		result = restServiceReal.deleteBroadcast(null);
+		result = restServiceReal.deleteBroadcast(null, false);
 
 		assertEquals(false, result.isSuccess());
 
@@ -300,6 +311,8 @@ public class PlaylistRestServiceV2UnitTest {
 
 		//create a broadcast
 		PlayListItem broadcastItem1 = new PlayListItem();
+		broadcastItem1.setName("name");
+		assertEquals("name", broadcastItem1.getName());
 
 		//create a broadcast
 		PlayListItem broadcastItem2 = new PlayListItem();
@@ -322,10 +335,12 @@ public class PlaylistRestServiceV2UnitTest {
 
 		ApplicationContext context = mock(ApplicationContext.class);
 
-		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
+		DataStore dataStore = new MapDBStore("testdb", vertx);
 		restServiceReal.setDataStore(dataStore);
 
 		restServiceReal.setAppCtx(context);
+		AntMediaApplicationAdapter app = Mockito.mock(AntMediaApplicationAdapter.class);
+		restServiceReal.setApplication(app);
 		
 		try {
 			playlist.setStreamId("testPlaylistId");
@@ -338,27 +353,37 @@ public class PlaylistRestServiceV2UnitTest {
 		dataStore.save(playlist);
 
 		// getPlaylistId = null & playlistId = null
+		
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setPlannedStartDate(100L);
+		broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), broadcastUpdate);
+		
+		//it will not update the status 
+		assertFalse(AntMediaApplicationAdapter.isStreaming(dataStore.get(playlist.getStreamId()).getStatus()));
+		
+		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
+		Mockito.verify(app).schedulePlayList(Mockito.anyLong(), Mockito.any());
+		//because we don't restart for playlist
+		Mockito.verify(app, Mockito.never()).stopStreaming(Mockito.any(), Mockito.anyBoolean());
+		Mockito.verify(app, Mockito.never()).startStreaming(Mockito.any());
+		
+		
 
 		assertEquals(true, result.isSuccess());
 
 		// getPlaylistId = null & playlistId != null		
 
-		result = restServiceReal.updateBroadcast("test123", playlist);
+		result = restServiceReal.updateBroadcast("test123", broadcastUpdate);
 
 		assertEquals(false, result.isSuccess());
 
 		// getPlaylistId != null & playlistId = null
-		try {
-			playlist.setStreamId("notNullId");
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		broadcastUpdate.setStreamId("notNullId");
 
-		result = restServiceReal.updateBroadcast(null, playlist);
+		result = restServiceReal.updateBroadcast(null, broadcastUpdate);
 
 		// getPlaylistId != null & playlistId != null
 		try {
@@ -368,11 +393,12 @@ public class PlaylistRestServiceV2UnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
 
 		playlist.setName("afterTestPlaylistName");
 		dataStore.save(playlist);
 		
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
 
@@ -386,8 +412,9 @@ public class PlaylistRestServiceV2UnitTest {
 		broadcastList.clear();
 
 		playlist.setPlayListItemList(broadcastList);
-
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
+		broadcastUpdate.setPlayListItemList(broadcastList);
+		
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
 
@@ -458,25 +485,25 @@ public class PlaylistRestServiceV2UnitTest {
 		assertEquals("testPlaylistId", streamId);
 
 		// Playlist current broadcast is empty scenario
-		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
+		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);	
 
 		assertEquals(false, result.isSuccess());
 
 		// Playlist ID is null scenario
 
-		result = restServiceReal.stopStreamingV2(null);		
+		result = restServiceReal.stopStreamingV2(null, false);		
 
 		assertEquals(false, result.isSuccess());
 
 		// Playlist is null scenario
-		result = restServiceReal.stopStreamingV2("nullPlaylist");		
+		result = restServiceReal.stopStreamingV2("nullPlaylist", false);		
 		assertEquals(false, result.isSuccess());
 
 		// Playlist current Broadcast null scenario
 
 		playlist.setCurrentPlayIndex(99);
 
-		result = restServiceReal.stopStreamingV2(playlist.getStreamId());		
+		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);		
 
 		assertEquals(false, result.isSuccess());
 
@@ -490,8 +517,8 @@ public class PlaylistRestServiceV2UnitTest {
 
 
 		when(restServiceSpy.getApplication()).thenReturn(mock(AntMediaApplicationAdapter.class));
-		when(restServiceSpy.getApplication().stopStreaming(Mockito.any())).thenReturn(result);
-		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
+		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean())).thenReturn(result);
+		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);	
 		//it's created because it's not started
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, playlist.getStatus());
 
@@ -535,12 +562,14 @@ public class PlaylistRestServiceV2UnitTest {
 
 		restServiceReal.setScope(scope);
 
-		ApplicationContext context = mock(ApplicationContext.class);
+		ApplicationContext applicationContext = mock(ApplicationContext.class);
+
+		when(icontext.getApplicationContext()).thenReturn(applicationContext);
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(dataStore);
 
-		restServiceReal.setAppCtx(context);
+		restServiceReal.setAppCtx(applicationContext);
 
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		
@@ -549,10 +578,12 @@ public class PlaylistRestServiceV2UnitTest {
 		//init stream fetcher
 		app.getStreamFetcherManager();
 
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(applicationContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		IStatsCollector collector = mock(IStatsCollector.class);
 		when(collector.enoughResource()).thenReturn(true);
-		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(collector);
+		when(applicationContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(collector);
+
+		when(app.getStatsCollector()).thenReturn(collector);
 
 
 		dataStore.save(playlist);

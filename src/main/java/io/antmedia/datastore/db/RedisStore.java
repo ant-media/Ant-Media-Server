@@ -64,12 +64,20 @@ public class RedisStore extends MapBasedDataStore {
 	    	streamInfoMap = redisson.getMap(dbName+"StreamInfo");
 	    	p2pMap = redisson.getMap(dbName+"P2P");
 	    	subscriberMetadataMap = redisson.getMap(dbName+"SubscriberMetaData");
+	    	connectionEventsMap = redisson.getMap(dbName+"ConnectionEvents");
 			
 			available = true;
     	}
     	 catch (IOException e) {
  			logger.error(ExceptionUtils.getStackTrace(e));
  		} 
+    	
+    	//migrate from conferenceRoomMap to Broadcast
+    	// May 11, 2024
+		// we may remove this code after some time and ConferenceRoom class
+    	// mekya
+    	migrateConferenceRoomsToBroadcasts();
+    	
 	}
 
 
@@ -77,7 +85,7 @@ public class RedisStore extends MapBasedDataStore {
 
 	@Override
 	public void close(boolean deleteDB) {
-	
+		long startTime = System.nanoTime();
 		synchronized(this) {
 			available = false;
 			if (deleteDB) {
@@ -93,13 +101,19 @@ public class RedisStore extends MapBasedDataStore {
 			}
 			redisson.shutdown();
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "close(boolean deleteDB)");
 	}
 
 	
 	@Override
 	public int resetBroadcasts(String hostAddress) {
+		long startTime = System.nanoTime();
+		int resetBroadcasts = 0;
 		synchronized (this) {
-			int resetBroadcasts = super.resetBroadcasts(hostAddress);
+			resetBroadcasts = super.resetBroadcasts(hostAddress);
 		
 			Collection<Object> streamInfoValues = streamInfoMap.values();
 			if (streamInfoValues != null) {
@@ -122,29 +136,46 @@ public class RedisStore extends MapBasedDataStore {
 					
 				} 
 			}
-			return resetBroadcasts;
+			
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "resetBroadcasts(String hostAddress) ");
+		return resetBroadcasts;
 	}
 
 
 	@Override
 	public List<StreamInfo> getStreamInfoList(String streamId) {
+		long startTime = System.nanoTime();
+		List<StreamInfo> streamInfoList = null;
 		synchronized (this) {
 			List<StreamInfo> object = (List<StreamInfo>) streamInfoMap.get(streamId);
-			return object != null ? object : new ArrayList<>();
+			streamInfoList = object != null ? object : new ArrayList<>();
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getStreamInfoList(String streamId)");
+		return streamInfoList;
 	}
 	
 	@Override
 	public void clearStreamInfoList(String streamId) {
+		long startTime = System.nanoTime();
 		synchronized (this) {
 			streamInfoMap.clear();
 		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "clearStreamInfoList(String streamId)");
 	}
 	
 	
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
+		long startTime = System.nanoTime();
 		synchronized (this) {
 			List streamInfoList = (List) streamInfoMap.get(streamInfo.getStreamId());
 			if (streamInfoList == null) {
@@ -153,35 +184,69 @@ public class RedisStore extends MapBasedDataStore {
 			streamInfoList.add(streamInfo);
 			streamInfoMap.put(streamInfo.getStreamId(), streamInfoList);
 		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "saveStreamInfo(StreamInfo streamInfo)");
+		
 	}
 
 	@Override
 	public boolean createP2PConnection(P2PConnection conn) {
+		long startTime = System.nanoTime();
+		boolean result = false;
 		if (conn != null) {
 			p2pMap.put(conn.getStreamId(), conn);
-			return true;
+			result = true;
 		}
-		return false;
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "createP2PConnection(P2PConnection conn)");
+		return result;
 	}
 
 	@Override
 	public boolean deleteP2PConnection(String streamId) {
-		return p2pMap.remove(streamId) != null ? true : false;
+		long startTime = System.nanoTime();
+		boolean result = p2pMap.remove(streamId) != null ? true : false;
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "deleteP2PConnection(String streamId)");
+		return result;
 	}
 
 	@Override
 	public P2PConnection getP2PConnection(String streamId) {
-		return (P2PConnection) p2pMap.get(streamId);
+		long startTime = System.nanoTime();
+		P2PConnection p2p =  (P2PConnection) p2pMap.get(streamId);
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getP2PConnection(String streamId)");
+		
+		return p2p;
 	}
 	
 	public long getLocalLiveBroadcastCount(String hostAddress) {
-		return getActiveBroadcastCount(map, gson, hostAddress);
+		long startTime = System.nanoTime();
+		long count = getActiveBroadcastCount(map, gson, hostAddress);
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getLocalLiveBroadcastCount(String hostAddress) ");
+		
+		return count;
 	}
 	
 	@Override
 	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
 	{
-		return getActiveBroadcastList(hostAddress);
+		long startTime = System.nanoTime();
+		List<Broadcast> list = getActiveBroadcastList(hostAddress);
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getLocalLiveBroadcasts(String hostAddress) ");
+		
+		return list;
 	}
 
 }

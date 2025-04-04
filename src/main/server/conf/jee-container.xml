@@ -24,6 +24,7 @@
 		value="org.apache.coyote.http11.Http11Protocol" /> Non-blocking I/O: <property 
 		name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" /> -->
 
+	<!-- Let the tomcat.cluster depends on warDeployer to make sure it's initialized before tomcat.server which depends on warDeployer -->
 	<!-- cluster start
 	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
 		<property name="clusterStore">
@@ -34,13 +35,17 @@
 			</bean>
 		</property>
 	</bean>
+	
 	cluster end -->
 
 
 	<!-- Tomcat without SSL enabled -->
 	<bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader"
 		depends-on="context.loader,warDeployer" lazy-init="true">
-		<!-- cluster --><!-- property name="cluster" ref="tomcat.cluster" /--><!-- cluster -->
+		<!--  We've add following fields to make sure tomcat.cluster is initialized before TomcatLoader in cluster mode otherwise there maybe initialization exceptions -->
+		<!-- cluster start
+		<property name="clusterNotifier" ref="tomcat.cluster" />
+		cluster end -->
 		<property name="webappFolder" value="${red5.root}/webapps" />
 
 		<property name="connectors">
@@ -60,6 +65,12 @@
 							<entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/> 
 							<entry key="processorCache" value="${http.processor_cache}"/> 
 							<entry key="relaxedQueryChars" value="{}" />
+							<entry key="compression" value="on" />
+							<entry key="compressionMinSize" value="2048" />
+							<entry key="noCompressionUserAgents" value="gozilla,traviata" />
+							<entry key="compressibleMimeType" value="application/vnd.apple.mpegurl,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml" />
+				
+							
 						</map>
 					</property>
 				</bean>
@@ -88,6 +99,11 @@
 				                                <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
 				                                <entry key="processorCache" value="${http.processor_cache}"/>
 				                                <entry key="relaxedQueryChars" value="{}" />
+				                                <entry key="compression" value="on" />
+												<entry key="compressionMinSize" value="2048" />
+							                    <entry key="noCompressionUserAgents" value="gozilla,traviata" />
+							                    <entry key="compressibleMimeType" value="application/vnd.apple.mpegurl,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml" />
+							
 							</map> 
 						</property> 
 					</bean>
@@ -116,6 +132,14 @@
 					<property name="pattern" value="common" />
 					<property name="rotatable" value="true" />
 					<property name="requestAttributesEnabled" value="true" />
+					<property name="fileDateFormat" value="" />
+				</bean>
+				<bean id="valve.access" class="org.apache.catalina.valves.ErrorReportValve">
+					<property name="showReport" value="true" />
+					<property name="showServerInfo" value="false" />
+				</bean>
+				<bean class="io.antmedia.valves.DataTransferValve" >
+					<property name="asyncSupported" value="true" />
 				</bean>
 				
 				<!-- cluster start

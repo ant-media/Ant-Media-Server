@@ -102,8 +102,11 @@
 				<exclude>javacpp*windows*.jar</exclude>	
 				<exclude>cuda*.jar</exclude>
 				
+				
+				
 			</excludes>
 		</fileSet>
+		
 		<fileSet>
 			<directory>${project.basedir}/src/main/server</directory>
 			<outputDirectory></outputDirectory>

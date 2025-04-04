@@ -1,4 +1,5 @@
 package io.antmedia.datastore.db.types;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -6,112 +7,127 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import dev.morphia.annotations.Entity;
-import dev.morphia.annotations.Index;
-import dev.morphia.annotations.Indexes;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import dev.morphia.annotations.Index;
+import dev.morphia.annotations.Indexes;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 
 @Entity("subscriber")
 @Indexes({ @Index(fields = @Field("subscriberId")), @Index(fields = @Field("streamId")) })
-@ApiModel(value="Subscriber", description="The time based token subscriber class. This keeps which subscriber can access to which stream and which TOTP")
+@Schema(description = "The time based token subscriber class. This keeps which subscriber can access to which stream and which TOTP")
 public class Subscriber {
-	@JsonIgnore
-	public static final String PLAY_TYPE = "play";
-	@JsonIgnore
-	public static final String PUBLISH_TYPE = "publish";
-	
-	@JsonIgnore
-	public static final String PUBLISH_AND_PLAY_TYPE = "publish_play";
+    
+    @JsonIgnore
+    public static final String PLAY_TYPE = "play";
+    
+    @JsonIgnore
+    public static final String PUBLISH_TYPE = "publish";
+    
+    @JsonIgnore
+    public static final String PUBLISH_AND_PLAY_TYPE = "publish_play";
 
-	@JsonIgnore
-	@Id
-	@ApiModelProperty(value = "the db id of the subscriber")
-	private ObjectId dbId;
+    @JsonIgnore
+    @Schema(hidden = true)
+    @Id
+    private ObjectId dbId;
 
-	/**
-	 * random subscriber id
-	 */
-	@ApiModelProperty(value = "the subscriber id of the subscriber")
-	private String subscriberId;
+    /**
+     * The subscriber id of the subscriber
+     */
+    @Schema(description = "The subscriber id of the subscriber")
+    private String subscriberId;
 
-	/**
-	 * related streamId with subscriber
-	 */
-	@ApiModelProperty(value = "the stream id of the token")
-	private String streamId;	
+    /**
+     * The stream id of the token
+     */
+    @Schema(description = "The stream id of the token")
+    private String streamId;  
 
-	/**
-	 * statistics for this subscriber
-	 */
-	@ApiModelProperty(value = "stats for this subscriber")
-	private SubscriberStats stats = new SubscriberStats();
+    /**
+     * Stats for this subscriber. Get connection events directly instead of SubscriberStats
+     */
+    @Schema(description = "Stats for this subscriber")
+    @Deprecated (forRemoval = true, since = "2.12.0")
+    private SubscriberStats stats = new SubscriberStats();
 
+    /**
+     * Secret code of the Subscriber
+     */
 	@JsonProperty(access = Access.WRITE_ONLY)
-	/**
-	 * secret code of the Subscriber
-	 */
-	@ApiModelProperty(value = "secret code of the subscriber")
-	private String b32Secret;
+    @Schema(description = "Secret code of the subscriber")
+    private String b32Secret;
 
-	/**
-	 * type of the subscriber 
-	 */
-	@ApiModelProperty(value = " type of subscriber (play or publish). Pay attention that 'publish' type can also play the streams for making easy to join video conferencing")
-	private String type;
+    /**
+     * Type of subscriber (play or publish). Pay attention that 'publish' type can also play the streams for making easy to join video conferencing
+     */
+    @Schema(description = "Type of subscriber (play or publish). Pay attention that 'publish' type can also play the streams for making easy to join video conferencing")
+    private String type;
 
-	/**
-	 * is subscriber connected
-	 * TODO: Write what the recommend way is to get this information? Let's write some comments when we deprecate something 
-	 * @mekya
-	 */
-	@Deprecated(since="2.4.3", forRemoval=true)
-	@ApiModelProperty(value = "is subscriber connected")
-	private boolean connected;
+    /**
+     * Is subscriber connected
+     * TODO: Write what the recommend way is to get this information? Let's write some comments when we deprecate something 
+     * @mekya
+     */
+    @Deprecated(since = "2.4.3", forRemoval = true)
+    @Schema(description = "Is subscriber connected")
+    private boolean connected;
 
-	/**
-	 * count of subscriber usage
-	 */
-	@ApiModelProperty(value = " count of subscriber usage")
-	private int currentConcurrentConnections = 0;
+    /**
+     * Count of subscriber usage
+     */
+    @Schema(description = "Count of subscriber usage")
+    private int currentConcurrentConnections = 0;
 
-	/**
-	 * count of subscriber limit
-	 */
-	@ApiModelProperty(value = " count of subscriber usage")
-	private int concurrentConnectionsLimit = 1;
+    /**
+     * Count of subscriber limit
+     */
+    @Schema(description = "Count of subscriber usage")
+    private int concurrentConnectionsLimit = 1;
 
-	/**
-	 * Type of block. It can be publish, play or publish_play in static field: {@link Subscriber#PLAY_TYPE},
-	 * {@link Subscriber#PUBLISH_TYPE}, {@link Subscriber#PUBLISH_AND_PLAY_TYPE}
-	 */
-	private String blockedType;
+    /**
+     * Type of block. It can be publish, play or publish_play in static field: {@link Subscriber#PLAY_TYPE},
+     * {@link Subscriber#PUBLISH_TYPE}, {@link Subscriber#PUBLISH_AND_PLAY_TYPE}
+     */
+    private String blockedType;
 
-	/**
-	 * If this is set, it means user is blocked until this time
-	 * This is unix timestamp in milliseconds
-	 */
-	private long blockedUntilUnitTimeStampMs = 0;
+    /**
+     * If this is set, it means user is blocked until this time
+     * This is unix timestamp in milliseconds
+     */
+    private long blockedUntilUnitTimeStampMs = 0;
 
-	private String registeredNodeIp;
+    private String registeredNodeIp;
+    
+    /**
+     * The average video bitrate for a subscriber.
+     */
+    @Schema(description = "Average video bitrate for a subscriber")
+    private long avgVideoBitrate;
 
-	public String getSubscriberId() {
-		return subscriberId;
-	}
+    /**
+     * The average audio bitrate for a subscriber.
+     */
+    @Schema(description = "Average audio bitrate for a subscriber")
+    private long avgAudioBitrate;
 
+	
 	public void setSubscriberId(String subscriberId) {
 		this.subscriberId = subscriberId;
 	}
-
-	public String getStreamId() {
-		return streamId;
+	
+	public String getSubscriberId() {
+		return subscriberId;
 	}
 
 	public void setStreamId(String streamId) {
 		this.streamId = streamId;
 	}	
+	
+	public String getStreamId() {
+		return streamId;
+	}
 
 	public String getB32Secret() {
 		return b32Secret;
@@ -141,7 +157,10 @@ public class Subscriber {
 	}
 
 	public static String getDBKey(String streamId, String subscriberId) {
-		return streamId + "-" +subscriberId;
+		if (StringUtils.isNoneBlank(streamId, subscriberId)) {
+			return streamId + "-" +subscriberId;
+		}
+		return null;
 	}
 
 	public String getType() {
@@ -212,5 +231,33 @@ public class Subscriber {
 
 	public void setBlockedUntilUnitTimeStampMs(long blockedUntilUnitTimeStampMs) {
 		this.blockedUntilUnitTimeStampMs = blockedUntilUnitTimeStampMs;
+	}
+
+	/**
+	 * @return the avgVideoBitrate
+	 */
+	public long getAvgVideoBitrate() {
+		return avgVideoBitrate;
+	}
+
+	/**
+	 * @param avgVideoBitrate the avgVideoBitrate to set
+	 */
+	public void setAvgVideoBitrate(long avgVideoBitrate) {
+		this.avgVideoBitrate = avgVideoBitrate;
+	}
+
+	/**
+	 * @return the avgAudioBitrate
+	 */
+	public long getAvgAudioBitrate() {
+		return avgAudioBitrate;
+	}
+
+	/**
+	 * @param avgAudioBitrate the avgAudioBitrate to set
+	 */
+	public void setAvgAudioBitrate(long avgAudioBitrate) {
+		this.avgAudioBitrate = avgAudioBitrate;
 	}
 }

@@ -6,15 +6,14 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.Date;
+import java.util.Enumeration;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -92,18 +91,16 @@ public class RestProxyFilter extends AbstractFilter {
 						logger.error(e.getMessage());
 					}
 				}
-
+				
 				/** 
 				 * if broadcast is not null and it's streaming and this node is not destined for this node,
 				 * forward the request to the origin address. This also handles the scenario if the origin server is dead or broadcast stuck
 				 * because AntMediaApplicationAdapter.isStreaming checks the last update time
 				 */
-				else if (broadcast != null && AntMediaApplicationAdapter.isStreaming(broadcast)
+				else if (broadcast != null && AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())
 						&& isHostRunning(broadcast.getOriginAdress(), getServerSettings().getDefaultHttpPort())) 
 				{
-
-
 					forwardRequestToNode(request, response, broadcast.getOriginAdress());
 				}
 				else 
@@ -137,16 +134,20 @@ public class RestProxyFilter extends AbstractFilter {
 
 
 	public boolean isHostRunning(String address, int port) {
-
-		try(Socket socket = new Socket()) {
-			
-			SocketAddress sockaddr = new InetSocketAddress(address, port);
-			socket.connect(sockaddr, 5000);
+		boolean result = false;
+		if (StringUtils.isNotBlank(address)) 
+		{
+			try(Socket socket = new Socket()) {
+				
+				SocketAddress sockaddr = new InetSocketAddress(address, port);
+				socket.connect(sockaddr, 5000);
+				result = true;
+			}
+			catch (Exception e) {
+				logger.info("Cannot connect to the host: {} port: {} because of exception: {}", address, port, e.getMessage());
+			}
 		}
-		catch (NumberFormatException | IOException e) {
-			return false;
-		}
-		return true;
+		return result;
 	}
 
 
@@ -159,8 +160,35 @@ public class RestProxyFilter extends AbstractFilter {
 		String restRouteOfSubscriberNode = "http://" + registeredNodeIp + ":" + serverSettings.getDefaultHttpPort()  + File.separator + appSettings.getAppName() + File.separator+ "rest";
 		log.info("Redirecting the request({}) to node {}", ((HttpServletRequest)request).getRequestURI(), registeredNodeIp);
 		EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
-		endpointProxy.initTarget(restRouteOfSubscriberNode);
+		ServletConfig config = getServletConfig(restRouteOfSubscriberNode);
+		endpointProxy.init(config);
 		endpointProxy.service(request, response);
+	}
+
+	public static ServletConfig getServletConfig(String targetUri) {
+		return new ServletConfig() {
+			@Override
+			public String getServletName() {
+				return "ams-proxy-servlet";
+			}
+
+			@Override
+			public ServletContext getServletContext() {
+				return null;
+			}
+
+			@Override
+			public String getInitParameter(String s) {
+				if(s.equals("targetUri"))
+					return targetUri;
+				return null;
+			}
+
+			@Override
+			public Enumeration<String> getInitParameterNames() {
+				return null;
+			}
+		};
 	}
 
 	public String getStreamId(String reqURI){

@@ -1,17 +1,13 @@
 package io.antmedia.statistic;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -22,7 +18,6 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -69,14 +64,14 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.WebRTCClientStats;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.rest.model.Version;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.Vertx;
 import io.vertx.ext.dropwizard.MetricsService;
-
 
 
 public class StatsCollector implements IStatsCollector, ApplicationContextAware, DisposableBean {	
@@ -142,6 +137,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String INSTANCE_TYPE = "instanceType";
 
 	public static final String INSTANCE_VERSION = "instanceVersion";
+	
+	public static final String INSTANCE_BUILD_NUMBER = "instanceBuildNumber";
 
 	public static final String JVM_MEMORY_USAGE = "jvmMemoryUsage";
 
@@ -154,6 +151,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String FILE_SYSTEM_INFO = "fileSystemInfo";
 
 	public static final String GPU_UTILIZATION = "gpuUtilization";
+	
+	public static final String GPU_ENCODER_UTILIZATION = "gpuEncoderUtilization";
+	
+	public static final String GPU_DECODER_UTILIZATION = "gpuDecoderUtilization";
 
 	public static final String GPU_DEVICE_INDEX = "index";
 
@@ -174,6 +175,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String TOTAL_LIVE_STREAMS = "totalLiveStreamSize";
 
 	public static final String LOCAL_WEBRTC_LIVE_STREAMS = "localWebRTCLiveStreams";
+	
+	public static final String DB_AVERAGE_QUERY_TIME_MS = "dbAverageQueryTimeMs";
 
 	public static final String LOCAL_LIVE_STREAMS = "localLiveStreams";
 
@@ -207,6 +210,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
+	private Queue<Integer> processCpuMeasurements = new ConcurrentLinkedQueue<>();
 
 	private static Gson gson = new Gson();
 
@@ -214,7 +218,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private int measurementPeriod = 1000;
 	private int staticSendPeriod = 15000;
 
-	private int cpuLoad;
+	private static int cpuLoad;
+	private static int processCpuLoad;
 	private int cpuLimit = 75;
 	
 	
@@ -341,25 +346,41 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private long unexpectedShutDownDelayMs = 30000;
 
+	private Version version;
+
 
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
 		{
-			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
+			addCpuMeasurement(SystemUtils.getSystemCpuLoad(), SystemUtils.getProcessCpuLoad());
 
-
+			
 			//log every 5 minute
 			if (300000/measurementPeriod == time2Log) {
 				if(logger != null) 
 				{
-					logger.info("System CPU:%{} Process CPU:%{} System Load Average:{} Memory:%{}", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.getSystemLoadAverageLastMinute(), getMemoryLoad());
 
 					int vertxWorkerQueueSize = getVertWorkerQueueSizeStatic();
 
 					int webRTCVertxWorkerQueueSize = getWebRTCVertxWorkerQueueSizeStatic();
 
-					logger.info("Vertx worker queue size:{} WebRTCVertx worker queue size:{}", vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
+					logger.info("System CPU:%{} Process CPU:%{} System Load Average:{} Memory:%{} Vertx worker queue size:{} WebRTCVertx worker queue size:{}", 
+							cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.getSystemLoadAverageLastMinute(), getMemoryLoad(),
+							vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
+					
+					for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+						
+						IScope scope = iterator.next();
+						AntMediaApplicationAdapter adaptor = null;
 
+						if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null)
+						{
+							logger.info("DB Average Query Time:{}ms and Query Count:{} for app:{}", adaptor.getDataStore().getAverageQueryTimeMs(), adaptor.getDataStore().getExecutedQueryCount(), scope.getName());
+						
+						}
+					}
+					
+					
 				}
 
 				time2Log = 0;
@@ -370,7 +391,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		if (heartBeatEnabled) {
 
-			logger.warn("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
+			logger.warn("Starting heartbeats for the version:{} and type:{}", getVersion().getVersionName() , getVersion().getVersionType());
 
 			getVertx().setPeriodic(heartbeatPeriodMs, l -> startAnalytic());
 		}
@@ -445,11 +466,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private void sendWebRTCClientStats() {
 		getVertx().executeBlocking(
-				b -> {
+				() -> {
 					collectAndSendWebRTCClientsStats();
-					b.complete();
+					return null;
 				}, 
-				null);
+				false);
 	}
 
 
@@ -520,6 +541,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(GPU_DEVICE_INDEX, deviceIndex);
 		jsonObject.addProperty(GPU_UTILIZATION, gpuUtils.getGPUUtilization(deviceIndex));
 		jsonObject.addProperty(GPU_MEMORY_UTILIZATION, gpuUtils.getMemoryUtilization(deviceIndex));
+		jsonObject.addProperty(GPU_ENCODER_UTILIZATION, gpuUtils.getEncoderUtilization(deviceIndex));
+		jsonObject.addProperty(GPU_DECODER_UTILIZATION, gpuUtils.getDecoderUtilization(deviceIndex));
+
 		MemoryStatus memoryStatus = gpuUtils.getMemoryStatus(deviceIndex);
 		jsonObject.addProperty(GPU_MEMORY_TOTAL, memoryStatus.getMemoryTotal());
 		jsonObject.addProperty(GPU_MEMORY_FREE, memoryStatus.getMemoryFree());
@@ -544,8 +568,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static JsonObject getCPUInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty(PROCESS_CPU_TIME, SystemUtils.getProcessCpuTime());
-		jsonObject.addProperty(SYSTEM_CPU_LOAD, SystemUtils.getSystemCpuLoad());
-		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
+		jsonObject.addProperty(SYSTEM_CPU_LOAD,  cpuLoad);
+		jsonObject.addProperty(PROCESS_CPU_LOAD, processCpuLoad);
 		jsonObject.addProperty(SYSTEM_LOAD_AVERAGE_IN_LAST_MINUTE, SystemUtils.getSystemLoadAverageLastMinute());
 		return jsonObject;
 	}
@@ -729,6 +753,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		int encodersBlocked = 0;
 		int encodersNotOpened = 0;
 		int publishTimeoutError = 0;
+		long dbQueryTimeMs = 0;
+		int numberOfApps = 0;
 		if (scopes != null) {
 			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
 				IScope scope = iterator.next();
@@ -749,9 +775,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
 					localStreams += adaptor.getMuxAdaptors().size();
-
+					dbQueryTimeMs += adaptor.getDataStore().getAverageQueryTimeMs();
+					dbQueryTimeMs++; //increase 1 ms because it show 0 ms if there
+					numberOfApps++;
 				}
 			}
+		}
+		
+		if (numberOfApps > 0) {
+			jsonObject.addProperty(StatsCollector.DB_AVERAGE_QUERY_TIME_MS, dbQueryTimeMs/numberOfApps);
 		}
 
 		//add local webrtc viewer size
@@ -770,6 +802,24 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
 
 		return jsonObject;
+	}
+	
+	public long getDBQueryAverageTimeMs() {
+		long dbQueryTimeMs = 0;
+		for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+			IScope scope = iterator.next();
+			AntMediaApplicationAdapter adaptor = null;
+
+			if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null) {
+				dbQueryTimeMs += adaptor.getDataStore().getAverageQueryTimeMs();
+			}
+		}
+		if (!scopes.isEmpty()) {
+			return dbQueryTimeMs/scopes.size();
+		}
+		return 0;
+		
+		
 	}
 
 	private static int getHLSViewers(IScope scope) {
@@ -797,12 +847,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(IP_ADDRESS, ServerSettings.getGlobalHostAddress());
 
 		send2Kafka(jsonObject, INSTANCE_STATS_TOPIC_NAME); 
-
 	}
 
-	public void send2Kafka(JsonElement jsonElement, String topicName) {
+	public void send2Kafka(String jsonString, String topicName) {
 		ProducerRecord<Long, String> record = new ProducerRecord<>(topicName,
-				gson.toJson(jsonElement));
+				jsonString);
 		try {
 			kafkaProducer.send(record).get();
 		} 
@@ -814,8 +863,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 	}
 
-	public void addCpuMeasurement(int measurment) {
-		cpuMeasurements.add(measurment);
+	public void send2Kafka(JsonElement jsonElement, String topicName) {
+		send2Kafka(gson.toJson(jsonElement), topicName);
+	}
+
+	public void addCpuMeasurement(int systemCpuLoad, int processCpu) {
+		cpuMeasurements.add(systemCpuLoad);
 		if(cpuMeasurements.size() > windowSize) {
 			cpuMeasurements.poll();
 		}
@@ -824,7 +877,21 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		for (int msrmnt : cpuMeasurements) {
 			total += msrmnt;
 		}		
-		cpuLoad = total/cpuMeasurements.size();
+		StatsCollector.cpuLoad = total/cpuMeasurements.size();
+		
+		
+		
+		processCpuMeasurements.add(processCpu);
+		if (processCpuMeasurements.size() > windowSize) {
+			processCpuMeasurements.poll();
+		}
+		
+		total = 0;
+		for (int msrmnt : processCpuMeasurements) {
+			total += msrmnt;
+		}
+		
+		StatsCollector.processCpuLoad = total/processCpuMeasurements.size();
 	}
 	
 
@@ -863,10 +930,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					logger.error("Not enough resource. Due to memory limit. Free memory should be more than {}MB but it is {}MB", getMinFreeRamSize(), freeRam);
 				}
 			}
-				
-			
-			
-
 		}
 		else {
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
@@ -964,12 +1027,16 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	}
 
 	public void setCpuLoad(int cpuLoad) {
-		this.cpuLoad = cpuLoad;
+		StatsCollector.cpuLoad = cpuLoad;
 	}
 
 	@Override
 	public int getCpuLoad() {
 		return cpuLoad;
+	}
+	
+	public static int getProcessCpuLoad() {
+		return processCpuLoad;
 	}
 
 
@@ -1047,7 +1114,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 
 		setWebRTCVertx((Vertx) applicationContext.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME));
-
+		
 	}
 
 	public int getStaticSendPeriod() {
@@ -1122,13 +1189,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public void startAnalytic() {
 
 		String instanceId = Launcher.getInstanceId();
-		String version = Launcher.getVersion();
-		String type = Launcher.getVersionType();
 
 		JsonObject instance = new JsonObject();
 		instance.addProperty(INSTANCE_ID, instanceId);
-		instance.addProperty(INSTANCE_TYPE, type);
-		instance.addProperty(INSTANCE_VERSION, version);
+		instance.addProperty(INSTANCE_TYPE, getVersion().getVersionType());
+		instance.addProperty(INSTANCE_VERSION, getVersion().getVersionName());
+		instance.addProperty(INSTANCE_BUILD_NUMBER, getVersion().getBuildNumber());
 		instance.addProperty(MARKETPLACE_NAME, marketplace);
 
 
@@ -1196,8 +1262,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		for (Iterator<User> iterator2 = userList.iterator(); iterator2.hasNext();) 
 		{
 			User user = iterator2.next();
+			Map appNameUserType = user.getAppNameUserType();
 
-			if (user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
+			if ((user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) ||
+				(appNameUserType != null && appNameUserType.containsKey(CommonRestService.SCOPE_SYSTEM) && appNameUserType.get(CommonRestService.SCOPE_SYSTEM).equals(UserType.ADMIN))
+
+			)
 			{
 				email = user.getEmail();
 				break;
@@ -1238,6 +1308,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			this.memoryLimit = memoryLimit;
 		}
 		
+	}
+	
+	public Version getVersion() {
+		if (version == null) {
+			version = RestServiceBase.getSoftwareVersion();
+		}
+		return version;
 	}
 
 
