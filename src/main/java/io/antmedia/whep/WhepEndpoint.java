@@ -58,6 +58,7 @@ public class WhepEndpoint extends RestServiceBase {
      * @param uriInfo
      * @param streamId
      * @param subscriberId
+     * @param viewerInfo
      * @param token
      * @param sdp Answer from the client
      * @return SDP Answer
@@ -101,7 +102,6 @@ public class WhepEndpoint extends RestServiceBase {
     /**
      * Prepares the HTTP response for a WHEP session
      * @param result
-     * @param eTag
      * @param uriInfo
      * @return HTTP Response
      */
