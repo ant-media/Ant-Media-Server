@@ -267,6 +267,9 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 				replacementString += "&" + WebSocketConstants.TOKEN + "=" + token;
 			}
 
+      replacementString = replacementString.replace("?&", "?");
+      replacementString = replacementString.replace("&&", "?");
+
 			matcher.appendReplacement(result, replacementString);
 		}
 		matcher.appendTail(result);
