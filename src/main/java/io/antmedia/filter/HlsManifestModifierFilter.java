@@ -240,7 +240,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 	}
 
-	private String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode, String regex) {
+	public String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode, String regex) {
 		Pattern pattern = Pattern.compile(regex);
 		Matcher matcher = pattern.matcher(original);
 
@@ -267,8 +267,8 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 				replacementString += "&" + WebSocketConstants.TOKEN + "=" + token;
 			}
 
-      replacementString = replacementString.replace("?&", "?");
-      replacementString = replacementString.replace("&&", "?");
+		//video js player fails if there is double &&
+      	replacementString = replacementString.replace("&&", "?&");
 
 			matcher.appendReplacement(result, replacementString);
 		}

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -706,5 +707,39 @@ public class HlsManifestModifierFilterTest {
 		} catch (ServletException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	@Test
+	public void testNoDoubleAmps(){
+
+		String test_token_add = "#EXTM3U\n"
+				+ "#EXT-X-TARGETDURATION:4\n"
+				+ "#EXT-X-VERSION:3\n"
+				+ "#EXT-X-PART-INF:PART-TARGET=1.002000\n"
+				+ "#EXT-X-MEDIA-SEQUENCE:565\n"
+				+ "#EXT-X-PROGRAM-DATE-TIME:2025-04-11T12:25:45.757Z\n"
+				+ "#EXTINF:3.98000,\n"
+				+ "test__580.ts\n"
+				+ "#EXTINF:4.04000,\n"
+				+ "test__581.ts\n"
+				+ "#EXT-X-PROGRAM-DATE-TIME:2025-04-11T12:25:53.777Z\n"
+				+ "#EXTINF:3.98000,\n"
+				+ "test__582.ts\n"
+				+ "#EXT-X-PART:DURATION=0.98000,INDEPENDENT=YES,URI=\"test__lowlatency.m3u8?segment=test__583.1.ts\"\n"
+				+ "#EXT-X-PART:DURATION=1.02000,URI=\"test__lowlatency.m3u8?segment=test__583.2.ts\"\n"
+				+ "#EXT-X-PART:DURATION=1.00000,INDEPENDENT=YES,URI=\"test__lowlatency.m3u8?segment=test__583.3.ts\"\n"
+				+ "#EXT-X-PART:DURATION=1.00000,URI=\"test__lowlatency.m3u8?segment=test__583.4.ts\"\n"
+				+ "#EXTINF:4.00000,\n"
+				+ "test__583.ts\n"
+				+ "#EXT-X-PROGRAM-DATE-TIME:2025-04-11T12:26:01.757Z\n"
+				+ "#EXT-X-PART:DURATION=1.00000,INDEPENDENT=YES,URI=\"test__lowlatency.m3u8?segment=test__584.1.ts\"\n"
+				+ "#EXT-X-PART:DURATION=1.00000,URI=\"test__lowlatency.m3u8?segment=test__584.2.ts\"\n"
+				+ "#EXT-X-PART:DURATION=1.00000,INDEPENDENT=YES,URI=\"test__lowlatency.m3u8?segment=test__584.3.ts\"\n"
+				+ "#EXT-X-PART:DURATION=1.00000,URI=\"test__lowlatency.m3u8?segment=test__584.4.ts\"\n"
+				+ "#EXTINF:4.00000,\n";
+
+
+		String modified = hlsManifestModifierFilter.modifyManifestFileContent(test_token_add,"testtoken",null,null,hlsManifestModifierFilter.MANIFEST_FILE_REGEX);
+		assertTrue(!modified.contains("&&"));
+		assertTrue(modified.contains("segment=test__584.2.ts?&token=testtoken"));
 	}
 }
