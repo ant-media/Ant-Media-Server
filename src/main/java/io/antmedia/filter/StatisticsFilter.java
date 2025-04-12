@@ -34,7 +34,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
 
-			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
+			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI(), "");
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 
 			if (isViewerCountExceeded((HttpServletRequest) request, (HttpServletResponse) response, streamId)) { 
@@ -59,7 +59,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 		}
 		else if (HttpMethod.HEAD.equals(method) && isFilterMatching(httpRequest.getRequestURI())) {
-			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
+			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI(), "");
 
 			chain.doFilter(request, response);
 
