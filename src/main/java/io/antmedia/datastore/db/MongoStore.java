@@ -104,6 +104,13 @@ public class MongoStore extends DataStore {
 	public static final String SUBSCRIBER_CACHE = "subscriberCache";
 	public static final int SUBSCRIBER_CACHE_SIZE = 1000;
 	public static final int SUBSCRIBER_CACHE_EXPIRE_SECONDS = 10;
+	
+	private Object broadcastLock = new Object();
+	private Object vodLock = new Object();
+	private Object tokenLock = new Object();
+	private Object subscriberLock = new Object();
+	private Object detectionLock = new Object();
+	private Object roomLock = new Object();
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -157,7 +164,7 @@ public class MongoStore extends DataStore {
 		// we may remove this code after some time and ConferenceRoom class
 		// mekya
 		migrateConferenceRoomsToBroadcasts();
-
+		
 	}	
 
 	@Deprecated(since = "2.12.0", forRemoval = true)
@@ -283,7 +290,7 @@ public class MongoStore extends DataStore {
 		{		
 			try {
 				Broadcast updatedBroadcast = super.saveBroadcast(broadcast);
-				synchronized(this) {
+				synchronized(broadcastLock) {
 
 					datastore.save(broadcast);
 				}
@@ -307,7 +314,7 @@ public class MongoStore extends DataStore {
 	public Broadcast get(String id) {
 		long startTime = System.nanoTime();
 		Broadcast broadcast = null;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 
 				broadcast = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id)).first();
@@ -325,7 +332,7 @@ public class MongoStore extends DataStore {
 	public VoD getVoD(String id) {
 		long startTime = System.nanoTime();
 		VoD vod = null;
-		synchronized(this) {
+		synchronized(vodLock) {
 			try {
 
 				vod = vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID,id)).first();
@@ -349,7 +356,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 		boolean result = false;
 
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
@@ -385,7 +392,7 @@ public class MongoStore extends DataStore {
 	public boolean updateVoDProcessStatus(String id, String status) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized (this) {
+		synchronized (vodLock) {
 			try {
 
 				Query<VoD> query = vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID, id));
@@ -422,7 +429,7 @@ public class MongoStore extends DataStore {
 	public boolean addEndpoint(String id, Endpoint endpoint) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			if (id != null && endpoint != null) {
 				try {
 					Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
@@ -444,7 +451,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			if (id != null && endpoint != null) 
 			{
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
@@ -465,7 +472,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			if (id != null) {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 				result = query.update(UpdateOperators.unset("endPointList")).execute().getMatchedCount() == 1;
@@ -497,7 +504,7 @@ public class MongoStore extends DataStore {
 	public boolean delete(String id) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 				result = query.delete().getDeletedCount() == 1;
@@ -555,7 +562,7 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		long startTime = System.nanoTime();
 		List<Broadcast> broadcastList = Arrays.asList();
-		synchronized(this) {
+		synchronized(broadcastList) {
 			try {
 
 				Query<Broadcast> query = datastore.find(Broadcast.class);
@@ -615,7 +622,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 		List<Broadcast> streamList = Arrays.asList();
 		long now = System.currentTimeMillis();
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 
 				Query<Broadcast> query = datastore.find(Broadcast.class);
@@ -649,17 +656,27 @@ public class MongoStore extends DataStore {
 	public void close(boolean deleteDB) {
 		long startTime = System.nanoTime();
 
-		synchronized(this) {
-			available = false;
-			if (deleteDB) {
-				mongoClient.getDatabase(tokenDatastore.getDatabase().getName()).drop();
-				mongoClient.getDatabase(subscriberDatastore.getDatabase().getName()).drop();
-				mongoClient.getDatabase(datastore.getDatabase().getName()).drop();
-				mongoClient.getDatabase(vodDatastore.getDatabase().getName()).drop();
-				mongoClient.getDatabase(detectionMap.getDatabase().getName()).drop();
-				mongoClient.getDatabase(conferenceRoomDatastore.getDatabase().getName()).drop();
+		synchronized(broadcastLock) {
+			synchronized(vodLock) {
+				synchronized(tokenLock) {
+					synchronized(subscriberLock) {
+						synchronized(detectionLock) {
+							synchronized(roomLock) {
+								available = false;
+								if (deleteDB) {
+									mongoClient.getDatabase(tokenDatastore.getDatabase().getName()).drop();
+									mongoClient.getDatabase(subscriberDatastore.getDatabase().getName()).drop();
+									mongoClient.getDatabase(datastore.getDatabase().getName()).drop();
+									mongoClient.getDatabase(vodDatastore.getDatabase().getName()).drop();
+									mongoClient.getDatabase(detectionMap.getDatabase().getName()).drop();
+									mongoClient.getDatabase(conferenceRoomDatastore.getDatabase().getName()).drop();
+								}
+								mongoClient.close();
+							}
+						}
+					}
+				}
 			}
-			mongoClient.close();
 		}
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
@@ -673,7 +690,7 @@ public class MongoStore extends DataStore {
 
 		String id = null;
 		boolean result = false;
-		synchronized(this) {
+		synchronized(vodLock) {
 			try {	
 				if (vod.getVodId() == null) {
 					vod.setVodId(RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis());
@@ -701,7 +718,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		List<VoD>  vodList = Arrays.asList();
-		synchronized(this) {
+		synchronized(vodLock) {
 
 			Query<VoD> query = vodDatastore.find(VoD.class);
 
@@ -748,7 +765,7 @@ public class MongoStore extends DataStore {
 	public boolean deleteVod(String id) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(vodLock) {
 			try {
 				Query<VoD> query = vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID, id));
 				result = query.delete().getDeletedCount() == 1;
@@ -768,7 +785,7 @@ public class MongoStore extends DataStore {
 	public long getTotalVodNumber() {
 		long startTime = System.nanoTime();
 		long totalVodNumber = 0;
-		synchronized(this) {
+		synchronized(vodLock) {
 
 			totalVodNumber = vodDatastore.find(VoD.class).count();
 		}
@@ -789,7 +806,7 @@ public class MongoStore extends DataStore {
 		}
 
 		int numberOfSavedFiles = 0;
-		synchronized(this) {
+		synchronized(vodLock) {
 			try {
 
 				vodDatastore.find(VoD.class).filter(Filters.eq("type", "userVod")).delete(new DeleteOptions().multi(true));
@@ -841,7 +858,7 @@ public class MongoStore extends DataStore {
 	public long getTotalBroadcastNumber() {
 		long startTime = System.nanoTime();
 		long totalBroadcastNumber = 0;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			totalBroadcastNumber = datastore.find(Broadcast.class).count();
 		}
@@ -857,7 +874,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 		long partialBroadcastNumber = 0;
 
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			Query<Broadcast> query = datastore.find(Broadcast.class);
 			if (search != null && !search.isEmpty()) 
@@ -885,7 +902,7 @@ public class MongoStore extends DataStore {
 	{
 		long startTime = System.nanoTime();
 		long partialVodNumber = 0;
-		synchronized(this) {
+		synchronized(vodLock) {
 
 			Query<VoD> query = vodDatastore.find(VoD.class);
 			if (search != null && !search.isEmpty()) 
@@ -921,7 +938,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		long activeBroadcastCount = 0;
-		synchronized(this) {			
+		synchronized(broadcastLock) {			
 			LogicalFilter andFilter = Filters.and(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING));
 
 			//check their updateTime field
@@ -945,7 +962,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 
-		synchronized(this) {
+		synchronized(detectionLock) {
 			if (detectedObjects != null) {
 				for (TensorFlowObject tensorFlowObject : detectedObjects) {
 					tensorFlowObject.setDetectionTime(timeElapsed);
@@ -965,7 +982,7 @@ public class MongoStore extends DataStore {
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
 		long startTime = System.nanoTime();
 		List<TensorFlowObject> detectionList = new ArrayList<>();
-		synchronized(this) {
+		synchronized(detectionLock) {
 			try {
 				if (batchSize > MAX_ITEM_IN_ONE_LIST) {
 					batchSize = MAX_ITEM_IN_ONE_LIST;
@@ -987,7 +1004,7 @@ public class MongoStore extends DataStore {
 	public List<TensorFlowObject> getDetection(String id) {
 		long startTime = System.nanoTime();
 		List<TensorFlowObject> detectionList = new ArrayList<>();
-		synchronized(this) 
+		synchronized(detectionLock) 
 		{
 			try {
 				detectionList = detectionMap.find(TensorFlowObject.class).filter(Filters.eq(IMAGE_ID, id)).iterator().toList();
@@ -1005,7 +1022,7 @@ public class MongoStore extends DataStore {
 	public long getObjectDetectedTotal(String id) {
 		long startTime = System.nanoTime();
 		long totalObjectDetected = 0;
-		synchronized(this) {
+		synchronized(detectionLock) {
 
 			totalObjectDetected = detectionMap.find(TensorFlowObject.class).filter(Filters.eq(IMAGE_ID, id)).count();
 		}
@@ -1021,7 +1038,7 @@ public class MongoStore extends DataStore {
 	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 
@@ -1273,7 +1290,7 @@ public class MongoStore extends DataStore {
 	public boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 				UpdateResult queryResult = query.update(inc(HLS_VIEWER_COUNT, diffCount)).execute();
@@ -1296,7 +1313,7 @@ public class MongoStore extends DataStore {
 	public boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 				UpdateResult queryResult = query.update(inc(DASH_VIEWER_COUNT, diffCount)).execute();
@@ -1327,7 +1344,7 @@ public class MongoStore extends DataStore {
 	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 
@@ -1359,7 +1376,7 @@ public class MongoStore extends DataStore {
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		long startTime = System.nanoTime();
 
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			//TODO: Why do we run find(StreamInfo.class)
 			datastore.find(StreamInfo.class);
 			datastore.save(streamInfo);
@@ -1372,7 +1389,7 @@ public class MongoStore extends DataStore {
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		long startTime = System.nanoTime();
 		List<StreamInfo> streamInfoList = new ArrayList<>();
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			streamInfoList = datastore.find(StreamInfo.class).filter(Filters.eq(STREAM_ID, streamId)).iterator().toList();
 		}
 		long elapsedNanos = System.nanoTime() - startTime;
@@ -1384,7 +1401,7 @@ public class MongoStore extends DataStore {
 	public void clearStreamInfoList(String streamId) {
 		long startTime = System.nanoTime();
 
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			Query<StreamInfo> query = datastore.find(StreamInfo.class).filter(Filters.eq(STREAM_ID, streamId));
 			long count = query.count();
@@ -1404,7 +1421,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		boolean result = false;
-		synchronized(this) {
+		synchronized(tokenLock) {
 			if(token.getStreamId() != null && token.getTokenId() != null) {
 
 				try {
@@ -1430,7 +1447,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		Token fetchedToken = null;
-		synchronized(this) {
+		synchronized(tokenLock) {
 			if (token.getTokenId() != null) 
 			{
 
@@ -1469,7 +1486,7 @@ public class MongoStore extends DataStore {
 	public boolean revokeTokens(String streamId) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(tokenLock) {
 			Query<Token> query = tokenDatastore.find(Token.class).filter(Filters.eq(STREAM_ID, streamId));
 			DeleteResult delete = query.delete(new DeleteOptions().multi(true));
 
@@ -1485,7 +1502,7 @@ public class MongoStore extends DataStore {
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
 		long startTime = System.nanoTime();
 		List<Token> tokenList = new ArrayList<>();
-		synchronized(this) {
+		synchronized(tokenLock) {
 			tokenList = tokenDatastore.find(Token.class).filter(Filters.eq(STREAM_ID, streamId)).iterator(new FindOptions() .skip(offset).limit(size)).toList();
 		}
 		long elapsedNanos = System.nanoTime() - startTime;
@@ -1498,7 +1515,7 @@ public class MongoStore extends DataStore {
 	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
 		long startTime = System.nanoTime();
 		List<Subscriber> subscriberList = new ArrayList<>();
-		synchronized(this) {
+		synchronized(subscriberLock) {
 			subscriberList = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId)).iterator(new FindOptions().skip(offset).limit(size)).toList();
 		}
 		long elapsedNanos = System.nanoTime() - startTime;
@@ -1515,7 +1532,7 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		if (subscriber != null) {
 
-			synchronized (this) {
+			synchronized (subscriberLock) {
 				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
 					try {
 
@@ -1566,7 +1583,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		boolean result = false;
-		synchronized(this) {
+		synchronized(subscriberLock) {
 			try {
 
 
@@ -1597,7 +1614,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		boolean result = false;
-		synchronized (this) {
+		synchronized (subscriberLock) {
 			if (streamId == null || subscriberId == null) {
 				return false;
 			}
@@ -1654,7 +1671,7 @@ public class MongoStore extends DataStore {
 	public boolean revokeSubscribers(String streamId) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(subscriberLock) {
 
 
 			Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId));
@@ -1769,7 +1786,7 @@ public class MongoStore extends DataStore {
 	private boolean setRecordMuxing(String streamId, int enabled, String field) {
 		long startTime = System.nanoTime();
 		boolean methodResult = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 
@@ -1796,7 +1813,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		boolean result = false;
-		synchronized(this) {
+		synchronized(tokenLock) {
 			try 
 			{
 				result = tokenDatastore.find(Token.class)
@@ -1819,7 +1836,7 @@ public class MongoStore extends DataStore {
 
 		Token token = null;
 
-		synchronized(this) {
+		synchronized(tokenLock) {
 			try {
 
 				token =  tokenDatastore.find(Token.class).filter(Filters.eq(TOKEN_ID,tokenId)).first();
@@ -1838,7 +1855,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		long liveBroadcastCount = 0;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 
 			//get the number of live broadcasts that are coming from hostAddress
@@ -1868,7 +1885,7 @@ public class MongoStore extends DataStore {
 	{
 		long startTime = System.nanoTime();
 		List<Broadcast> broadcastList = new ArrayList<>();
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 
 
@@ -1897,7 +1914,7 @@ public class MongoStore extends DataStore {
 	public boolean createP2PConnection(P2PConnection conn) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				if (conn != null) {
 
@@ -1920,7 +1937,7 @@ public class MongoStore extends DataStore {
 	public boolean deleteP2PConnection(String streamId) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try 
 			{
 				result = datastore.find(P2PConnection.class)
@@ -1941,7 +1958,7 @@ public class MongoStore extends DataStore {
 	public P2PConnection getP2PConnection(String streamId) {
 		long startTime = System.nanoTime();
 		P2PConnection p2pConnection = null;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 
 
@@ -1961,7 +1978,7 @@ public class MongoStore extends DataStore {
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				if (subTrackId != null) {
 
@@ -1988,7 +2005,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 		boolean result = false;
 
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 				if (subTrackId != null) 
 				{	
@@ -2015,7 +2032,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		int totalOperationCount = 0;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			//delete zombi streams that are belong to origin address
 			totalOperationCount += datastore.find(Broadcast.class)
@@ -2080,7 +2097,7 @@ public class MongoStore extends DataStore {
 
 		long now = System.currentTimeMillis();
 		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
-			synchronized(this) {
+			synchronized(broadcastLock) {
 
 				int total = 0;
 
@@ -2113,7 +2130,7 @@ public class MongoStore extends DataStore {
 		if (info == null) {
 			return;
 		}
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			datastore.save(info);
 		}
 		
@@ -2127,7 +2144,7 @@ public class MongoStore extends DataStore {
 			String search) {
 		long startTime = System.nanoTime();
 		List<WebRTCViewerInfo> viewerList = new ArrayList<>();
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 
 			Query<WebRTCViewerInfo> query = datastore.find(WebRTCViewerInfo.class);
@@ -2163,7 +2180,7 @@ public class MongoStore extends DataStore {
 	public boolean deleteWebRTCViewerInfo(String viewerId) {
 		long startTime = System.nanoTime();
 		boolean	result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			result = datastore.find(WebRTCViewerInfo.class)
 					.filter(Filters.eq(VIEWER_ID, viewerId))
@@ -2184,7 +2201,7 @@ public class MongoStore extends DataStore {
 	public boolean updateStreamMetaData(String streamId, String metaData) {
 		long startTime = System.nanoTime();
 		boolean result = false;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
@@ -2207,7 +2224,7 @@ public class MongoStore extends DataStore {
 	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
 		long startTime = System.nanoTime();
 		SubscriberMetadata metadata = null;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			try {
 
 				metadata = datastore.find(SubscriberMetadata.class).filter(Filters.eq(SUBSCRIBER_ID, subscriberId)).first();
@@ -2235,7 +2252,7 @@ public class MongoStore extends DataStore {
 			}
 
 			metadata.setSubscriberId(subscriberId);
-			synchronized(this) {
+			synchronized(broadcastLock) {
 
 				datastore.save(metadata);
 			}
@@ -2261,7 +2278,7 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status, String sortBy, String orderBy, String search) {
 		long startTime = System.nanoTime();
 		List<Broadcast> subtracks = new ArrayList<>();
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			Filter roleFilter = getFilterForSubtracks(mainTrackId, role, status);
 			Query<Broadcast> query = datastore.find(Broadcast.class);
@@ -2316,7 +2333,7 @@ public class MongoStore extends DataStore {
 	public long getSubtrackCount(String mainTrackId, String role, String status) {
 		long startTime = System.nanoTime();
 		long subtrackCount = 0;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 			subtrackCount = datastore.find(Broadcast.class).filter(getFilterForSubtracks(mainTrackId, role, status)).count();
 		}
 		long elapsedNanos = System.nanoTime() - startTime;
@@ -2336,7 +2353,7 @@ public class MongoStore extends DataStore {
 		filterForSubtracks.add(Filters.gte(UPDATE_TIME_FIELD, activeIntervalValue));
 		List<Broadcast> subtracks = new ArrayList<>();
 
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			subtracks = 	datastore.find(Broadcast.class)
 					.filter(filterForSubtracks)
@@ -2358,7 +2375,7 @@ public class MongoStore extends DataStore {
 		long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
 		filterForSubtracks.add(Filters.gte(UPDATE_TIME_FIELD, activeIntervalValue));
 		long subtrackCount = 0;
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			subtrackCount = datastore.find(Broadcast.class)
 					.filter(filterForSubtracks).count();
@@ -2374,7 +2391,7 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 		boolean result = false;
 		LogicalFilter filterForSubtracks = getFilterForSubtracks(streamId, null, null);
-		synchronized(this) {
+		synchronized(broadcastLock) {
 
 			result = datastore.find(Broadcast.class)
 					.filter(filterForSubtracks).first() != null;
