@@ -41,6 +41,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AsciiArt;
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.model.Version;
 
 /**
  * Launches Red5.
@@ -78,7 +79,9 @@ public class Launcher {
 		setLog(log);
 
 		// version info banner
-		log.info("Ant Media Server {} {}", getVersionType(), getVersion());
+		Version version = RestServiceBase.getSoftwareVersion();
+		
+		log.info("Ant Media Server {} {} {}", version.getVersionType(), version.getVersionName(), version.getBuildNumber());
 		printLogo();
 
 		if (log.isDebugEnabled()) {
@@ -183,20 +186,6 @@ public class Launcher {
 
 	public static void setLog(Logger log) {
 		Launcher.logger = log;
-	}
-
-	public static String getVersion() {
-		if (implementationVersion == null) {
-			implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
-		}
-		return implementationVersion;
-	}
-
-	public static String getVersionType() {
-		if (versionType == null) {
-			versionType = RestServiceBase.isEnterprise() ? "Enterprise" : "Community";
-		}
-		return versionType;
 	}
 
 }

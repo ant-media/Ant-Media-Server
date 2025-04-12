@@ -172,6 +172,8 @@ public abstract class RestServiceBase {
 
 	private ServerSettings serverSettings;
 
+	private static Version version;
+
 
 	public void setAppCtx(ApplicationContext appCtx) {
 		this.appCtx = appCtx;
@@ -345,7 +347,7 @@ public abstract class RestServiceBase {
 		if(deleteSubtracks == null) {
 			deleteSubtracks = true;
 		} 
-		
+
 		Result result = new Result (false);
 		Broadcast broadcast = null;
 
@@ -359,7 +361,7 @@ public abstract class RestServiceBase {
 			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
 
 			result.setSuccess(getDataStore().delete(id));
-			
+
 			if(deleteSubtracks) {
 				boolean subtrackDeletionResult = deleteSubtracks(broadcast);
 				result.setSuccess(subtrackDeletionResult);
@@ -389,23 +391,23 @@ public abstract class RestServiceBase {
 		boolean result = true;
 		long subtrackCount = getDataStore().getSubtrackCount(broadcast.getStreamId(), "", "");
 		logger.info("{} Subtracks of maintrack {} will also be deleted.", subtrackCount, broadcast.getStreamId());
-		
+
 		if(subtrackCount > 0) {
-			
+
 			List<Broadcast> subtracks = getDataStore().getSubtracks(broadcast.getStreamId(), 0, (int)subtrackCount, "");
 			if (subtracks.size() == subtrackCount) {
 				logger.info("Subtracks are fetched successfully for deletion of main track {}", broadcast.getStreamId());
 			} else {
 				logger.error("Subtracks are not fetched successfully for deletion of main track {}", broadcast.getStreamId());
 			}
-			
+
 			for (Broadcast subtrack : subtracks) {
 				boolean subtrackDeleted = getDataStore().delete(subtrack.getStreamId());
 				if (!subtrackDeleted ) {
-					
+
 					//before returning false, check the track exists because it may be deleted automatically if it's zombi and stopped
 					Broadcast subtrackBroadcast = getDataStore().get(subtrack.getStreamId());
-					
+
 					if (subtrackBroadcast != null) 
 					{
 						logger.error("Subtrack {} could not be deleted", subtrack.getStreamId());
@@ -413,14 +415,14 @@ public abstract class RestServiceBase {
 					}
 				}
 			}
-			
+
 		}
-		
-		
+
+
 		return result;
 	}
-	
-	
+
+
 
 	protected Result deleteBroadcasts(String[] streamIds) {
 
@@ -1265,10 +1267,10 @@ public abstract class RestServiceBase {
 		String appScopeName = getScope().getName();
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
-			
-		   String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
-		   
-		   if (ArrayUtils.contains(supportedFormats, fileExtension)) {
+
+			String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
+
+			if (ArrayUtils.contains(supportedFormats, fileExtension)) {
 
 
 				IStatsCollector statsCollector = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
@@ -1290,11 +1292,11 @@ public abstract class RestServiceBase {
 					}
 					String vodId = RandomStringUtils.randomNumeric(24);
 
-					
+
 					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
 
 					if (!savedFile.toPath().normalize().startsWith(streamsDirectory.toPath().normalize())) {
-			            throw new IOException("Entry is outside of the target directory");
+						throw new IOException("Entry is outside of the target directory");
 					} 
 
 					int read = 0;
@@ -1317,7 +1319,7 @@ public abstract class RestServiceBase {
 
 						VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, Muxer.getDurationInMs(savedFile,fileName), fileSize,
 								VoD.UPLOADED_VOD, vodId, null);
-						
+
 						if (StringUtils.isNotBlank(vodUploadFinishScript)) {
 							newVod.setProcessStatus(VoD.PROCESS_STATUS_INQUEUE);
 						}
@@ -1327,11 +1329,11 @@ public abstract class RestServiceBase {
 						if(id != null) {
 							success = true;
 							message = id;
-							
+
 							if (StringUtils.isNotBlank(vodUploadFinishScript)) 
 							{
 								startVoDScriptProcess(vodUploadFinishScript, savedFile, newVod, id);	
-								
+
 							}
 
 						}
@@ -1356,49 +1358,49 @@ public abstract class RestServiceBase {
 		new Thread() {
 			public void run() 
 			{
-				
+
 				long startTime = System.currentTimeMillis();
 				getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_PROCESSING);
-				
+
 				String command = vodUploadFinishScript + " " + savedFile.getAbsolutePath();
-				
+
 				try {
-					
+
 					Process exec = getProcess(command);
-					
+
 					int waitFor = exec.waitFor();
-					
+
 					long endTime = System.currentTimeMillis();
-					
+
 					long durationMs = endTime - startTime;
-				
+
 					if (waitFor == 0) 
 					{
 						logger.info("VoD file is processed successfully for Id:{} and name:{} in {}ms", vodId, newVod.getVodName(), durationMs);
-		                getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FINISHED);
-		            }
-		            else 
-		            {
-		            	logger.error("VoD file could not be processed for Id:{} and name:{} in {}ms", vodId, newVod.getVodName(), durationMs);
-		                getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FAILED);
-		            }
-					
-					
+						getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FINISHED);
+					}
+					else 
+					{
+						logger.error("VoD file could not be processed for Id:{} and name:{} in {}ms", vodId, newVod.getVodName(), durationMs);
+						getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FAILED);
+					}
+
+
 				} catch (IOException e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				} catch (InterruptedException e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 					Thread.currentThread().interrupt();
 				}
-				
+
 			}
 
-			
+
 		}.start();
 	}
-	
-	
-	
+
+
+
 	public Process getProcess(String command) throws IOException {
 		return Runtime.getRuntime().exec(command);
 	}
@@ -1643,7 +1645,7 @@ public abstract class RestServiceBase {
 
 		return result;
 	}
-	
+
 	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks) {
 		Result result = new Result(false);
 		if (broadcast != null) {
@@ -1874,42 +1876,48 @@ public abstract class RestServiceBase {
 	}
 
 	public static Version getSoftwareVersion() {
-		Version version = new Version();
-		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 
-		URL url = null;
+		if (version == null) {
 
-		Class<RestServiceBase> clazz = RestServiceBase.class;
-		String className = clazz.getSimpleName() + ".class";
-		String classPath = clazz.getResource(className).toString();
-		String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) +
-				"/META-INF/MANIFEST.MF";
+			version = new Version();
+			version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 
-		try {
-			url = new URL(manifestPath);
-		} catch (MalformedURLException e) {
-			logger.error(e.getMessage());
+			Class<RestServiceBase> clazz = RestServiceBase.class;
+			String className = clazz.getSimpleName() + ".class";
+			String classPath = clazz.getResource(className).toString();
+			String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
+
+			version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
+
+			
+			version.setBuildNumber(getBuildNumber(manifestPath));
+			
+			logger.debug("Version Name:{} Version Type:{} Build Number:{}", version.getVersionName(), version.getVersionType(), version.getBuildNumber());
+
 		}
 
-		Manifest manifest;
-
-		try {
-			if (url != null)
-			{
-				manifest = new Manifest(url.openStream());
-				version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
-			}
-			else {
-				logger.error("url(META-INF/MANIFEST.MF) is null when getting software version");
-			}
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-		}
-
-		version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
-
-		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
 		return version;
+	}
+	
+	public static String getBuildNumber(String manifestPath) {
+		
+		String buildNumber = null;
+		try 
+		{
+			URL url = new URL(manifestPath);
+
+			try (InputStream is = url.openStream()) 
+			{
+				Manifest manifest = new Manifest(is);
+				buildNumber = manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER);
+			}
+		}
+		catch (Exception e) 
+		{
+			logger.error(e.getMessage());
+		}
+		
+		return buildNumber;
 	}
 
 	public static boolean isEnterprise() {
@@ -2012,11 +2020,11 @@ public abstract class RestServiceBase {
 				subTrackStreamIds.add(subTrackId);
 				broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setSubTrackStreamIds(subTrackStreamIds);
-				
+
 				//make sure to set the virtual flag to true because it's mainTrack
 				broadcastUpdate.setVirtual(true);
-				
-				
+
+
 				success = store.updateBroadcastFields(mainTrackId, broadcastUpdate);
 				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + mainTrackId);
 			}
