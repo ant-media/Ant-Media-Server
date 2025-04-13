@@ -83,6 +83,7 @@ public class MongoStore extends DataStore {
 	private MongoClient mongoClient;
 	public CaffeineCacheManager cacheManager;
 	public CaffeineCache subscriberCache;
+	public CaffeineCache broadcastCache;
 
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
@@ -102,8 +103,12 @@ public class MongoStore extends DataStore {
 
 	public static final String OLD_STREAM_ID_INDEX_NAME = "streamId_1";
 	public static final String SUBSCRIBER_CACHE = "subscriberCache";
+	public static final String BROADCAST_CACHE = "subscriberCache";
 	public static final int SUBSCRIBER_CACHE_SIZE = 1000;
 	public static final int SUBSCRIBER_CACHE_EXPIRE_SECONDS = 10;
+	
+	public static final int BROADCAST_CACHE_SIZE = 1000;
+	public static final int BROADCAST_CACHE_EXPIRE_SECONDS = 10;
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -284,8 +289,9 @@ public class MongoStore extends DataStore {
 			try {
 				Broadcast updatedBroadcast = super.saveBroadcast(broadcast);
 				synchronized(this) {
-
 					datastore.save(broadcast);
+					String cacheKey = getBroadcastCacheKey(broadcast.getStreamId());
+					getBroadcastCache().put(cacheKey, broadcast);
 				}
 				streamId = updatedBroadcast.getStreamId();
 			} catch (Exception e) {
@@ -306,15 +312,22 @@ public class MongoStore extends DataStore {
 	@Override
 	public Broadcast get(String id) {
 		long startTime = System.nanoTime();
-		Broadcast broadcast = null;
-		synchronized(this) {
-			try {
+		
+		String cacheKey = getBroadcastCacheKey(id);
+		Broadcast broadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
 
-				broadcast = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id)).first();
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
+		if(broadcast == null){
+			synchronized(this) {
+				try {
+					broadcast = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id)).first();
+					getBroadcastCache().put(cacheKey, broadcast);
+
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
 			}
 		}
+
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "get");
@@ -501,6 +514,12 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 				result = query.delete().getDeletedCount() == 1;
+				
+				if(result){
+					String cacheKey = getBroadcastCacheKey(id);
+					getBroadcastCache().evictIfPresent(cacheKey);
+				}
+				
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1178,6 +1197,9 @@ public class MongoStore extends DataStore {
 				prepareFields(broadcast, updates);
 
 				UpdateResult updateResult = query.update(updates).execute();
+				
+				String cacheKey = getBroadcastCacheKey(broadcast.getStreamId());
+				getBroadcastCache().put(cacheKey, broadcast);
 
 
 				result = updateResult.getModifiedCount() == 1;
@@ -1674,6 +1696,10 @@ public class MongoStore extends DataStore {
 
 	public String getSubscriberCacheKey(String streamId, String subscriberId){
 		return streamId + "_" + subscriberId;
+	}
+	
+	public String getBroadcastCacheKey(String streamId){
+		return "key_" + streamId;
 	}
 
 	@Override
@@ -2393,10 +2419,18 @@ public class MongoStore extends DataStore {
 
 	public CaffeineCache getSubscriberCache() {
 		if(subscriberCache == null){
-			subscriberCache = (CaffeineCache) cacheManager.getCache("subscriberCache");
+			subscriberCache = (CaffeineCache) cacheManager.getCache(SUBSCRIBER_CACHE);
 		}
 
 		return subscriberCache;
+	}
+	
+	public CaffeineCache getBroadcastCache() {
+		if(broadcastCache == null){
+			broadcastCache = (CaffeineCache) cacheManager.getCache(BROADCAST_CACHE);
+		}
+
+		return broadcastCache;
 	}
 
 }
