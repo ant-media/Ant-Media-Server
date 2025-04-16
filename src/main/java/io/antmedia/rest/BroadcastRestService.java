@@ -1230,6 +1230,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/{id}/rtmp-to-webrtc-stats")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Deprecated(forRemoval = true)
 	public RTMPToWebRTCStats getRTMPToWebRTCStats(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id) 
 	{
 		return getApplication().getRTMPToWebRTCStats(id);

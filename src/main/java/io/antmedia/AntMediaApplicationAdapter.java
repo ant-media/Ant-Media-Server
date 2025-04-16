@@ -2425,6 +2425,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/*
 	 * This method is overridden in enterprise edition since RTMP to WebRTC streaming is an enterprise feature.
 	 */
+	@Deprecated(forRemoval = true)
 	public RTMPToWebRTCStats getRTMPToWebRTCStats(String streamId) {
 		return new RTMPToWebRTCStats(streamId);
 	}
