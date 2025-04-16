@@ -445,6 +445,11 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
+	private static final String SETTINGS_AV1_ENABLED = "settings.av1Enabled";
+	/**
+	/**
+	 * @hidden
+	 */
 	private static final String SETTINGS_H265_ENABLED = "settings.h265Enabled";
 	/**
 	 * @hidden
@@ -1720,6 +1725,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${vp8Enabled:${" + SETTINGS_VP8_ENABLED+ ":false}}")
 	private boolean vp8Enabled;
+	
+	/**
+	 * Enable/Disable AV1 encoding It's disabled by default
+	 */
+	@Value("${av1Enabled:${" + SETTINGS_AV1_ENABLED+ ":true}}")
+	private boolean av1Enabled;
 
 	/**
 	 * Enable/disable H265 Encoding Disabled by default
@@ -3255,6 +3266,14 @@ public class AppSettings implements Serializable{
 
 	public boolean isVp8Enabled() {
 		return vp8Enabled;
+	}
+
+	public void setAv1Enabled(boolean av1Enabled) {
+		this.av1Enabled = av1Enabled;
+	}
+	
+	public boolean isAv1Enabled() {
+		return av1Enabled;
 	}
 
 	public void setVp8Enabled(boolean vp8Enabled) {

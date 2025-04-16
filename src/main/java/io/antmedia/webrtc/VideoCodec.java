@@ -7,7 +7,8 @@ public enum VideoCodec {
 	PNG("PNG"),
 	H265("H265"), 
 	JPG("JPG"),
-	WEBP("WEBP");
+	WEBP("WEBP"),
+	AV1("AV1");
 	
 	private String name;
 	VideoCodec(String name) {
