@@ -682,6 +682,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					broadcastUpdate.setHlsViewerCount(0);
+					broadcastUpdate.setDashViewerCount(0);
+					broadcastUpdate.setWebRTCViewerCount(0);
 					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
