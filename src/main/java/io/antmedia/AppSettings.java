@@ -1613,6 +1613,7 @@ public class AppSettings implements Serializable{
 	 * If encoder cannot encode a frame in this timeout, streaming is finished by server. 
 	 */
 	@Value("${encodingTimeout:${" + SETTINGS_ENCODING_TIMEOUT +":5000}}")
+	@Deprecated(forRemoval = true, since = "2.14.0")
 	private int encodingTimeout = 5000;
 
 	/**
@@ -2290,6 +2291,15 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:false}")
 	private boolean sendAudioLevelToViewers = false;
+	
+	/**
+	 *  
+	 * Audio level threshold to assign an audio track to stream in case of limited audio tracks in conference.
+	 * 127 is the max value which is silent. 0 is the min value which is max audio level.
+	 * 
+	 */
+	@Value("${audioLevelThreshold:120}")
+	private int audioLevelThreshold = 120;
 
 	/**
 	 * Enable/disable video frame scaling in GPU when there is an adaptive bitrate.
@@ -4272,5 +4282,13 @@ public class AppSettings implements Serializable{
 	 */
 	public void setHlsSegmentFileSuffixFormat(String hlsSegmentFileSuffixFormat) {
 		this.hlsSegmentFileSuffixFormat = hlsSegmentFileSuffixFormat;
+	}
+
+	public int getAudioLevelThreshold() {
+		return audioLevelThreshold;
+	}
+
+	public void setAudioLevelThreshold(int audioLevelThreshold) {
+		this.audioLevelThreshold = audioLevelThreshold;
 	}
 }

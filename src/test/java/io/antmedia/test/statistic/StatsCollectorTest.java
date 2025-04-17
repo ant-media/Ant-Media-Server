@@ -91,17 +91,24 @@ public class StatsCollectorTest {
 		StatsCollector monitor = new StatsCollector();
 		monitor.setWindowSize(3);
 		
-		monitor.addCpuMeasurement(5);
+		monitor.addCpuMeasurement(5, 3);
 		assertEquals(5, monitor.getCpuLoad());
+		assertEquals(3, StatsCollector.getProcessCpuLoad());
 		
-		monitor.addCpuMeasurement(7);
+		monitor.addCpuMeasurement(7, 5);
 		assertEquals(6, monitor.getCpuLoad());
+		assertEquals(4, StatsCollector.getProcessCpuLoad());
+
 		
-		monitor.addCpuMeasurement(9);
+		monitor.addCpuMeasurement(9, 7);
 		assertEquals(7, monitor.getCpuLoad());
+		assertEquals(5, StatsCollector.getProcessCpuLoad());
+
 		
-		monitor.addCpuMeasurement(11);
+		monitor.addCpuMeasurement(11, 9);
 		assertEquals(9, monitor.getCpuLoad());
+		assertEquals(7, StatsCollector.getProcessCpuLoad());
+
 	}
 	
 	@Test

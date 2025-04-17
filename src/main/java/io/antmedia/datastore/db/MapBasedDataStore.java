@@ -281,7 +281,7 @@ public abstract class MapBasedDataStore extends DataStore
 	public List<Broadcast> getBroadcastListV2(String type, String search) {
 		long startTime = System.nanoTime();
 
-		ArrayList<Broadcast> list = new ArrayList<>();
+		List<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 
 			int count = 0;
@@ -1479,11 +1479,11 @@ public abstract class MapBasedDataStore extends DataStore
 
 	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
-		return getSubtracks(mainTrackId, offset, size, role, null);
+		return getSubtracks(mainTrackId, offset, size, role, null, null, null, null);
 	}
 
 	@Override
-	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status, String sortBy, String orderBy, String search) {
 		long startTime = System.nanoTime();
 
 		List<Broadcast> subtracks = new ArrayList<>();
@@ -1499,11 +1499,19 @@ public abstract class MapBasedDataStore extends DataStore
 			}
 		}
 		
+		if (search != null && !search.isEmpty()) {
+			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
+			logger.info("server side search called for Broadcast searchString = {}", search);
+			subtracks = searchOnServer(subtracks, search);
+		}
+				
+		subtracks = sortAndCropBroadcastList(subtracks, offset, size, sortBy, orderBy);
+		
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getSubtracks(String mainTrackId, int offset, int size, String role, String status)");
 		
-		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
+		return subtracks;
 	}
 
 	@Override

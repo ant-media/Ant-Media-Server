@@ -2254,19 +2254,40 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
-		return getSubtracks(mainTrackId, offset, size, role, null);
+		return getSubtracks(mainTrackId, offset, size, role, null, null, null, null);
 	}
 
 	@Override
-	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status, String sortBy, String orderBy, String search) {
 		long startTime = System.nanoTime();
 		List<Broadcast> subtracks = new ArrayList<>();
 		synchronized(this) {
 
 			Filter roleFilter = getFilterForSubtracks(mainTrackId, role, status);
-			subtracks = datastore.find(Broadcast.class)
-					.filter(roleFilter)
-					.iterator(new FindOptions().skip(offset).limit(size)).toList();
+			Query<Broadcast> query = datastore.find(Broadcast.class);
+			FindOptions findingOptions = new FindOptions().skip(offset).limit(size);
+
+			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+				findingOptions.sort(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
+
+			}
+			if(search != null && !search.isEmpty())
+			{
+				logger.info("Server side search in broadcast for the text -> {}", search);
+
+				// if search is not a valid regex, then search as a text in name
+				if (!checkIfRegexValid(search)) {
+					query.filter(Filters.text(search));
+				} else {
+					query.filter(Filters.or(
+							Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
+							Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
+							)
+							);
+				}
+			}
+			
+			subtracks = query.filter(roleFilter).iterator(findingOptions).toList();
 		}
 		
 		long elapsedNanos = System.nanoTime() - startTime;

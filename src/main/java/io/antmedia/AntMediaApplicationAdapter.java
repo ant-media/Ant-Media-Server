@@ -967,35 +967,62 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
-		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 	}
 
-
-	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast, String status) {
+	/**
+	 * 
+	 * @param streamId
+	 * @param absoluteStartTimeMs
+	 * @param publishType
+	 * @param broadcast: if it's null, it will be created
+	 * @param broadcastUpdate: if it's null, it will be created with getBroadcastUpdateForStatus(publishType, status). It's used to update some specific fields
+	 * @param status: 
+	 * @return
+	 */
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast, BroadcastUpdate broadcastUpdate, String status) {
 		if (broadcast == null)
 		{
 
 			logger.info("Saving zombi broadcast to data store with streamId:{}", streamId);
 			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "", "");
 		}
-		else {
-
-			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-			broadcastUpdate.setStatus(status);
-			long now = System.currentTimeMillis();
-			broadcastUpdate.setStartTime(now);
-			broadcastUpdate.setUpdateTime(now);
-			broadcastUpdate.setOriginAdress(getServerSettings().getHostAddress());
-			broadcastUpdate.setWebRTCViewerCount(0);
-			broadcastUpdate.setHlsViewerCount(0);
-			broadcastUpdate.setDashViewerCount(0);
-			broadcastUpdate.setPublishType(publishType);
+		else 
+		{
+			if (broadcastUpdate == null) 
+			{
+				broadcastUpdate = getFreshBroadcastUpdateForStatus(publishType, status);
+			}
+			else {
+				broadcastUpdate.setStatus(status);
+				broadcastUpdate.setPublishType(publishType);
+			}
 			//updateBroadcastFields just updates broadcast with the updated fields. No need to give real object
 			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 
-			logger.info(" Status of stream {} is set to {} with result: {}", broadcast.getStreamId(), status, result);
+			logger.info(" Status of stream {} is set to {} with result: {}", streamId, status, result);
 		}
 		return broadcast;
+	}
+
+	/**
+	 * It creates a broadcast update object for a broadcast that is about to start 
+	 * @param publishType
+	 * @param status
+	 * @return
+	 */
+	public BroadcastUpdate getFreshBroadcastUpdateForStatus(String publishType, String status) {
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStatus(status);
+		long now = System.currentTimeMillis();
+		broadcastUpdate.setStartTime(now);
+		broadcastUpdate.setUpdateTime(now);
+		broadcastUpdate.setOriginAdress(getServerSettings().getHostAddress());
+		broadcastUpdate.setWebRTCViewerCount(0);
+		broadcastUpdate.setHlsViewerCount(0);
+		broadcastUpdate.setDashViewerCount(0);
+		broadcastUpdate.setPublishType(publishType);
+		return broadcastUpdate;
 	}
 
 	public ServerSettings getServerSettings()
@@ -1079,7 +1106,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			altitude = broadcast.getAltitude();
 		}
 		else {
-			logger.error("Broadcast is null for muxingFinished for stream: {} it's not supposed to happen", streamId);
+			logger.error("Broadcast is null for muxingFinished for stream: {}. This happens if the broadcast is deleted before muxing has finished. "
+					+ "If there is a webhook specific to broadcast, it will not be called", streamId);
 		}
 
 		String vodName = file.getName();

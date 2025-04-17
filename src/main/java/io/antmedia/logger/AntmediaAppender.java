@@ -22,6 +22,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.AppenderBase;
+import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.model.Version;
 import io.antmedia.statistic.StatsCollector;
 
 /**
@@ -79,14 +81,16 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
 				String errorDetail = ThrowableProxyUtil.asString(throwbleProxy);
 				String instanceId = Launcher.getInstanceId();
 				
-				String version = Launcher.getVersion();
-				String type = Launcher.getVersionType();
-					
+				Version versionObj = RestServiceBase.getSoftwareVersion();
+				String version = versionObj.getVersionName();
+				String type = versionObj.getVersionType();
+				String buildNumber = versionObj.getBuildNumber();	
 
 				JsonObject instance = new JsonObject();
 				instance.addProperty(StatsCollector.INSTANCE_ID, instanceId);
 				instance.addProperty(StatsCollector.INSTANCE_TYPE, type);
 				instance.addProperty(StatsCollector.INSTANCE_VERSION, version);
+				instance.addProperty(StatsCollector.INSTANCE_BUILD_NUMBER, buildNumber);
 				instance.addProperty("errorDetail", errorDetail);
 				
 
