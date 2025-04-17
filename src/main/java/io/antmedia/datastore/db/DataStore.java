@@ -1759,6 +1759,14 @@ public abstract class DataStore {
 	}
 	
 	/**
+	 * Query to get Broadcasts for a given origin(host) address
+	 * @param hostAddress
+	 * @return Broadcast List
+	 */
+	public abstract List<Broadcast> getBroadcastListByHost(String hostAddress);
+
+	
+	/**
 	 * Setter for appSettings
 	 * @param appSettings
 	 */
