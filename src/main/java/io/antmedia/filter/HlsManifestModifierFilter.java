@@ -243,10 +243,10 @@ public class HlsManifestModifierFilter extends AbstractFilter {
   public String addParamSeparator(String current) {
     if (current.contains("?")) {
       String lastChar = current.substring(current.length() - 1);
-      if (lastChar.equals("?")){
-        return "&";
+      if (lastChar.equals("&")){
+        return "";
       }
-      return "?&";
+      return "&";
     }
     return "?";
   }
@@ -257,6 +257,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
     Matcher matcher = pattern.matcher(original);
 
     StringBuilder result = new StringBuilder();
+
     while (matcher.find()) {
       String replacementString = matcher.group();
 

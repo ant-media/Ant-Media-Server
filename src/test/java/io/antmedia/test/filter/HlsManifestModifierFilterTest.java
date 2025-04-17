@@ -742,4 +742,10 @@ public class HlsManifestModifierFilterTest {
 		assertTrue(!modified.contains("&&"));
 		assertTrue(modified.contains("segment=test__584.2.ts?&token=testtoken"));
 	}
+	@Test
+	public void testAddParamSeparator(){
+		assertEquals(hlsManifestModifierFilter.addParamSeparator("test"),"?");
+		assertEquals(hlsManifestModifierFilter.addParamSeparator("test?segment"),"?&");
+
+	}
 }
