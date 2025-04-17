@@ -1729,7 +1729,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Enable/Disable AV1 encoding It's disabled by default
 	 */
-	@Value("${av1Enabled:${" + SETTINGS_AV1_ENABLED+ ":true}}")
+	@Value("${av1Enabled:${" + SETTINGS_AV1_ENABLED+ ":false}}")
 	private boolean av1Enabled;
 
 	/**
