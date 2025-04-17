@@ -1123,7 +1123,7 @@ public class MongoStore extends DataStore {
 				}
 				
 				if (broadcast.getWebRTCViewerCount() != null) {
-					updates.add(set("webRTCViewerCount", broadcast.getWebRTCViewerCount()));
+					updates.add(set(WEBRTC_VIEWER_COUNT, broadcast.getWebRTCViewerCount()));
 				}
 
 				if (broadcast.getHlsViewerLimit() != null) {
@@ -1131,7 +1131,7 @@ public class MongoStore extends DataStore {
 				}
 				
 				if (broadcast.getHlsViewerCount() != null) {
-					updates.add(set("hlsViewerCount", broadcast.getHlsViewerCount()));
+					updates.add(set(HLS_VIEWER_COUNT, broadcast.getHlsViewerCount()));
 				}
 
 				if (broadcast.getDashViewerLimit() != null) {
@@ -1139,7 +1139,7 @@ public class MongoStore extends DataStore {
 				}
 				
 				if (broadcast.getDashViewerCount() != null) {
-					updates.add(set("dashViewerCount", broadcast.getDashViewerCount()));
+					updates.add(set(DASH_VIEWER_COUNT, broadcast.getDashViewerCount()));
 				}
 
 				if (broadcast.getSubTrackStreamIds() != null) {
