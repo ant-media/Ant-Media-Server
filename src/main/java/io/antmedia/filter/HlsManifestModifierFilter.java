@@ -240,37 +240,44 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 	}
 
-	private String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode, String regex) {
-		Pattern pattern = Pattern.compile(regex);
-		Matcher matcher = pattern.matcher(original);
+  public String addParamSeparator(String current) {
+    if (current.contains("?")) {
+      String lastChar = current.substring(current.length() - 1);
+      if (lastChar.equals("&")){
+        return "";
+      }
+      return "&";
+    }
+    return "?";
+  }
 
-		StringBuilder result = new StringBuilder();
-		while (matcher.find()) {
-			String replacementString = matcher.group();
+  public String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode,
+                                          String regex) {
+    Pattern pattern = Pattern.compile(regex);
+    Matcher matcher = pattern.matcher(original);
 
-			if (replacementString.contains("?")) {
-				replacementString += "&";
-			}
-			else {
-				replacementString += "?";
-			}
+    StringBuilder result = new StringBuilder();
 
-			if (!StringUtils.isNullOrEmpty(subscriberCode)) {
-				replacementString += WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode;
-			}
+    while (matcher.find()) {
+      String replacementString = matcher.group();
 
-			if (!StringUtils.isNullOrEmpty(subscriberId)) {
-				replacementString += "&" + WebSocketConstants.SUBSCRIBER_ID + "=" + subscriberId;
-			}
+      if (!StringUtils.isNullOrEmpty(subscriberCode)) {
+        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode);
+      }
 
-			if (!StringUtils.isNullOrEmpty(token)) {
-				replacementString += "&" + WebSocketConstants.TOKEN + "=" + token;
-			}
+      if (!StringUtils.isNullOrEmpty(subscriberId)) {
+        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_ID + "="
+                + subscriberId);
+      }
 
-			matcher.appendReplacement(result, replacementString);
-		}
-		matcher.appendTail(result);
+      if (!StringUtils.isNullOrEmpty(token)) {
+        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.TOKEN + "=" + token);
+      }
 
-		return result.toString();
-	}
+      matcher.appendReplacement(result, replacementString);
+    }
+    matcher.appendTail(result);
+
+    return result.toString();
+  }
 }
