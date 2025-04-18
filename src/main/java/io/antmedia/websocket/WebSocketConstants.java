@@ -77,6 +77,19 @@ public class WebSocketConstants {
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
 
 	/**
+	 * Command to get ICE server configuration to frontend from server
+	 */
+	public static final String GET_ICE_SERVER_CONFIG = "getIceServerConfig";
+
+	public static final String ICE_SERVER_CONFIG_NOTIFICATION = "iceServerConfig";
+
+	public static final String STUN_SERVER_URI = "stunServerUri";
+
+	public static final String TURN_SERVER_USERNAME = "turnServerUsername";
+
+	public static final String TURN_SERVER_CREDENTIAL = "turnServerCredential";
+
+	/**
 	 * Please use {@link #MAIN_TRACK} instead
 	 */
 	@Deprecated(forRemoval = true, since = "2.11.3")
