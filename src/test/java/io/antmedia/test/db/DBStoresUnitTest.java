@@ -1784,6 +1784,9 @@ public class DBStoresUnitTest {
 			double speed = 1.0;
 			tmp.setSpeed(speed);
 			tmp.setSeekTimeInMs(136);
+			tmp.setHlsViewerCount(10);
+			tmp.setWebRTCViewerCount(12);
+			tmp.setDashViewerCount(13);
 
 
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
@@ -1801,6 +1804,10 @@ public class DBStoresUnitTest {
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
 			assertEquals(speed, broadcast2.getSpeed(), 0.1);
+			assertEquals(10, broadcast2.getHlsViewerCount());
+			assertEquals(12, broadcast2.getWebRTCViewerCount());
+			assertEquals(13, broadcast2.getDashViewerCount());
+			
 
 			BroadcastUpdate update = new BroadcastUpdate();
 			update.setDuration(100000L);

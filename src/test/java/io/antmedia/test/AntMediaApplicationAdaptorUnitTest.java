@@ -1588,6 +1588,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStore db = new InMemoryDataStore("db");
 		Broadcast broadcast = new Broadcast();
 		broadcast.setListenerHookURL("url");
+		broadcast.setWebRTCViewerCount(10);
+		broadcast.setDashViewerCount(11);
+		broadcast.setHlsViewerCount(12);
 		db.save(broadcast);
 
 		Vertx vertx = Mockito.mock(VertxImpl.class);
@@ -1606,6 +1609,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
+		assertEquals(0, broadcast.getWebRTCViewerCount());
+		assertEquals(0, broadcast.getHlsViewerCount());
+		assertEquals(0, broadcast.getDashViewerCount());
+
 	}
 
 	@Test
