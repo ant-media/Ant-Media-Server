@@ -682,6 +682,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					broadcastUpdate.setHlsViewerCount(0);
+					broadcastUpdate.setDashViewerCount(0);
+					broadcastUpdate.setWebRTCViewerCount(0);
 					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
@@ -2422,9 +2425,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.serverSettings = serverSettings;
 	}
 
-	/*
+	/**
 	 * This method is overridden in enterprise edition since RTMP to WebRTC streaming is an enterprise feature.
+	 * @deprecated use the stats on the broadcast object or publish stats
 	 */
+	@Deprecated(forRemoval = true, since = "2.13+")
 	public RTMPToWebRTCStats getRTMPToWebRTCStats(String streamId) {
 		return new RTMPToWebRTCStats(streamId);
 	}
