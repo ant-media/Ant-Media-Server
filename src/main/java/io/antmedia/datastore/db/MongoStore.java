@@ -1121,13 +1121,25 @@ public class MongoStore extends DataStore {
 				if (broadcast.getWebRTCViewerLimit() != null) {
 					updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
 				}
+				
+				if (broadcast.getWebRTCViewerCount() != null) {
+					updates.add(set(WEBRTC_VIEWER_COUNT, broadcast.getWebRTCViewerCount()));
+				}
 
 				if (broadcast.getHlsViewerLimit() != null) {
 					updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
 				}
+				
+				if (broadcast.getHlsViewerCount() != null) {
+					updates.add(set(HLS_VIEWER_COUNT, broadcast.getHlsViewerCount()));
+				}
 
 				if (broadcast.getDashViewerLimit() != null) {
 					updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
+				}
+				
+				if (broadcast.getDashViewerCount() != null) {
+					updates.add(set(DASH_VIEWER_COUNT, broadcast.getDashViewerCount()));
 				}
 
 				if (broadcast.getSubTrackStreamIds() != null) {
