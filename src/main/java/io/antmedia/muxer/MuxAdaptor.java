@@ -468,7 +468,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		previewOverwrite = appSettingsLocal.isPreviewOverwrite();
 
-		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettingsList() != null && !getBroadcast().getEncoderSettingsList().isEmpty()) 
+		// if the encoder settings is not null, it means that it is set and empty is also an value for it
+		// because there can be some encoder settings in application and user may want to not encode a specific stream.
+		// In this case user can set the encoderSettingsList empty
+		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettingsList() != null) 
 				? getBroadcast().getEncoderSettingsList() 
 						: appSettingsLocal.getEncoderSettings();
 
