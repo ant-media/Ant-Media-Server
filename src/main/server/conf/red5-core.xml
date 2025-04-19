@@ -166,7 +166,7 @@
         </property>
     </bean>
     
-    <bean id="rtmpsTransport" class="#{'${rtmps.enabled}'.equals('true') ? 'org.red5.server.net.rtmp.RTMPMinaTransport' : 'org.red5.server.net.rtmps.MockRTMPSMinaIoHandler'}" init-method="start" destroy-method="stop">
+    <bean id="rtmpsTransport" class="#{'${rtmps.enabled}'.equals('true') ? 'org.red5.server.net.rtmp.RTMPMinaTransport' : 'org.red5.server.net.rtmps.MockRTMPMinaTransport'}" init-method="start" destroy-method="stop">
 
         <property name="ioHandler" ref="rtmpsMinaIoHandler" />
         <property name="addresses">
