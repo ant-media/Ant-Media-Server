@@ -654,7 +654,7 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					getInstance().closeBroadcast(streamId);
+					getInstance().closeBroadcast(streamId, null);
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -691,7 +691,7 @@ public class StreamFetcher {
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
-						getInstance().closeBroadcast(streamId);
+						getInstance().closeBroadcast(streamId, null);
 					}
 				}
 
