@@ -2102,10 +2102,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		doReturn(stream).when(spyAdaptor).getBroadcastStream(Mockito.any(), Mockito.any());
 
-		spyAdaptor.startPublish(streamId, 0, null);
 
 
 		long absoluteTimeMS = System.currentTimeMillis();
+		
+		spyAdaptor.startPublish(streamId, absoluteTimeMS, null);
+
 		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)

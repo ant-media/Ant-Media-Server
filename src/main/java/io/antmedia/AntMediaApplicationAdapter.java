@@ -724,6 +724,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				publishEndedEvent.setStreamId(streamId);
 				publishEndedEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
 				publishEndedEvent.setApp(scope.getName());
+				publishEndedEvent.setSubscriberId(subscriberId);
 
 				LoggerUtils.logAnalyticsFromServer(publishEndedEvent);
 
@@ -893,7 +894,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
 
 				final String listenerHookURL = getListenerHookURL(broadcast);
-				logger.info("listner hook url:{}", listenerHookURL);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty())
 				{
 					final String name = broadcast.getName();
@@ -920,7 +920,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					listener.streamStarted(broadcast);
 				}
 
-				logPublishStartedEvent(streamId, publishType);
+				logPublishStartedEvent(streamId, publishType, subscriberId);
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -931,7 +931,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		logger.info("start publish leaved for stream:{}", streamId);
 	}
 
-	private void logPublishStartedEvent(String streamId, String publishType) {
+	private void logPublishStartedEvent(String streamId, String publishType, String subscriberId) {
 		long videoHeight = 0;
 		long videoWidth = 0;
 		String videoCodecName=null;
@@ -956,6 +956,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		event.setWidth((int) videoWidth);
 		event.setVideoCodec(videoCodecName);
 		event.setAudioCodec(audioCodecName);
+		event.setSubscriberId(subscriberId);
 		event.setApp(scope.getName());
 
 		LoggerUtils.logAnalyticsFromServer(event);
