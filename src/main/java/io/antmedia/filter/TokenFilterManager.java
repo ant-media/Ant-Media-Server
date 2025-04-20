@@ -223,6 +223,10 @@ public class TokenFilterManager extends AbstractFilter   {
         java.util.regex.Matcher matcher = pattern.matcher(requestURI);
 		if (matcher.matches()) 
 		{
+			//the file name may not have 'kbps' all the time
+			//so this solution does not work in all cases
+			//Even if the following 2 lines resolves this issue https://github.com/ant-media/Ant-Media-Server/issues/7066
+			// it's not recommended to have stream id finish with _ 
 			if(matcher.group(3).contains("kbps")){
 				return matcher.group(2)+ "_";
 			}
