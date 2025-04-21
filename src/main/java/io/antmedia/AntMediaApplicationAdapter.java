@@ -881,7 +881,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
 	}
 	
+	/**
+	 * This method is used to start the publish process
+	 * @deprecated use {@link #startPublish(String, long, String, String)}
+	 * @param streamId
+	 * @param absoluteStartTimeMs
+	 * @param publishType
+	 */
 	@Override
+	@Deprecated
 	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
 		startPublish(streamId, absoluteStartTimeMs, publishType, null);
 	}

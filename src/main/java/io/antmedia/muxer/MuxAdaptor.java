@@ -99,6 +99,7 @@ import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 
 
@@ -1480,9 +1481,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void clearAndStopStream() {
 		broadcastStream.removeStreamListener(MuxAdaptor.this);
 		logger.warn("closing adaptor for {} ", streamId);
+		Map<String,String> parameters = broadcastStream.getParameters();
+		String subscriberId = null;
+		if (parameters != null) {
+			subscriberId = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+		}
 		closeResources();
 		logger.warn("closed adaptor for {}", streamId);
-		getStreamHandler().stopPublish(streamId);
+
+		getStreamHandler().stopPublish(streamId, subscriberId);
 	}
 
 
@@ -1618,7 +1625,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			//Calling startPublish to here is critical. It's called after encoders are ready and isRecording is true
 			//the above prepare method is overriden in EncoderAdaptor so that we resolve calling startPublish just here
-			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
+			Map<String,String> parameters = broadcastStream.getParameters();
+			String subscriberId = null;
+			if (parameters != null) {
+				subscriberId = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+			}
+			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId);
 
 		}
 		catch(Exception e) {

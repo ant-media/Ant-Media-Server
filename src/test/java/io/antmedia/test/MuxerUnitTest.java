@@ -2063,12 +2063,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setIngestingStreamLimit(2);
 
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -2082,7 +2082,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 		Mockito.verify(appAdaptor, timeout(1000).times((int) activeBroadcastCount + 1)).stopStreaming(Mockito.any(), Mockito.anyBoolean());
 
@@ -2106,7 +2106,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		long absoluteTimeMS = System.currentTimeMillis();
 		
-		spyAdaptor.startPublish(streamId, absoluteTimeMS, null);
+		spyAdaptor.startPublish(streamId, absoluteTimeMS, null, null);
 
 		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
 
