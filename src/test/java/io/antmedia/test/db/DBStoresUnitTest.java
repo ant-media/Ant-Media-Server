@@ -1784,6 +1784,32 @@ public class DBStoresUnitTest {
 			double speed = 1.0;
 			tmp.setSpeed(speed);
 			tmp.setSeekTimeInMs(136);
+			tmp.setUsername("user");
+			tmp.setPassword("pass");
+			tmp.setStreamUrl("url");
+			tmp.setConferenceMode("mode");
+			tmp.setPlannedStartDate(100L);
+			tmp.setPlannedEndDate(200L);
+			tmp.setReceivedBytes(1234L);
+			tmp.setBitrate(2000L);
+			tmp.setUserAgent("agent");
+			tmp.setHlsViewerLimit(100);
+			tmp.setWebRTCViewerLimit(200);
+			tmp.setDashViewerLimit(300);
+			tmp.setWidth(1280);
+			tmp.setHeight(720);
+			tmp.setEncoderQueueSize(250);
+			tmp.setDropPacketCountInIngestion(50);
+			tmp.setDropFrameCountInEncoding(60);
+			tmp.setPacketLostRatio(10.5);
+			tmp.setJitterMs(130);
+			tmp.setRttMs(120);
+			tmp.setPacketLostRatio(3.5);
+			tmp.setRemoteIp("remip");
+			tmp.setVirtual(false);
+			tmp.setAutoStartStopEnabled(false);
+			tmp.setSubtracksLimit(13);
+			
 
 
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
@@ -1801,6 +1827,32 @@ public class DBStoresUnitTest {
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
 			assertEquals(speed, broadcast2.getSpeed(), 0.1);
+			
+			assertEquals("user", broadcast2.getUsername());
+			assertEquals("pass", broadcast2.getPassword());
+			assertEquals("url", broadcast2.getStreamUrl());
+			assertEquals("mode", broadcast2.getConferenceMode());
+			assertEquals(100L, broadcast2.getPlannedStartDate());
+			assertEquals(200L, broadcast2.getPlannedEndDate());
+			assertEquals(1234L, broadcast2.getReceivedBytes());
+			assertEquals(2000L, broadcast2.getBitrate());
+			assertEquals("agent", broadcast2.getUserAgent());
+			assertEquals(100, broadcast2.getHlsViewerLimit());
+			assertEquals(200, broadcast2.getWebRTCViewerLimit());
+			assertEquals(300, broadcast2.getDashViewerLimit());
+			assertEquals(1280, broadcast2.getWidth());
+			assertEquals(720, broadcast2.getHeight());
+			assertEquals(250, broadcast2.getEncoderQueueSize());
+			assertEquals(50, broadcast2.getDropPacketCountInIngestion());
+			assertEquals(60, broadcast2.getDropFrameCountInEncoding());
+			assertEquals(3.5, broadcast2.getPacketLostRatio(), 0.0001); // Note: overwritten value
+			assertEquals(130, broadcast2.getJitterMs());
+			assertEquals(120, broadcast2.getRttMs());
+			assertEquals("remip", broadcast2.getRemoteIp());
+			assertFalse(broadcast2.isVirtual());
+			assertFalse(broadcast2.isAutoStartStopEnabled());
+			assertEquals(13, broadcast2.getSubtracksLimit());
+
 
 			BroadcastUpdate update = new BroadcastUpdate();
 			update.setDuration(100000L);
