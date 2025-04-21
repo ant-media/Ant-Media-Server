@@ -91,6 +91,7 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.plugin.api.IStreamListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
@@ -863,15 +864,26 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		String hookURL = "listener_hook_url";
 		appSettings.setListenerHookURL(hookURL);
+		
+		IStreamListener streamListener = Mockito.mock(IStreamListener.class);
+		spyAdaptor.addStreamListener(streamListener);
 
 		String subscriberId = "subscriberId";
 		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId);
 		verify(spyAdaptor, Mockito.timeout(2000).times(1)).notifyHook(hookURL, broadcast.getStreamId(), "", AntMediaApplicationAdapter.HOOK_ACTION_START_LIVE_STREAM, null, null, null, null, "", subscriberId);
 
+		
+		ArgumentCaptor<Broadcast> broadcastCaptor = ArgumentCaptor.forClass(Broadcast.class);
+		verify(streamListener, Mockito.timeout(2000).times(1)).streamStarted(broadcastCaptor.capture());
+		assertEquals(broadcast.getStreamId(), broadcastCaptor.getValue().getStreamId());
+
+		
 		spyAdaptor.closeBroadcast(broadcast.getStreamId(), subscriberId);
 
 		verify(spyAdaptor, Mockito.timeout(2000).times(1)).notifyHook(hookURL, broadcast.getStreamId(), "", AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, "", subscriberId);
-
+		broadcastCaptor = ArgumentCaptor.forClass(Broadcast.class);
+		verify(streamListener, Mockito.timeout(2000).times(1)).streamFinished(broadcastCaptor.capture());
+		assertEquals(broadcast.getStreamId(), broadcastCaptor.getValue().getStreamId());
 
 	}
 
@@ -905,7 +917,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.save(broadcast);
 
 		String subscriberId = "subscriberId";
-		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId);
+		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
 
 		broadcast = dataStore.get(broadcast.getStreamId());
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(1)).getListenerHookURL(broadcast);
@@ -1635,7 +1647,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setScope(scope);
 		adapter.setVertx(vertx);
 
-		adapter.closeBroadcast(broadcast.getStreamId(), null);
+		adapter.closeBroadcast(broadcast.getStreamId());
 
 		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
