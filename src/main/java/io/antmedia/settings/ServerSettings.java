@@ -686,7 +686,13 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		return ServerSettings.rtmpsEnabled;
 	}
 
+	/**
+	 * Set the RTMPS enabled or not
+	 * java:S2696 is suppressed because this method is used by Spring 
+	 * @param rtmpsEnabled
+	 */
 	@Value("${"+RTMPS_ENABLED + ":false}")
+	@SuppressWarnings("java:S2696")
 	public void setRtmpsEnabled(boolean rtmpsEnabled) {
 		ServerSettings.rtmpsEnabled = rtmpsEnabled;
 	}
