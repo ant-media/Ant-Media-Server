@@ -3067,7 +3067,9 @@ public class DBStoresUnitTest {
 		assertEquals(longitude, broadcastFromStore2.getLongitude());
 		assertEquals(altitude, broadcastFromStore2.getAltitude());
 
-		if (!(dataStore instanceof InMemoryDataStore)) {
+		if (!(dataStore instanceof InMemoryDataStore) &&
+				!(dataStore instanceof MongoStore) //because of caching
+				) {
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastFromStore2.getStatus());
 		}
 	}
