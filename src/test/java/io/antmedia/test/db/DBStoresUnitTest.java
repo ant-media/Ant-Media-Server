@@ -3581,7 +3581,7 @@ public class DBStoresUnitTest {
 		settingsList.add(new EncoderSettings(720, 50000, 32000, true));
 
 		broadcast.setEncoderSettingsList(settingsList);
-
+		
 		BroadcastUpdate updateData = new BroadcastUpdate();
 		updateData.setEncoderSettingsList(settingsList);
 
@@ -3590,7 +3590,9 @@ public class DBStoresUnitTest {
 		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
 		assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
 
-		if (! (dataStore instanceof InMemoryDataStore) ) {
+		if (!(dataStore instanceof InMemoryDataStore) &&
+				!(dataStore instanceof MongoStore) //because of cache
+				) {
 			//because inmemorydata store just keeps the reference, it will be updated
 			broadcast.setEncoderSettingsList(null);
 		} 
