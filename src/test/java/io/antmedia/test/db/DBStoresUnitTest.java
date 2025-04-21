@@ -24,6 +24,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
+import org.bytedeco.ffmpeg.avutil.tm;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -172,6 +173,7 @@ public class DBStoresUnitTest {
 		testUpdateMetadata(dataStore);
 		testUpdateRole(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testUpdateDashViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
@@ -268,6 +270,7 @@ public class DBStoresUnitTest {
 		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testUpdateDashViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
@@ -343,6 +346,7 @@ public class DBStoresUnitTest {
 		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testUpdateDashViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
@@ -416,6 +420,7 @@ public class DBStoresUnitTest {
 		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testUpdateDashViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
@@ -1211,6 +1216,44 @@ public class DBStoresUnitTest {
 
 		}
 	}
+	
+	public void testUpdateDashViewerCount(DataStore dataStore) {
+		//create a stream
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
+
+		//update hls viewer several times 
+		//check hls viewer count
+		int totalCountFor1 = 0;
+		int totalCountFor2 = 0;
+		for (int i = 0; i < 50; i++) {
+			int viewerCount = (int)(Math.random()*99999);
+			if (viewerCount % 2 == 0) {
+				viewerCount = -1 * viewerCount;
+			}
+			assertTrue(dataStore.updateDASHViewerCount(key, viewerCount));
+
+			totalCountFor1 += viewerCount;
+
+			int viewerCount2 = (int)(Math.random()*99999);
+			if (viewerCount2 % 2 == 0) {
+				viewerCount2 = -1 * viewerCount2;
+			}
+			assertTrue(dataStore.updateDASHViewerCount(key2, viewerCount2));
+			totalCountFor2 += viewerCount2;
+
+			assertEquals(totalCountFor1, dataStore.get(key).getDashViewerCount());
+			assertEquals(totalCountFor2, dataStore.get(key2).getDashViewerCount());
+
+		}
+	}
 
 	public void testWebRTCViewerCount(DataStore dataStore) {
 		//create a stream
@@ -1790,6 +1833,7 @@ public class DBStoresUnitTest {
 			tmp.setConferenceMode("mode");
 			tmp.setPlannedStartDate(100L);
 			tmp.setPlannedEndDate(200L);
+			tmp.setAbsoluteStartTimeMs(197L);
 			tmp.setReceivedBytes(1234L);
 			tmp.setBitrate(2000L);
 			tmp.setUserAgent("agent");
@@ -1801,15 +1845,17 @@ public class DBStoresUnitTest {
 			tmp.setEncoderQueueSize(250);
 			tmp.setDropPacketCountInIngestion(50);
 			tmp.setDropFrameCountInEncoding(60);
-			tmp.setPacketLostRatio(10.5);
 			tmp.setJitterMs(130);
 			tmp.setRttMs(120);
 			tmp.setPacketLostRatio(3.5);
+			tmp.setPacketsLost(123);
 			tmp.setRemoteIp("remip");
 			tmp.setVirtual(false);
 			tmp.setAutoStartStopEnabled(false);
 			tmp.setSubtracksLimit(13);
-			
+			List<String> ids = Arrays.asList("st1", "st2");
+			tmp.setSubTrackStreamIds(ids);
+			tmp.setSubTrackStreamIds(ids);
 
 
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
@@ -1834,6 +1880,7 @@ public class DBStoresUnitTest {
 			assertEquals("mode", broadcast2.getConferenceMode());
 			assertEquals(100L, broadcast2.getPlannedStartDate());
 			assertEquals(200L, broadcast2.getPlannedEndDate());
+			assertEquals(197L, broadcast2.getAbsoluteStartTimeMs());
 			assertEquals(1234L, broadcast2.getReceivedBytes());
 			assertEquals(2000L, broadcast2.getBitrate());
 			assertEquals("agent", broadcast2.getUserAgent());
@@ -1846,12 +1893,17 @@ public class DBStoresUnitTest {
 			assertEquals(50, broadcast2.getDropPacketCountInIngestion());
 			assertEquals(60, broadcast2.getDropFrameCountInEncoding());
 			assertEquals(3.5, broadcast2.getPacketLostRatio(), 0.0001); // Note: overwritten value
+			assertEquals(123, broadcast2.getPacketsLost());
 			assertEquals(130, broadcast2.getJitterMs());
 			assertEquals(120, broadcast2.getRttMs());
 			assertEquals("remip", broadcast2.getRemoteIp());
 			assertFalse(broadcast2.isVirtual());
 			assertFalse(broadcast2.isAutoStartStopEnabled());
 			assertEquals(13, broadcast2.getSubtracksLimit());
+			assertEquals(2, broadcast2.getSubTrackStreamIds().size());
+			assertEquals("st1", broadcast2.getSubTrackStreamIds().get(0));
+			assertEquals("st2", broadcast2.getSubTrackStreamIds().get(1));
+
 
 
 			BroadcastUpdate update = new BroadcastUpdate();

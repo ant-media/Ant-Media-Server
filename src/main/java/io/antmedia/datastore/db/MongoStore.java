@@ -1517,7 +1517,7 @@ public class MongoStore extends DataStore {
 		if (broadcast.getPacketsLost() != null) {
 			updates.add(set("packetsLost", broadcast.getPacketsLost()));
 			if(cachedBroadcast != null) {
-				cachedBroadcast.setPacketLostRatio(broadcast.getPacketsLost());
+				cachedBroadcast.setPacketsLost(broadcast.getPacketsLost());
 			}
 		}
 		
