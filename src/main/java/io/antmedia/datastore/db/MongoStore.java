@@ -1151,273 +1151,162 @@ public class MongoStore extends DataStore {
 				
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 
+				if(cachedBroadcast != null) {
+					updateStreamInfo(cachedBroadcast, broadcast);
+				}
+				
 				List<UpdateOperator> updates = new ArrayList<>();
 
 				if (broadcast.getName() != null) {
 					updates.add(set("name",  broadcast.getName()));
-					
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setName(broadcast.getName());
-					}
 				}
 
 				if (broadcast.getDescription() != null) {
 					updates.add(set("description", broadcast.getDescription()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setDescription(broadcast.getDescription());
-					}
 				}
 
 				if (broadcast.getUsername() != null) {
 					updates.add(set("username", broadcast.getUsername()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setUsername(broadcast.getUsername());
-					}
 				}
 
 				if (broadcast.getPassword() != null) {
 					updates.add(set("password", broadcast.getPassword()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setPassword(broadcast.getPassword());
-					}
 				}
 
 				if (broadcast.getIpAddr() != null) {
 					updates.add(set("ipAddr", broadcast.getIpAddr()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setIpAddr(broadcast.getIpAddr());
-					}
 				}
 
 				if (broadcast.getStreamUrl() != null) {
 					updates.add(set("streamUrl", broadcast.getStreamUrl()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setStreamUrl(broadcast.getStreamUrl());
-					}
 				}
 
 				if (broadcast.getLatitude() != null) {
 					updates.add(set("latitude", broadcast.getLatitude()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setLatitude(broadcast.getLatitude());
-					}
 				}
 
 				if (broadcast.getLongitude() != null) {
 					updates.add(set("longitude", broadcast.getLongitude()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setLongitude(broadcast.getLongitude());
-					}
 				}
 
 				if (broadcast.getAltitude() != null) {
 					updates.add(set("altitude", broadcast.getAltitude()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setAltitude(broadcast.getAltitude());
-					}
 				}
 
 				if (broadcast.getMainTrackStreamId() != null) {
 					updates.add(set("mainTrackStreamId", broadcast.getMainTrackStreamId()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setMainTrackStreamId(broadcast.getMainTrackStreamId());
-					}
 				}
 
 				if (broadcast.getPlayListItemList() != null) {
 					updates.add(set("playListItemList", broadcast.getPlayListItemList()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setPlayListItemList(broadcast.getPlayListItemList());
-					}
 				}
 
 				if (broadcast.getPlayListStatus() != null) {
 					updates.add(set("playListStatus", broadcast.getPlayListStatus()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setPlayListStatus(broadcast.getPlayListStatus());
-					}
 				}
 
 				if (broadcast.getEndPointList() != null) {
 					updates.add(set("endPointList", broadcast.getEndPointList()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setEndPointList(broadcast.getEndPointList());
-					}
 				}
 
 				if (broadcast.getSubFolder() != null) {
 					updates.add(set("subFolder", broadcast.getSubFolder()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setSubFolder(broadcast.getSubFolder());
-					}
 				}
 
 				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
 					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setListenerHookURL(broadcast.getListenerHookURL());
-					}
 				}
 
 				if (broadcast.getSpeed() != null) {
 					updates.add(set("speed", broadcast.getSpeed()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setSpeed(broadcast.getSpeed());
-					}
 				}
 
 				if(broadcast.getEncoderSettingsList() != null){
 					updates.add(set("encoderSettingsList",broadcast.getEncoderSettingsList()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setEncoderSettingsList(broadcast.getEncoderSettingsList());
-					}
 				}
 
 				if (broadcast.getConferenceMode() != null) {
 					updates.add(set("conferenceMode", broadcast.getConferenceMode()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setConferenceMode(broadcast.getConferenceMode());
-					}
 				}
 
 				if (broadcast.getPlannedStartDate() != null) {
 					updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setPlannedStartDate(broadcast.getPlannedStartDate());
-					}
 				}
 
 				if (broadcast.getSeekTimeInMs() != null) {
 					updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setSeekTimeInMs(broadcast.getSeekTimeInMs());
-					}
 				}
 
 				if (broadcast.getReceivedBytes() != null) {
 					updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setReceivedBytes(broadcast.getReceivedBytes());
-					}
 				}
 
 				if (broadcast.getBitrate() != null) {
 					updates.add(set("bitrate", broadcast.getBitrate()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setBitrate(broadcast.getBitrate());
-					}
 				}
 
 				if (broadcast.getUserAgent() != null) {
 					updates.add(set("userAgent", broadcast.getUserAgent()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setUserAgent(broadcast.getUserAgent());
-					}
 				}
 
 				if (broadcast.getWebRTCViewerLimit() != null) {
 					updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setWebRTCViewerLimit(broadcast.getWebRTCViewerLimit());
-					}
 				}
 				
 				if (broadcast.getWebRTCViewerCount() != null) {
 					updates.add(set(WEBRTC_VIEWER_COUNT, broadcast.getWebRTCViewerCount()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setWebRTCViewerCount(broadcast.getWebRTCViewerCount());
-					}
 				}
 
 				if (broadcast.getHlsViewerLimit() != null) {
 					updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setHlsViewerLimit(broadcast.getHlsViewerLimit());
-					}
 				}
 
 				if (broadcast.getDashViewerLimit() != null) {
 					updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setDashViewerLimit(broadcast.getDashViewerLimit());
-					}
 				}
 
 				if (broadcast.getSubTrackStreamIds() != null) {
 					updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setSubTrackStreamIds(broadcast.getSubTrackStreamIds());
-					}
 				}
 
 				if (broadcast.getMetaData() != null) {
 					updates.add(set(META_DATA, broadcast.getMetaData()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setMetaData(broadcast.getMetaData());
-					}
 				}
 
 				if (broadcast.getUpdateTime() != null && broadcast.getUpdateTime() > 0) {
 					updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setUpdateTime(broadcast.getUpdateTime());
-					}
 				}
 
 				if (broadcast.getSubtracksLimit() != null) {
 					updates.add(set("subtracksLimit", broadcast.getSubtracksLimit()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setSubtracksLimit(broadcast.getSubtracksLimit());
-					}
 				}
 
 				if (broadcast.getCurrentPlayIndex() != null) {
 					updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setCurrentPlayIndex(broadcast.getCurrentPlayIndex());
-					}
 				}
 
 				if (broadcast.getPlaylistLoopEnabled() != null) {
 					updates.add(set("playlistLoopEnabled", broadcast.getPlaylistLoopEnabled()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setPlaylistLoopEnabled(broadcast.getPlaylistLoopEnabled());
-					}
 				}
 
 				if (broadcast.getAutoStartStopEnabled() != null) {
 					updates.add(set("autoStartStopEnabled", broadcast.getAutoStartStopEnabled()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setAutoStartStopEnabled(broadcast.getAutoStartStopEnabled());
-					}
 				}
 
 				if (broadcast.getPendingPacketSize() != null) {
 					updates.add(set("pendingPacketSize", broadcast.getPendingPacketSize()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setPendingPacketSize(broadcast.getPendingPacketSize());
-					}
 				}
 
 				if (broadcast.getPlannedEndDate() != null) {
 					updates.add(set("plannedEndDate", broadcast.getPlannedEndDate()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setPlannedEndDate(broadcast.getPlannedEndDate());
-					}
 				}
 
 				if (broadcast.getRole() != null) {
 					updates.add(set(ROLE, broadcast.getRole()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setRole(broadcast.getRole());
-					}
 				}
 
 				if (broadcast.getQuality() != null) {
 					updates.add(set("quality", broadcast.getQuality()));
-					if(cachedBroadcast != null) {
-						cachedBroadcast.setQuality(broadcast.getQuality());
-					}
 				}
 
 
@@ -1445,118 +1334,66 @@ public class MongoStore extends DataStore {
 
 		if ( broadcast.getDuration() != null) {
 			updates.add(set(DURATION, broadcast.getDuration()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setDuration(broadcast.getDuration());
-			}
 		}
 
 		if (broadcast.getStartTime() != null) {
 			updates.add(set(START_TIME, broadcast.getStartTime()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setStartTime(broadcast.getStartTime());
-			}
 		}
 
 		if (broadcast.getOriginAdress() != null) {
 			updates.add(set(ORIGIN_ADDRESS, broadcast.getOriginAdress()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setOriginAdress(broadcast.getOriginAdress());
-			}
 		}
 
 		if (broadcast.getStatus() != null) {
 			updates.add(set(STATUS, broadcast.getStatus()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setStatus(broadcast.getStatus());
-			}
 		}
 
 		if (broadcast.getAbsoluteStartTimeMs() != null) {
 			updates.add(set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setAbsoluteStartTimeMs(broadcast.getAbsoluteStartTimeMs());
-			}
 		}
 		
 		if (broadcast.getWidth() != null) {
 			updates.add(set("width", broadcast.getWidth()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setWidth(broadcast.getWidth());
-			}
 		}
 		
 		if (broadcast.getHeight() != null) {
 			updates.add(set("height", broadcast.getHeight()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setHeight(broadcast.getHeight());
-			}
-
 		}
 		
 		if (broadcast.getEncoderQueueSize() != null) {
 			updates.add(set("encoderQueueSize", broadcast.getEncoderQueueSize()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setEncoderQueueSize(broadcast.getEncoderQueueSize());
-			}
 		}
 		
 		if (broadcast.getDropPacketCountInIngestion() != null) {
 			updates.add(set("dropPacketCountInIngestion", broadcast.getDropPacketCountInIngestion()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setDropPacketCountInIngestion(broadcast.getDropPacketCountInIngestion());
-			}
 		}
 		
 		if (broadcast.getDropFrameCountInEncoding() != null) {
 			updates.add(set("dropFrameCountInEncoding", broadcast.getDropFrameCountInEncoding()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setDropFrameCountInEncoding(broadcast.getDropFrameCountInEncoding());
-			}
-
 		}
 		
 		if (broadcast.getPacketLostRatio() != null) {
 			updates.add(set("packetLostRatio", broadcast.getPacketLostRatio()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setPacketLostRatio(broadcast.getPacketLostRatio());
-			}
-
 		}
 		
 		if (broadcast.getJitterMs() != null) {
 			updates.add(set("jitterMs", broadcast.getJitterMs()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setJitterMs(broadcast.getJitterMs());
-			}
-
 		}
 		
 		if (broadcast.getRttMs() != null) {
 			updates.add(set("rttMs", broadcast.getRttMs()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setRttMs(broadcast.getRttMs());
-			}
 		}
 		
 		if (broadcast.getPacketsLost() != null) {
 			updates.add(set("packetsLost", broadcast.getPacketsLost()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setPacketsLost(broadcast.getPacketsLost());
-			}
 		}
 		
 		if (broadcast.getRemoteIp() != null) {
 			updates.add(set("remoteIp", broadcast.getRemoteIp()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setRemoteIp(broadcast.getRemoteIp());
-			}
 		}
 		
 		if (broadcast.getVirtual() != null) {
 			updates.add(set("virtual", broadcast.getVirtual()));
-			if(cachedBroadcast != null) {
-				cachedBroadcast.setVirtual(broadcast.getVirtual());
-			}
 		}
 	}
 
