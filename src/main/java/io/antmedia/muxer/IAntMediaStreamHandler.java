@@ -138,17 +138,42 @@ public interface IAntMediaStreamHandler {
 
 	/**
 	 * Notify the handler that stream is started to publish
+	 * @deprecated use {@link #startPublish(String, long, String, String)} instead of this method
+	 * 
 	 * @param streamName
 	 * @param absoluteStartTimeMs
 	 * @param publishType
 	 */
+	@Deprecated
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType);
+	
+	
+	/**
+	 * Notify the handler that stream is started to publish
+	 * 
+	 * @param streamId
+	 * @param absoluteStartTimeMs
+	 * @param publishType
+	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
+	 */
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId);
+
 	
 	/**
 	 * Notify the handler that is stream is stopped
+	 * @deprecated use {@link #stopPublish(String, String)} instead of this method
 	 * @param streamId
 	 */
+	@Deprecated
 	public void stopPublish(String streamId);
+	
+	/**
+	 * Notify the handler that is stream is stopped
+	 * 
+	 * @param streamId
+	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
+	 */
+	public void stopPublish(String streamId, String subscriberId);
 	
 	/**
 	 * Update broadcast status to BROADCASTING

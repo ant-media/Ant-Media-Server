@@ -1093,9 +1093,17 @@ public abstract class DataStore {
 		if (newBroadcast.getWebRTCViewerLimit() != null) {
 			broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		}
+		
+		if (newBroadcast.getWebRTCViewerCount() != null) {
+			broadcast.setWebRTCViewerCount(newBroadcast.getWebRTCViewerCount());
+		}
 
 		if (newBroadcast.getHlsViewerLimit() != null) {
 			broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		}
+		
+		if (newBroadcast.getHlsViewerCount() != null) {
+			broadcast.setHlsViewerCount(newBroadcast.getHlsViewerCount());
 		}
 
 		if (newBroadcast.getDashViewerLimit() != null) {
@@ -1177,6 +1185,7 @@ public abstract class DataStore {
 		if (newBroadcast.getVirtual() != null) {
 			broadcast.setVirtual(newBroadcast.getVirtual());
 		}
+		
 		
 	}
 
