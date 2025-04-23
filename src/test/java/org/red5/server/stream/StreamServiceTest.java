@@ -65,7 +65,7 @@ public class StreamServiceTest {
 		Set<IStreamPublishSecurity> publishSecuritySet = new HashSet<>();
 
 		IStreamPublishSecurity publishSecurity = Mockito.mock(IStreamPublishSecurity.class);
-		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), null, null, null)).thenReturn(false);
+		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(false);
 
 		publishSecuritySet.add(publishSecurity);
 
@@ -129,11 +129,11 @@ public class StreamServiceTest {
 		Set<IStreamPublishSecurity> publishSecuritySet = new HashSet<>();
 
 		IStreamPublishSecurity publishSecurity = Mockito.mock(IStreamPublishSecurity.class);
-		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), null, null, null)).thenReturn(true);
+		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(true);
 
 		publishSecuritySet.add(publishSecurity);
 
-		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), null, null, null)).thenReturn(true);
+		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(true);
 
 
 		Mockito.when(securityService.getStreamPublishSecurity()).thenReturn(publishSecuritySet);
