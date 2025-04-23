@@ -1,6 +1,5 @@
 package org.red5.server.stream;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -66,7 +65,7 @@ public class StreamServiceTest {
 		Set<IStreamPublishSecurity> publishSecuritySet = new HashSet<>();
 
 		IStreamPublishSecurity publishSecurity = Mockito.mock(IStreamPublishSecurity.class);
-		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any())).thenReturn(false);
+		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), null, null, null)).thenReturn(false);
 
 		publishSecuritySet.add(publishSecurity);
 
@@ -130,11 +129,11 @@ public class StreamServiceTest {
 		Set<IStreamPublishSecurity> publishSecuritySet = new HashSet<>();
 
 		IStreamPublishSecurity publishSecurity = Mockito.mock(IStreamPublishSecurity.class);
-		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any())).thenReturn(true);
+		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), null, null, null)).thenReturn(true);
 
 		publishSecuritySet.add(publishSecurity);
 
-		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any())).thenReturn(true);
+		Mockito.when(publishSecurity.isPublishAllowed(any(), any(), any(), any(), any(), null, null, null)).thenReturn(true);
 
 
 		Mockito.when(securityService.getStreamPublishSecurity()).thenReturn(publishSecuritySet);
@@ -146,7 +145,7 @@ public class StreamServiceTest {
 
 		Mockito.verify(streamService, Mockito.times(1)).parsePathSegments(name);
 
-		Mockito.verify(publishSecurity, Mockito.times(1)).isPublishAllowed(scope, streamId, IClientStream.MODE_LIVE, params, null );
+		Mockito.verify(publishSecurity, Mockito.times(1)).isPublishAllowed(scope, streamId, IClientStream.MODE_LIVE, params, null, null, null, null);
 
 		Mockito.verify(bs, Mockito.times(1)).startPublishing();
 

@@ -45,7 +45,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		appSettings.setWebhookAuthenticateURL("sampleurl");
 		filter.setAppSettings(appSettings);
-		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
+		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null, null, null, null);
 		assertFalse(publishAllowed);
 				
 	}
@@ -66,26 +66,26 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		Mockito.when(context.getBean(IDataStoreFactory.BEAN_NAME)).thenReturn(factory);
 		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
 		String metaData = "test_metaData";
-		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData));
+		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData, null, null, null));
 		filter.setAppSettings(appSettings);
 
-		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData));
+		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData, null, null, null));
 
 		IConnection connectionMock = Mockito.mock(IConnection.class);
 		Mockito.doNothing().when(connectionMock).close();
 		Mockito.when(filter.getConnectionLocal()).thenReturn(connectionMock);
 
 
-		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData));
+		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData, null, null, null));
 
 		appSettings.setWebhookAuthenticateURL("");
-		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
+		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null, null, null, null);
 		assertTrue(publishAllowed);
 
 		appSettings.setWebhookAuthenticateURL(null);
 		Map<String, String> queryParams = new HashMap<>();
 		queryParams.put("q1","p1");
-		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null, null, null, null);
 		assertTrue(publishAllowed);
 
 
@@ -99,7 +99,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		Mockito.when(httpResponse.getStatusLine()).thenReturn(statusLine);
 		Mockito.when(httpResponse.getStatusLine().getStatusCode()).thenReturn(404);
 
-		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null, null, null, null);
 		assertFalse(publishAllowed);
 
 	}

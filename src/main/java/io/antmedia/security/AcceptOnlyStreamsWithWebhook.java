@@ -35,7 +35,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsWithWebhook.class);
 
 	@Override
-	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams, String metaData) {
+	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode) {
 
 		AtomicBoolean result = new AtomicBoolean(false);
 		if (appSettings == null){
@@ -51,6 +51,14 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				instance.addProperty("name", streamId); //this is for backward compatibility for release v2.4.3				
 				instance.addProperty("streamId", streamId);
 				instance.addProperty("mode", mode);
+
+				if(token!=null)
+					instance.addProperty("token", token);
+				if(subscriberId!=null)
+					instance.addProperty("subscriberId", subscriberId);
+				if(subscriberCode!=null)
+					instance.addProperty("subscriberCode", subscriberCode);
+
 				if(queryParams != null){
 					instance.addProperty("queryParams", queryParams.toString());
 				}
