@@ -710,9 +710,12 @@ public class StreamService implements IStreamService {
             if (security != null) {
                 Set<IStreamPublishSecurity> handlers = security.getStreamPublishSecurity();
                 for (IStreamPublishSecurity handler : handlers) {
-                    String subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
-                    String subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
-                    String token = params.get("token");
+                    String subscriberId=null,subscriberCode=null,token=null;
+                    if(params != null) {
+                        subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
+                        subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
+                        token = params.get(WebSocketConstants.TOKEN);
+                    }
                     if (!handler.isPublishAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
                         sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to publish the stream.", name, streamId);
                         log.error("You are not allowed to publish the stream {}", name);
