@@ -141,7 +141,7 @@
          https://www.openssl.org/docs/apps/ciphers.html#TLS-v1.2-cipher-suites 
          https://www.sslshopper.com/article-how-to-disable-weak-ciphers-and-ssl-2-in-tomcat.html
       -->
-       <bean id="rtmpsMinaIoHandler" class="#{'${rtmps.enabled}'.equals('true') ? 'org.red5.server.net.rtmps.RTMPSMinaIoHandler' : 'org.red5.server.net.rtmps.MockRTMPSMinaIoHandler'}">
+       <bean id="rtmpsMinaIoHandler" class="#{ T(io.antmedia.settings.ServerSettings).isRtmpsEnabled() ? 'org.red5.server.net.rtmps.RTMPSMinaIoHandler' : 'org.red5.server.net.rtmps.MockRTMPSMinaIoHandler'}">
         <property name="handler" ref="rtmpHandler" />
         <property name="keystorePassword" value="${rtmps.keystorepass}" />
         <property name="keystoreFile" value="${rtmps.keystorefile}" />
@@ -166,7 +166,8 @@
         </property>
     </bean>
     
-    <bean id="rtmpsTransport" class="#{'${rtmps.enabled}'.equals('true') ? 'org.red5.server.net.rtmp.RTMPMinaTransport' : 'org.red5.server.net.rtmps.MockRTMPMinaTransport'}" init-method="start" destroy-method="stop">
+     
+    <bean id="rtmpsTransport" class="#{ T(io.antmedia.settings.ServerSettings).isRtmpsEnabled() ? 'org.red5.server.net.rtmp.RTMPMinaTransport' : 'org.red5.server.net.rtmps.MockRTMPMinaTransport'}" init-method="start" destroy-method="stop">
 
         <property name="ioHandler" ref="rtmpsMinaIoHandler" />
         <property name="addresses">
