@@ -145,7 +145,7 @@ public class StreamServiceTest {
 
 		Mockito.verify(streamService, Mockito.times(1)).parsePathSegments(name);
 
-		Mockito.verify(publishSecurity, Mockito.times(1)).isPublishAllowed(scope, streamId, IClientStream.MODE_LIVE, params, null, null, null, null);
+		Mockito.verify(publishSecurity, Mockito.times(1)).isPublishAllowed(scope, streamId, IClientStream.MODE_LIVE, params, null, token, subscriberId, subscriberCode);
 
 		Mockito.verify(bs, Mockito.times(1)).startPublishing();
 
