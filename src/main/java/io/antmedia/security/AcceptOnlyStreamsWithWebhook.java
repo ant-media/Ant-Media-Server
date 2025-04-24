@@ -34,6 +34,11 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsWithWebhook.class);
 
+	private void addPropertyIfNotNull(JsonObject obj, String key, String value) {
+		if (value != null) {
+			obj.addProperty(key, value);
+		}
+	}
 	@Override
 	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode) {
 
@@ -52,17 +57,12 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				instance.addProperty("streamId", streamId);
 				instance.addProperty("mode", mode);
 
-				if(token!=null) instance.addProperty("token", token);
-				if(subscriberId!=null) instance.addProperty("subscriberId", subscriberId);
-				if(subscriberCode!=null) instance.addProperty("subscriberCode", subscriberCode);
+				addPropertyIfNotNull(instance,"token",token);
+				addPropertyIfNotNull(instance,"subscriberId", subscriberId);
+				addPropertyIfNotNull(instance,"subscriberCode", subscriberCode);
+				addPropertyIfNotNull(instance,"queryParams", queryParams.toString());
+				addPropertyIfNotNull(instance,"metaData", metaData);
 
-				if(queryParams != null){
-					instance.addProperty("queryParams", queryParams.toString());
-				}
-
-				if(metaData != null){
-					instance.addProperty("metaData", metaData);
-				}
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
