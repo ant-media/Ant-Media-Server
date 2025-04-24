@@ -48,16 +48,13 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 			{
 				JsonObject instance = new JsonObject();
 				instance.addProperty("appName", scope.getName());
-				instance.addProperty("name", streamId); //this is for backward compatibility for release v2.4.3				
+				instance.addProperty("name", streamId); //this is for backward compatibility for release v2.4.3
 				instance.addProperty("streamId", streamId);
 				instance.addProperty("mode", mode);
 
-				if(token!=null)
-					instance.addProperty("token", token);
-				if(subscriberId!=null)
-					instance.addProperty("subscriberId", subscriberId);
-				if(subscriberCode!=null)
-					instance.addProperty("subscriberCode", subscriberCode);
+				if(token!=null) instance.addProperty("token", token);
+				if(subscriberId!=null) instance.addProperty("subscriberId", subscriberId);
+				if(subscriberCode!=null) instance.addProperty("subscriberCode", subscriberCode);
 
 				if(queryParams != null){
 					instance.addProperty("queryParams", queryParams.toString());

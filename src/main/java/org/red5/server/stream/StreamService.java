@@ -710,7 +710,10 @@ public class StreamService implements IStreamService {
             if (security != null) {
                 Set<IStreamPublishSecurity> handlers = security.getStreamPublishSecurity();
                 for (IStreamPublishSecurity handler : handlers) {
-                    String subscriberId=null,subscriberCode=null,token=null;
+                    String subscriberId=null;
+                    String subscriberCode=null;
+                    String token=null;
+
                     if(params != null) {
                         subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
                         subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
