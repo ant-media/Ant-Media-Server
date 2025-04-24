@@ -117,13 +117,14 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		try (MockedStatic<RequestBuilder> mockedStatic = Mockito.mockStatic(RequestBuilder.class)) {
 			mockedStatic.when(RequestBuilder::post).thenReturn(requestBuilderMock);
-			filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null, null, null, null);
+			filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null, "token", "id", "code");
 			ArgumentCaptor<StringEntity> captor = ArgumentCaptor.forClass(StringEntity.class);
 			Mockito.verify(requestBuilderMock).setEntity(captor.capture());
 
 			StringEntity capturedEntity = captor.getValue();
 			String actualContent = new String(capturedEntity.getContent().readAllBytes());
-			assert("{\"appName\":null,\"name\":\"streamId\",\"streamId\":\"streamId\",\"mode\":\"mode\",\"queryParams\":\"{q1=p1}\"}".equals(actualContent));
+			assert("{\"appName\":null,\"name\":\"streamId\",\"streamId\":\"streamId\",\"mode\":\"mode\",\"token\":\"token\",\"subscriberId\":\"id\",\"subscriberCode\":\"code\",\"queryParams\":\"{q1=p1}\"}".equals(actualContent));
+
 
 		}
 	}
