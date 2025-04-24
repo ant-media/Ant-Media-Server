@@ -9,8 +9,13 @@ import java.util.Map;
 
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
@@ -102,6 +107,25 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null, null, null, null);
 		assertFalse(publishAllowed);
 
+		HttpRequestBase httpRequestBase = Mockito.mock(HttpRequestBase.class);
+		Mockito.doNothing().when(httpRequestBase).setConfig(Mockito.any());
+		RequestBuilder requestBuilderMock = Mockito.mock(RequestBuilder.class);
+		Mockito.doReturn(requestBuilderMock).when(requestBuilderMock).setUri(Mockito.anyString());
+		Mockito.doReturn(requestBuilderMock).when(requestBuilderMock).setHeader(Mockito.any(),Mockito.anyString());
+		Mockito.doReturn(requestBuilderMock).when(requestBuilderMock).setEntity(Mockito.any());
+		Mockito.doReturn(httpRequestBase).when(requestBuilderMock).build();
+
+		try (MockedStatic<RequestBuilder> mockedStatic = Mockito.mockStatic(RequestBuilder.class)) {
+			mockedStatic.when(RequestBuilder::post).thenReturn(requestBuilderMock);
+			filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null, null, null, null);
+			ArgumentCaptor<StringEntity> captor = ArgumentCaptor.forClass(StringEntity.class);
+			Mockito.verify(requestBuilderMock).setEntity(captor.capture());
+
+			StringEntity capturedEntity = captor.getValue();
+			String actualContent = new String(capturedEntity.getContent().readAllBytes());
+			assert("{\"appName\":null,\"name\":\"streamId\",\"streamId\":\"streamId\",\"mode\":\"mode\",\"queryParams\":\"{q1=p1}\"}".equals(actualContent));
+
+		}
 	}
 
 }
