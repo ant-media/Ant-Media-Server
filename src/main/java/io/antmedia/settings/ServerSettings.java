@@ -98,6 +98,8 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	public static final String SETTINGS_JWKS_URL = "server.jwksURL";
 
 	private static final String SETTINGS_SERVER_STATUS_WEBHOOK_URL = "server.statusWebHookURL";
+	
+	private static final String RTMPS_ENABLED = "rtmps.enabled";
 
 	/**
 	 * The IP filter that is allowed to access the web panel of Ant Media Server
@@ -252,6 +254,13 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	private String appIngestsSrtStreamsWithoutStreamId="LiveApp";
 
 	private boolean sslEnabled = false;
+	
+	/**
+	 * RTMPS enabled or not.
+	 * Pay attention that we inject value for setter method {@link #setRtmpsEnabled}  
+	 */
+	private static boolean rtmpsEnabled = false;
+	
 	/**
 	 * The RTMP port that server opens to listen incoming RTMP connections
 	 */
@@ -671,6 +680,21 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	public void setAppIngestsSrtStreamsWithoutStreamId(String appIngestsSrtStreamsWithoutStreamId) {
 		this.appIngestsSrtStreamsWithoutStreamId = appIngestsSrtStreamsWithoutStreamId;
+	}
+
+	public static boolean isRtmpsEnabled() {
+		return ServerSettings.rtmpsEnabled;
+	}
+
+	/**
+	 * Set the RTMPS enabled or not
+	 * java:S2696 is suppressed because this method is used by Spring 
+	 * @param rtmpsEnabled
+	 */
+	@Value("${"+RTMPS_ENABLED + ":false}")
+	@SuppressWarnings("java:S2696")
+	public void setRtmpsEnabled(boolean rtmpsEnabled) {
+		ServerSettings.rtmpsEnabled = rtmpsEnabled;
 	}
 
 }

@@ -2063,12 +2063,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setIngestingStreamLimit(2);
 
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -2082,7 +2082,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 		Mockito.verify(appAdaptor, timeout(1000).times((int) activeBroadcastCount + 1)).stopStreaming(Mockito.any(), Mockito.anyBoolean());
 
@@ -2102,10 +2102,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		doReturn(stream).when(spyAdaptor).getBroadcastStream(Mockito.any(), Mockito.any());
 
-		spyAdaptor.startPublish(streamId, 0, null);
 
 
 		long absoluteTimeMS = System.currentTimeMillis();
+		
+		spyAdaptor.startPublish(streamId, absoluteTimeMS, null, null);
+
 		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -5139,7 +5141,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		DataStore ds1 = spy(new InMemoryDataStore("testdb"));
 		doReturn(ds1).when(muxAdaptor1).getDataStore();
 		doReturn(new Broadcast()).when(muxAdaptor1).getBroadcast();
-		muxAdaptor1.registerToMainTrackIfExists();
+		muxAdaptor1.registerToMainTrackIfExists(mainTrackId);
 		verify(ds1, times(1)).updateBroadcastFields(anyString(), any());
 
 		ArgumentCaptor<Broadcast> argument = ArgumentCaptor.forClass(Broadcast.class);
@@ -5156,7 +5158,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor2.setStreamId(sub2);
 		doReturn(new Broadcast()).when(muxAdaptor2).getBroadcast();
 		doReturn(ds1).when(muxAdaptor2).getDataStore();
-		muxAdaptor2.registerToMainTrackIfExists();
+		muxAdaptor2.registerToMainTrackIfExists(mainTrackId);
 
 		ArgumentCaptor<Broadcast> argument2 = ArgumentCaptor.forClass(Broadcast.class);
 		verify(ds1, times(1)).save(argument2.capture());
@@ -5172,7 +5174,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor3.setStreamId("stream3");
 		DataStore ds2 = mock(DataStore.class);
 		doReturn(ds2).when(muxAdaptor3).getDataStore();
-		muxAdaptor3.registerToMainTrackIfExists();
+		muxAdaptor3.registerToMainTrackIfExists(null);
 		verify(ds2, never()).updateBroadcastFields(anyString(), any());
 
 	}
