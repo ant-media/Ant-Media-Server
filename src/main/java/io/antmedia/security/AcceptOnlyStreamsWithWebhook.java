@@ -60,9 +60,10 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				addPropertyIfNotNull(instance,"token",token);
 				addPropertyIfNotNull(instance,"subscriberId", subscriberId);
 				addPropertyIfNotNull(instance,"subscriberCode", subscriberCode);
-				addPropertyIfNotNull(instance,"queryParams", queryParams.toString());
 				addPropertyIfNotNull(instance,"metaData", metaData);
 
+				if(queryParams!=null)
+					addPropertyIfNotNull(instance,"queryParams", queryParams.toString());
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
