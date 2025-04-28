@@ -536,7 +536,33 @@ public class ConsoleAppRestServiceTest{
 			return tmpApplications.applications.length == appCount;
 		});
 	}
+	@Test
+	public void testDeleteAppWithUnderscore()
+	{
+		String appName = RandomString.make(10)+ "_"+ RandomString.make(10);
+		log.info("app:{} will be created", appName);
 
+		Applications applications = getApplications();
+		assertTrue(applications.applications.length > 0);
+		int appCount = applications.applications.length;
+
+		createApplication(appName);
+
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+				.until(() ->  {
+					Applications tmpApplications = getApplications();
+					return tmpApplications.applications.length == appCount + 1;
+				});
+
+		Result result = deleteApplication(appName);
+		assertTrue(result.isSuccess());
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() ->  {
+					Applications tmpApplications = getApplications();
+					return tmpApplications.applications.length == appCount;
+				});
+	}
 	@Test
 	public void testCreateDeleteAppAggresive() {
 

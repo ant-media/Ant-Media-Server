@@ -1515,7 +1515,7 @@ public class CommonRestService {
 		appName = appName.replaceAll("[\n\r\t]", "_");
 		boolean result = false;
 		String message = "";
-		if (appName != null && appName.matches("^[a-zA-Z0-9]*$")) {
+		if (appName != null && appName.matches("^[a-zA-Z0-9_]*$")) {
 			logger.info("delete application http request:{}", appName);
 			AppSettings appSettings = getSettings(appName);
 			
