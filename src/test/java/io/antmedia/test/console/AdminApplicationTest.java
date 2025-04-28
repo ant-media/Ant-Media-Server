@@ -175,6 +175,24 @@ public class AdminApplicationTest {
 		assertTrue(commandCaptor.getValue().contains("-f warfile"));
 
 	}
+	@Test
+	public void testApplictionWarFileName() {
+		 	assertEquals("myapp", WarDeployer.getApplicationName("myapp-1.0.0.war"));
+	        assertEquals("customer-portal", WarDeployer.getApplicationName("customer-portal-2.5.war"));
+	        assertEquals("testapp", WarDeployer.getApplicationName("testapp-2024.04.26.war"));
+
+	        assertEquals("e-commerce", WarDeployer.getApplicationName("e-commerce.war"));
+	        assertEquals("simpleapp", WarDeployer.getApplicationName("simpleapp.war"));
+	        assertEquals("something-else-v1", WarDeployer.getApplicationName("something-else-v1.war"));
+
+	        assertEquals("fancy-app", WarDeployer.getApplicationName("fancy-app-1.0.0.war"));
+	        assertEquals("my-super-cool-app", WarDeployer.getApplicationName("my-super-cool-app.war"));
+
+	        assertEquals("app", WarDeployer.getApplicationName("app-1.war"));
+	        assertEquals("app", WarDeployer.getApplicationName("app-123.war"));
+	        assertEquals("weirdapp-", WarDeployer.getApplicationName("weirdapp-.war"));
+	   
+	}
 
 	@Test
 	public void testCreateDeleteApplication() 

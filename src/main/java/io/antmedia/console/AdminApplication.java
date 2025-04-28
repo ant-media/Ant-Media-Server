@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.Header;
@@ -216,8 +216,30 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	private long getStorage(String name) {
 		File appFolder = new File("webapps/"+name);
-		return FileUtils.sizeOfDirectory(appFolder);
+		//Pay Attenton: that we previously uses FileUtils.sizeOfDirectory(appFolder); which throws exception when the directory size is +20GB  and files are deleted
+		//then we migrated to use getDirectorySize method which uses stream and parallel processing
+		//@mekya
+		return  getDirectorySize(appFolder.toPath());
 	}
+	
+	public static long getDirectorySize(Path dir) {
+        try (Stream<Path> walk = Files.walk(dir)) {
+            return walk
+                .parallel() // Enable parallel processing
+                .filter(Files::isRegularFile)
+                .mapToLong(p -> {
+                    try {
+                        return Files.size(p);
+                    } catch (IOException e) {
+                        return 0; // Ignore files that can't be accessed
+                    }
+                })
+                .sum();
+        } catch (IOException e) {
+        	logger.error("Error while calculating directory size: {}", ExceptionUtils.getStackTrace(e));
+            return -1; // Handle or log the exception as needed
+        }
+    }
 
 	public int getVoDCount(IScope appScope) {
 		int size = 0;
@@ -526,7 +548,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
-
+		appName = WarDeployer.getApplicationName(appName);
 		String command = "/bin/bash create_app.sh"
 				+ " -n " + appName
 				+ " -w true"
