@@ -539,7 +539,7 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testDeleteAppWithUnderscore()
 	{
-		String appName = RandomString.make(10)+ "_"+ RandomString.make(10);
+		String appName = RandomString.make(10)+ "_-"+ RandomString.make(10);
 		log.info("app:{} will be created", appName);
 
 		Applications applications = getApplications();
