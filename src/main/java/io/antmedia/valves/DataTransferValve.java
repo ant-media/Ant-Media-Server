@@ -41,7 +41,7 @@ public class DataTransferValve extends ValveBase {
 
 		ConfigurableWebApplicationContext context = (ConfigurableWebApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 		
-		if (context != null) {
+		if (context != null && context.containsBean(AppSettings.BEAN_NAME)) {
 			AppSettings appSettings = (AppSettings)context.getBean(AppSettings.BEAN_NAME);
 			hlsSegmentFileSuffixFormat = appSettings.getHlsSegmentFileSuffixFormat();
 		}
