@@ -25,6 +25,8 @@ import org.red5.server.scope.WebScope;
 import org.red5.server.tomcat.TomcatConnector;
 import org.red5.server.tomcat.TomcatLoader;
 import org.red5.server.tomcat.WarDeployer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.console.AdminApplication;
@@ -45,6 +47,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class AdminApplicationTest {
+	
+	private Logger logger = LoggerFactory.getLogger(AdminApplicationTest.class);
 
 	static Vertx vertx;
 
@@ -192,6 +196,28 @@ public class AdminApplicationTest {
 	        assertEquals("app", WarDeployer.getApplicationName("app-123.war"));
 	        assertEquals("weirdapp-", WarDeployer.getApplicationName("weirdapp-.war"));
 	   
+	}
+	@Test
+	public void testGetDirectorySize() {
+		AdminApplication app = Mockito.spy(new AdminApplication());
+
+		File testDir = new File(".");
+		long directorySize = app.getDirectorySize(testDir.toPath());
+		logger.info("Directory size: {}", directorySize);
+		assertTrue(directorySize >= 10000000); // 10 MB
+		
+		
+		File testFile = new File("pom.xml");
+		directorySize = app.getDirectorySize(testFile.toPath());
+		logger.info("Size: {}", directorySize);
+		assertTrue(directorySize >= 1000); // 
+		
+		
+		testFile = new File("not exist");
+		directorySize = app.getDirectorySize(testFile.toPath());
+		logger.info("Directory size: {}", directorySize);
+		assertEquals(-1, directorySize); // 10 MB
+		
 	}
 
 	@Test

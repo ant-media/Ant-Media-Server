@@ -202,7 +202,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			info.liveStreamCount = getAppLiveStreamCount(getRootScope().getScope(name));
 			info.vodCount = getVoDCount(getRootScope().getScope(name));
 
-			info.storage = getStorage(name);
+			File appFolder = new File("webapps/"+name);
+			info.storage = getDirectorySize(appFolder.toPath());
 			appsInfo.add(info);
 		}
 
@@ -213,16 +214,12 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	{
 		return (AntMediaApplicationAdapter) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 	}
-
-	private long getStorage(String name) {
-		File appFolder = new File("webapps/"+name);
+	
+	public static long getDirectorySize(Path dir) {
 		//Pay Attenton: that we previously uses FileUtils.sizeOfDirectory(appFolder); which throws exception when the directory size is +20GB  and files are deleted
 		//then we migrated to use getDirectorySize method which uses stream and parallel processing
 		//@mekya
-		return  getDirectorySize(appFolder.toPath());
-	}
-	
-	public static long getDirectorySize(Path dir) {
+		
         try (Stream<Path> walk = Files.walk(dir)) {
             return walk
                 .parallel() // Enable parallel processing
