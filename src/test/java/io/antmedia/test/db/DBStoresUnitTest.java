@@ -142,9 +142,7 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
-
 		appSettings = new AppSettings();
-
 		dataStore.setAppSettings(appSettings);
 
 		testConnectionEventsBug(dataStore);
@@ -197,6 +195,8 @@ public class DBStoresUnitTest {
 		testStreamSourceList(dataStore);
 		testGetSubtracks(dataStore);
 		testGetSubtracksWithStatus(dataStore);
+		testGetSubtracksWithOrdering(dataStore);
+		testGetSubtracksWithSearch(dataStore);
 
 
 		dataStore.close(false);
@@ -291,6 +291,9 @@ public class DBStoresUnitTest {
 		testStreamSourceList(dataStore);
 		testGetSubtracks(dataStore);
 		testGetSubtracksWithStatus(dataStore);
+		testGetSubtracksWithOrdering(dataStore);
+		testGetSubtracksWithSearch(dataStore);
+
 
 		dataStore.close(false);
 
@@ -367,6 +370,9 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithStatus(dataStore);
 
 		testSubscriberCache(dataStore);
+		
+		testGetSubtracksWithOrdering(dataStore);
+		testGetSubtracksWithSearch(dataStore);
 
 		dataStore.close(true);
 
@@ -1778,6 +1784,9 @@ public class DBStoresUnitTest {
 			double speed = 1.0;
 			tmp.setSpeed(speed);
 			tmp.setSeekTimeInMs(136);
+			tmp.setHlsViewerCount(10);
+			tmp.setWebRTCViewerCount(12);
+			tmp.setDashViewerCount(13);
 
 
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
@@ -1795,6 +1804,10 @@ public class DBStoresUnitTest {
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
 			assertEquals(speed, broadcast2.getSpeed(), 0.1);
+			assertEquals(10, broadcast2.getHlsViewerCount());
+			assertEquals(12, broadcast2.getWebRTCViewerCount());
+			assertEquals(13, broadcast2.getDashViewerCount());
+			
 
 			BroadcastUpdate update = new BroadcastUpdate();
 			update.setDuration(100000L);
@@ -3763,6 +3776,89 @@ public class DBStoresUnitTest {
 		assertFalse(dataStore.hasSubtracks("nonExistentMainTrack"));
 
 
+
+	}
+	
+	public void testGetSubtracksWithOrdering(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		for (int i = 0; i < 100; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+			try {
+				broadcast.setStreamId("subtrack" + i);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			broadcast.setDate(i+10000);
+			broadcast.setMainTrackStreamId(mainTrackId);
+			dataStore.save(broadcast);
+		}
+
+		List<Broadcast> subtracks = dataStore.getSubtracks(mainTrackId, 3, 5, null, null, "date", "asc", null);
+		
+		assertEquals(5, subtracks.size());
+		
+		for (int i = 0; i < 5; i++) {
+			assertEquals("subtrack"+(i+3), subtracks.get(i).getStreamId());
+		}
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 3, 5, null, null, "date", "desc", null);
+		assertEquals(5, subtracks.size());
+		
+		for (int i = 0; i < 5; i++) {
+			assertEquals("subtrack"+(99-3-i), subtracks.get(i).getStreamId());
+		}
+	}
+	
+	public void testGetSubtracksWithSearch(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		for (int i = 0; i < 100; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+			try {
+				if(i%10 == 0 ) {
+					broadcast.setStreamId("goodsubtrack" + i);
+				}
+				else {
+					broadcast.setStreamId("subtrack" + i);
+				}
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			broadcast.setDate(i+10000);
+			broadcast.setMainTrackStreamId(mainTrackId);
+			dataStore.save(broadcast);
+		}
+
+		List<Broadcast> subtracks = dataStore.getSubtracks(mainTrackId, 3, 5, null, null, "date", "asc", "good");
+		
+		assertEquals(5, subtracks.size());
+		
+		//goodsubtrack30, goodsubtrack40, goodsubtrack50, goodsubtrack60, goodsubtrack70
+		for (int i = 0; i < 5; i++) {
+			assertEquals("goodsubtrack"+((i+3)*10), subtracks.get(i).getStreamId());
+		}
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 3, 5, null, null, "date", "desc", "good");
+		assertEquals(5, subtracks.size());
+		
+		//goodsubtrack60, goodsubtrack50, goodsubtrack40, goodsubtrack30, goodsubtrack20
+		for (int i = 0; i < 5; i++) {
+			assertEquals("goodsubtrack"+(90-(3+i)*10), subtracks.get(i).getStreamId());
+		}
+
+		
+		
 
 	}
 

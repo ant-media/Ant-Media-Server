@@ -81,7 +81,7 @@ public class SupportRestService  extends CommonRestService {
 		}
 		return new Result(success);
 	}	
-	
+
 
 	public boolean sendSupport(SupportRequest supportRequest) throws Exception {
 		boolean success = false;
@@ -95,9 +95,9 @@ public class SupportRestService  extends CommonRestService {
 			HttpPost httpPost = new HttpPost("https://antmedia.io/livedemo/upload/upload.php");
 
 			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(SEND_SUPPORT_CONNECT_TIMEOUT_SECONDS * 1000).setSocketTimeout(SEND_SUPPORT_SOCKET_TIMEOUT_SECONDS * 1000).build();
-			
+
 			httpPost.setConfig(requestConfig);
-			
+
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
 
@@ -138,10 +138,14 @@ public class SupportRestService  extends CommonRestService {
 					SupportResponse supportResponse = gson.fromJson(jsonResponse, SupportResponse.class);
 					success = supportResponse.isResult();
 				}	
-			} finally {
+			} 
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			finally {
 				response.close();
 			}
-		}catch (Exception e) {
+		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		finally {
@@ -177,7 +181,7 @@ public class SupportRestService  extends CommonRestService {
 
 
 		try ( FileOutputStream fos = new FileOutputStream(LOG_FILE);
-			  ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(fos))) 
+				ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(fos))) 
 		{
 			for(String filePath:files){
 				File input = new File(filePath);

@@ -1093,9 +1093,17 @@ public abstract class DataStore {
 		if (newBroadcast.getWebRTCViewerLimit() != null) {
 			broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		}
+		
+		if (newBroadcast.getWebRTCViewerCount() != null) {
+			broadcast.setWebRTCViewerCount(newBroadcast.getWebRTCViewerCount());
+		}
 
 		if (newBroadcast.getHlsViewerLimit() != null) {
 			broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		}
+		
+		if (newBroadcast.getHlsViewerCount() != null) {
+			broadcast.setHlsViewerCount(newBroadcast.getHlsViewerCount());
 		}
 
 		if (newBroadcast.getDashViewerCount() != null) {
@@ -1177,6 +1185,7 @@ public abstract class DataStore {
 		if (newBroadcast.getVirtual() != null) {
 			broadcast.setVirtual(newBroadcast.getVirtual());
 		}
+		
 		
 	}
 
@@ -1281,7 +1290,7 @@ public abstract class DataStore {
 		}
 
 	}
-	protected ArrayList<Broadcast> searchOnServer(ArrayList<Broadcast> broadcastList, String search){
+	protected List<Broadcast> searchOnServer(List<Broadcast> broadcastList, String search){
 		long startTime = System.nanoTime();
 		if(search != null && !search.isEmpty()) {
 			for (Iterator<Broadcast> i = broadcastList.iterator(); i.hasNext(); ) {
@@ -1661,9 +1670,12 @@ public abstract class DataStore {
 	 * @param size 	number of items to get
 	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
 	 * @param status the status of the stream broadcasting, finished etc. It can be null
+	 * @param sortBy can get "name" or "date" or "status" values
+	 * @param orderBy can get "desc" or "asc"
+	 * @param search is used for searching in streamIds and names of the stream
 	 * @return
 	 */
-	public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status);
+	public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status, String sortBy, String orderBy, String search);
 
 	/**
 	 * Get the subtracks of the main track

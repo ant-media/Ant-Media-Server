@@ -291,7 +291,7 @@ public class StreamFetcher {
 					return;
 				}
 
-				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
 
@@ -476,7 +476,7 @@ public class StreamFetcher {
 				long currentTime = System.currentTimeMillis();
 				muxAdaptor.setStartTime(currentTime);
 
-				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);
+				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, null);
 
 				if (bufferTime > 0) {
 
@@ -503,8 +503,6 @@ public class StreamFetcher {
 
 			streamPublished = true;
 			lastPacketReceivedTime = System.currentTimeMillis();
-
-
 
 
 			/***************************************************
@@ -654,7 +652,7 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					getInstance().closeBroadcast(streamId);
+					getInstance().closeBroadcast(streamId, null);
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -691,7 +689,7 @@ public class StreamFetcher {
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
-						getInstance().closeBroadcast(streamId);
+						getInstance().closeBroadcast(streamId, null);
 					}
 				}
 

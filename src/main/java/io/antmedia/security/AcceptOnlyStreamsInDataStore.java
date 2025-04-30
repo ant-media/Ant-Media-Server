@@ -16,8 +16,6 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.licence.ILicenceService;
-import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.MuxAdaptor;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 
@@ -36,14 +34,12 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsInDataStore.class);
 
 	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData) {
+	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode) {
 
 		boolean result = false;
 
 
 		Broadcast broadcast = getDatastore().get(name);
-
-	
 
 		if (broadcast == null) 
 		{

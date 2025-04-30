@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Created-By: Maven JAR Plugin 3.3.0
+Build-Jdk-Spec: 17
+Implementation-Title: Ant Media Server
+Implementation-Version: 3.0.0-SNAPSHOT
+Implementation-Vendor: Ant Media
+Build-Java: Java 17
+Build-Number: 20250318_1130
+Build-OS: Mac OS X 15.0.1
+Main-Class: io.antmedia.Version
+

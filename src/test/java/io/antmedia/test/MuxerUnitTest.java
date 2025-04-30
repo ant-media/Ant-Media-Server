@@ -609,7 +609,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(hlsMuxer.getFile().exists());
 		String[] filesInStreams = hlsMuxer.getFile().getParentFile().list();
 		boolean initFileFound = false;
-        String regex = streamId + "_" + System.currentTimeMillis()/1000000 + "\\d{6}_init.mp4";
+		String regex = streamId + "_" + System.currentTimeMillis()/1000000 + "\\d{6}_init.mp4";
 		System.out.println("regex:"+regex);
 
 		for (int i = 0; i < filesInStreams.length; i++) {
@@ -2061,12 +2061,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setIngestingStreamLimit(2);
 
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -2080,7 +2080,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null);
+		appAdaptor.startPublish(streamId, 0, null, null);
 
 		Mockito.verify(appAdaptor, timeout(1000).times((int) activeBroadcastCount + 1)).stopStreaming(Mockito.any(), Mockito.anyBoolean());
 
@@ -2100,10 +2100,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		doReturn(stream).when(spyAdaptor).getBroadcastStream(Mockito.any(), Mockito.any());
 
-		spyAdaptor.startPublish(streamId, 0, null);
 
 
 		long absoluteTimeMS = System.currentTimeMillis();
+		
+		spyAdaptor.startPublish(streamId, absoluteTimeMS, null, null);
+
 		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -4171,7 +4173,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		broadcast.setListenerHookURL("any_url");
 
 		muxAdaptor.setBroadcast(broadcast);
@@ -4179,12 +4181,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		boolean result = muxAdaptor.init(appScope, "hls_video_subtitle", false);
 		assert (result);
-		
+
 
 		muxAdaptor.getDataStore().save(broadcast);
 
 		muxAdaptor.start();
-		
+
 		Application.resetFields();
 
 		feedMuxAdaptor(flvReader, Arrays.asList(muxAdaptor), info);
@@ -4199,13 +4201,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(AntMediaApplicationAdapter.STREAM_TIMEOUT_MS+5000, TimeUnit.MILLISECONDS).until(() -> {
 			return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(muxAdaptor.getDataStore().get(broadcast.getStreamId()).getStatus());
 		});
-		
-		
+
+
 		assertFalse(muxAdaptor.isRecording());
 
 		flvReader.close();
 
-		
+
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 		assertTrue(Application.notifyHookAction.contains(AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM));
@@ -4865,6 +4867,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Muxer mp4Muxer = spy(new Mp4Muxer(null, null, "streams"));
 
 		assertEquals("test_400p", mp4Muxer.getExtendedName("test", 400, 1000000, ""));
+		
+		//this is the assertion for this fix https://github.com/ant-media/Ant-Media-Server/issues/7079
+		assertNotEquals(0, mp4Muxer.getCurrentVoDTimeStamp());
+		
 		assertEquals("test_400p1000kbps", mp4Muxer.getExtendedName("test", 400, 1000000, "%r%b"));
 		assertEquals("test_1000kbps", mp4Muxer.getExtendedName("test", 400, 1000000, "%b"));
 		assertEquals("test_400p", mp4Muxer.getExtendedName("test", 400, 1000000, "%r"));
@@ -5133,7 +5139,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		DataStore ds1 = spy(new InMemoryDataStore("testdb"));
 		doReturn(ds1).when(muxAdaptor1).getDataStore();
 		doReturn(new Broadcast()).when(muxAdaptor1).getBroadcast();
-		muxAdaptor1.registerToMainTrackIfExists();
+		muxAdaptor1.registerToMainTrackIfExists(mainTrackId);
 		verify(ds1, times(1)).updateBroadcastFields(anyString(), any());
 
 		ArgumentCaptor<Broadcast> argument = ArgumentCaptor.forClass(Broadcast.class);
@@ -5150,7 +5156,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor2.setStreamId(sub2);
 		doReturn(new Broadcast()).when(muxAdaptor2).getBroadcast();
 		doReturn(ds1).when(muxAdaptor2).getDataStore();
-		muxAdaptor2.registerToMainTrackIfExists();
+		muxAdaptor2.registerToMainTrackIfExists(mainTrackId);
 
 		ArgumentCaptor<Broadcast> argument2 = ArgumentCaptor.forClass(Broadcast.class);
 		verify(ds1, times(1)).save(argument2.capture());
@@ -5166,7 +5172,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor3.setStreamId("stream3");
 		DataStore ds2 = mock(DataStore.class);
 		doReturn(ds2).when(muxAdaptor3).getDataStore();
-		muxAdaptor3.registerToMainTrackIfExists();
+		muxAdaptor3.registerToMainTrackIfExists(null);
 		verify(ds2, never()).updateBroadcastFields(anyString(), any());
 
 	}
@@ -5392,19 +5398,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
 
-		try {
-			muxAdaptor.execute();
+		muxAdaptor.execute();
 
-			assertFalse(muxAdaptor.getIsPipeReaderJobRunning().get());
+		assertFalse(muxAdaptor.getIsPipeReaderJobRunning().get());
 
-			muxAdaptor.setIsRecording(true);
-			muxAdaptor.debugSetStopRequestExist(true);
-			muxAdaptor.execute();
-			fail("It should throw exception");
-		} catch (Exception e) {
+		muxAdaptor.setIsRecording(true);
+		muxAdaptor.debugSetStopRequestExist(true);
+		muxAdaptor.execute();
 
-		}
-
+		//execute methods throws an exception because it's not initalized probperly
+		
+		//recording should be in same state
+		
+		assertTrue(muxAdaptor.isRecording());
+		//check that pipe reader is set to false again
 		assertFalse(muxAdaptor.getIsPipeReaderJobRunning().get());
 
 

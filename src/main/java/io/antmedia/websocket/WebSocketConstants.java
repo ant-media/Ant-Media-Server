@@ -77,6 +77,19 @@ public class WebSocketConstants {
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
 
 	/**
+	 * Command to get ICE server configuration to frontend from server
+	 */
+	public static final String GET_ICE_SERVER_CONFIG = "getIceServerConfig";
+
+	public static final String ICE_SERVER_CONFIG_NOTIFICATION = "iceServerConfig";
+
+	public static final String STUN_SERVER_URI = "stunServerUri";
+
+	public static final String TURN_SERVER_USERNAME = "turnServerUsername";
+
+	public static final String TURN_SERVER_CREDENTIAL = "turnServerCredential";
+
+	/**
 	 * Please use {@link #MAIN_TRACK} instead
 	 */
 	@Deprecated(forRemoval = true, since = "2.11.3")
@@ -616,6 +629,22 @@ public class WebSocketConstants {
 	 * status field in websocket communication
 	 */
 	public static final String STATUS = "status";
+	
+	/**
+	 * sort field used for sorting subtracks
+	 */
+	public static final String SORT_BY = "sortBy";
+
+	/**
+	 * order (asc, desc) field used for ordering subtracks
+	 */
+	public static final String ORDER_BY = "orderBy";
+	
+	/**
+	 * search field used for searching subtracks
+	 */
+	public static final String SEARCH = "search";
+
 
 	/*
 	 * count field in websocket communication
@@ -659,4 +688,5 @@ public class WebSocketConstants {
 	 * Notification to notify a new subtrack removal to a main track
 	 */
 	public static final String SUBTRACK_REMOVED = "subtrackRemoved";
+
 }

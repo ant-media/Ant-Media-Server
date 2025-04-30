@@ -33,7 +33,9 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
 import javax.annotation.Nonnull;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -71,6 +73,7 @@ import org.red5.server.stream.consumer.FileConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
@@ -96,6 +99,7 @@ import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 
 
@@ -465,7 +469,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		previewOverwrite = appSettingsLocal.isPreviewOverwrite();
 
-		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettingsList() != null && !getBroadcast().getEncoderSettingsList().isEmpty()) 
+		// if the encoder settings is not null, it means that it is set and empty is also an value for it
+		// because there can be some encoder settings in application and user may want to not encode a specific stream.
+		// In this case user can set the encoderSettingsList empty
+		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettingsList() != null) 
 				? getBroadcast().getEncoderSettingsList() 
 						: appSettingsLocal.getEncoderSettings();
 
@@ -792,33 +799,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		prepareMuxerIO();
 
-		registerToMainTrackIfExists();
+		if(broadcastStream!=null && broadcastStream.getParameters()!=null)
+			registerToMainTrackIfExists(broadcastStream.getParameters().get("mainTrack"));
 		return true;
 	}
 
 
-	public void registerToMainTrackIfExists() {
-		if(broadcastStream.getParameters() != null) {
-			String mainTrack = broadcastStream.getParameters().get("mainTrack");
-			if(mainTrack != null) {
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setMainTrackStreamId(mainTrack);
+	public void registerToMainTrackIfExists(String mainTrack) {
+		if(mainTrack != null) {
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setMainTrackStreamId(mainTrack);
 
-				getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+			getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 
-				Broadcast mainBroadcast = getDataStore().get(mainTrack);
-				if(mainBroadcast == null) 
-				{
-					mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
-				}
-				else 
-				{
-					mainBroadcast.getSubTrackStreamIds().add(streamId);
-					BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
-					broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
+			Broadcast mainBroadcast = getDataStore().get(mainTrack);
+			if(mainBroadcast == null)
+			{
+				mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
+			}
+			else
+			{
+				mainBroadcast.getSubTrackStreamIds().add(streamId);
+				BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
+				broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
 
-					getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
-				}
+				getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
 			}
 		}
 	}
@@ -1462,6 +1467,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					clearAndStopStream();
 				}	
 			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 			finally {
 				//make sure pipeReader is set again no matter if there is an exception above. 
 				//Because isPipeReaderJobRunning is not set, it may fill the memory and causes Out Of Memory
@@ -1473,9 +1481,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void clearAndStopStream() {
 		broadcastStream.removeStreamListener(MuxAdaptor.this);
 		logger.warn("closing adaptor for {} ", streamId);
+		Map<String,String> parameters = broadcastStream.getParameters();
+		String subscriberId = null;
+		if (parameters != null) {
+			subscriberId = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+		}
 		closeResources();
 		logger.warn("closed adaptor for {}", streamId);
-		getStreamHandler().stopPublish(streamId);
+
+		getStreamHandler().stopPublish(streamId, subscriberId);
 	}
 
 
@@ -1611,7 +1625,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			//Calling startPublish to here is critical. It's called after encoders are ready and isRecording is true
 			//the above prepare method is overriden in EncoderAdaptor so that we resolve calling startPublish just here
-			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
+			Map<String,String> parameters = broadcastStream.getParameters();
+			String subscriberId = null;
+			if (parameters != null) {
+				subscriberId = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+			}
+			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId);
 
 		}
 		catch(Exception e) {
@@ -1995,6 +2014,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
 						bufferLogCounter = 0;
 					}
+				}
+				catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 				finally {
 					isBufferedWriterRunning.compareAndSet(true, false);
