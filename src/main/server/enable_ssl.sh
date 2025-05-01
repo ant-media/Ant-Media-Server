@@ -307,7 +307,7 @@ renew_certificate() {
     echo "renewing certificate"
 
     if [ -n "$domain" ]; then
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --force-renewal -d "$domain"
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos -d "$domain"
     else
         $SUDO certbot renew
     fi
