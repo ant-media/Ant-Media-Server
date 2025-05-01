@@ -316,6 +316,8 @@ public class DBStoresUnitTest {
 		appSettings = new AppSettings();
 
 		dataStore.setAppSettings(appSettings);
+		
+		testBroadcastCache(dataStore);
 
 		testConnectionEventsBug(dataStore);
 		testSubscriberAvgBitrate(dataStore);
@@ -4070,6 +4072,57 @@ public class DBStoresUnitTest {
 		assertNull(subscriberFromCache);
 
 	}
+	
+	public void testBroadcastCache(DataStore dataStore) {
+		MongoStore mongoDataStore = (MongoStore) dataStore;
+		
+		assertNotEquals(mongoDataStore.getBroadcastCache(), mongoDataStore.getSubscriberCache());
 
+
+		String streamId = "stream"+RandomStringUtils.randomNumeric(6);;
+
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(broadcast);
+		
+		Broadcast broadcastFromDB = dataStore.get(streamId);
+
+		String broadcastCacheKey = mongoDataStore.getBroadcastCacheKey(streamId);
+		Broadcast broadcastFromCache1 = (Broadcast) mongoDataStore.getBroadcastCache().get(broadcastCacheKey, Broadcast.class);
+		assertNotNull(broadcastFromCache1);
+		assertEquals(broadcastFromDB.getStreamId(), broadcastFromCache1.getStreamId());
+
+		Broadcast broadcastFromDB2 = dataStore.get(streamId);
+		assertEquals(broadcastFromDB2, broadcastFromCache1);
+		
+		try {
+			Thread.sleep((MongoStore.BROADCAST_CACHE_EXPIRE_SECONDS + 1) * 1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast broadcastFromCache2 = (Broadcast) mongoDataStore.getBroadcastCache().get(broadcastCacheKey, Broadcast.class);
+		assertNull(broadcastFromCache2);
+		
+		Broadcast broadcastFromDB3 = dataStore.get(streamId);
+		assertNotEquals(broadcastFromDB3, broadcastFromCache1);
+		
+		Broadcast broadcastFromCache3 = (Broadcast) mongoDataStore.getBroadcastCache().get(broadcastCacheKey, Broadcast.class);
+		assertNotNull(broadcastFromCache3);
+		
+		dataStore.delete(streamId);
+		
+		Broadcast broadcastFromCache4 = (Broadcast) mongoDataStore.getBroadcastCache().get(broadcastCacheKey, Broadcast.class);
+		assertNull(broadcastFromCache4);
+		
+		
+		
+	}
+	
 
 }
