@@ -18,15 +18,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -3886,6 +3883,35 @@ public class BroadcastRestServiceV2UnitTest {
 			assertNull(store.get(mainTrack.getStreamId()));
 
 		}
+
+	}
+	@Test
+	public void testNotifyLiveStreamEndedDelete() throws Exception {
+		// if broadcast is streaming and the broadcast object is deleted from the server we should notify liveStreamEnded Webhook
+
+		String streamId = "test";
+		restServiceReal = spy(restServiceReal);
+		Broadcast broadcast = spy(new Broadcast());
+		broadcast.setStreamId(streamId);
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED).when(broadcast).getStatus();
+		DataStore dataStore = mock(DataStore.class);
+		doReturn(broadcast).when(dataStore).get(streamId);
+		restServiceReal.setDataStore(dataStore);
+		restServiceReal.setApplication(mock(AntMediaApplicationAdapter.class));
+
+		restServiceReal.createBroadcast(broadcast,false);
+		assertNotNull(restServiceReal.getBroadcast(streamId));
+		when(restServiceReal.getApplication().stopStreaming(any(),anyBoolean())).thenReturn(new Result(true));
+
+		restServiceReal.deleteBroadcast(streamId,false);
+		verify(restServiceReal.getApplication(),Mockito.times(0)).notifyLiveStreamEnded(broadcast,null);
+
+
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING).when(broadcast).getStatus();
+		restServiceReal.createBroadcast(broadcast,false);
+
+		restServiceReal.deleteBroadcast(streamId,false);
+		verify(restServiceReal.getApplication()).notifyLiveStreamEnded(broadcast,null);
 
 	}
 

@@ -675,6 +675,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		closeBroadcast(streamId, null);
 	}
 
+  public void notifyLiveStreamEnded(Broadcast broadcast,String subscriberId){
+				final String listenerHookURL = getListenerHookURL(broadcast);
+				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
+					final String name = broadcast.getName();
+					final String category = broadcast.getCategory();
+					final String metaData = broadcast.getMetaData();
+					final String mainTrackId = broadcast.getMainTrackStreamId();
+          String streamId = broadcast.getStreamId();
+					logger.info("call live stream ended hook for stream:{}",streamId );
+					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
+							null, null, metaData, subscriberId);
+				}
+  }
+
+
 	/**
 	 * This method is used to close the broadcast stream
 	 * 
@@ -709,16 +724,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					resetDASHStats(streamId);
 				}
 
-				final String listenerHookURL = getListenerHookURL(broadcast);
-				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
-					final String name = broadcast.getName();
-					final String category = broadcast.getCategory();
-					final String metaData = broadcast.getMetaData();
-					final String mainTrackId = broadcast.getMainTrackStreamId();
-					logger.info("call live stream ended hook for stream:{}",streamId );
-					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
-							null, null, metaData, subscriberId);
-				}
+        		notifyLiveStreamEnded(broadcast,subscriberId);
 
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
 				publishEndedEvent.setStreamId(streamId);
