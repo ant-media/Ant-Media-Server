@@ -353,6 +353,9 @@ public abstract class RestServiceBase {
 
 			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks);
 
+		  if(stopResult.isSuccess() && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+			getApplication().notifyLiveStreamEnded(broadcast,null);
+
 			//if it's something about scheduled playlist
 			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
 
