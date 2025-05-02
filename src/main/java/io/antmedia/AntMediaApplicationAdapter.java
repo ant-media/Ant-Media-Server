@@ -240,6 +240,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private Set<IAppSettingsUpdateListener> settingsUpdateListenerSet = new ConcurrentHashSet<IAppSettingsUpdateListener>();
 
+	private ConcurrentHashMap<String, Long>  mapAutoStopMap = new ConcurrentHashMap();
+
+	private long streamCloseTask;
+
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -352,7 +356,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
-
+		
+		streamCloseTask = vertx.setPeriodic(1000, id -> checkStreamsToStop());
+		
 
 		AMSShutdownManager.getInstance().subscribe(this);
 
@@ -375,6 +381,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		logger.info("{} started", app.getName());
 
 		return true;
+	}
+
+	private void checkStreamsToStop() {
+		long now = System.currentTimeMillis();
+		for (Map.Entry<String, Long> entry : mapAutoStopMap.entrySet()) {
+			if(now > entry.getValue()) {
+				Broadcast mainTrack = getDataStore().get(entry.getKey());
+				Result result = stopStreaming(mainTrack, true);
+				if(result.isSuccess()) {
+					mapAutoStopMap.remove(entry.getKey());
+				}
+			}
+		}
 	}
 
 	public void schedulePlayList(long now, Broadcast broadcast) 
@@ -2650,6 +2669,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void setStatsCollector(IStatsCollector statsCollector) {
 		this.statsCollector = statsCollector;
+	}
+
+	public void putBroadcastToAutoStopMap(String streamId, Long plannedEndDate) {
+		mapAutoStopMap.put(streamId, plannedEndDate);
+		
 	}
 
 }

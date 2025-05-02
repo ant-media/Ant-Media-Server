@@ -364,6 +364,10 @@ public class BroadcastRestService extends RestServiceBase{
 			{
 				result = super.updateBroadcast(id, broadcast);
 			}
+			
+			if(broadcast.getPlannedEndDate() > System.currentTimeMillis()) {
+				getApplication().putBroadcastToAutoStopMap(broadcast.getStreamId(), broadcast.getPlannedEndDate());
+			}
 
 		}
 		return result;

@@ -2874,4 +2874,60 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		
 	}
+	
+	@Test
+	public void testAutoStopMaintrack() {
+		long now = System.currentTimeMillis();
+		long endTime = now + 2000;
+		String streamId = "stream1";
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
+
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+
+		AppSettings settings = new AppSettings();
+		spyAdapter.setAppSettings(settings);
+		
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+
+		
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+			broadcast.setPlannedEndDate(endTime);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		dataStore.save(broadcast);
+		
+		Result result = new Result(true);
+		doReturn(result).when(spyAdapter).stopStreaming(any(), anyBoolean());
+		
+		spyAdapter.appStart(scope);
+		
+		spyAdapter.setDataStore(dataStore);
+		
+		spyAdapter.putBroadcastToAutoStopMap(streamId , endTime);
+		
+		ArgumentCaptor<Broadcast> broadcastCaptor = ArgumentCaptor.forClass(Broadcast.class);
+
+		verify(spyAdapter, timeout(4000)).stopStreaming(broadcastCaptor.capture(), eq(true));
+		
+		assertEquals(streamId, broadcastCaptor.getValue().getStreamId());	
+	}
 }
