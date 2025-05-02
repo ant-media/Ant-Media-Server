@@ -1106,6 +1106,10 @@ public abstract class DataStore {
 			broadcast.setHlsViewerCount(newBroadcast.getHlsViewerCount());
 		}
 
+		if (newBroadcast.getDashViewerLimit() != null) {
+			broadcast.setDashViewerLimit(newBroadcast.getDashViewerLimit());
+		}
+		
 		if (newBroadcast.getDashViewerCount() != null) {
 			broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
 		}
