@@ -33,7 +33,7 @@ import org.red5.server.api.stream.IStreamPublishSecurity;
 public class DenyAllStreamAccess implements IStreamPublishSecurity, IStreamPlaybackSecurity {
 
     /** {@inheritDoc} */
-    public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData) {
+    public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode) {
         return false;
     }
 

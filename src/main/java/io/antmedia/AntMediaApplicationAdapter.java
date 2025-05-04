@@ -664,8 +664,24 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return listenerHookURL;
 
 	}
-
+	/**
+	 * This method is used to close the broadcast stream
+	 * @deprecated use {@link #closeBroadcast(String, String)}
+	 *  
+	 * @param streamId
+	 */
+	@Deprecated
 	public void closeBroadcast(String streamId) {
+		closeBroadcast(streamId, null);
+	}
+
+	/**
+	 * This method is used to close the broadcast stream
+	 * 
+	 * @param streamId
+	 * @param subscriberId
+	 */
+	public void closeBroadcast(String streamId, String subscriberId) {
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
@@ -682,6 +698,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					broadcastUpdate.setHlsViewerCount(0);
+					broadcastUpdate.setDashViewerCount(0);
+					broadcastUpdate.setWebRTCViewerCount(0);
 					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
@@ -698,13 +717,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					final String mainTrackId = broadcast.getMainTrackStreamId();
 					logger.info("call live stream ended hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
-							null, null, metaData, null);
+							null, null, metaData, subscriberId);
 				}
 
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
 				publishEndedEvent.setStreamId(streamId);
 				publishEndedEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
 				publishEndedEvent.setApp(scope.getName());
+				publishEndedEvent.setSubscriberId(subscriberId);
 
 				LoggerUtils.logAnalyticsFromServer(publishEndedEvent);
 
@@ -860,9 +880,22 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void streamSubscriberClose(ISubscriberStream stream) {
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
 	}
+	
+	/**
+	 * This method is used to start the publish process
+	 * @deprecated use {@link #startPublish(String, long, String, String)}
+	 * @param streamId
+	 * @param absoluteStartTimeMs
+	 * @param publishType
+	 */
+	@Override
+	@Deprecated
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
+		startPublish(streamId, absoluteStartTimeMs, publishType, null);
+	}
 
 	@Override
-	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId) {
 		vertx.executeBlocking( () -> {
 			try {
 
@@ -878,7 +911,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 					logger.info("Call live stream started hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-							null, null, metaData, null);
+							null, null, metaData, subscriberId);
 				}
 
 				int ingestingStreamLimit = appSettings.getIngestingStreamLimit();
@@ -895,35 +928,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					listener.streamStarted(broadcast);
 				}
 
-				long videoHeight = 0;
-				long videoWidth = 0;
-				String videoCodecName=null;
-				String audioCodecName=null;
-				MuxAdaptor adaptor = getMuxAdaptor(streamId);
-				if(adaptor!=null) {
-					if(adaptor.isEnableVideo()) {
-						AVCodecParameters videoCodecPar = adaptor.getVideoCodecParameters();
-						videoWidth = videoCodecPar.width();
-						videoHeight = videoCodecPar.height();
-						videoCodecName = avcodec_get_name(videoCodecPar.codec_id()).getString();
-					}
-					if(adaptor.isEnableAudio()) {
-						audioCodecName = avcodec_get_name(adaptor.getAudioCodecParameters().codec_id()).getString();
-					}
-				}
 
-				PublishStartedEvent event = new PublishStartedEvent();
-				event.setStreamId(streamId);
-				event.setProtocol(publishType);
-				event.setHeight((int) videoHeight);
-				event.setWidth((int) videoWidth);
-				event.setVideoCodec(videoCodecName);
-				event.setAudioCodec(audioCodecName);
-				event.setApp(scope.getName());
-
-				LoggerUtils.logAnalyticsFromServer(event);
-				
+				logPublishStartedEvent(streamId, publishType, subscriberId);
 				notifyPublishStarted(streamId);
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -931,39 +939,38 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		}, false);
 
+		logger.info("start publish leaved for stream:{}", streamId);
+	}
 
-		if (absoluteStartTimeMs == 0)
-		{
-			vertx.setTimer(2000, h ->
-			{
-				IBroadcastStream broadcastStream = getBroadcastStream(getScope(), streamId);
-				if (broadcastStream instanceof ClientBroadcastStream)
-				{
-					long absoluteStarTime = ((ClientBroadcastStream)broadcastStream).getAbsoluteStartTimeMs();
-					if (absoluteStarTime != 0)
-					{
-						Broadcast broadcast = getDataStore().get(streamId);
-						if (broadcast != null)
-						{
-							broadcast.setAbsoluteStartTimeMs(absoluteStarTime);
-
-							getDataStore().save(broadcast);
-							logger.info("Updating broadcast absolute time {} ms for stream:{}", absoluteStarTime, streamId);
-						}
-						else {
-							logger.info("Broadcast is not available in the database to update the absolute start time for stream:{}", streamId);
-						}
-
-					}
-					else {
-						logger.info("Broadcast absolute time is not available for stream:{}", streamId);
-					}
-
-				}
-			});
+	private void logPublishStartedEvent(String streamId, String publishType, String subscriberId) {
+		long videoHeight = 0;
+		long videoWidth = 0;
+		String videoCodecName=null;
+		String audioCodecName=null;
+		MuxAdaptor adaptor = getMuxAdaptor(streamId);
+		if(adaptor!=null) {
+			if(adaptor.isEnableVideo()) {
+				AVCodecParameters videoCodecPar = adaptor.getVideoCodecParameters();
+				videoWidth = videoCodecPar.width();
+				videoHeight = videoCodecPar.height();
+				videoCodecName = avcodec_get_name(videoCodecPar.codec_id()).getString();
+			}
+			if(adaptor.isEnableAudio()) {
+				audioCodecName = avcodec_get_name(adaptor.getAudioCodecParameters().codec_id()).getString();
+			}
 		}
 
-		logger.info("start publish leaved for stream:{}", streamId);
+		PublishStartedEvent event = new PublishStartedEvent();
+		event.setStreamId(streamId);
+		event.setProtocol(publishType);
+		event.setHeight((int) videoHeight);
+		event.setWidth((int) videoWidth);
+		event.setVideoCodec(videoCodecName);
+		event.setAudioCodec(audioCodecName);
+		event.setSubscriberId(subscriberId);
+		event.setApp(scope.getName());
+
+		LoggerUtils.logAnalyticsFromServer(event);
 	}
 
 
@@ -1004,6 +1011,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcastUpdate.setStatus(status);
 				broadcastUpdate.setPublishType(publishType);
 			}
+			broadcastUpdate.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 			//updateBroadcastFields just updates broadcast with the updated fields. No need to give real object
 			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 
@@ -2429,9 +2437,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.serverSettings = serverSettings;
 	}
 
-	/*
+	/**
 	 * This method is overridden in enterprise edition since RTMP to WebRTC streaming is an enterprise feature.
+	 * @deprecated use the stats on the broadcast object or publish stats
 	 */
+	@Deprecated(forRemoval = true, since = "2.13+")
 	public RTMPToWebRTCStats getRTMPToWebRTCStats(String streamId) {
 		return new RTMPToWebRTCStats(streamId);
 	}
@@ -2592,10 +2602,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return false;
 	}
 
+	@Override
 	public void stopPublish(String streamId) {
+		stopPublish(streamId, null);
+	}
+	
+	@Override
+	public void stopPublish(String streamId, String subscriberId) {
 
 		vertx.executeBlocking(() -> {
-			closeBroadcast(streamId);
+			closeBroadcast(streamId, subscriberId);
 			return null;
 		}, false);
 	}

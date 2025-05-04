@@ -34,8 +34,13 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsWithWebhook.class);
 
+	private void addPropertyIfNotNull(JsonObject obj, String key, String value) {
+		if (value != null) {
+			obj.addProperty(key, value);
+		}
+	}
 	@Override
-	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams, String metaData) {
+	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode) {
 
 		AtomicBoolean result = new AtomicBoolean(false);
 		if (appSettings == null){
@@ -48,16 +53,17 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 			{
 				JsonObject instance = new JsonObject();
 				instance.addProperty("appName", scope.getName());
-				instance.addProperty("name", streamId); //this is for backward compatibility for release v2.4.3				
+				instance.addProperty("name", streamId); //this is for backward compatibility for release v2.4.3
 				instance.addProperty("streamId", streamId);
 				instance.addProperty("mode", mode);
-				if(queryParams != null){
-					instance.addProperty("queryParams", queryParams.toString());
-				}
 
-				if(metaData != null){
-					instance.addProperty("metaData", metaData);
-				}
+				addPropertyIfNotNull(instance,"token",token);
+				addPropertyIfNotNull(instance,"subscriberId", subscriberId);
+				addPropertyIfNotNull(instance,"subscriberCode", subscriberCode);
+				addPropertyIfNotNull(instance,"metaData", metaData);
+
+				if(queryParams!=null)
+					addPropertyIfNotNull(instance,"queryParams", queryParams.toString());
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
