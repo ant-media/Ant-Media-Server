@@ -36,14 +36,21 @@ public class DataTransferValve extends ValveBase {
 
 		getNext().invoke(request, response);
 		
-		String streamId = TokenFilterManager.getStreamId(request.getRequestURI());
+
+		String hlsSegmentFileSuffixFormat = "";
+
+		ConfigurableWebApplicationContext context = (ConfigurableWebApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+		
+		if (context != null && context.containsBean(AppSettings.BEAN_NAME)) {
+			AppSettings appSettings = (AppSettings)context.getBean(AppSettings.BEAN_NAME);
+			hlsSegmentFileSuffixFormat = appSettings.getHlsSegmentFileSuffixFormat();
+		}
+		
+		String streamId = TokenFilterManager.getStreamId(request.getRequestURI(), hlsSegmentFileSuffixFormat);
 		String method = request.getMethod();
 
 		if (StringUtils.isNotBlank(streamId) && (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))) 
 		{
-			
-			ConfigurableWebApplicationContext context = (ConfigurableWebApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-
 			if (context == null || !context.isRunning()) {
 				logger.debug("Context is not ready yet for request: {}", request.getRequestURI());
 				return;
