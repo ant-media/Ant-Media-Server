@@ -19,6 +19,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 
@@ -45,8 +46,10 @@ public class ClusterNotificationService extends RestServiceBase {
 	@POST
 	@Path("/publish-started-notification/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result publishStarted(@Parameter(description = "id of the broadcast", required = true) @PathParam("id") String id) {
-		getApplication().streamStartedOnAnotherNode(id);
+	public Result publishStarted(@Parameter(description = "id of the broadcast", required = true) @PathParam("id") String id,
+			@Parameter(description = "role of the stream", required = false) @QueryParam("role") String role,
+			@Parameter(description = "Main track of the stream", required = false) @QueryParam("mainTrackId") String mainTrackId) {
+		getApplication().streamStartedOnAnotherNode(id, role, mainTrackId);
 		
 		Result result = new Result(true);
 		return result;

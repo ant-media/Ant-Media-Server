@@ -902,12 +902,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
 
 				final String listenerHookURL = getListenerHookURL(broadcast);
+				final String mainTrackId = broadcast.getMainTrackStreamId();
+				String role = broadcast.getRole();
 				if (listenerHookURL != null && !listenerHookURL.isEmpty())
 				{
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
-					final String mainTrackId = broadcast.getMainTrackStreamId();
+					
 
 					logger.info("Call live stream started hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_START_LIVE_STREAM, name, category,
@@ -930,7 +932,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 				logPublishStartedEvent(streamId, publishType, subscriberId);
-				notifyPublishStarted(streamId);
+				notifyPublishStarted(streamId, role, mainTrackId);
 
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -975,7 +977,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 
-	protected void notifyPublishStarted(String streamId) {
+	protected void notifyPublishStarted(String streamId, String role, String mainTrackId) {
 		// no need to implement here
 		
 	}
@@ -1390,18 +1392,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	public void trySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts, CompletableFuture<Boolean> future) {
+	public void trySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts, CompletableFuture<Boolean> future) 
+	{
 		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
 
 			vertx.executeBlocking(() -> {
 
 				boolean result = sendClusterPost(url, clusterCommunicationToken);
 
-				if (!result && retryAttempts >= 1) {
+				if (!result && retryAttempts >= 1) 
+				{
 					trySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1, future);
 				}
-				else {
-
+				else 
+				{
 					future.complete(result);
 					if (result) {
 						logger.info("Cluster POST is successful another node for url:{}", url);
@@ -2660,7 +2664,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.statsCollector = statsCollector;
 	}
 
-	public void streamStartedOnAnotherNode(String id) {
+	public void streamStartedOnAnotherNode(String streamId, String role, String mainTrackId) {
 		//no need to implement here
 	}
 
