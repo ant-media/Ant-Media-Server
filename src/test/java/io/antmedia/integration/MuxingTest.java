@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.antmedia.AppSettings;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import com.amazonaws.util.Base32;
 import io.antmedia.AntMediaApplicationAdapter;
@@ -923,11 +924,12 @@ public class MuxingTest {
 		assertTrue(result.isSuccess());
 
 		String appName = "live";
-		String restUrl = "http://127.0.0.1:5080/" + appName +"/rest";
+		String restUrl = "http://" + ServerSettings.getLocalHostAddress() +":5080/" + appName +"/rest";
 		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings(appName);
 
 		appSettings.setEnableTimeTokenForPublish(true);
 		appSettings.setTimeTokenSecretForPublish("random_thing");
+		appSettings.setIpFilterEnabled(false);
 		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
 
 		String streamId = "stream_" + (int) (Math.random()*10000);
@@ -941,7 +943,7 @@ public class MuxingTest {
 		byte[] secretBytes = Base32.decode(secret);
 		String code = TOTPGenerator.generateTOTP(secretBytes, appSettings.getTimeTokenPeriod(), 6, ITokenService.HMAC_SHA1);
 
-		String rtmpURL = "rtmp://127.0.0.1/" + appName + "/" + streamId + "/token/" + subscriberId +"/" + code;
+		String rtmpURL = "rtmp://localhost/" + appName + "/" + streamId + "/token/" + subscriberId +"/" + code;
 		Process process = execute(ffmpegPath + " -re -i src/test/resources/test.flv "
 				+ "-c copy -f flv " + rtmpURL);
 
@@ -952,6 +954,7 @@ public class MuxingTest {
 		});
 
 		appSettings.setEnableTimeTokenForPublish(false);
+		appSettings.setIpFilterEnabled(true);
 		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
 
 		process.destroy();

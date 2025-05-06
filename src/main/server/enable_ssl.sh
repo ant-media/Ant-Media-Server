@@ -302,14 +302,19 @@ get_new_certificate(){
  fi
 }
 
-renew_certificate(){
+renew_certificate() {
 
-   echo "renewing certificate"
+    echo "renewing certificate"
 
-   $SUDO certbot renew
+    if [ -n "$domain" ]; then
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos -d "$domain"
+    else
+        $SUDO certbot renew
+    fi
 
-   output
+    output
 }
+
 
 # We don't need keystore and truststore for Tomcat. We can use full chain and private key file directly.
 # However we need to have keystore and truststore for rtmps.
@@ -490,6 +495,9 @@ fi
 
 
 $SUDO sed -i "/server.name=/c\server.name=$domain"  "$INSTALL_DIRECTORY/conf/red5.properties"
+
+#change rtmps.enabled if it exits. If it does not exist, add it
+$SUDO sed -i "/rtmps.enabled=/c\rtmps.enabled=true" "$INSTALL_DIRECTORY/conf/red5.properties" || echo "rtmps.enabled=true" | $SUDO tee -a "$INSTALL_DIRECTORY/conf/red5.properties"
 
 #restore iptables redirect rule
 ipt_restore

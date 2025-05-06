@@ -214,7 +214,7 @@ public class InMemoryDataStore extends DataStore {
 
 		Collection<Broadcast> values = broadcastMap.values();
 
-		ArrayList<Broadcast> list = new ArrayList<>();
+		List<Broadcast> list = new ArrayList<>();
 
 		if(type != null && !type.isEmpty()) {
 			for (Broadcast broadcast : values) 
@@ -430,7 +430,7 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public long getPartialBroadcastNumber(String search){
-		ArrayList<Broadcast> broadcasts = new ArrayList<>(broadcastMap.values());
+		List<Broadcast> broadcasts = new ArrayList<>(broadcastMap.values());
 		if(search != null && !search.isEmpty()) {
 			broadcasts = searchOnServer(broadcasts, search);
 		}
@@ -1093,11 +1093,11 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
-		return getSubtracks(mainTrackId, offset, size, role, null);
+		return getSubtracks(mainTrackId, offset, size, role, null, null, null, null);
 	}
 
 	@Override
-	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status, String sortBy, String orderBy, String search) {
 		List<Broadcast> subtracks = new ArrayList<>();
 		for (Broadcast broadcast : broadcastMap.values()) 
 		{
@@ -1107,7 +1107,14 @@ public class InMemoryDataStore extends DataStore {
 				subtracks.add(broadcast);
 			}
 		}
-		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
+		
+		if (search != null && !search.isEmpty()) {
+			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
+			logger.info("server side search called for Broadcast searchString = {}", search);
+			subtracks = searchOnServer(subtracks, search);
+		}
+				
+		return sortAndCropBroadcastList(subtracks, offset, size, sortBy, orderBy);
 	}
 
 	@Override

@@ -23,6 +23,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
+import org.bytedeco.ffmpeg.avutil.tm;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -140,9 +141,7 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
-
 		appSettings = new AppSettings();
-
 		dataStore.setAppSettings(appSettings);
 
 		testConnectionEventsBug(dataStore);
@@ -172,6 +171,7 @@ public class DBStoresUnitTest {
 		testUpdateMetadata(dataStore);
 		testUpdateRole(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testUpdateDashViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
@@ -195,6 +195,8 @@ public class DBStoresUnitTest {
 		testStreamSourceList(dataStore);
 		testGetSubtracks(dataStore);
 		testGetSubtracksWithStatus(dataStore);
+		testGetSubtracksWithOrdering(dataStore);
+		testGetSubtracksWithSearch(dataStore);
 
 
 		dataStore.close(false);
@@ -266,6 +268,7 @@ public class DBStoresUnitTest {
 		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testUpdateDashViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
@@ -289,6 +292,9 @@ public class DBStoresUnitTest {
 		testStreamSourceList(dataStore);
 		testGetSubtracks(dataStore);
 		testGetSubtracksWithStatus(dataStore);
+		testGetSubtracksWithOrdering(dataStore);
+		testGetSubtracksWithSearch(dataStore);
+
 
 		dataStore.close(false);
 
@@ -308,6 +314,8 @@ public class DBStoresUnitTest {
 		appSettings = new AppSettings();
 
 		dataStore.setAppSettings(appSettings);
+		
+		testBroadcastCache(dataStore);
 
 		testConnectionEventsBug(dataStore);
 		testSubscriberAvgBitrate(dataStore);
@@ -338,6 +346,7 @@ public class DBStoresUnitTest {
 		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testUpdateDashViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
@@ -365,6 +374,9 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithStatus(dataStore);
 
 		testSubscriberCache(dataStore);
+		
+		testGetSubtracksWithOrdering(dataStore);
+		testGetSubtracksWithSearch(dataStore);
 
 		dataStore.close(true);
 
@@ -408,6 +420,7 @@ public class DBStoresUnitTest {
 		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testUpdateDashViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
@@ -1203,6 +1216,44 @@ public class DBStoresUnitTest {
 
 		}
 	}
+	
+	public void testUpdateDashViewerCount(DataStore dataStore) {
+		//create a stream
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
+
+		//update hls viewer several times 
+		//check hls viewer count
+		int totalCountFor1 = 0;
+		int totalCountFor2 = 0;
+		for (int i = 0; i < 50; i++) {
+			int viewerCount = (int)(Math.random()*99999);
+			if (viewerCount % 2 == 0) {
+				viewerCount = -1 * viewerCount;
+			}
+			assertTrue(dataStore.updateDASHViewerCount(key, viewerCount));
+
+			totalCountFor1 += viewerCount;
+
+			int viewerCount2 = (int)(Math.random()*99999);
+			if (viewerCount2 % 2 == 0) {
+				viewerCount2 = -1 * viewerCount2;
+			}
+			assertTrue(dataStore.updateDASHViewerCount(key2, viewerCount2));
+			totalCountFor2 += viewerCount2;
+
+			assertEquals(totalCountFor1, dataStore.get(key).getDashViewerCount());
+			assertEquals(totalCountFor2, dataStore.get(key2).getDashViewerCount());
+
+		}
+	}
 
 	public void testWebRTCViewerCount(DataStore dataStore) {
 		//create a stream
@@ -1776,6 +1827,38 @@ public class DBStoresUnitTest {
 			double speed = 1.0;
 			tmp.setSpeed(speed);
 			tmp.setSeekTimeInMs(136);
+			tmp.setHlsViewerCount(10);
+			tmp.setWebRTCViewerCount(12);
+			tmp.setDashViewerCount(13);
+			tmp.setUsername("user");
+			tmp.setPassword("pass");
+			tmp.setStreamUrl("url");
+			tmp.setConferenceMode("mode");
+			tmp.setPlannedStartDate(100L);
+			tmp.setPlannedEndDate(200L);
+			tmp.setAbsoluteStartTimeMs(197L);
+			tmp.setReceivedBytes(1234L);
+			tmp.setBitrate(2000L);
+			tmp.setUserAgent("agent");
+			tmp.setHlsViewerLimit(100);
+			tmp.setWebRTCViewerLimit(200);
+			tmp.setDashViewerLimit(300);
+			tmp.setWidth(1280);
+			tmp.setHeight(720);
+			tmp.setEncoderQueueSize(250);
+			tmp.setDropPacketCountInIngestion(50);
+			tmp.setDropFrameCountInEncoding(60);
+			tmp.setJitterMs(130);
+			tmp.setRttMs(120);
+			tmp.setPacketLostRatio(3.5);
+			tmp.setPacketsLost(123);
+			tmp.setRemoteIp("remip");
+			tmp.setVirtual(false);
+			tmp.setAutoStartStopEnabled(false);
+			tmp.setSubtracksLimit(13);
+			List<String> ids = Arrays.asList("st1", "st2");
+			tmp.setSubTrackStreamIds(ids);
+			tmp.setSubTrackStreamIds(ids);
 
 
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
@@ -1793,6 +1876,41 @@ public class DBStoresUnitTest {
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
 			assertEquals(speed, broadcast2.getSpeed(), 0.1);
+			assertEquals(10, broadcast2.getHlsViewerCount());
+			assertEquals(12, broadcast2.getWebRTCViewerCount());
+			assertEquals(13, broadcast2.getDashViewerCount());
+			
+			assertEquals("user", broadcast2.getUsername());
+			assertEquals("pass", broadcast2.getPassword());
+			assertEquals("url", broadcast2.getStreamUrl());
+			assertEquals("mode", broadcast2.getConferenceMode());
+			assertEquals(100L, broadcast2.getPlannedStartDate());
+			assertEquals(200L, broadcast2.getPlannedEndDate());
+			assertEquals(197L, broadcast2.getAbsoluteStartTimeMs());
+			assertEquals(1234L, broadcast2.getReceivedBytes());
+			assertEquals(2000L, broadcast2.getBitrate());
+			assertEquals("agent", broadcast2.getUserAgent());
+			assertEquals(100, broadcast2.getHlsViewerLimit());
+			assertEquals(200, broadcast2.getWebRTCViewerLimit());
+			assertEquals(300, broadcast2.getDashViewerLimit());
+			assertEquals(1280, broadcast2.getWidth());
+			assertEquals(720, broadcast2.getHeight());
+			assertEquals(250, broadcast2.getEncoderQueueSize());
+			assertEquals(50, broadcast2.getDropPacketCountInIngestion());
+			assertEquals(60, broadcast2.getDropFrameCountInEncoding());
+			assertEquals(3.5, broadcast2.getPacketLostRatio(), 0.0001); // Note: overwritten value
+			assertEquals(123, broadcast2.getPacketsLost());
+			assertEquals(130, broadcast2.getJitterMs());
+			assertEquals(120, broadcast2.getRttMs());
+			assertEquals("remip", broadcast2.getRemoteIp());
+			assertFalse(broadcast2.isVirtual());
+			assertFalse(broadcast2.isAutoStartStopEnabled());
+			assertEquals(13, broadcast2.getSubtracksLimit());
+			assertEquals(2, broadcast2.getSubTrackStreamIds().size());
+			assertEquals("st1", broadcast2.getSubTrackStreamIds().get(0));
+			assertEquals("st2", broadcast2.getSubTrackStreamIds().get(1));
+
+
 
 			BroadcastUpdate update = new BroadcastUpdate();
 			update.setDuration(100000L);
@@ -3059,7 +3177,9 @@ public class DBStoresUnitTest {
 		assertEquals(longitude, broadcastFromStore2.getLongitude());
 		assertEquals(altitude, broadcastFromStore2.getAltitude());
 
-		if (!(dataStore instanceof InMemoryDataStore)) {
+		if (!(dataStore instanceof InMemoryDataStore) &&
+				!(dataStore instanceof MongoStore) //because of caching
+				) {
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastFromStore2.getStatus());
 		}
 	}
@@ -3573,7 +3693,7 @@ public class DBStoresUnitTest {
 		settingsList.add(new EncoderSettings(720, 50000, 32000, true));
 
 		broadcast.setEncoderSettingsList(settingsList);
-
+		
 		BroadcastUpdate updateData = new BroadcastUpdate();
 		updateData.setEncoderSettingsList(settingsList);
 
@@ -3582,7 +3702,9 @@ public class DBStoresUnitTest {
 		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
 		assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
 
-		if (! (dataStore instanceof InMemoryDataStore) ) {
+		if (!(dataStore instanceof InMemoryDataStore) &&
+				!(dataStore instanceof MongoStore) //because of cache
+				) {
 			//because inmemorydata store just keeps the reference, it will be updated
 			broadcast.setEncoderSettingsList(null);
 		} 
@@ -3763,6 +3885,89 @@ public class DBStoresUnitTest {
 
 
 	}
+	
+	public void testGetSubtracksWithOrdering(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		for (int i = 0; i < 100; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+			try {
+				broadcast.setStreamId("subtrack" + i);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			broadcast.setDate(i+10000);
+			broadcast.setMainTrackStreamId(mainTrackId);
+			dataStore.save(broadcast);
+		}
+
+		List<Broadcast> subtracks = dataStore.getSubtracks(mainTrackId, 3, 5, null, null, "date", "asc", null);
+		
+		assertEquals(5, subtracks.size());
+		
+		for (int i = 0; i < 5; i++) {
+			assertEquals("subtrack"+(i+3), subtracks.get(i).getStreamId());
+		}
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 3, 5, null, null, "date", "desc", null);
+		assertEquals(5, subtracks.size());
+		
+		for (int i = 0; i < 5; i++) {
+			assertEquals("subtrack"+(99-3-i), subtracks.get(i).getStreamId());
+		}
+	}
+	
+	public void testGetSubtracksWithSearch(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		for (int i = 0; i < 100; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+			try {
+				if(i%10 == 0 ) {
+					broadcast.setStreamId("goodsubtrack" + i);
+				}
+				else {
+					broadcast.setStreamId("subtrack" + i);
+				}
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			broadcast.setDate(i+10000);
+			broadcast.setMainTrackStreamId(mainTrackId);
+			dataStore.save(broadcast);
+		}
+
+		List<Broadcast> subtracks = dataStore.getSubtracks(mainTrackId, 3, 5, null, null, "date", "asc", "good");
+		
+		assertEquals(5, subtracks.size());
+		
+		//goodsubtrack30, goodsubtrack40, goodsubtrack50, goodsubtrack60, goodsubtrack70
+		for (int i = 0; i < 5; i++) {
+			assertEquals("goodsubtrack"+((i+3)*10), subtracks.get(i).getStreamId());
+		}
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 3, 5, null, null, "date", "desc", "good");
+		assertEquals(5, subtracks.size());
+		
+		//goodsubtrack60, goodsubtrack50, goodsubtrack40, goodsubtrack30, goodsubtrack20
+		for (int i = 0; i < 5; i++) {
+			assertEquals("goodsubtrack"+(90-(3+i)*10), subtracks.get(i).getStreamId());
+		}
+
+		
+		
+
+	}
 
 	public void testSubscriberCache(DataStore dataStore) {
 		long initalExecutedQueryCount = dataStore.getExecutedQueryCount();
@@ -3865,6 +4070,57 @@ public class DBStoresUnitTest {
 		assertNull(subscriberFromCache);
 
 	}
+	
+	public void testBroadcastCache(DataStore dataStore) {
+		MongoStore mongoDataStore = (MongoStore) dataStore;
+		
+		assertNotEquals(mongoDataStore.getBroadcastCache(), mongoDataStore.getSubscriberCache());
 
+
+		String streamId = "stream"+RandomStringUtils.randomNumeric(6);;
+
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(broadcast);
+		
+		Broadcast broadcastFromDB = dataStore.get(streamId);
+
+		String broadcastCacheKey = mongoDataStore.getBroadcastCacheKey(streamId);
+		Broadcast broadcastFromCache1 = (Broadcast) mongoDataStore.getBroadcastCache().get(broadcastCacheKey, Broadcast.class);
+		assertNotNull(broadcastFromCache1);
+		assertEquals(broadcastFromDB.getStreamId(), broadcastFromCache1.getStreamId());
+
+		Broadcast broadcastFromDB2 = dataStore.get(streamId);
+		assertEquals(broadcastFromDB2, broadcastFromCache1);
+		
+		try {
+			Thread.sleep((MongoStore.BROADCAST_CACHE_EXPIRE_SECONDS + 1) * 1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast broadcastFromCache2 = (Broadcast) mongoDataStore.getBroadcastCache().get(broadcastCacheKey, Broadcast.class);
+		assertNull(broadcastFromCache2);
+		
+		Broadcast broadcastFromDB3 = dataStore.get(streamId);
+		assertNotEquals(broadcastFromDB3, broadcastFromCache1);
+		
+		Broadcast broadcastFromCache3 = (Broadcast) mongoDataStore.getBroadcastCache().get(broadcastCacheKey, Broadcast.class);
+		assertNotNull(broadcastFromCache3);
+		
+		dataStore.delete(streamId);
+		
+		Broadcast broadcastFromCache4 = (Broadcast) mongoDataStore.getBroadcastCache().get(broadcastCacheKey, Broadcast.class);
+		assertNull(broadcastFromCache4);
+		
+		
+		
+	}
+	
 
 }

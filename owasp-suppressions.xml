@@ -93,30 +93,6 @@
 	</suppress>
 	<suppress>
 	   <notes><![CDATA[
-	   file name: ffmpeg-5.1.2-1.5.8.jar,ffmpeg-platform-5.1.2-1.5.8.jar, cuda-11.8-8.6-1.5.8.jar, cuda-platform-11.8-8.6-1.5.8.jar
-	   This vulnerability is about to github actions of the original repo. It's not related to Ant Media Server.
-	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/(ffmpeg|cuda).*@.*$</packageUrl>
-	   <cve>CVE-2023-34112</cve>
-	</suppress>
-	<suppress>
-	   <notes><![CDATA[
-	   file name: ffmpeg-5.1.2-1.5.8.jar,ffmpeg-platform-5.1.2-1.5.8.jar, ffmpeg-5.1.2-1.5.8-linux-x86.jar
-	   This vulnerability is about using mpegvideoencoder. We don't use mpegvideo encoder in our end
-	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/(ffmpeg|cuda).*@.*$</packageUrl>
-	   <cve>CVE-2024-32230</cve>
-	</suppress>
-	<suppress>
-	   <notes><![CDATA[
-	   file name: ffmpeg-5.1.2-1.5.8.jar,ffmpeg-platform-5.1.2-1.5.8.jar, ffmpeg-5.1.2-1.5.8-linux-x86.jar
-	   This vulnerability is about using mpegvideoencoder. We don't use mpegvideo encoder in our end
-	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/(ffmpeg|cuda).*@.*$</packageUrl>
-	   <cve>CVE-2024-32229</cve>
-	</suppress>
-	<suppress>
-	   <notes><![CDATA[
 	   file name: tomcat-coyote-10.1.19.jar
 	   This vulnerability is about Tomcat fails to handle some cases of excessive HTTP headers correctly. We don't have problem with our headers in our end
 	   ]]></notes>
@@ -152,5 +128,28 @@
 	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2025-25469</vulnerabilityName>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   Ant Media Server does not decode JPEGs so that this vulnerability does not have an impact to Ant Media Server. When the fix is available,
+	   we'll also update the FFmpeg version in Ant Media Server.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22921</vulnerabilityName>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   This vulnerability is about opening a crafted AAC file. This case can only happen when putting that file as a stream source. 
+	   For this scenario, we recommend users to open the trusted files and when the fix is available, we'll update the FFmpeg version in Ant Media Server. 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22919</vulnerabilityName>
+	</suppress>
+	
+	
+	
 	
 </suppressions>

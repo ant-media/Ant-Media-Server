@@ -209,22 +209,27 @@ public class TokenFilterManager extends AbstractFilter   {
 		if (endIndex != -1) {
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
-		
-		
-		//let's have the rule for streamId. 
+		//let's have the rule for streamId.
 		//StreamId cannot have double __ in it
 		//We can get the stream id in two ways
 		//1. If it directly ends with extension (m3u8), then it's {streamId}.m3u8,
 		//2. If it contains __ then it's {streamId}__{ANYTHING}.m3u8
+		//3. In case of adaptive streaming we add an underscore example streamid_720p2000kbps.m3u8 if stream id already have underscore at the end it will lead to double underscore streamid__720p2000kbps.m3u8
 
-		
-		String tsRegex = "(.*)/(.*)__(.*)$"; 
+		String tsRegex = "(.*)/(.*)__(.*)$";
 		Pattern pattern = Pattern.compile(tsRegex);
 		
 		// Create a matcher for the input string
         java.util.regex.Matcher matcher = pattern.matcher(requestURI);
 		if (matcher.matches()) 
-		{	
+		{
+			//the file name may not have 'kbps' all the time
+			//so this solution does not work in all cases
+			//Even if the following 2 lines resolves this issue https://github.com/ant-media/Ant-Media-Server/issues/7066
+			// it's not recommended to have stream id finish with _ 
+			if(matcher.group(3).contains("kbps")){
+				return matcher.group(2)+ "_";
+			}
 			return matcher.group(2);
 		}
 
