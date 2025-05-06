@@ -534,15 +534,38 @@ public class BroadcastRestService extends RestServiceBase{
 									mediaType = "application/json",
 									schema = @Schema(implementation = Result.class)
 									))
-	}
-			)
+	})
+
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Deprecated(since = "3.0" , forRemoval = true)
 	public Result removeEndpointV2(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
 			@Parameter(description = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId,
 			@Parameter(description = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.")
+	@QueryParam("resolutionHeight") int resolutionHeight){
+
+    return removeEndpointV3(id, endpointServiceId, resolutionHeight);
+	}
+
+	@Operation(summary = "Remove third-party SRT or RTMP end point from the stream",
+			description = "For the stream that is broadcasting, it will stop immediately.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Remove RTMP or SRT endpoint response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	})
+
+	@DELETE
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/endpoint")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result removeEndpointV3(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
+			@Parameter(description = "RTMP or SRT URL of the target endpoint that should be stopped", required = true) @QueryParam("endpointServiceId") String endpointServiceId,
+			@Parameter(description = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP or SRT endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.")
 	@QueryParam("resolutionHeight") int resolutionHeight){
 
 		//Get rtmpURL with broadcast
@@ -565,6 +588,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return result;
 	}
+
 
 	private Result removeRTMPEndpointProcess(Broadcast broadcast, Endpoint endpoint, int resolutionHeight, String id) {
 		Result result;
