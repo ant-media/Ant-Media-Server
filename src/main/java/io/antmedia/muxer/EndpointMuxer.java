@@ -257,7 +257,7 @@ public class EndpointMuxer extends Muxer {
 	public synchronized boolean addVideoStream(int width, int height, AVRational timebase, int codecId, int streamIndex, boolean isAVC, AVCodecParameters codecpar) {
 		
 		boolean result = super.addVideoStream(width, height, timebase, codecId, streamIndex, isAVC, codecpar);
-		if (result && !this.format.equals("mpegts"))
+		if (result && this.format.equals("flv"))
 		{
 			AVStream outStream = getOutputFormatContext().streams(inputOutputStreamIndexMap.get(streamIndex));
 			

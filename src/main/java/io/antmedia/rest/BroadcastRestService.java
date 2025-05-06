@@ -451,56 +451,69 @@ public class BroadcastRestService extends RestServiceBase{
 
 		return addEndpointV4(id,endpoint,resolutionHeight);
     }
+
+	@Operation(summary = "Adds a third party RTMP or SRT end point to the stream",
+			description = "It supports adding RTMP or SRT restreaming endpoints after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an URL is already added to a stream, trying to add the same Endpoint URL will return false.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Add Endpoint URL response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
+
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV4(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
-								@Parameter(description = "Url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
+								@Parameter(description = "SRT or RTMP URL of the destination endpoint where the stream will be republished. Encode the URL if required", required = true) Endpoint endpoint,
 								@Parameter(description = "Resolution height of the broadcast that is wanted to send to the endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
 
 		String endpointUrl = null;
 		Result result = new Result(false);
 
-		if(endpoint != null && endpoint.getEndpointUrl() != null) {
-
-			Broadcast broadcast = getDataStore().get(id);
-			if (broadcast != null) {
-
-				List<Endpoint> endpoints = broadcast.getEndPointList();
-				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getEndpointUrl().equals(endpoint.getEndpointUrl())))
-				{
-					endpointUrl = endpoint.getEndpointUrl();
-
-					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-					{
-						result = processEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpointUrl, true, resolutionHeight);
-						if (result.isSuccess())
-						{
-							result = super.addEndpoint(id, endpoint);
-						}
-					}
-					else
-					{
-						result = super.addEndpoint(id, endpoint);
-					}
-
-
-					if (!result.isSuccess())
-					{
-						result.setMessage("Endpoint is not added to stream: " + id);
-
-					}
-					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
-				}
-				else
-				{
-					result.setMessage("Endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getEndpointUrl());
-				}
-			}
-		}
-		else {
+		if(endpoint == null && endpoint.getEndpointUrl() == null) {
 			result.setMessage("Missing Endpoint url");
+			return result;
+		}
+
+		Broadcast broadcast = getDataStore().get(id);
+		if (broadcast == null){
+			result.setMessage("Stream does not exist with Id: " + id);
+			return result;
+		}
+
+		List<Endpoint> endpoints = broadcast.getEndPointList();
+		if (endpoints == null || endpoints.stream().noneMatch(o -> o.getEndpointUrl().equals(endpoint.getEndpointUrl())))
+		{
+			endpointUrl = endpoint.getEndpointUrl();
+
+			if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+			{
+			  result = processEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpointUrl, true, resolutionHeight);
+			  if (result.isSuccess())
+			  {
+				result = super.addEndpoint(id, endpoint);
+			  }
+			}
+			else
+			{
+			  result = super.addEndpoint(id, endpoint);
+			}
+
+
+			if (!result.isSuccess())
+			{
+			  result.setMessage("Endpoint is not added to stream: " + id);
+
+			}
+			logRtmpEndpointInfo(id, endpoint, result.isSuccess());
+		}
+		else
+		{
+			result.setMessage("Endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getEndpointUrl());
 		}
 
 		return result;
