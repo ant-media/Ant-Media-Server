@@ -474,7 +474,7 @@ public class BroadcastRestService extends RestServiceBase{
 		String endpointUrl = null;
 		Result result = new Result(false);
 
-		if(endpoint == null && endpoint.getEndpointUrl() == null) {
+		if(endpoint == null || endpoint.getEndpointUrl() == null) {
 			result.setMessage("Missing Endpoint url");
 			return result;
 		}
