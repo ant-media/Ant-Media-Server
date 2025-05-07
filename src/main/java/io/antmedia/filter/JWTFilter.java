@@ -49,8 +49,11 @@ public class JWTFilter extends AbstractFilter {
 		}
 
 		String jwtToken = httpRequest.getHeader(JWT_TOKEN_AUTHORIZATION_HEADER);
+		
 
-		if(jwtToken != null && jwtToken.toLowerCase().startsWith(JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX.toLowerCase())){
+		if((jwtToken != null && jwtToken.toLowerCase().startsWith(JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX.toLowerCase()))
+				
+			|| RestProxyFilter.isNodeCommunicationTokenValid(httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION),  getAppSettings().getClusterCommunicationKey(), httpRequest.getRequestURI())){
 			jwtToken = jwtToken.substring(JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX.length()).trim();
 		}
 		
