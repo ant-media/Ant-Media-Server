@@ -10,19 +10,16 @@ public interface ISubtrackPoller {
 		void onSubTracks(List<Broadcast> subTrackStreamIds);
 		
 		void onNewSubTrack(String subTrackStreamId, String role);
-		
-		
-		
 	}
 	
-	public void register(String streamId, SubtrackListener listener);
+	public void register(String mainTrackId, SubtrackListener listener);
 	
-	public void notifySubtrackListeners(String streamId, List<Broadcast> subtracks);
+	public void notifySubtrackListeners(String mainTrackId, List<Broadcast> subtracks);
 	
 	
-	public void notifyNewSubTrack(String streamId, String subTrackStreamId, String role);
+	public void notifyNewSubTrack(String mainTrackId, String role, String subTrackStreamId);
 	
-	public void unRegister(String streamId, SubtrackListener subtrackPollerListener);
+	public void unRegister(String mainTrackId, SubtrackListener subtrackPollerListener);
 	
 	/**
 	 * This method is used to check if a listener is registered for a given streamId
