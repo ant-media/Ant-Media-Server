@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import io.antmedia.rest.model.Result;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,18 +41,32 @@ public class ClusterNotificationService extends RestServiceBase {
 	protected static Logger logger = LoggerFactory.getLogger(ClusterNotificationService.class);
 
 	
-	@Operation(summary = "Notifies Stream Start/Stop operations", description = "Notifies Stream Start/Stop operations.", responses = {
+	@Operation(summary = "Notifies when streaming is started in another node. It is for internal communication between node. This is why it is hidden", description = "Notifies Stream Start/Stop operations.", responses = {
 			@ApiResponse(responseCode = "200", description = "Received by the node", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
 	})
 	@POST
 	@Path("/publish-started-notification/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
 	public Result publishStarted(@Parameter(description = "id of the broadcast", required = true) @PathParam("id") String id,
 			@Parameter(description = "role of the stream", required = false) @QueryParam("role") String role,
 			@Parameter(description = "Main track of the stream", required = false) @QueryParam("mainTrackId") String mainTrackId) {
-		getApplication().streamStartedOnAnotherNode(id, role, mainTrackId);
-		
-		Result result = new Result(true);
-		return result;
+		return new Result(getApplication().publishStarted(id, role, mainTrackId));		
 	}
+	
+	
+	@Operation(summary = "Notifies when streaming is stopped in another node. It is for internal communication between nodes.This is why it is hidden", description = "Notifies Stream Start/Stop operations.", responses = {
+			@ApiResponse(responseCode = "200", description = "Received by the node", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
+	})
+	@POST
+	@Path("/publish-stopped-notification/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
+	public Result publishStopped(@Parameter(description = "id of the broadcast", required = true) @PathParam("id") String id,
+			@Parameter(description = "role of the stream", required = false) @QueryParam("role") String role,
+			@Parameter(description = "Main track of the stream", required = false) @QueryParam("mainTrackId") String mainTrackId) {
+		return new Result(getApplication().publishStopped(id, role, mainTrackId));
+	}
+	
+	
 }

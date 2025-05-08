@@ -25,7 +25,7 @@ public class ClusterNotificationServiceTest {
     	String role = "publisher";
     	String mainTrackId = "mainTrackId";
         Result result = clusterNotificationService.publishStarted(streamId, role, mainTrackId);
-        verify(webRTCApplication, times(1)).streamStartedOnAnotherNode(streamId, role, mainTrackId);
+        verify(webRTCApplication, times(1)).publishStarted(streamId, role, mainTrackId);
         
         assertTrue(result.isSuccess());
         assertEquals(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON); // To keep MediaType consistent

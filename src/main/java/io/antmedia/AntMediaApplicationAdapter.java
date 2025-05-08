@@ -709,12 +709,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					resetDASHStats(streamId);
 				}
 
+				final String mainTrackId = broadcast.getMainTrackStreamId();
+				final String role = broadcast.getRole();
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
-					final String mainTrackId = broadcast.getMainTrackStreamId();
+					
 					logger.info("call live stream ended hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
 							null, null, metaData, subscriberId);
@@ -737,6 +739,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					listener.streamFinished(broadcast.getStreamId());
 					listener.streamFinished(broadcast);
 				}
+				
+				notifyPublishStopped(streamId, role, mainTrackId);
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 			}
 		} catch (Exception e) {
@@ -973,13 +977,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		event.setApp(scope.getName());
 
 		LoggerUtils.logAnalyticsFromServer(event);
-	}
-
-
-
-	protected void notifyPublishStarted(String streamId, String role, String mainTrackId) {
-		// no need to implement here
-		
 	}
 
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
@@ -2664,8 +2661,37 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.statsCollector = statsCollector;
 	}
 
-	public void streamStartedOnAnotherNode(String streamId, String role, String mainTrackId) {
-		//no need to implement here
+	/**
+	 * This is a callback-method and called when a stream is fully started and it means it is called post publish operations has finished
+	 * It can be called from the cluster side or from the local side to synch subtracks
+	 */
+	public boolean publishStarted(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+		return false;
 	}
+	
+	/**
+	 * This method is called when a stream is fully stopped and it means it is called post publish operations has finished
+	 * It can be called from the cluster side or from the local side to synch subtracks
+	 */
+	public boolean publishStopped(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+		return false;
+	}
+	
+	/**
+	 * This method is called to notify the local node and cluster nodes when a stream is started 
+	 */
+	protected void notifyPublishStarted(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+	}
+	
+	/*
+	 * This method is called to notify the local or cluster nodes when a stream is stopped 
+	 */
+	protected void notifyPublishStopped(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+	}
+
 
 }
