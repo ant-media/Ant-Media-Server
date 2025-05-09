@@ -2219,8 +2219,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		 *   {@link #updateAppSettingsFile} && {@link #updateAppSettingsBean} should be updated
 		 */
 		updateAppSettingsBean(appSettings, newSettings, notifyCluster);
-		AcceptOnlyStreamsInDataStore securityHandler = (AcceptOnlyStreamsInDataStore)  getScope().getContext().getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME);
-		securityHandler.setEnabled(newSettings.isAcceptOnlyStreamsInDataStore());
 
 		if (notifyCluster && clusterNotifier != null) {
 			//we should set to be deleted because app deletion fully depends on the cluster synch TODO remove the following line because toBeDeleted is deprecated

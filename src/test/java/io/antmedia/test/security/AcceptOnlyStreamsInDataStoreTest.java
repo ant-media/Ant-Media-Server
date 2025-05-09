@@ -40,7 +40,7 @@ public class AcceptOnlyStreamsInDataStoreTest {
 		assertEquals(factory, filter.getDataStoreFactory());
 		
 		filter.setDataStore(dataStore);
-		filter.setEnabled(true);
+		filter.setEnabledForTest(true);
 		
 		
 		IScope scope = Mockito.mock(IScope.class);
@@ -49,7 +49,7 @@ public class AcceptOnlyStreamsInDataStoreTest {
 		assertFalse(publishAllowed);
 		
 		
-		filter.setEnabled(false);
+		filter.setEnabledForTest(false);
 	
 		IContext context = Mockito.mock(IContext.class);
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
@@ -65,7 +65,7 @@ public class AcceptOnlyStreamsInDataStoreTest {
 		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null, null, null, null);
 		assertFalse(publishAllowed);
 		
-		filter.setEnabled(true);
+		filter.setEnabledForTest(true);
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
 		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null, null, null, null);
 		assertFalse(publishAllowed);
@@ -97,7 +97,7 @@ public class AcceptOnlyStreamsInDataStoreTest {
 		assertEquals(factory, filter.getDataStoreFactory());
 		
 		filter.setDataStore(dataStore);
-		filter.setEnabled(true);
+		filter.setEnabledForTest(true);
 		
 		IScope scope = Mockito.mock(IScope.class);
 
@@ -145,7 +145,7 @@ public class AcceptOnlyStreamsInDataStoreTest {
 			assertTrue(filter.isPublishAllowed(scope, stuckedBroadcast.getStreamId(), "mode", null, null, null, null, null));
 			
 			
-			filter.setEnabled(false);
+			filter.setEnabledForTest(false);
 			assertTrue(filter.isPublishAllowed(scope, "notExistent", "mode", null, null, null, null, null));
 
 			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null, null, null, null, null));
