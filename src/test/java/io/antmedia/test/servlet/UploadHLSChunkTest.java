@@ -242,4 +242,24 @@ public class UploadHLSChunkTest {
 
 		assert(object1.equals(object));
 	}
+	@Test
+	public void testDoPost() throws ServletException, IOException {
+		UploadHLSChunk uploadHlsChunk = spy(UploadHLSChunk.class);
+		HttpServletRequest request = mock(HttpServletRequest.class);
+		HttpServletResponse response = mock(HttpServletResponse.class);
+		StorageClient storageClient = mock(StorageClient.class);
+
+		ServletContext servletContext = mock(ServletContext.class);
+		ConfigurableWebApplicationContext appContext = mock(ConfigurableWebApplicationContext.class);
+
+		doReturn(servletContext).when(request).getServletContext();
+		doReturn(appContext).when(servletContext).getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+
+		doReturn(storageClient).when(uploadHlsChunk).getStorageClient(any());
+		doNothing().when(uploadHlsChunk).handlePostRequest(any(),any(),any(),any());
+
+		uploadHlsChunk.doPostForUnitTests(request,response);
+
+		verify(uploadHlsChunk).handlePostRequest(storageClient,appContext,request,response);
+	}
 }

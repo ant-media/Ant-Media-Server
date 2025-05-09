@@ -160,7 +160,9 @@ public class UploadHLSChunk extends HttpServlet{
 	public void doPutForUnitTests(HttpServletRequest req, HttpServletResponse resp) {
 		doPut(req, resp);
 	}
-
+	public void doPostForUnitTests(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
 
 	public void uploadHLSChunk(StorageClient storageClient, ConfigurableWebApplicationContext appContext, 
 			InputStream inputStream, HttpServletRequest req, HttpServletResponse resp) 

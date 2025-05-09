@@ -6161,7 +6161,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
 		doReturn(appAdaptor).when(muxer).getAppAdaptor();
 
+		//if client is null
 		CloseableHttpClient client = mock(CloseableHttpClient.class);
+		doReturn(null).when(appAdaptor).getHttpClient();
+		verify(client,times(0)).execute(any());
 		doReturn(client).when(appAdaptor).getHttpClient();
 
 		ArgumentCaptor<HttpPost> captor = ArgumentCaptor.forClass(HttpPost.class);

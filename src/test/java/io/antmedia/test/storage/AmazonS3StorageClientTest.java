@@ -319,6 +319,10 @@ public class AmazonS3StorageClientTest {
 		ArrayList<String> objects = new ArrayList<>(Arrays.asList("test","test.mp4","test.abc","test.m3u8","test000000000.ts","test000000000.fmp4","testabc000000000.ts"));
 		doReturn(objects).when(s3client).getObjects("test");
 
+
+		s3client.deleteMultipleFiles(null,HLSMuxer.HLS_FILES_REGEX_MATCHER);
+		verify(s3client,times(0)).getObjects(anyString());
+
 		s3client.deleteMultipleFiles("test",HLSMuxer.HLS_FILES_REGEX_MATCHER);
 
 		verify(s3client).delete("test000000000.ts");
