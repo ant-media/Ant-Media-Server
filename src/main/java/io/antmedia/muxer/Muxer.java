@@ -182,6 +182,9 @@ public abstract class Muxer {
 
 	protected String subFolder = null;
 
+	public void setStreamId(String streamId) {
+		this.streamId = streamId;
+	}
 	/**
 	 * This class is used generally to send direct video buffer to muxer
 	 * @author mekya
@@ -216,7 +219,7 @@ public abstract class Muxer {
 			this.firstFrameTimeStamp = firstFrameTimeStamp;
 			this.originalFrameTimeMs = originalFrameTimeMs;
 		}
-		
+
 		public void setFrameRotation(int frameRotation) {
 			this.frameRotation = frameRotation;
 		}

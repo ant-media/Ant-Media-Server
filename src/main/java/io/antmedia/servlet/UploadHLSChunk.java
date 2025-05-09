@@ -1,9 +1,15 @@
 package io.antmedia.servlet;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.websocket.WebSocketConstants;
+import io.vertx.core.Vertx;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
@@ -24,7 +30,7 @@ import io.antmedia.muxer.Muxer;
 import io.antmedia.storage.StorageClient;
 
 @MultipartConfig
-public class UploadHLSChunk extends HttpServlet {
+public class UploadHLSChunk extends HttpServlet{
 
 	private static final long serialVersionUID = 1L;
 
@@ -79,10 +85,55 @@ public class UploadHLSChunk extends HttpServlet {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
 	}
-	
+	public static JsonObject getJsonFromPostRequest(HttpServletRequest request) throws IOException {
+		BufferedReader reader = request.getReader();
+		StringBuilder sb = new StringBuilder();
+		String line;
+
+		while ((line = reader.readLine()) != null) {
+			sb.append(line);
+		}
+
+		String jsonString = sb.toString();
+        return new Gson().fromJson(jsonString, JsonObject.class);
+	}
+
+	public void handlePostRequest(StorageClient storageClient, ConfigurableWebApplicationContext ctx, HttpServletRequest request, HttpServletResponse response) throws IOException {
+		AppSettings appSettings = (AppSettings) ctx.getBean(AppSettings.BEAN_NAME);
+
+		JsonObject message = getJsonFromPostRequest(request);
+		String streamId = message.get("streamId").getAsString();
+		String command = message.get("command").getAsString();
+
+		if(command.equals(WebSocketConstants.PUBLISH_FINISHED)){
+			if(appSettings.isDeleteHLSFilesOnEnded()){
+				Vertx vertx = Vertx.vertx();
+
+				String filePath = message.get("filePath").getAsString();
+				vertx.setTimer(Integer.parseInt(appSettings.getHlsTime()) * Integer.parseInt(appSettings.getHlsListSize()) * 1000l, l ->{
+					storageClient.deleteMultipleFiles(filePath,HLSMuxer.HLS_FILES_REGEX_MATCHER);
+					logger.info("deleting files from S3 for streamId: {}",streamId);
+					}
+				);
+			}
+		}
+	}
+
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		super.doPut(req, resp);
+		StorageClient storageClient = getStorageClient(req);
+
+		if (storageClient != null)
+		{
+			try {
+				ConfigurableWebApplicationContext appContext = (ConfigurableWebApplicationContext) req.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+				handlePostRequest(storageClient,appContext,req,resp);
+			}
+			catch (IllegalStateException | IOException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+
+		}
 	}
 
 	@Override
