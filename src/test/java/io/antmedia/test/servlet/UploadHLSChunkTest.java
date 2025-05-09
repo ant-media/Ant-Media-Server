@@ -4,14 +4,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.StringReader;
 
+import com.google.gson.JsonObject;
+import io.antmedia.websocket.WebSocketConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -184,5 +188,53 @@ public class UploadHLSChunkTest {
 		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
 		assertEquals("streams/test.m3u8", s3Key);
 	}
+	@Test
+	public void testDeleteS3afterUpload() throws InterruptedException, IOException {
 
+		StorageClient client = Mockito.mock(StorageClient.class);
+		UploadHLSChunk uploadHlsChunk = spy(UploadHLSChunk.class);
+
+		JsonObject message = new JsonObject();
+		message.addProperty("streamId","test");
+		message.addProperty("filePath","test");
+		message.addProperty("command", WebSocketConstants.PUBLISH_FINISHED);
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setHlsTime("1");
+		appSettings.setHlsListSize("1");
+		appSettings.setDeleteHLSFilesOnEnded(false);
+
+		ConfigurableWebApplicationContext ctx = mock(ConfigurableWebApplicationContext.class);
+
+		doReturn(appSettings).when(ctx).getBean(AppSettings.BEAN_NAME);
+		doReturn(message).when(uploadHlsChunk).getJsonFromPostRequest(any());
+
+		uploadHlsChunk.handlePostRequest(client,ctx,mock(HttpServletRequest.class),mock(HttpServletResponse.class));
+		Thread.sleep(3000);
+		verify(client,times(0)).deleteMultipleFiles(anyString(),anyString());
+
+		appSettings.setDeleteHLSFilesOnEnded(true);
+
+		uploadHlsChunk.handlePostRequest(client,ctx,mock(HttpServletRequest.class),mock(HttpServletResponse.class));
+		Thread.sleep(3000);
+		verify(client,times(1)).deleteMultipleFiles(anyString(),anyString());
+	}
+
+	@Test
+	public void testGetJsonFromPostRequest() throws IOException {
+
+		UploadHLSChunk uploadHlsChunk = spy(UploadHLSChunk.class);
+		HttpServletRequest request = mock(HttpServletRequest.class);
+
+		JsonObject object = new JsonObject();
+		object.addProperty("test","test");
+		object.addProperty("abc","abc");
+
+		BufferedReader bufferedReader = new BufferedReader(new StringReader(object.toString()));
+		doReturn(bufferedReader).when(request).getReader();
+
+		JsonObject object1 = uploadHlsChunk.getJsonFromPostRequest(request);
+
+		assert(object1.equals(object));
+	}
 }
