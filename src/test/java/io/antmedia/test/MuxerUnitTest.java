@@ -6071,7 +6071,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
     @Override
     public void deleteMultipleFiles(String key, String fileExtensions){
-
+		logger.info("test delete method");
     }
 		@Override
 		public void delete(String key) {

@@ -1,9 +1,6 @@
 package io.antmedia.test.servlet;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -240,7 +237,7 @@ public class UploadHLSChunkTest {
 
 		JsonObject object1 = uploadHlsChunk.getJsonFromPostRequest(request);
 
-		assert(object1.equals(object));
+        assertEquals(object1, object);
 	}
 	@Test
 	public void testDoPost() throws ServletException, IOException {
