@@ -20,6 +20,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
@@ -207,17 +208,21 @@ public class UploadHLSChunkTest {
 		ConfigurableWebApplicationContext ctx = mock(ConfigurableWebApplicationContext.class);
 
 		doReturn(appSettings).when(ctx).getBean(AppSettings.BEAN_NAME);
-		doReturn(message).when(uploadHlsChunk).getJsonFromPostRequest(any());
 
-		uploadHlsChunk.handlePostRequest(client,ctx,mock(HttpServletRequest.class),mock(HttpServletResponse.class));
-		Thread.sleep(3000);
-		verify(client,times(0)).deleteMultipleFiles(anyString(),anyString());
+		try (MockedStatic<UploadHLSChunk> mockedStatic = mockStatic(UploadHLSChunk.class)) {
+			mockedStatic.when(() -> UploadHLSChunk.getJsonFromPostRequest(any()))
+					.thenReturn(message);
 
-		appSettings.setDeleteHLSFilesOnEnded(true);
+			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class), mock(HttpServletResponse.class));
+			Thread.sleep(3000);
+			verify(client, times(0)).deleteMultipleFiles(anyString(), anyString());
 
-		uploadHlsChunk.handlePostRequest(client,ctx,mock(HttpServletRequest.class),mock(HttpServletResponse.class));
-		Thread.sleep(3000);
-		verify(client,times(1)).deleteMultipleFiles(anyString(),anyString());
+			appSettings.setDeleteHLSFilesOnEnded(true);
+
+			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class), mock(HttpServletResponse.class));
+			Thread.sleep(3000);
+			verify(client, times(1)).deleteMultipleFiles(anyString(), anyString());
+		}
 	}
 
 	@Test
