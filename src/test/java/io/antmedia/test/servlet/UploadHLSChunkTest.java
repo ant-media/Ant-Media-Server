@@ -210,13 +210,13 @@ public class UploadHLSChunkTest {
 			mockedStatic.when(() -> UploadHLSChunk.getJsonFromPostRequest(any()))
 					.thenReturn(message);
 
-			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class), mock(HttpServletResponse.class));
+			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class));
 			Thread.sleep(3000);
 			verify(client, times(0)).deleteMultipleFiles(anyString(), anyString());
 
 			appSettings.setDeleteHLSFilesOnEnded(true);
 
-			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class), mock(HttpServletResponse.class));
+			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class));
 			Thread.sleep(3000);
 			verify(client, times(1)).deleteMultipleFiles(anyString(), anyString());
 		}
@@ -253,10 +253,10 @@ public class UploadHLSChunkTest {
 		doReturn(appContext).when(servletContext).getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
 		doReturn(storageClient).when(uploadHlsChunk).getStorageClient(any());
-		doNothing().when(uploadHlsChunk).handlePostRequest(any(),any(),any(),any());
+		doNothing().when(uploadHlsChunk).handlePostRequest(any(),any(),any());
 
 		uploadHlsChunk.doPostForUnitTests(request,response);
 
-		verify(uploadHlsChunk).handlePostRequest(storageClient,appContext,request,response);
+		verify(uploadHlsChunk).handlePostRequest(storageClient,appContext,request);
 	}
 }

@@ -98,7 +98,7 @@ public class UploadHLSChunk extends HttpServlet{
         return new Gson().fromJson(jsonString, JsonObject.class);
 	}
 
-	public void handlePostRequest(StorageClient storageClient, ConfigurableWebApplicationContext ctx, HttpServletRequest request, HttpServletResponse response) throws IOException {
+	public void handlePostRequest(StorageClient storageClient, ConfigurableWebApplicationContext ctx, HttpServletRequest request) throws IOException {
 		AppSettings appSettings = (AppSettings) ctx.getBean(AppSettings.BEAN_NAME);
 
 		JsonObject message = getJsonFromPostRequest(request);
@@ -106,6 +106,7 @@ public class UploadHLSChunk extends HttpServlet{
 		String command = message.get("command").getAsString();
 
 		if(command.equals(WebSocketConstants.PUBLISH_FINISHED)){
+			logger.info("stream finished : {}",streamId);
 			if(appSettings.isDeleteHLSFilesOnEnded()){
 				Vertx vertx = Vertx.vertx();
 
@@ -127,7 +128,7 @@ public class UploadHLSChunk extends HttpServlet{
 		{
 			try {
 				ConfigurableWebApplicationContext appContext = (ConfigurableWebApplicationContext) req.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-				handlePostRequest(storageClient,appContext,req,resp);
+				handlePostRequest(storageClient,appContext,req);
 			}
 			catch (IllegalStateException | IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
