@@ -76,6 +76,11 @@ public class WebSocketConstants {
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
 	
+	/**
+	 * This is the command that is sent from the server when a stream is started so that player can send a play command
+	 * or take any action
+	 */
+	public static final String STREAMING_STARTED = "streaming_started";
 
 	/**
 	 * Command to get ICE server configuration to frontend from server

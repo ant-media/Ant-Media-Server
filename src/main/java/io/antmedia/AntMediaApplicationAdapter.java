@@ -938,6 +938,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logPublishStartedEvent(streamId, publishType, subscriberId);
 				notifyPublishStarted(streamId, role, mainTrackId);
 
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
