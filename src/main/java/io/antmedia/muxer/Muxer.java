@@ -728,10 +728,12 @@ public abstract class Muxer {
 		String format = fileNameFormat.replaceAll("\\{.*?}", "%c");
 
 		// Add date-time to the resource name if the flag is set
-		if (addDateTimeToResourceName) {
-			LocalDateTime ldt = LocalDateTime.now();
+		LocalDateTime ldt = LocalDateTime.now();
+		currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+		
+		if (addDateTimeToResourceName) 
+		{
 			result.append("-").append(ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
-			currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 		}
 
 		// Process the format string if it's not empty
@@ -1397,6 +1399,18 @@ public abstract class Muxer {
 		av_strerror(errorCode, data, data.length);
 		return FFmpegUtilities.byteArrayToString(data);
 	}
+	
+	/**
+	 * This method is called when the current context will change/deleted soon.
+	 * 
+	 * @param codecContext
+	 * @param streamIndex
+	 * @param encoderHashCode: Is the encoder's class object hash code that calls this method
+	 */
+	
+	public synchronized void contextWillChange(AVCodecContext codecContext, int streamIndex, int encoderHashCode) {
+		
+	}
 
 	/**
 	 * This is called when the current context will change/deleted soon. 
@@ -1409,7 +1423,18 @@ public abstract class Muxer {
 	 * @param streamIndex
 	 */
 	public synchronized void contextWillChange(AVCodecContext codecContext, int streamIndex) {
-		
+		contextWillChange(codecContext, streamIndex, 0);
+	}
+	
+	/**
+	 * t's called when the codecContext for the stream index has changed.
+	 * 
+	 * @param codecContext
+	 * @param streamIndex
+	 * @param encoderHashCode 
+	 */
+	public synchronized void contextChanged(AVCodecContext codecContext, int streamIndex) {
+		contextChanged(codecContext, streamIndex, 0);
 	}
 	
 	/**
@@ -1420,7 +1445,7 @@ public abstract class Muxer {
 	 * @param codecContext
 	 * @param streamIndex
 	 */
-	public synchronized void contextChanged(AVCodecContext codecContext, int streamIndex) {
+	public synchronized void contextChanged(AVCodecContext codecContext, int streamIndex, int encoderHashCode) {
 		
 		if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) 
 		{

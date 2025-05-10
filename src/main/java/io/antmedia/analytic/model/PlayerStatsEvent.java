@@ -3,8 +3,6 @@ package io.antmedia.analytic.model;
 public class PlayerStatsEvent extends AnalyticEvent {
 	
 	public static final String EVENT_PLAYER_STATS = "playerStats";
-
-	private String subscriberId;
 	
 	private long totalBytesTransferred;
 	
@@ -18,14 +16,6 @@ public class PlayerStatsEvent extends AnalyticEvent {
 	
 	public PlayerStatsEvent() {
 		setEvent(EVENT_PLAYER_STATS);
-	}
-
-	public String getSubscriberId() {
-		return subscriberId;
-	}
-
-	public void setSubscriberId(String subscriberId) {
-		this.subscriberId = subscriberId;
 	}
 
 	public long getTotalBytesTransferred() {

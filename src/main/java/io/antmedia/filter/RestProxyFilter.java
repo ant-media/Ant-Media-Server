@@ -125,6 +125,11 @@ public class RestProxyFilter extends AbstractFilter {
 				}
 
 			}
+			else 
+			{
+				//This means that this request should be handled in this node so let chain.doFilter
+				chain.doFilter(request, response);
+			}
 		}
 		else 
 		{
@@ -258,10 +263,10 @@ public class RestProxyFilter extends AbstractFilter {
 		{
 			result = JWTFilter.isJWTTokenValid(jwtSecretKey, jwtInternalCommunicationToken);
 			if(result) {
-				logger.info("Request forwarded:{} by another node is validated successfully", requestURI);
+				logger.info("Request received:{} by another node is validated successfully", requestURI);
 			}
 			else {
-				logger.warn("Requested forwarded:{} by another node is failed because cluster jwt token is valid", requestURI);
+				logger.warn("Requested received:{} by another node is failed because cluster jwt token is valid", requestURI);
 			}
 		}
 		else {
