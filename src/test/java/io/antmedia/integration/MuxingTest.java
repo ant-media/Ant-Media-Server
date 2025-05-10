@@ -961,5 +961,10 @@ public class MuxingTest {
 		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
 
 		process.destroy();
+		
+		appSettings.setEnableTimeTokenForPublish(false);
+		appSettings.setTimeTokenSecretForPublish("");
+		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+		
 	}
 }
