@@ -244,7 +244,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(appSettings.isMp4MuxingEnabled());
 		assertFalse(appSettings.isAddDateTimeToMp4FileName());
 		assertTrue(appSettings.isHlsMuxingEnabled());
-		assertFalse(appSettings.isWebRTCEnabled());
+		assertTrue(appSettings.isWebRTCEnabled());
 		assertTrue(appSettings.isDeleteHLSFilesOnEnded());
 		assertFalse(appSettings.isMp4MuxingEnabled());
 		assertNull(appSettings.getHlsListSize());
