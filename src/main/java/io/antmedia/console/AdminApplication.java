@@ -233,7 +233,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
                 })
                 .sum();
         } catch (IOException e) {
-        	logger.error("Error while calculating directory size: {}", ExceptionUtils.getStackTrace(e));
+        	logger.error("Error while calculating directory size: {}", ExceptionUtils.getMessage(e));
             return -1; // Handle or log the exception as needed
         }
     }

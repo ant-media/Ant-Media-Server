@@ -75,6 +75,7 @@ public class WebSocketConstants {
 	public static final String NO_STREAM_EXIST = "no_stream_exist";
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
+	
 
 	/**
 	 * Command to get ICE server configuration to frontend from server

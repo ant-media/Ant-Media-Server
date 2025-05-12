@@ -709,12 +709,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					resetDASHStats(streamId);
 				}
 
+				final String mainTrackId = broadcast.getMainTrackStreamId();
+				final String role = broadcast.getRole();
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
-					final String mainTrackId = broadcast.getMainTrackStreamId();
+					
 					logger.info("call live stream ended hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
 							null, null, metaData, subscriberId);
@@ -737,6 +739,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					listener.streamFinished(broadcast.getStreamId());
 					listener.streamFinished(broadcast);
 				}
+				
+				notifyPublishStopped(streamId, role, mainTrackId);
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 			}
 		} catch (Exception e) {
@@ -902,12 +906,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
 
 				final String listenerHookURL = getListenerHookURL(broadcast);
+				final String mainTrackId = broadcast.getMainTrackStreamId();
+				String role = broadcast.getRole();
 				if (listenerHookURL != null && !listenerHookURL.isEmpty())
 				{
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
-					final String mainTrackId = broadcast.getMainTrackStreamId();
+					
 
 					logger.info("Call live stream started hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_START_LIVE_STREAM, name, category,
@@ -928,7 +934,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					listener.streamStarted(broadcast);
 				}
 
+
 				logPublishStartedEvent(streamId, publishType, subscriberId);
+				notifyPublishStarted(streamId, role, mainTrackId);
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -969,8 +978,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		LoggerUtils.logAnalyticsFromServer(event);
 	}
-
-
 
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
 		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -1382,18 +1389,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	public void trySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts, CompletableFuture<Boolean> future) {
+	public void trySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts, CompletableFuture<Boolean> future) 
+	{
 		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
 
 			vertx.executeBlocking(() -> {
 
 				boolean result = sendClusterPost(url, clusterCommunicationToken);
 
-				if (!result && retryAttempts >= 1) {
+				if (!result && retryAttempts >= 1) 
+				{
 					trySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1, future);
 				}
-				else {
-
+				else 
+				{
 					future.complete(result);
 					if (result) {
 						logger.info("Cluster POST is successful another node for url:{}", url);
@@ -2649,5 +2658,38 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void setStatsCollector(IStatsCollector statsCollector) {
 		this.statsCollector = statsCollector;
 	}
+
+	/**
+	 * This is a callback-method and called when a stream is fully started and it means it is called post publish operations has finished
+	 * It can be called from the cluster side or from the local side to synch subtracks
+	 */
+	public boolean publishStarted(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+		return false;
+	}
+	
+	/**
+	 * This method is called when a stream is fully stopped and it means it is called post publish operations has finished
+	 * It can be called from the cluster side or from the local side to synch subtracks
+	 */
+	public boolean publishStopped(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+		return false;
+	}
+	
+	/**
+	 * This method is called to notify the local node and cluster nodes when a stream is started 
+	 */
+	protected void notifyPublishStarted(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+	}
+	
+	/*
+	 * This method is called to notify the local or cluster nodes when a stream is stopped 
+	 */
+	protected void notifyPublishStopped(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+	}
+
 
 }
