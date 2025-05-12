@@ -123,14 +123,12 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		this.dataStoreFactory = dataStoreFactory;
 	}
 
+	//this is for test usage
 	public void setEnabledForTest(boolean enabled) {
 		if(appSettings == null) {
-			
 			appSettings = new AppSettings();
-			appSettings.setAcceptOnlyRoomsInDataStore(enabled);
-			
 		}
-		
+		appSettings.setAcceptOnlyStreamsInDataStore(enabled);
 	}
 
 
