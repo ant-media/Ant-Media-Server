@@ -6070,7 +6070,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		static  Boolean saveCalledWithCorrectParams = false;
 
     @Override
-    public void deleteMultipleFiles(String key, String fileExtensions){
+    public void deleteMultipleFiles(String key, String regex){
 		logger.info("test delete method");
     }
 		@Override

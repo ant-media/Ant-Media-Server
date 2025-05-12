@@ -31,7 +31,7 @@ public class GCPStorageClient extends StorageClient {
 		return storage;
 	}
 
-  public void deleteMultipleFiles(String key, String fileExtensions){
+  public void deleteMultipleFiles(String key, String regex){
 	  throw new UnsupportedOperationException("deleteMultipleFiles GCPStorageClass not Implemented");
   }
 

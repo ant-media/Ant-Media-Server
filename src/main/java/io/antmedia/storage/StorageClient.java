@@ -70,10 +70,10 @@ public abstract class StorageClient {
 	 * Delete Multiple files from storage
 	 * 
 	 * @param fileName
-	 * @param fileExtensions
+	 * @param regex
 	 */
 
-  public abstract void deleteMultipleFiles(String key, String fileExtensions);
+  public abstract void deleteMultipleFiles(String key, String regex);
 	/**
 	 * Save input stream to the storage with key parameter
 	 * 
