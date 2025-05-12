@@ -121,7 +121,7 @@ public class UploadHLSChunk extends HttpServlet{
 	}
 
 	@Override
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
 		StorageClient storageClient = getStorageClient(req);
 
 		if (storageClient != null)
@@ -161,7 +161,7 @@ public class UploadHLSChunk extends HttpServlet{
 	public void doPutForUnitTests(HttpServletRequest req, HttpServletResponse resp) {
 		doPut(req, resp);
 	}
-	public void doPostForUnitTests(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+	public void doPostForUnitTests(HttpServletRequest req, HttpServletResponse resp) {
 		doPost(req, resp);
 	}
 
