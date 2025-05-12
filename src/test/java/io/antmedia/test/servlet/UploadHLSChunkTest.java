@@ -217,8 +217,7 @@ public class UploadHLSChunkTest {
 			appSettings.setDeleteHLSFilesOnEnded(true);
 
 			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class));
-			Thread.sleep(3000);
-			verify(client, times(1)).deleteMultipleFiles(anyString(), anyString());
+			verify(client, timeout(5000).times(1)).deleteMultipleFiles(anyString(), anyString());
 		}
 	}
 

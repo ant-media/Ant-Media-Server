@@ -413,7 +413,7 @@ public class HLSMuxer extends Muxer  {
 				String filePath = getAppSettings().getS3StreamsFolderPath() + File.separator + streamId;
                 notifyStreamFinish(streamId,filePath);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("failed to notify finished http endpoint");
             }
         }
 
