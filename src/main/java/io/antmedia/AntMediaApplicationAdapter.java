@@ -1186,6 +1186,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		final String name = mainTrack.getName();
 		final String category = mainTrack.getCategory();
 		notifyHook(listenerHookURL, subtrackId, mainTrack.getStreamId(), HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, name, category, null, null, null, null);
+	
+		notifyPublishStarted(mainTrack.getStreamId(), null, mainTrack.getStreamId());
 	}
 
 	public void notifyNoActiveSubtracksLeftInMainTrack(Broadcast mainTrack) 
@@ -1197,6 +1199,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			final String category = mainTrack.getCategory();
 			notifyHook(listenerHookURL, mainTrack.getStreamId(), null, HOOK_ACTION_NO_ACTIVE_SUBTRACKS_LEFT_IN_THE_MAINTRACK, name, category, null, null, null, null);
 		}
+		
+		notifyPublishStopped(mainTrack.getStreamId(), null, mainTrack.getStreamId());
+
 	}
 	public void runScript(String scriptFile) {
 		vertx.executeBlocking(() -> {
@@ -2682,14 +2687,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/**
 	 * This method is called to notify the local node and cluster nodes when a stream is started 
 	 */
-	protected void notifyPublishStarted(String streamId, String role, String mainTrackId) {
+	public void notifyPublishStarted(String streamId, String role, String mainTrackId) {
 		//implemented in the enterprise edition
 	}
 	
 	/*
 	 * This method is called to notify the local or cluster nodes when a stream is stopped 
 	 */
-	protected void notifyPublishStopped(String streamId, String role, String mainTrackId) {
+	public void notifyPublishStopped(String streamId, String role, String mainTrackId) {
 		//implemented in the enterprise edition
 	}
 
