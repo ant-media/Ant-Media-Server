@@ -1376,7 +1376,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			try (CloseableHttpResponse httpResponse = httpClient.execute(request)) 
 			{
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
-				logger.info("Cluster POST Response Status: {} for url:{}", statusCode, request.getURI());
 				if (statusCode == HttpStatus.SC_OK) {
 					result = true;
 				} 
@@ -1406,10 +1405,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					future.complete(result);
 					if (result) {
-						logger.info("Cluster POST is successful another node for url:{}", url);
+						logger.info("Cluster POST is successful:200 for url:{}", url);
 					}
 					else {
-						logger.info("Cluster POST is not successful to another node for url:{} and no more retry attempts left",
+						logger.info("Cluster POST is not successful for url:{} and no more retry attempts left",
 								url);
 					}
 				}
