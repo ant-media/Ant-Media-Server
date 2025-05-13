@@ -216,7 +216,7 @@ public abstract class Muxer {
 			this.firstFrameTimeStamp = firstFrameTimeStamp;
 			this.originalFrameTimeMs = originalFrameTimeMs;
 		}
-		
+
 		public void setFrameRotation(int frameRotation) {
 			this.frameRotation = frameRotation;
 		}
