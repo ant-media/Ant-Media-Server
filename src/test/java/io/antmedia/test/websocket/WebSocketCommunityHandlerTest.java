@@ -247,6 +247,36 @@ public class WebSocketCommunityHandlerTest {
 
         // Assert - Verify that sendMessage is called with the correct JSON object and session
         verify(webSocketCommunityHandler).sendMessage(eq(jsonResponse), eq(session));
+        
+        
+        webSocketCommunityHandler.sendNotFoundJSON(streamId, "reason", session);
+        jsonResponse = new JSONObject();
+        jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+        jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
+        jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
+        jsonResponse.put(WebSocketConstants.INFORMATION , "reason");
+
+        jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+        
+        verify(webSocketCommunityHandler).sendMessage(eq(jsonResponse), eq(session));
+    }
+    
+    @Test
+    public void testSendStreamStartingSoon() throws Exception {
+        // Arrange
+        String streamId = "stream1";
+
+        JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.STREAMING_STARTS_SOON_DEFINITION);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+
+        // Act
+        webSocketCommunityHandler.sendStreamingStartsSoonMessage(streamId, session);
+
+        // Assert - Verify that sendMessage is called with the correct JSON object and session
+        verify(webSocketCommunityHandler).sendMessage(eq(jsonResponse), eq(session));
+        
     }
 
     @Test
