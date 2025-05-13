@@ -2733,6 +2733,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			verify(spyAdapter, timeout(5000)).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null, null);
 			verify(spyAdapter, timeout(5000)).notifyNoActiveSubtracksLeftInMainTrack(roomBroadcast);
+			verify(spyAdapter).notifyPublishStopped(mainTrackId, null, mainTrackId);
 
 		}catch (Exception e){
 			e.printStackTrace();
@@ -2793,6 +2794,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		verify(spyAdapter,timeout(5000)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null);
 
+		verify(spyAdapter).notifyPublishStarted(mainTrackId, null, mainTrackId);
+		
 		appSettings.setListenerHookURL(null);
 		spyAdapter.notifyFirstActiveSubtrackInMainTrack(mainTrackBroadcast, broadcast.getStreamId());
 

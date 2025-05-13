@@ -938,6 +938,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logPublishStartedEvent(streamId, publishType, subscriberId);
 				notifyPublishStarted(streamId, role, mainTrackId);
 
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1185,6 +1186,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		final String name = mainTrack.getName();
 		final String category = mainTrack.getCategory();
 		notifyHook(listenerHookURL, subtrackId, mainTrack.getStreamId(), HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, name, category, null, null, null, null);
+	
+		notifyPublishStarted(mainTrack.getStreamId(), null, mainTrack.getStreamId());
 	}
 
 	public void notifyNoActiveSubtracksLeftInMainTrack(Broadcast mainTrack) 
@@ -1196,6 +1199,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			final String category = mainTrack.getCategory();
 			notifyHook(listenerHookURL, mainTrack.getStreamId(), null, HOOK_ACTION_NO_ACTIVE_SUBTRACKS_LEFT_IN_THE_MAINTRACK, name, category, null, null, null, null);
 		}
+		
+		notifyPublishStopped(mainTrack.getStreamId(), null, mainTrack.getStreamId());
+
 	}
 	public void runScript(String scriptFile) {
 		vertx.executeBlocking(() -> {
@@ -1375,7 +1381,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			try (CloseableHttpResponse httpResponse = httpClient.execute(request)) 
 			{
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
-				logger.info("Cluster POST Response Status: {} for url:{}", statusCode, request.getURI());
 				if (statusCode == HttpStatus.SC_OK) {
 					result = true;
 				} 
@@ -1405,10 +1410,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					future.complete(result);
 					if (result) {
-						logger.info("Cluster POST is successful another node for url:{}", url);
+						logger.info("Cluster POST is successful:200 for url:{}", url);
 					}
 					else {
-						logger.info("Cluster POST is not successful to another node for url:{} and no more retry attempts left",
+						logger.info("Cluster POST is not successful for url:{} and no more retry attempts left",
 								url);
 					}
 				}
@@ -2680,14 +2685,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/**
 	 * This method is called to notify the local node and cluster nodes when a stream is started 
 	 */
-	protected void notifyPublishStarted(String streamId, String role, String mainTrackId) {
+	public void notifyPublishStarted(String streamId, String role, String mainTrackId) {
 		//implemented in the enterprise edition
 	}
 	
 	/*
 	 * This method is called to notify the local or cluster nodes when a stream is stopped 
 	 */
-	protected void notifyPublishStopped(String streamId, String role, String mainTrackId) {
+	public void notifyPublishStopped(String streamId, String role, String mainTrackId) {
 		//implemented in the enterprise edition
 	}
 
