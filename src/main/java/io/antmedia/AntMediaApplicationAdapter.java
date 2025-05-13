@@ -1803,7 +1803,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		synchronized (adaptors)
 		{
 			for (MuxAdaptor adaptor : adaptors) {
-				if(adaptor.getBroadcast().getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+				Broadcast broadcast = adaptor.getBroadcast();
+				if(broadcast != null && broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
 
 					ClientBroadcastStream broadcastStream = adaptor.getBroadcastStream();
 					if (broadcastStream != null) {
