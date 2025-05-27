@@ -110,6 +110,7 @@ public class MongoStore extends DataStore {
 	public static final int SUBSCRIBER_CACHE_EXPIRE_SECONDS = 10;
 	public static final int BROADCAST_CACHE_SIZE = 1000;
 	public static final int BROADCAST_CACHE_EXPIRE_SECONDS = 3;
+	private static final String CONNECTED = "connected";
 	
 	private Object broadcastLock = new Object();
 	private Object vodLock = new Object();
@@ -1592,6 +1593,29 @@ public class MongoStore extends DataStore {
 		recordQueryDuration(startTime, "listAllTokens");
 		return tokenList;
 	}
+	
+	@Override
+	public long getConnectedSubscriberCount(String streamId) {
+		long startTime = System.nanoTime();
+		
+		long subscriberCount = 0;
+		synchronized(subscriberLock) {
+			subscriberCount = subscriberDatastore.find(Subscriber.class).filter(
+					 Filters.and(Filters.eq(STREAM_ID, streamId), Filters.eq(CONNECTED, true))).count();
+		}
+		recordQueryDuration(startTime, "getSubscriberCount");
+		return subscriberCount;
+	}
+	
+	@Override
+	public List<Subscriber> getConnectedSubscribers(String streamId, int offset, int size) {
+		long startTime = System.nanoTime();
+		List<Subscriber> subscriberList = new ArrayList<>();
+		synchronized(subscriberLock) {
+			subscriberList = subscriberDatastore.find(Subscriber.class).filter(Filters.and(Filters.eq(STREAM_ID, streamId), Filters.eq(CONNECTED, true))).iterator(new FindOptions().skip(offset).limit(size)).toList();
+		}
+		recordQueryDuration(startTime, "getConnectedSubscribers");
+		return subscriberList;	}
 
 	@Override
 	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
