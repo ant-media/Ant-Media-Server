@@ -38,7 +38,7 @@ public class SubscriberBlockFilter extends AbstractFilter{
         		|| httpRequest.getRequestURI().endsWith("mpd")))
         {
             final String subscriberId = request.getParameter("subscriberId");
-            final String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
+            final String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI(), getAppSettings().getHlsSegmentFileSuffixFormat());
             final DataStore dataStore = getDataStore();
             final Broadcast broadcast = getBroadcast(httpRequest, streamId);
             final Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);

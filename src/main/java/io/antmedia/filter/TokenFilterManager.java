@@ -1,6 +1,7 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -50,20 +51,18 @@ public class TokenFilterManager extends AbstractFilter   {
 		if (subscriberCodeText != null) {
 			subscriberCodeText = subscriberCodeText.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 		}
-
-		String sessionId = httpRequest.getSession().getId();
-		String streamId = getStreamId(httpRequest.getRequestURI());
-
-		String clientIP = httpRequest.getRemoteAddr().replaceAll(RestServiceBase.REPLACE_CHARS, "_");
-
-
 		AppSettings appSettings = getAppSettings();
-
+		
 		if (appSettings == null) {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Server is getting initialized.");
-			logger.warn("AppSettings not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+			logger.warn("AppSettings not initialized. Server is getting started for request: {}", httpRequest.getRequestURI());
 			return;
 		}
+
+		String sessionId = httpRequest.getSession().getId();
+		String streamId = getStreamId(httpRequest.getRequestURI(), appSettings.getHlsSegmentFileSuffixFormat());
+
+		String clientIP = httpRequest.getRemoteAddr().replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 
 
 		logger.debug("Client IP: {}, request url:  {}, token:  {}, sessionId: {},streamId:  {} ",clientIP 
@@ -170,8 +169,11 @@ public class TokenFilterManager extends AbstractFilter   {
 		return appSettings.isTimeTokenSubscriberOnly() || appSettings.isPlayJwtControlEnabled() || appSettings.isEnableTimeTokenForPlay() || appSettings.isPlayTokenControlEnabled() ||appSettings.isHashControlPlayEnabled();
 	}
 
-
 	public static String getStreamId(String requestURI) {
+		return getStreamId(requestURI, "");
+	}
+
+	public static String getStreamId(String requestURI, String suffixFormat) {
 		if (StringUtils.isBlank(requestURI)) {
 			logger.debug("requestURI is null or empty");
 			return null;
@@ -252,6 +254,42 @@ public class TokenFilterManager extends AbstractFilter   {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
+		
+		//for different suffix with abr
+		// Convert the suffix format into a regex pattern
+        String suffixRegex = suffixFormat
+            .replaceAll("%Y", "[0-9]{4}")   // Year as 4 digits
+            .replaceAll("%y", "[0-9]{2}")   // Year as 2 digits
+            .replaceAll("%m", "[0-9]{2}")   // Month as 2 digits
+            .replaceAll("%d", "[0-9]{2}")   // Day as 2 digits
+            .replaceAll("%s", "[0-9]{10}+");     // Seconds since epoch as digits
+
+		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+" + suffixRegex + "\\.(ts|fmp4)$";  // matches file format with extension
+		if (StringUtils.isNotBlank(suffixFormat) && requestURI.matches(tsRegex)) {
+			pattern = Pattern.compile(tsRegex);
+			matcher = pattern.matcher(requestURI);
+
+			if (matcher.matches()) {
+				endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
+				return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
+			}
+		}
+		
+		//for different suffix without abr
+		tsRegex = "(.*)+" + suffixRegex + "\\.(ts|fmp4)$";  // matches file format with extension
+		if (StringUtils.isNotBlank(suffixFormat) && requestURI.matches(tsRegex)) {
+			pattern = Pattern.compile(tsRegex);
+			matcher = pattern.matcher(requestURI);
+
+			if (matcher.matches()) {
+				pattern = Pattern.compile(suffixRegex);
+		        matcher = pattern.matcher(requestURI);
+				if (matcher.find()) {
+					endIndex = matcher.start();
+					return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
+				}
+			}
+		}
 
 		//for backward compatibility
 		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{4}.(ts|fmp4)$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
@@ -259,7 +297,7 @@ public class TokenFilterManager extends AbstractFilter   {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
-
+		
 		tsRegex = "(.*)[0-9]{"+ Muxer.SEGMENT_INDEX_LENGTH +"}.(ts|fmp4)$";  // matches default ts file extension  [0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('.'); //because file format is [NAME][0000].ts
@@ -273,7 +311,6 @@ public class TokenFilterManager extends AbstractFilter   {
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex-4);
 		}
 		
-
 		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p500kbps.mp4 
 		String vodDatetimeRegex = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*)";
 		String vodResolutionBitrateRegex = "(.*)+_[0-9]+p+[0-9]+kbps+(.*)";
