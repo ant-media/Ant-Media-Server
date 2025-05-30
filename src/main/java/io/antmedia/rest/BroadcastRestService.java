@@ -1096,7 +1096,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 
         if (StringUtils.isAnyBlank(streamId, subscriberId)) {
-            message = "streamId or subscriberId is blank";
+			message = "streamId or subscriberId is blank";
 			return new Result(result, message);
 		}
 
