@@ -1095,27 +1095,26 @@ public class BroadcastRestService extends RestServiceBase{
 		String message = "";
 
 
-
-		if (!StringUtils.isAnyBlank(streamId, subscriberId)) 
-		{
-			//if the user is not in this node, it's in another node in the cluster.  
-			//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
-
-			result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
-
-			if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType) ) 
-			{
-				getApplication().stopPlayingBySubscriberId(subscriberId);
-			} 
-
-			if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
-				getApplication().stopPublishingBySubscriberId(subscriberId);
-			}
-
-
+        if (StringUtils.isAnyBlank(streamId, subscriberId)) {
+            message = "streamId or subscriberId is blank";
+			return new Result(result, message);
 		}
-		else {
-			message = "streamId or subscriberId is blank";
+
+		//if the user is not in this node, it's in another node in the cluster.
+		//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
+		result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
+
+		AntMediaApplicationAdapter application = getApplication();
+		if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
+			application.stopPlayingBySubscriberId(subscriberId);
+		}
+
+		if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
+			// Stops WebRTC streams
+			application.stopPublishingBySubscriberId(subscriberId);
+
+			// Stops other streams
+			this.stopStreaming(streamId, false);
 		}
 
 		return new Result(result, message);
