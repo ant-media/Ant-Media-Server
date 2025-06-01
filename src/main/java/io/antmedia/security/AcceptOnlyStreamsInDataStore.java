@@ -10,24 +10,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.licence.ILicenceService;
-import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.MuxAdaptor;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 
 	@Autowired
 	private DataStoreFactory dataStoreFactory;
+	
+	@Autowired
+	private AppSettings appSettings;
 
 	private DataStore dataStore;
-
-	@Value("${settings.acceptOnlyStreamsInDataStore:true}")
-	private boolean enabled = true;
 
 	private ILicenceService licenService = null;
 
@@ -36,18 +36,16 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsInDataStore.class);
 
 	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData) {
+	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode) {
 
 		boolean result = false;
 
 
 		Broadcast broadcast = getDatastore().get(name);
 
-	
-
 		if (broadcast == null) 
 		{
-			if (enabled) {
+			if (appSettings.isAcceptOnlyStreamsInDataStore()) {
 				logger.info("OnlyStreamsInDataStore is allowed and accepting streamId:{}", name);
 				result = false;
 			}
@@ -116,15 +114,6 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	}
 
 
-	public boolean isEnabled() {
-		return enabled;
-	}
-
-
-	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-	}
-
 	public DataStoreFactory getDataStoreFactory() {
 		return dataStoreFactory;
 	}
@@ -132,6 +121,14 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 
 	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
 		this.dataStoreFactory = dataStoreFactory;
+	}
+
+	//this is for test usage
+	public void setEnabledForTest(boolean enabled) {
+		if(appSettings == null) {
+			appSettings = new AppSettings();
+		}
+		appSettings.setAcceptOnlyStreamsInDataStore(enabled);
 	}
 
 

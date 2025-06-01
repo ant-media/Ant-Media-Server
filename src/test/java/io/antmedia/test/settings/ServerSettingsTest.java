@@ -184,6 +184,12 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(serverSettings.isOfflineLicense());
 		serverSettings.setOfflineLicense(true);
 		assertTrue(serverSettings.isOfflineLicense());
+		
+		assertFalse(ServerSettings.isRtmpsEnabled());
+		
+		serverSettings.setRtmpsEnabled(true);
+		
+		assertTrue(ServerSettings.isRtmpsEnabled());
 	}
 	
 	@Test

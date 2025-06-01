@@ -2899,7 +2899,7 @@ public class AppSettings implements Serializable{
 		hlsMuxingEnabled = true;
 		hlsListSize = null;
 		hlsTime = null;
-		webRTCEnabled = false;
+		webRTCEnabled = true;
 		deleteHLSFilesOnEnded = true;
 		deleteDASHFilesOnEnded = true;
 		acceptOnlyStreamsInDataStore = false;

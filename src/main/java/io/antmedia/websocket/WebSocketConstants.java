@@ -75,6 +75,25 @@ public class WebSocketConstants {
 	public static final String NO_STREAM_EXIST = "no_stream_exist";
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
+	
+	/**
+	 * This is the command that is sent from the server when a stream is started so that player can send a play command
+	 * or take any action
+	 */
+	public static final String STREAMING_STARTED = "streaming_started";
+
+	/**
+	 * Command to get ICE server configuration to frontend from server
+	 */
+	public static final String GET_ICE_SERVER_CONFIG = "getIceServerConfig";
+
+	public static final String ICE_SERVER_CONFIG_NOTIFICATION = "iceServerConfig";
+
+	public static final String STUN_SERVER_URI = "stunServerUri";
+
+	public static final String TURN_SERVER_USERNAME = "turnServerUsername";
+
+	public static final String TURN_SERVER_CREDENTIAL = "turnServerCredential";
 
 	/**
 	 * Please use {@link #MAIN_TRACK} instead
@@ -675,5 +694,20 @@ public class WebSocketConstants {
 	 * Notification to notify a new subtrack removal to a main track
 	 */
 	public static final String SUBTRACK_REMOVED = "subtrackRemoved";
+	
+	/**
+	 * This is the error definition that is sent when the stream does not exist or not streaming
+	 */
+	public static final String STREAM_NOT_EXIST_OR_NOT_STREAMING_DEFINITION = "stream_not_exist_or_not_streaming";
+	
+	/**
+	 * This is the error definition that is sent when the stream exits but not available as WebRTC because webrtc is not enabled
+	 */
+	public static final String WEBRTC_NOT_ENABLED_TO_PLAYBACK_DEFINITION = "webrtc_not_enabled";
+
+	/**
+	 * This is the definition that is sent when the is about to start for auto/start stop streams
+	 */
+	public static final String STREAMING_STARTS_SOON_DEFINITION = "streaming_starts_soon";
 
 }
