@@ -1111,10 +1111,10 @@ public class BroadcastRestService extends RestServiceBase{
 
 		if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
 			// Stops WebRTC streams
-			application.stopPublishingBySubscriberId(subscriberId);
-
-			// Stops other streams
-			this.stopStreaming(streamId, false);
+			if (!application.stopPublishingBySubscriberId(subscriberId)) {
+				// WebRTC stream not stopped. Try to stop other streams
+				this.stopStreaming(streamId, false);
+			}
 		}
 
 		return new Result(result, message);
