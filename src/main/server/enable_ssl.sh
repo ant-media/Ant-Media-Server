@@ -26,10 +26,11 @@ domain=""
 password=
 renew_flag='false'
 freedomain=""
+restart_service='true' #if this is true, it restarts the service at the end of the script otherwise it does not
 
 helpRequest='false'
 
-while getopts i:d:v:p:e:f:rhc: option
+while getopts i:d:v:p:e:f:rshc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
@@ -41,6 +42,7 @@ do
     r) renew_flag='true';;
     e) email=${OPTARG};;
     h) helpRequest='true';;
+    s) restart_service=${OPTARG};;
    esac
 done
 
@@ -505,9 +507,13 @@ ipt_restore
 echo ""
 
 if is_docker_container; then
+    echo "You are running Ant Media Server in a Docker container. Please restart the container to apply the changes."
     kill -HUP 1
-else
+elif [ "$restart_service" == "true" ]; then 
+    echo "Restarting Ant Media Server..."
     $SUDO service antmedia restart
+else
+    echo "Ant Media Server is not restarted because script is called just to install the ssl. Please restart it manually to apply the changes."
 fi
 
 output

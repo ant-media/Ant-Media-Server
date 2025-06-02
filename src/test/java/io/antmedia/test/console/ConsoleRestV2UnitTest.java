@@ -981,14 +981,16 @@ public class ConsoleRestV2UnitTest {
 
 	@Test
 	public void testAuthenticateMultiAppUser(){
+		
 		String password = "password";
+		
 		String userName = "username" + (int) (Math.random() * 100000);
 
 		Map<String,String> appNameUserTypeMap = new HashMap<>();
 		appNameUserTypeMap.put("LiveApp", UserType.USER.toString());
 		appNameUserTypeMap.put("live", UserType.READ_ONLY.toString());
 
-		User user = new User(userName, password, null, null, appNameUserTypeMap);
+		User user = new User(userName, CommonRestService.getMD5Hash(password), null, null, appNameUserTypeMap);
 		dbStore.addUser(user);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
@@ -1010,6 +1012,8 @@ public class ConsoleRestV2UnitTest {
 			appNameUserTypeJson.addProperty(appName, userType);
 		}
 
+		//Set the password because we get md5 hash 
+		user.setPassword(password);
 		Result result = restService.authenticateUser(user);
 		assertTrue(result.isSuccess());
         assertEquals(result.getMessage(), appNameUserTypeJson.toString());
