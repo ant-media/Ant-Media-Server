@@ -139,6 +139,11 @@ public class WebSocketConstants {
 	public static final String SUBSCRIBER_ID = "subscriberId";
 	
 	/**
+	 * this subscriber name is the human readable name for a subscriber
+	 */
+	public static final String SUBSCRIBER_NAME = "subscriberName";
+	
+	/**
 	 * this subscriber code is used to access resources or start broadcast when time based subscriber security is enabled
 	 */
 	public static final String SUBSCRIBER_CODE = "subscriberCode";
@@ -615,6 +620,11 @@ public class WebSocketConstants {
 	 * Participant role in the room
 	 */
 	public static final String ROLE = "role";
+	
+	/**
+	 * Participant role in the room
+	 */
+	public static final String DISABLE_TRACKS_BY_DEFAULT = "disableTracksByDefault";
 
 	/**
 	 * Command to get subtrack infos for a main track
