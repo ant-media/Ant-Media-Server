@@ -117,6 +117,8 @@ import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -1382,7 +1384,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			if (data != null) {
 				// Set Content-Type for binary data
-				request.setHeader("Content-Type", "application/octet-stream");
+				request.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM);
 
 				// Attach the byte stream as entity
 				HttpEntity byteEntity = new ByteArrayEntity(data);

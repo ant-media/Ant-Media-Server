@@ -36,11 +36,13 @@ import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -2194,6 +2196,50 @@ public class AntMediaApplicationAdaptorUnitTest {
 			assertFalse(capturedToken.isEmpty());
 		}
 	}
+	
+	@Test
+	public void testOctetStreamSendClusterPost() throws ClientProtocolException, IOException {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+
+		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
+		when(appContext.containsBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(true);
+		when(appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		
+		CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+		
+		CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
+		StatusLine statusLine = mock(StatusLine.class);
+		when(statusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+		when(httpResponse.getStatusLine()).thenReturn(statusLine);
+		
+		Mockito.doReturn(httpClient).when(spyAdapter).getHttpClient();
+		when(httpClient.execute(any(HttpPost.class)))
+				.thenReturn(httpResponse);
+		
+		String testUrl = "http://localhost:5080/test";
+		String testToken = "test-token";
+		
+		boolean result = spyAdapter.sendClusterPost(testUrl, testToken, testUrl.getBytes());
+		
+		ArgumentCaptor<HttpPost> httpPostCaptor = ArgumentCaptor.forClass(HttpPost.class);
+		
+		verify(httpClient, times(1)).execute(httpPostCaptor.capture());
+		
+		HttpPost value = httpPostCaptor.getValue();
+		
+		assertEquals(testUrl, value.getURI().toString());
+		assertEquals(testToken, value.getFirstHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION).getValue());
+		assertEquals("application/octet-stream", value.getFirstHeader("Content-Type").getValue());
+		ByteArrayEntity entity = (ByteArrayEntity) value.getEntity();
+		
+		assertEquals(entity.getContent().readAllBytes().length, testUrl.getBytes().length);
+	}
 
 	@Test
 	public void testSendClusterPost() throws Exception {
@@ -2881,8 +2927,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, broadcastUpdateForStatus.getWebRTCViewerCount().intValue());
 		assertEquals(0, broadcastUpdateForStatus.getHlsViewerCount().intValue());
 		assertEquals(0, broadcastUpdateForStatus.getDashViewerCount().intValue());
-		
-		
-		
 	}
+	
 }
