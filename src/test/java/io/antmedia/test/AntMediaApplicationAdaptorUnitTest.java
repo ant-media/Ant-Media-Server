@@ -2016,7 +2016,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String expectedRestRoute = "http://1.1.1.3:5080/WebRTCAppEE/rest/v2/broadcasts/test-stream-id/start";
 		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute),
-				anyString()
+				anyString(), 
+				any()
 				);
 
 		Result result3 = spyAdapter.startStreaming(broadcast3);
@@ -2036,7 +2037,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String expectedRestRoute2 = "http://1.1.1.4:5080/WebRTCAppEE/rest/v2/broadcasts/test-stream-id-2/start";
 		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute2),
-				anyString()
+				anyString(),
+				any()
 				);
 		when(streamFetcherManager.startStreaming(broadcast4)).thenReturn(new Result(true));
 
@@ -2109,7 +2111,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute1),
-				anyString()
+				anyString(),
+				any()
 				);
 
 		spyAdapter.forwardStartStreaming(broadcast1);
@@ -2118,7 +2121,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
 			verify(spyAdapter, times(1)).sendClusterPost(
 					eq(expectedRestRoute1),
-					anyString()
+					anyString(),
+					any()
 					);
 			verify(streamFetcherManager, never()).startStreaming(broadcast1);
 		});
@@ -2135,7 +2139,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute2),
-				anyString()
+				anyString(),
+				any()
 				);
 		when(streamFetcherManager.startStreaming(broadcast2)).thenReturn(new Result(true));
 
@@ -2145,7 +2150,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
 			verify(spyAdapter, times(4)).sendClusterPost(
 					eq(expectedRestRoute2),
-					anyString()
+					anyString(),
+					any()
 					);
 			verify(streamFetcherManager, times(1)).startStreaming(broadcast2);
 		});
@@ -2162,7 +2168,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute3),
-				anyString()
+				anyString(),
+				any()
 				);
 		when(streamFetcherManager.startStreaming(broadcast3)).thenReturn(new Result(true));
 
@@ -2172,14 +2179,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 		await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
 			verify(spyAdapter, times(4)).sendClusterPost(
 					eq(expectedRestRoute3),
-					anyString()
+					anyString(),
+					any()
 					);
 			verify(streamFetcherManager, times(1)).startStreaming(broadcast3);
 		});
 
 		// Test Case 4: Verify JWT token format
 		ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
-		verify(spyAdapter, atLeast(3)).sendClusterPost(anyString(), tokenCaptor.capture());
+		verify(spyAdapter, atLeast(3)).sendClusterPost(anyString(), tokenCaptor.capture(), any());
 
 		for (String capturedToken : tokenCaptor.getAllValues()) {
 			assertNotNull(capturedToken);
@@ -2229,7 +2237,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Test asynchronous behavior
 		long startTime = System.currentTimeMillis();
-		boolean result = spyAdapter.sendClusterPost(testUrl, testToken);
+		boolean result = spyAdapter.sendClusterPost(testUrl, testToken, null);
 
 		long endTime = System.currentTimeMillis();
 		// Wait for the CompletableFuture to complete
@@ -2251,7 +2259,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Test no retries left after failure
 		when(httpClient.execute(any(HttpPost.class))).thenReturn(failResponse);
-		result = spyAdapter.sendClusterPost(testUrl, testToken);
+		result = spyAdapter.sendClusterPost(testUrl, testToken, null);
 		assertFalse(result);
 
 		// Test IOException handling with retries
@@ -2259,7 +2267,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		.thenThrow(new IOException("Test exception"))
 		.thenReturn(successResponse);
 
-		result = spyAdapter.sendClusterPost(testUrl, testToken);
+		result = spyAdapter.sendClusterPost(testUrl, testToken, null);
 		assertFalse(result);
 
 		// Verify the retry logic was triggered
