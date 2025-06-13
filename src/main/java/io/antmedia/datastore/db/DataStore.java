@@ -493,8 +493,25 @@ public abstract class DataStore {
 	 * @return lists of subscribers
 	 */	
 	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size);
-
-	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson) {
+	
+	/**
+	 * Returns the number of the subscribers of requested stream
+	 * @param streamId
+	 * @return number of the subscribers of requested stream
+	 */	
+	public abstract long getConnectedSubscriberCount(String streamId);
+	
+	/**
+	 * Lists connected subscribers of requested stream
+	 * @param streamId
+	 * @param offset
+	 * @param size
+	 * @return lists of subscribers
+	 */	
+	public abstract List<Subscriber> getConnectedSubscribers(String streamId, int offset, int size);
+	
+	
+	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson, boolean connectedOnly) {
 		long startTime = System.nanoTime();
 
 		List<Subscriber> list = new ArrayList<>();
@@ -516,7 +533,8 @@ public abstract class DataStore {
 			while (iterator.hasNext()) {
 				Subscriber subscriber = gson.fromJson(iterator.next(), Subscriber.class);
 
-				if (subscriber.getStreamId().equals(streamId)) {
+				if (subscriber.getStreamId().equals(streamId) &&
+					    (!connectedOnly || subscriber.isConnected())) {
 					list.add(subscriber);
 				}
 			}
@@ -1802,7 +1820,7 @@ public abstract class DataStore {
 					QUERY_TIME_THRESHOLD_MS_SEC, methodName);
 		}
 	}
-	
+
 	//**************************************
 	//ATTENTION: Write function above with descriptions while adding new functions
 	//**************************************	
