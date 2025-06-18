@@ -1,5 +1,9 @@
 package io.antmedia.rest;
 
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -16,6 +20,7 @@ import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -36,11 +41,12 @@ import jakarta.ws.rs.core.MediaType;
 
 @Component
 @Path("/cluster-communication")
+@Hidden
 public class ClusterNotificationService extends RestServiceBase {
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(ClusterNotificationService.class);
 
-	
+
 	@Operation(summary = "Notifies when streaming is started in another node. It is for internal communication between node. This is why it is hidden", description = "Notifies Stream Start/Stop operations.", responses = {
 			@ApiResponse(responseCode = "200", description = "Received by the node", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
 	})
@@ -53,8 +59,8 @@ public class ClusterNotificationService extends RestServiceBase {
 			@Parameter(description = "Main track of the stream", required = false) @QueryParam("mainTrackId") String mainTrackId) {
 		return new Result(getApplication().publishStarted(id, role, mainTrackId));		
 	}
-	
-	
+
+
 	@Operation(summary = "Notifies when streaming is stopped in another node. It is for internal communication between nodes.This is why it is hidden", description = "Notifies Stream Start/Stop operations.", responses = {
 			@ApiResponse(responseCode = "200", description = "Received by the node", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
 	})
@@ -67,6 +73,45 @@ public class ClusterNotificationService extends RestServiceBase {
 			@Parameter(description = "Main track of the stream", required = false) @QueryParam("mainTrackId") String mainTrackId) {
 		return new Result(getApplication().publishStopped(id, role, mainTrackId));
 	}
-	
-	
+
+	@Operation(
+			summary = "Notifies when data message received from a virtual stream (conference) in another node. It is for internal communication between nodes. This is why it is hidden",
+			description = "Notifies when data message received from a virtual stream (conference) in another node",
+			responses = {
+					@ApiResponse(
+							responseCode = "200",
+							description = "Received by the node",
+							content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class))
+							)
+			}
+			)
+	@POST
+	@Path("/virtual-stream-data-message/{id}/{binary}")
+	@Consumes(MediaType.APPLICATION_OCTET_STREAM)
+	@Hidden
+	public Result virtualStreamDataMessageReceivedFromPlayer(
+			@Parameter(description = "ID of the broadcast", required = true)
+			@PathParam("id") String id,
+			@Parameter(description = "Whether the stream is binary", required = true)
+			@PathParam("binary") boolean binary,
+			InputStream dataStream 
+			) 
+	{
+		String message = null;
+		try {
+			byte[] data = dataStream.readAllBytes();
+
+			//virtual streams does not have internal cluster audio/video/data communication so just call  
+			getApplication().getDataChannelRouter().playerMessageReceived(null, id, data, binary);
+
+			return new Result(true); // Replace with your actual implementation
+		}
+		catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			message = e.getMessage();
+		} 
+		return new Result(false, message); 
+	}
+
+
 }

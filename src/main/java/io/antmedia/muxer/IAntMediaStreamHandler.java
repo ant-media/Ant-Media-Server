@@ -13,6 +13,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.IStreamListener;
+import io.antmedia.webrtc.datachannel.IDataChannelRouter;
 
 public interface IAntMediaStreamHandler {
 	
@@ -312,4 +313,10 @@ public interface IAntMediaStreamHandler {
 	 * @param listener
 	 */
 	public void addSettingsUpdateListener(IAppSettingsUpdateListener listener);
+	
+	/**
+	 * Get data channel router for data channel delivery
+	 * @return
+	 */
+	public IDataChannelRouter getDataChannelRouter();
 }
