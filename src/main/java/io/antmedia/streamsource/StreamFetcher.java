@@ -476,7 +476,7 @@ public class StreamFetcher {
 				long currentTime = System.currentTimeMillis();
 				muxAdaptor.setStartTime(currentTime);
 
-				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, null);
+				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, null, null);
 
 				if (bufferTime > 0) {
 

@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -871,8 +872,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdaptor.addStreamListener(streamListener);
 
 		String subscriberId = "subscriberId";
-		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId);
-		verify(spyAdaptor, Mockito.timeout(2000).times(1)).notifyHook(hookURL, broadcast.getStreamId(), "", AntMediaApplicationAdapter.HOOK_ACTION_START_LIVE_STREAM, null, null, null, null, "", subscriberId);
+		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId, null);
+		verify(spyAdaptor, Mockito.timeout(2000).times(1)).notifyHook(hookURL, broadcast.getStreamId(), "", 
+							AntMediaApplicationAdapter.HOOK_ACTION_START_LIVE_STREAM, null, null, null, null, "", subscriberId, null);
 
 		
 		ArgumentCaptor<Broadcast> broadcastCaptor = ArgumentCaptor.forClass(Broadcast.class);
@@ -882,7 +884,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		spyAdaptor.closeBroadcast(broadcast.getStreamId(), subscriberId);
 
-		verify(spyAdaptor, Mockito.timeout(2000).times(1)).notifyHook(hookURL, broadcast.getStreamId(), "", AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, "", subscriberId);
+		verify(spyAdaptor, Mockito.timeout(2000).times(1)).notifyHook(hookURL, broadcast.getStreamId(), "", 
+							AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, "", subscriberId, null);
 		broadcastCaptor = ArgumentCaptor.forClass(Broadcast.class);
 		verify(streamListener, Mockito.timeout(2000).times(1)).streamFinished(broadcastCaptor.capture());
 		assertEquals(broadcast.getStreamId(), broadcastCaptor.getValue().getStreamId());
@@ -956,7 +959,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			JSONObject metadata = new JSONObject();
 			metadata.put("key1", "value1");
 
-			spyAdaptor.notifyHook(webhookUrl, streamId, null, "action", null, null, null, null, metadata.toString(), null);
+			spyAdaptor.notifyHook(webhookUrl, streamId, null, "action", null, null, null, null, metadata.toString(), null, null);
 
 			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
 
@@ -967,7 +970,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		{
 			String metadata = "metadata";
-			spyAdaptor.notifyHook(webhookUrl, streamId, null, "action", null, null, null, null, metadata, null);
+			spyAdaptor.notifyHook(webhookUrl, streamId, null, "action", null, null, null, null, metadata, null, null);
 			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
 
 			Mockito.verify(spyAdaptor, timeout(5000).times(2)).sendPOST(Mockito.any(), variables.capture(), Mockito.anyInt(), Mockito.anyString());
@@ -986,10 +989,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		appSettings.setWebhookRetryCount(2);
 		spyAdaptor.setAppSettings(appSettings);
 
-		spyAdaptor.notifyHook(null, null, null, null, null, null, null, null, null, null);
+		spyAdaptor.notifyHook(null, null, null, null, null, null, null, null, null, null, null);
 		Mockito.verify(spyAdaptor, timeout(5000).times(1)).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt(), Mockito.anyString());
 
-		spyAdaptor.notifyHook("", null, null, null, null, null, null, null, null, null);
+		spyAdaptor.notifyHook("", null, null, null, null, null, null, null, null, null, null);
 		Mockito.verify(spyAdaptor, timeout(5000).times(2)).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt(), Mockito.anyString());
 
 
@@ -1002,7 +1005,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String vodId = String.valueOf((Math.random() * 10000));
 
 		String url = "this is url";
-		spyAdaptor.notifyHook(url, id, null, action, streamName, category, vodName, vodId, null, null);
+		spyAdaptor.notifyHook(url, id, null, action, streamName, category, vodName, vodId, null, null, null);
 		Mockito.verify(spyAdaptor, timeout(5000).times(3)).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt(), Mockito.anyString());
 
 		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
@@ -1023,7 +1026,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertNotNull(map.get("timestamp"));
 
 		url = "this is second  url";
-		spyAdaptor.notifyHook(url, id, null, null, null, null, null, null, null, null);
+		Map<String, String> parameters = new HashMap<>();
+		parameters.put("key1", "value1");
+		parameters.put("key2", "value2");
+		spyAdaptor.notifyHook(url, id, null, null, null, null, null, null, null, null, parameters);
 
 
 		ArgumentCaptor<String> captureUrl2 = ArgumentCaptor.forClass(String.class);
@@ -1042,6 +1048,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertNull(map.get("vodName"));
 		assertNull(map.get("vodId"));
 		assertNotNull(map.get("timestamp"));
+		assertEquals("value1", map.get("key1"));
+		assertEquals("value2", map.get("key2"));
+
 
 
 	}
@@ -1078,6 +1087,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureMetadata = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> subscriberId = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<Map<String, String>> parameters = ArgumentCaptor.forClass(Map.class);
+
 
 
 		/*
@@ -1092,7 +1103,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), 
+						subscriberId.capture(), parameters.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -1118,7 +1130,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), 
+						captureMetadata.capture(), subscriberId.capture(), parameters.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -1143,7 +1156,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(3)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), 
+						captureVodId.capture(), captureMetadata.capture(), subscriberId.capture(), parameters.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -1200,6 +1214,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureMetadata = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> subscriberId = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<Map<String, String>> parameters = ArgumentCaptor.forClass(Map.class);
 
 
 
@@ -1209,7 +1224,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//verify that notifyHook is never called
 		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
-				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
+				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), 
+				captureMetadata.capture(), subscriberId.capture(), parameters.capture());
 
 
 		/*
@@ -1238,7 +1254,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), 
+						captureVodId.capture(), captureMetadata.capture(), subscriberId.capture(), parameters.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -1272,7 +1289,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that no new notifyHook is called 
 				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), 
+						captureMetadata.capture(), subscriberId.capture(), parameters.capture());
 
 				called = true;
 			}
@@ -1301,7 +1319,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 2 times
 				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureMainTrackId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureMetadata.capture(), subscriberId.capture());
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), 
+							captureMetadata.capture(), subscriberId.capture(), parameters.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -2785,7 +2804,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			verify(spyAdapter, timeout(5000)).updateMainTrackWithRecentlyFinishedBroadcast(subTrackBroadcast);
 
 
-			verify(spyAdapter, timeout(5000)).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null, null);
+			verify(spyAdapter, timeout(5000)).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null, null, null);
 			verify(spyAdapter, timeout(5000)).notifyNoActiveSubtracksLeftInMainTrack(roomBroadcast);
 			verify(spyAdapter).notifyPublishStopped(mainTrackId, null, mainTrackId);
 
@@ -2846,21 +2865,21 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.notifyFirstActiveSubtrackInMainTrack(mainTrackBroadcast, broadcast.getStreamId());
 
 
-		verify(spyAdapter,timeout(5000)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null);
+		verify(spyAdapter,timeout(5000)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null, null);
 
 		verify(spyAdapter).notifyPublishStarted(mainTrackId, null, mainTrackId);
 		
 		appSettings.setListenerHookURL(null);
 		spyAdapter.notifyFirstActiveSubtrackInMainTrack(mainTrackBroadcast, broadcast.getStreamId());
 
-		verify(spyAdapter,times(1)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null);
+		verify(spyAdapter,times(1)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null, null);
 		broadcast.setMetaData(null);
 		db.save(broadcast);
 
 		appSettings.setListenerHookURL(webhookUrl);
 		spyAdapter.notifyFirstActiveSubtrackInMainTrack(mainTrackBroadcast, broadcast.getStreamId());
 
-		verify(spyAdapter,times(2)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null);
+		verify(spyAdapter,times(2)).notifyHook(webhookUrl, broadcast.getStreamId(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, null,null,null,null, null, null, null);
 
 	}
 	

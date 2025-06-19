@@ -2063,12 +2063,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setIngestingStreamLimit(2);
 
 
-		appAdaptor.startPublish(streamId, 0, null, null);
+		appAdaptor.startPublish(streamId, 0, null, null, null);
 
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null, null);
+		appAdaptor.startPublish(streamId, 0, null, null, null);
 
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -2082,7 +2082,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null, null);
+		appAdaptor.startPublish(streamId, 0, null, null, null);
 
 		Mockito.verify(appAdaptor, timeout(1000).times((int) activeBroadcastCount + 1)).stopStreaming(Mockito.any(), Mockito.anyBoolean());
 
@@ -2106,7 +2106,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		long absoluteTimeMS = System.currentTimeMillis();
 		
-		spyAdaptor.startPublish(streamId, absoluteTimeMS, null, null);
+		spyAdaptor.startPublish(streamId, absoluteTimeMS, null, null, null);
 
 		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
 
@@ -2131,7 +2131,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Application app = (Application) applicationContext.getBean("web.handler");
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(app);
 
-		Mockito.doNothing().when(appAdaptor).notifyHook(anyString(), anyString(), any(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+		Mockito.doNothing().when(appAdaptor).notifyHook(anyString(), anyString(), any(), anyString(), anyString(), anyString(), anyString(), 
+					anyString(), anyString(), anyString(), anyMap());
 		assertNotNull(appAdaptor);
 
 		//just check below value that it is not null, this is not related to this case but it should be tested

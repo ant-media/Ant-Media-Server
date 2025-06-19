@@ -1630,7 +1630,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (parameters != null) {
 				subscriberId = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
 			}
-			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId);
+			
+			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId, parameters);
 
 		}
 		catch(Exception e) {
