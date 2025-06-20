@@ -723,7 +723,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 					logger.info("call live stream ended hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
-							null, null, metaData, subscriberId);
+							null, null, metaData, subscriberId, null);
 				}
 
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
@@ -899,11 +899,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	@Override
 	@Deprecated
 	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
-		startPublish(streamId, absoluteStartTimeMs, publishType, null);
+		startPublish(streamId, absoluteStartTimeMs, publishType, null, null);
 	}
 
 	@Override
-	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId) {
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> parameters) {
 		vertx.executeBlocking( () -> {
 			try {
 
@@ -921,7 +921,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 					logger.info("Call live stream started hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-							null, null, metaData, subscriberId);
+							null, null, metaData, subscriberId, parameters);
 				}
 
 				int ingestingStreamLimit = appSettings.getIngestingStreamLimit();
@@ -1170,7 +1170,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		{
 			final String baseName = vodName.substring(0, index);
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metadata, null);
+			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metadata, null, null);
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -1189,7 +1189,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		final String name = mainTrack.getName();
 		final String category = mainTrack.getCategory();
-		notifyHook(listenerHookURL, subtrackId, mainTrack.getStreamId(), HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, name, category, null, null, null, null);
+		notifyHook(listenerHookURL, subtrackId, mainTrack.getStreamId(), HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, name, category, 
+							null, null, null, null, null);
 
 		notifyPublishStarted(mainTrack.getStreamId(), null, mainTrack.getStreamId());
 	}
@@ -1201,7 +1202,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (StringUtils.isNotBlank(listenerHookURL)) {
 			final String name = mainTrack.getName();
 			final String category = mainTrack.getCategory();
-			notifyHook(listenerHookURL, mainTrack.getStreamId(), null, HOOK_ACTION_NO_ACTIVE_SUBTRACKS_LEFT_IN_THE_MAINTRACK, name, category, null, null, null, null);
+			notifyHook(listenerHookURL, mainTrack.getStreamId(), null, HOOK_ACTION_NO_ACTIVE_SUBTRACKS_LEFT_IN_THE_MAINTRACK, name, category, 
+							null, null, null, null, null);
 		}
 
 		notifyPublishStopped(mainTrack.getStreamId(), null, mainTrack.getStreamId());
@@ -1242,12 +1244,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	public void sendWebHook(String id, String mainTrackId, String action, String streamName, String category,
-			String vodName, String vodId, String metadata, String subscriberId)  
+			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters)  
 	{
 		String listenerHookURL = getListenerHookURL(getDataStore().get(id));	
 		if (StringUtils.isNotBlank(listenerHookURL)) 
 		{
-			notifyHook(listenerHookURL, id, mainTrackId, action, streamName, category, vodName, vodId, metadata, subscriberId);
+			notifyHook(listenerHookURL, id, mainTrackId, action, streamName, category, vodName, vodId, metadata, subscriberId, parameters);
 		} 
 	}
 
@@ -1265,10 +1267,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *                    {@link #HOOK_ACTION_START_LIVE_STREAM}
 	 * @param vodName     name of the vod
 	 * @param vodId       id of the vod in the datastore
+	 * @param parameters 
 	 * @return
 	 */
 	public void notifyHook(@NotNull String url, String id, String mainTrackId, String action, String streamName, String category,
-			String vodName, String vodId, String metadata, String subscriberId) {
+			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters) {
 
 		//Previously, we're using runOnContext and switched to executeBlocking without ordered because this operation may take some time
 		//and we don't want to block the event loop, the disadvantage of this approach is that the order of the operations may not be guaranteed 
@@ -1304,6 +1307,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			}
 			putToMap("timestamp", String.valueOf(System.currentTimeMillis()), variables);
+			
+			if (parameters != null && !parameters.isEmpty()) {
+				for (Entry<String, String> entry : parameters.entrySet()) {
+					putToMap(entry.getKey(), entry.getValue(), variables);
+				}
+			}
 
 
 			try {
@@ -2133,7 +2142,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String metaData = broadcast.getMetaData();
 				String mainTrackId = broadcast.getMainTrackStreamId();
 				logger.info("Setting timer to call encoder not opened error for stream:{}", streamId);
-				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, metaData, null);
+				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, metaData, null, null);
 			}
 		}
 	}
@@ -2165,7 +2174,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 
-				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString(), null);
+				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString(), null, null);
 			}
 		}
 	}
@@ -2519,7 +2528,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.info("Setting timer to call rtmp endpoint failed hook for stream:{}", streamId);
 				JSONObject jsonObject = new JSONObject();
 				jsonObject.put("rtmp-url", url);
-				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENDPOINT_FAILED, name, category, null, null, jsonObject.toJSONString(), null);
+				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENDPOINT_FAILED, name, category, null, null, jsonObject.toJSONString(), null, null);
 			}
 		}
 	}
