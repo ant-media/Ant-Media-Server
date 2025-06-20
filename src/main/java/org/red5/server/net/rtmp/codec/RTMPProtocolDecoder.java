@@ -259,7 +259,7 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
 	        		//following read is 3 byte so make sure there are 3 bytes in the buffer
 		        	int timeValue = RTMPUtils.readUnsignedMediumInt(in);
 		        	if (timeValue == 0xffffff) {
-		        		log.info("Extended timestamp exists because timevalue is 0xffffff chunkheader:{}",chunkHeader);
+		        		log.debug("Extended timestamp exists because timevalue is 0xffffff chunkheader:{}",chunkHeader);
 		        		extendedTimestampLength = 4;
 		        	}
 	        	}
@@ -271,7 +271,7 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
 	            * the presence of an extended timestamp field.
 	            * */
 	        	if (lastHeader != null && lastHeader.getExtendedTimestamp() != 0) {
-	        		log.info("Extended timestamp exists in HEADER_CONTINUE last header:{} chunk header:{}", lastHeader, chunkHeader);
+	        		log.debug("Extended timestamp exists in HEADER_CONTINUE last header:{} chunk header:{}", lastHeader, chunkHeader);
 	        		extendedTimestampLength = 4;
 	        	}
 	        	break;
@@ -845,7 +845,7 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
                 // onFI
                 // the onFI request contains 2 items relative to the publishing client application
                 // sd = system date (12-07-2011) st = system time (09:11:33.387)
-                log.info("Stream send: {}", action);
+                log.debug("Stream send: {}", action);
                 Map<Object, Object> params = Collections.EMPTY_MAP;
                 log.debug("Params type: {}", object);
                 if (object == DataTypes.CORE_MAP) {

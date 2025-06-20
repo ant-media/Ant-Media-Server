@@ -23,6 +23,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -94,6 +95,9 @@ public class SubscriberBlockFilterTest {
             DataStore dataStore = mock(DataStore.class);
             when(dataStore.isAvailable()).thenReturn(true);
             when(dsf.getDataStore()).thenReturn(dataStore);
+            
+            AppSettings appSettings = new AppSettings();
+    		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
 
             subscriberBlockFilter.doFilter(httpServletRequest1, httpServletResponse, filterChain1);
 
