@@ -18,15 +18,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -58,7 +55,6 @@ import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
-import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
@@ -102,7 +98,6 @@ import io.antmedia.test.StreamFetcherUnitTest;
 import io.antmedia.test.StreamSchedularUnitTest;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
-import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -3611,7 +3606,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(datastore).when(streamSourceRest).getDataStore();
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id, streamId);
 
 		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber1Id, 10, Subscriber.PLAY_TYPE).isSuccess());
 
@@ -3621,7 +3616,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 10000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 10000);
 
-		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber1Id, streamId);
 
 		String subscriber2Id = "subscriber2";
 		Subscriber subscriber2 = new Subscriber();
@@ -3658,7 +3653,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
 
 		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
-		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id, streamId);
 
 	}
 

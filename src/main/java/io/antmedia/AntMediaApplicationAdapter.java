@@ -2625,7 +2625,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return new Result(false);
 	}
 
-	public boolean stopPlayingBySubscriberId(String subscriberId){
+	public boolean stopPlayingBySubscriberId(String subscriberId, String streamId){
 		return false;
 	}
 
