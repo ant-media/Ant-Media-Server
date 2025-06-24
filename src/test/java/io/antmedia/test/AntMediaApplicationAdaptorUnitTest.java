@@ -1261,6 +1261,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
 				assertEquals(captureVodName.getValue()+".mp4", anyFile.getName());
 				assertNull(captureStreamName.capture());
+				
+				Map<String,String> value = parameters.getValue();
+				assertEquals(100, Integer.parseInt(value.get("duration")));
+				
 
 				called = true;
 			}

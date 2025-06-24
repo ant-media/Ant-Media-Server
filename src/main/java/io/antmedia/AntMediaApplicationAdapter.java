@@ -1170,7 +1170,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		{
 			final String baseName = vodName.substring(0, index);
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metadata, null, null);
+			Map<String, String> parameters = new HashMap<>();
+			parameters.put("duration", String.valueOf(duration));
+			
+			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metadata, null, parameters);
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -2270,6 +2273,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		if (updateAppSettingsFile(getScope().getName(), newSettings))
 		{
+			logger.debug("Settings are saved for {}", getScope().getName());
 			result = true;
 		}
 		else {
