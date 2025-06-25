@@ -3611,7 +3611,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(datastore).when(streamSourceRest).getDataStore();
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id, streamId);
 
 		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber1Id, 10, Subscriber.PLAY_TYPE).isSuccess());
 
@@ -3621,7 +3621,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 10000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 10000);
 
-		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber1Id, streamId);
 
 		String subscriber2Id = "subscriber2";
 		Subscriber subscriber2 = new Subscriber();
@@ -3638,7 +3638,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
 
-		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber2Id);
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber2Id, streamId);
 
 
 		String subscriber3Id = "subscriber3";
@@ -3657,8 +3657,8 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
 
-		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
-		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id, streamId);
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id, streamId);
 
 	}
 

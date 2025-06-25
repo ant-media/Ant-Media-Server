@@ -466,6 +466,7 @@ public class TokenFilterTest {
 		settings.setPlayTokenControlEnabled(true);
 		when(settings.isPlayTokenControlEnabled()).thenReturn(true);
 		when(settings.getClusterCommunicationKey()).thenReturn(RandomStringUtils.randomAlphabetic(10));
+		when(settings.getHlsSegmentFileSuffixFormat()).thenReturn("%9d");
 
 
 
