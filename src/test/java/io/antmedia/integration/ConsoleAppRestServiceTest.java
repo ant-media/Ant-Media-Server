@@ -2517,24 +2517,24 @@ public class ConsoleAppRestServiceTest{
 
   @Test
   public void testRtspAllowedMediaTypes() throws Exception {
-			StreamFetcherUnitTest.startCameraEmulator();
+    StreamFetcherUnitTest.startCameraEmulator();
 
-			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio",
-      AntMediaApplicationAdapter.STREAM_SOURCE);
+    Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio",
+    AntMediaApplicationAdapter.STREAM_SOURCE);
 
-			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
-			Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
+    String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
+    Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
 
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+    Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+      Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
 
-        assertEquals(0, broadcastTmp.getHeight());
-        assertEquals(0, broadcastTmp.getWidth());
+      assertEquals(0, broadcastTmp.getHeight());
+      assertEquals(0, broadcastTmp.getWidth());
 
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+      return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
 
-			});
+    });
 
   }
 	/**
