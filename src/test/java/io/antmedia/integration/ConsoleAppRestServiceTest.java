@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.print.PrintException;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import io.antmedia.console.rest.CommonRestService;
@@ -2513,6 +2515,28 @@ public class ConsoleAppRestServiceTest{
 		
 	}
 
+  @Test
+  public void testRtspAllowedMediaTypes() throws Exception {
+			StreamFetcherUnitTest.startCameraEmulator();
+
+			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio",
+      AntMediaApplicationAdapter.STREAM_SOURCE);
+
+			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
+			Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
+
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+
+        assertEquals(0, broadcastTmp.getHeight());
+        assertEquals(0, broadcastTmp.getWidth());
+
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+
+			});
+
+  }
 	/**
 	 * This is a bug fix test
 	 * https://github.com/ant-media/Ant-Media-Server/issues/6212
