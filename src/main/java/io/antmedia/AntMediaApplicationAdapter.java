@@ -140,6 +140,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
 
+	public static final String HOOK_IDLE_TIME_EXPIRED = "idleTimeIsExpired";
+
 
 	/**
 	 * This is used to notify that the play is stopped
@@ -745,6 +747,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 
 				notifyPublishStopped(streamId, role, mainTrackId);
+				
+				if(broadcast.getMaxIdleTime() > 0) {
+					createIdleCheckTimer(broadcast, false);
+				}
+				
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 			}
 		} catch (Exception e) {
@@ -842,6 +849,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
 				}
 				notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
+				
+				if(mainBroadcast.getMaxIdleTime() > 0) {
+					createIdleCheckTimer(mainBroadcast, true);
+				}
 			}
 			else {
 				logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
@@ -1693,7 +1704,49 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				result.setSuccess(true);
 			}
 		}
+		
 		return result;
+	}
+
+	private void createIdleCheckTimer(Broadcast broadcast, boolean isMainTrack) {
+		logger.info("Idle check timer is set to {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
+		vertx.setTimer(broadcast.getMaxIdleTime()*1000, l -> {
+			Broadcast currentBroadcast = dataStore.get(broadcast.getStreamId());
+			if(currentBroadcast == null) {
+				logger.info("Broadcast {} is not exist anymore", broadcast.getStreamId());
+				return;
+			}
+			
+			if(isMainTrack) {
+				long activeSubtrackCount = dataStore.getActiveSubtracksCount(currentBroadcast.getStreamId(), null);
+				logger.info("Room {} idle time {} has expired and active subtrack count is {}", currentBroadcast.getStreamId(), currentBroadcast.getMaxIdleTime(), activeSubtrackCount);
+				if(activeSubtrackCount == 0) {
+					notifyBroadcastIdleTimeExpired(currentBroadcast);
+				}
+			}
+			else {
+				long now = System.currentTimeMillis();
+				logger.info("Broadcast {} idle time {} has expired at {} and last update time {}", currentBroadcast.getStreamId(), currentBroadcast.getMaxIdleTime(), now, currentBroadcast.getUpdateTime());
+				if(now > (currentBroadcast.getUpdateTime() + currentBroadcast.getMaxIdleTime()*1000)) {
+					notifyBroadcastIdleTimeExpired(currentBroadcast);
+				}
+			}
+		});
+	}
+
+	private void notifyBroadcastIdleTimeExpired(Broadcast broadcast) {
+		logger.info("Idle time {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
+		final String listenerHookURL = getListenerHookURL(broadcast);
+		if (listenerHookURL != null && listenerHookURL.length() > 0)
+		{
+			final String streamId = broadcast.getStreamId();
+			final String mainTrackId = broadcast.getMainTrackStreamId();
+			final String name = broadcast.getName();
+			final String category = broadcast.getCategory();
+			
+			notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_IDLE_TIME_EXPIRED, name, category, null, null, null, null, null);
+		}
+		
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {

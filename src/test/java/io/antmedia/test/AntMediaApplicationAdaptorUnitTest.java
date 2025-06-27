@@ -62,6 +62,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 
@@ -2952,4 +2953,232 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, broadcastUpdateForStatus.getDashViewerCount().intValue());
 	}
 	
+	@Test
+    public void testBroadcastTriggersIdleHook() {
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		
+		AppSettings appSettings = new AppSettings();
+		String listenerHookURL = "something";
+		appSettings.setListenerHookURL(listenerHookURL);
+		spyAdapter.setAppSettings(appSettings);
+		
+		doNothing().when(spyAdapter).resetHLSStats(anyString());
+		doNothing().when(spyAdapter).resetDASHStats(anyString());
+
+		doReturn(null).when(spyAdapter).getBroadcastStream(any(), anyString());
+		doNothing().when(spyAdapter).notifyHook(
+			    anyString(), // url
+			    anyString(), // id
+			    anyString(), // mainTrackId
+			    anyString(), // action
+			    anyString(), // streamName
+			    anyString(), // category
+			    nullable(String.class), // vodName
+			    nullable(String.class), // vodId
+			    nullable(String.class), // metadata
+			    nullable(String.class), // subscriberId
+			    nullable(Map.class)     // parameters
+			);
+		
+		String streamId = "stream1";
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setMaxIdleTime(5);
+		
+		DataStore db = mock(DataStore.class);
+		when(db.get(broadcast.getStreamId())).thenReturn(broadcast);
+		spyAdapter.setDataStore(db);
+
+		spyAdapter.closeBroadcast(broadcast.getStreamId(), null);
+
+		verify(spyAdapter, Mockito.after(4000).never()).notifyHook(listenerHookURL, broadcast.getStreamId(), broadcast.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
+
+		verify(spyAdapter, Mockito.after(2000).times(1)).notifyHook(listenerHookURL, broadcast.getStreamId(), broadcast.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
+
+    }
+	
+	@Test
+    public void testBroadcastDoesntTriggerIdleHook() {
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		
+		AppSettings appSettings = new AppSettings();
+		String listenerHookURL = "something";
+		appSettings.setListenerHookURL(listenerHookURL);
+		spyAdapter.setAppSettings(appSettings);
+		
+		doNothing().when(spyAdapter).resetHLSStats(anyString());
+		doNothing().when(spyAdapter).resetDASHStats(anyString());
+		
+		doReturn(null).when(spyAdapter).getBroadcastStream(any(), anyString());
+		doNothing().when(spyAdapter).notifyHook(
+			    anyString(), // url
+			    anyString(), // id
+			    anyString(), // mainTrackId
+			    anyString(), // action
+			    anyString(), // streamName
+			    anyString(), // category
+			    nullable(String.class), // vodName
+			    nullable(String.class), // vodId
+			    nullable(String.class), // metadata
+			    nullable(String.class), // subscriberId
+			    nullable(Map.class)     // parameters
+			);
+		
+		String streamId = "stream1";
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setMaxIdleTime(5);
+
+		DataStore db = mock(DataStore.class);
+		when(db.get(broadcast.getStreamId())).thenReturn(broadcast);
+		spyAdapter.setDataStore(db);
+
+		
+		spyAdapter.closeBroadcast(broadcast.getStreamId(), null);
+
+		verify(spyAdapter,Mockito.after(4000).never()).notifyHook(listenerHookURL, broadcast.getStreamId(), broadcast.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
+
+		broadcast.setUpdateTime(System.currentTimeMillis());
+		
+		verify(spyAdapter,Mockito.after(2000).never()).notifyHook(listenerHookURL, broadcast.getStreamId(), broadcast.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
+
+    }
+	
+	@Test
+    public void testRoomTriggersIdleHook() {
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		
+		AppSettings appSettings = new AppSettings();
+		String listenerHookURL = "something";
+		appSettings.setListenerHookURL(listenerHookURL);
+		spyAdapter.setAppSettings(appSettings);
+		
+		doNothing().when(spyAdapter).resetHLSStats(anyString());
+		doNothing().when(spyAdapter).resetDASHStats(anyString());
+		
+		doReturn(null).when(spyAdapter).getBroadcastStream(any(), anyString());
+		doNothing().when(spyAdapter).notifyHook(
+			    anyString(), // url
+			    anyString(), // id
+			    anyString(), // mainTrackId
+			    anyString(), // action
+			    anyString(), // streamName
+			    anyString(), // category
+			    nullable(String.class), // vodName
+			    nullable(String.class), // vodId
+			    nullable(String.class), // metadata
+			    nullable(String.class), // subscriberId
+			    nullable(Map.class)     // parameters
+			);
+		
+		String streamId = "stream1";
+		String mainTrackId = "room1";
+
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setMainTrackStreamId(mainTrackId);
+		
+		Broadcast mainTrack = new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		mainTrack.setMaxIdleTime(5);
+		
+		
+		DataStore db = mock(DataStore.class);
+		when(db.get(broadcast.getStreamId())).thenReturn(broadcast);
+		when(db.get(mainTrack.getStreamId())).thenReturn(mainTrack);
+
+		spyAdapter.setDataStore(db);
+
+		when(db.getActiveSubtracksCount(anyString(), nullable(String.class))).thenReturn(0L);
+		
+		spyAdapter.updateMainTrackWithRecentlyFinishedBroadcast(broadcast);
+
+		verify(spyAdapter,Mockito.after(4000).never()).notifyHook(listenerHookURL, mainTrack.getStreamId(), mainTrack.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
+
+		verify(spyAdapter, Mockito.after(2000).times(1)).notifyHook(listenerHookURL, mainTrack.getStreamId(), mainTrack.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
+
+    }
+	
+	@Test
+    public void testRoomDoesntTriggerIdleHook() {
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		
+		AppSettings appSettings = new AppSettings();
+		String listenerHookURL = "something";
+		appSettings.setListenerHookURL(listenerHookURL);
+		spyAdapter.setAppSettings(appSettings);
+		
+		doNothing().when(spyAdapter).resetHLSStats(anyString());
+		doNothing().when(spyAdapter).resetDASHStats(anyString());
+		
+		doReturn(null).when(spyAdapter).getBroadcastStream(any(), anyString());
+		doNothing().when(spyAdapter).notifyHook(
+			    anyString(), // url
+			    anyString(), // id
+			    anyString(), // mainTrackId
+			    anyString(), // action
+			    anyString(), // streamName
+			    anyString(), // category
+			    nullable(String.class), // vodName
+			    nullable(String.class), // vodId
+			    nullable(String.class), // metadata
+			    nullable(String.class), // subscriberId
+			    nullable(Map.class)     // parameters
+			);
+		
+		String streamId = "stream1";
+		String mainTrackId = "room1";
+
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setMainTrackStreamId(mainTrackId);
+		
+		Broadcast mainTrack = new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		mainTrack.setMaxIdleTime(5);
+		
+		
+		DataStore db = mock(DataStore.class);
+		when(db.get(broadcast.getStreamId())).thenReturn(broadcast);
+		when(db.get(mainTrack.getStreamId())).thenReturn(mainTrack);
+
+		spyAdapter.setDataStore(db);
+
+		when(db.getActiveSubtracksCount(anyString(), nullable(String.class))).thenReturn(0L);
+		
+		spyAdapter.updateMainTrackWithRecentlyFinishedBroadcast(broadcast);
+
+		verify(spyAdapter,Mockito.after(4000).never()).notifyHook(listenerHookURL, mainTrack.getStreamId(), mainTrack.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
+
+		when(db.getActiveSubtracksCount(anyString(), nullable(String.class))).thenReturn(1L);
+
+		verify(spyAdapter, Mockito.after(2000).times(1)).notifyHook(listenerHookURL, mainTrack.getStreamId(), mainTrack.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
+
+    }
+
+   
 }
