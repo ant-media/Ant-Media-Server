@@ -747,6 +747,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 
 				notifyPublishStopped(streamId, role, mainTrackId);
+				
+				if(broadcast.getMaxIdleTime() > 0) {
+					createIdleCheckTimer(broadcast, false);
+				}
+				
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 			}
 		} catch (Exception e) {
@@ -844,6 +849,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
 				}
 				notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
+				
+				if(mainBroadcast.getMaxIdleTime() > 0) {
+					createIdleCheckTimer(mainBroadcast, true);
+				}
 			}
 			else {
 				logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
@@ -1696,19 +1705,31 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 		
-		if(broadcast.getMaxIdleTime() > 0) {
-			createIdleCheckTimer(broadcast);
-		}
 		return result;
 	}
 
-	private void createIdleCheckTimer(Broadcast broadcast) {
+	private void createIdleCheckTimer(Broadcast broadcast, boolean isMainTrack) {
+		logger.info("Idle check timer is set to {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
 		vertx.setTimer(broadcast.getMaxIdleTime()*1000, l -> {
-			if((broadcast.isVirtual() && dataStore.getActiveSubtracksCount(broadcast.getStreamId(), null) == 0 )
-					|| 
-				(!broadcast.isVirtual() && System.currentTimeMillis() > (broadcast.getUpdateTime() + broadcast.getMaxIdleTime()*1000)))
-			{
-				notifyBroadcastIdleTimeExpired(broadcast);
+			Broadcast currentBroadcast = dataStore.get(broadcast.getStreamId());
+			if(currentBroadcast == null) {
+				logger.info("Broadcast {} is not exist anymore", broadcast.getStreamId());
+				return;
+			}
+			
+			if(isMainTrack) {
+				long activeSubtrackCount = dataStore.getActiveSubtracksCount(currentBroadcast.getStreamId(), null);
+				logger.info("Room {} idle time {} has expired and active subtrack count is {}", currentBroadcast.getStreamId(), currentBroadcast.getMaxIdleTime(), activeSubtrackCount);
+				if(activeSubtrackCount == 0) {
+					notifyBroadcastIdleTimeExpired(currentBroadcast);
+				}
+			}
+			else {
+				long now = System.currentTimeMillis();
+				logger.info("Broadcast {} idle time {} has expired at {} and last update time {}", currentBroadcast.getStreamId(), currentBroadcast.getMaxIdleTime(), now, currentBroadcast.getUpdateTime());
+				if(now > (currentBroadcast.getUpdateTime() + currentBroadcast.getMaxIdleTime()*1000)) {
+					notifyBroadcastIdleTimeExpired(currentBroadcast);
+				}
 			}
 		});
 	}
