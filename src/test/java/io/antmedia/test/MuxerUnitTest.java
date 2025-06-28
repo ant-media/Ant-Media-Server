@@ -527,7 +527,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		String streamId = "stream_name_" + (int) (Math.random() * 10000);
-		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
+		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4", false);
 
 		//init
 		hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -571,7 +571,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		String streamId = "stream_name_" + (int) (Math.random() * 10000);
-		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
+		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4", false);
 
 		//init
 		hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -842,7 +842,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
-		hlsMuxer.setHlsParameters(null, null, null, null, null, null);
+		hlsMuxer.setHlsParameters(null, null, null, null, null, null, false);
 		hlsMuxer.init(appScope, "test", 0, null, 0);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
@@ -916,7 +916,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String streamId = "streamId";
 			String subFolder = "subfolder/";
 
-			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null, false);
 
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
@@ -944,7 +944,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String streamId = "streamId";
 			String subFolder = "subfolder";
 
-			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null, false);
 
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
@@ -970,7 +970,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
 			hlsMuxer.setIsRunning(new AtomicBoolean(true));
 			String streamId = "streamId";
-			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null, false);
 
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
@@ -3005,7 +3005,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		StorageClient client = Mockito.mock(AmazonS3StorageClient.class);
 		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, client, "streams", 1, null, false);
-		hlsMuxerTester.setHlsParameters(null, null, null, null, null, null);
+		hlsMuxerTester.setHlsParameters(null, null, null, null, null, null, false);
 		assertFalse(hlsMuxerTester.isUploadingToS3());
 
 
@@ -5499,7 +5499,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
-			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts", false);
 
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -5574,7 +5574,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
 
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
-			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4", false);
 
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -5611,7 +5611,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
 
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
-			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts", false);
 
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -5650,7 +5650,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
 
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
-			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts", false);
 
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);

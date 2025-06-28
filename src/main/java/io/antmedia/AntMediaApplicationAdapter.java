@@ -6,6 +6,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.HttpURLConnection;
@@ -1217,6 +1218,22 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			try {
 				logger.info("running script: {}", scriptFile);
 				Process exec = Runtime.getRuntime().exec(scriptFile);
+				
+				InputStream errorStream = exec.getErrorStream();
+	            byte[] data = new byte[1024];
+	            int length = 0;
+
+	            while ((length = errorStream.read(data, 0, data.length)) > 0) {
+	                logger.info(new String(data, 0, length));
+	            }
+
+	            InputStream inputStream = exec.getInputStream();
+
+	            while ((length = inputStream.read(data, 0, data.length)) > 0) {
+	            	logger.info(new String(data, 0, length));
+	            }
+	            
+	            
 				int result = exec.waitFor();
 
 				logger.info("completing script: {} with return value {}", scriptFile, result);

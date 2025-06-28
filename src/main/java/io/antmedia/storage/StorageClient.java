@@ -107,6 +107,12 @@ public abstract class StorageClient {
 	 */
 	public abstract boolean fileExist(String key);
 	
+	
+	public InputStream get(String key) {
+		//default implementation returns null
+		return null;
+	}
+	
 	/**
 	 * Re-initialize the storage client with the current parameters
 	 */

@@ -22,9 +22,11 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
@@ -120,6 +122,18 @@ public class AmazonS3StorageClient extends StorageClient {
 			logger.debug("S3 is not enabled to check the file existence: {}", key);
 		}
 		return false;
+	}
+	
+	@Override
+	public InputStream get(String key) {
+		 GetObjectRequest getObjectRequest = new GetObjectRequest(getStorageName(), key);
+
+		 S3Object s3Object =  getAmazonS3().getObject(getObjectRequest);
+		 if (s3Object == null) {
+			 logger.error("S3 Object not found for key: {}", key);
+			 return null;
+		 }
+		 return s3Object.getObjectContent();
 	}
 
 	public void save(final File file, String type) {
