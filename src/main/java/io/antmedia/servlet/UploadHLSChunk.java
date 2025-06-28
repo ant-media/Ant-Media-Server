@@ -8,6 +8,7 @@ import java.io.InputStream;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import jakarta.servlet.ServletException;
@@ -25,6 +26,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.amazonaws.event.ProgressEventType;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.storage.StorageClient;
@@ -98,17 +100,24 @@ public class UploadHLSChunk extends HttpServlet{
         return new Gson().fromJson(jsonString, JsonObject.class);
 	}
 
-	public void handlePostRequest(StorageClient storageClient, ConfigurableWebApplicationContext ctx, HttpServletRequest request) throws IOException {
-		AppSettings appSettings = (AppSettings) ctx.getBean(AppSettings.BEAN_NAME);
+	public boolean handlePostRequest(StorageClient storageClient, ConfigurableWebApplicationContext ctx, HttpServletRequest request) throws IOException {
 
+		boolean isHandled = false;
 		JsonObject message = getJsonFromPostRequest(request);
 		String streamId = message.get("streamId").getAsString();
 		String command = message.get("command").getAsString();
 
 		if(command.equals(WebSocketConstants.PUBLISH_FINISHED)){
+			isHandled = true;
+			
+			AppSettings appSettings = (AppSettings) ctx.getBean(AppSettings.BEAN_NAME);
+
+			
 			logger.info("stream finished : {}",streamId);
+			
 			if(appSettings.isDeleteHLSFilesOnEnded()){
-				Vertx vertx = Vertx.vertx();
+				
+				Vertx vertx = (Vertx) ctx.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 				String filePath = message.get("filePath").getAsString();
 				vertx.setTimer(Integer.parseInt(appSettings.getHlsTime()) * Integer.parseInt(appSettings.getHlsListSize()) * 1000l, l ->{
@@ -118,6 +127,8 @@ public class UploadHLSChunk extends HttpServlet{
 				);
 			}
 		}
+		
+		return isHandled;
 	}
 
 	@Override
@@ -128,13 +139,23 @@ public class UploadHLSChunk extends HttpServlet{
 		{
 			try {
 				ConfigurableWebApplicationContext appContext = (ConfigurableWebApplicationContext) req.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-				handlePostRequest(storageClient,appContext,req);
+				boolean isHandled = handlePostRequest(storageClient,appContext,req);
+				
+				if (!isHandled) {
+					resp.setStatus(HttpServletResponse.SC_OK);
+				} 
+				else {
+					// If the request is not handled, we assume it's an upload request
+					doPut(req, resp);
+				}
+				
 			}
 			catch (IllegalStateException | IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 
 		}
+		
 	}
 
 	@Override
