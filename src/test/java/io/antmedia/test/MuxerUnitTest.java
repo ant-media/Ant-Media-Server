@@ -44,9 +44,16 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.gson.JsonObject;
 import io.antmedia.*;
+
+import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.buffer.SimpleBufferAllocator;
 import org.awaitility.Awaitility;
@@ -6064,8 +6071,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		static  Boolean saveCalledWithCorrectParams = false;
 
     @Override
-    public void deleteMultipleFiles(String key, String fileExtensions){
 
+    public void deleteMultipleFiles(String key, String regex){
+		logger.info("test delete method");
     }
 		@Override
 		public void delete(String key) {
@@ -6146,50 +6154,50 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
 
 	}
+
+
 	@Test
-	public void testDeleteS3afterUpload() throws InterruptedException {
+	public void testNotifyStreamFinish() throws IOException {
 
-		vertx = Vertx.vertx();
-		StorageClient client = Mockito.mock(StorageClient.class);
-		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx,client , "streams", 7, "https://testEndpoint", false));
-		hlsMuxer.setIsRunning(new AtomicBoolean(true));
-		hlsMuxer.setStreamId("testing");
-		hlsMuxer.setHlsListSize("1");
-		hlsMuxer.setHlsTime("1");
-		hlsMuxer.writeTrailer();
-		verify(hlsMuxer).deleteFilesAfterUpload("streams/testing");
-		Thread.sleep(5000);
-		verify(client).deleteMultipleFiles("streams/testing","ts,m3u8");
+		HLSMuxer muxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, "test", false));
 
+		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
+		doReturn(appAdaptor).when(muxer).getAppAdaptor();
 
-		vertx = Vertx.vertx();
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		client = Mockito.mock(StorageClient.class);
-		doReturn(true).when(client).isEnabled();
-		hlsMuxer = spy(new HLSMuxer(vertx,client , "streams", 7, "", false));
-		hlsMuxer.setIsRunning(new AtomicBoolean(true));
-		String streamId = "stream_name_" + (int) (Math.random() * 10000);
-		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
+		//if client is null
+		CloseableHttpClient client = mock(CloseableHttpClient.class);
+		doReturn(null).when(appAdaptor).getHttpClient();
+		verify(client,times(0)).execute(any());
+		doReturn(client).when(appAdaptor).getHttpClient();
 
-		//init
-		hlsMuxer.init(appScope, streamId, 0, null, 0);
-		File[] mockFiles = {
-				new File("test.ts"),
-				new File("test123.ts"),
-				new File("test123.m3u8"),
-				new File("test.mp4")
-		};
+		ArgumentCaptor<HttpPost> captor = ArgumentCaptor.forClass(HttpPost.class);
+		String streamId = "test";
+		String path = "stream/test";
+		muxer.notifyStreamFinish(streamId,path);
 
-		doReturn(mockFiles).when(hlsMuxer).getHLSFilesInDirectory(anyString());
+		verify(client).execute(captor.capture());
+		HttpPost capturedValue = captor.getValue();
 
-		hlsMuxer.setStreamId("testing");
-		hlsMuxer.setHlsListSize("1");
-		hlsMuxer.setHlsTime("1");
-		hlsMuxer.writeTrailer();
-		Thread.sleep(6000);
-		verify(hlsMuxer).deleteFilesAfterUpload("streams/test.ts");
-		verify(hlsMuxer).deleteFilesAfterUpload("streams/test123.m3u8");
-		
+		HttpEntity entity = capturedValue.getEntity();
+		String content = EntityUtils.toString(entity, "UTF-8");
+
+		JsonObject streamFinished = new JsonObject();
+
+		streamFinished.addProperty("streamId", streamId);
+		streamFinished.addProperty("filePath", path);
+		streamFinished.addProperty("command", WebSocketConstants.PUBLISH_FINISHED);
+
+		assert(content.equals(streamFinished.toString()));
+
+		//test write trailer
+
+		muxer.setIsRunning(new AtomicBoolean(true));
+		AppSettings settings = new AppSettings();
+		settings.setS3StreamsFolderPath("streams");
+		doReturn(appSettings).when(muxer).getAppSettings();
+
+		muxer.writeTrailer();
+		verify(muxer).notifyStreamFinish(streamId,path);
 	}
 
 }

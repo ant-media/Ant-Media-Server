@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import io.antmedia.muxer.HLSMuxer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -315,15 +316,24 @@ public class AmazonS3StorageClientTest {
 
 		AmazonS3StorageClient s3client = Mockito.spy(AmazonS3StorageClient.class);
 
-		ArrayList<String> objects = new ArrayList<>(Arrays.asList("test.mp4","test.abc","test.m3u8","test0000001.ts","test.ts"));
+
+		ArrayList<String> objects = new ArrayList<>(Arrays.asList("test","test.mp4","test.abc","test.m3u8","test000000000.ts","test000000000.fmp4","testabc000000000.ts"));
 		doReturn(objects).when(s3client).getObjects("test");
 
-		s3client.deleteMultipleFiles("test","ts,m3u8");
-		verify(s3client).delete("test.ts");
+
+		s3client.deleteMultipleFiles(null,HLSMuxer.HLS_FILES_REGEX_MATCHER);
+		verify(s3client,times(0)).getObjects(anyString());
+
+		s3client.deleteMultipleFiles("test",HLSMuxer.HLS_FILES_REGEX_MATCHER);
+
+		verify(s3client).delete("test000000000.ts");
+		verify(s3client).delete("test000000000.fmp4");
 		verify(s3client).delete("test.m3u8");
-		verify(s3client).delete("test0000001.ts");
+
+		verify(s3client,times(0)).delete("test");
 		verify(s3client,times(0)).delete("test.mp4");
 		verify(s3client,times(0)).delete("test.abc");
+		verify(s3client,times(0)).delete("testabc000000000.ts");
 
 	}
 }

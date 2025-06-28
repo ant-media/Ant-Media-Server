@@ -6,7 +6,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Arrays;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +23,7 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -32,10 +31,6 @@ import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
-
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import org.apache.commons.io.FilenameUtils;
 
 public class AmazonS3StorageClient extends StorageClient {
 
@@ -104,18 +99,27 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 	}
 
-  public void deleteMultipleFiles(String key, String fileExtensions){
 
-    List<String> objectList = getObjects(key);
-    ArrayList<String> extensionList = new ArrayList<>(Arrays.asList(fileExtensions.split(",")));
+	//regex can be null in that case it will delete all the files that matches the key
+	public void deleteMultipleFiles(String key, String regex){
+	if(key == null) {
+		logger.error("key is null cannot delete files from S3");
+		return;
+	}
+	List<String> objectList = getObjects(key);
+	if(regex != null)
+		regex = "^" + Pattern.quote(key) + regex;
+	else
+		regex = ".*";
 
-    for (String object : objectList) {
-      String fileExtension = FilenameUtils.getExtension(object);
-        if(extensionList.contains(fileExtension)){
-          delete(object);
-        }
-      }
-  }
+	Pattern pattern = Pattern.compile(regex);
+
+	for (String object : objectList) {
+		if (pattern.matcher(object).matches()) {
+			delete(object);
+		}
+	  }
+	}
 
 	public void delete(String key) {
 		if (isEnabled()) 

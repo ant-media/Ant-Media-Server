@@ -1,21 +1,23 @@
 package io.antmedia.test.servlet;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.StringReader;
 
+import com.google.gson.JsonObject;
+import io.antmedia.websocket.WebSocketConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
@@ -184,5 +186,76 @@ public class UploadHLSChunkTest {
 		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
 		assertEquals("streams/test.m3u8", s3Key);
 	}
+	@Test
+	public void testDeleteS3afterUpload() throws InterruptedException, IOException {
 
+		StorageClient client = Mockito.mock(StorageClient.class);
+		UploadHLSChunk uploadHlsChunk = spy(UploadHLSChunk.class);
+
+		JsonObject message = new JsonObject();
+		message.addProperty("streamId","test");
+		message.addProperty("filePath","test");
+		message.addProperty("command", WebSocketConstants.PUBLISH_FINISHED);
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setHlsTime("1");
+		appSettings.setHlsListSize("1");
+		appSettings.setDeleteHLSFilesOnEnded(false);
+
+		ConfigurableWebApplicationContext ctx = mock(ConfigurableWebApplicationContext.class);
+
+		doReturn(appSettings).when(ctx).getBean(AppSettings.BEAN_NAME);
+
+		try (MockedStatic<UploadHLSChunk> mockedStatic = mockStatic(UploadHLSChunk.class)) {
+			mockedStatic.when(() -> UploadHLSChunk.getJsonFromPostRequest(any()))
+					.thenReturn(message);
+
+			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class));
+			Thread.sleep(3000);
+			verify(client, times(0)).deleteMultipleFiles(anyString(), anyString());
+
+			appSettings.setDeleteHLSFilesOnEnded(true);
+
+			uploadHlsChunk.handlePostRequest(client, ctx, mock(HttpServletRequest.class));
+			verify(client, timeout(5000).times(1)).deleteMultipleFiles(anyString(), anyString());
+		}
+	}
+
+	@Test
+	public void testGetJsonFromPostRequest() throws IOException {
+
+		UploadHLSChunk uploadHlsChunk = spy(UploadHLSChunk.class);
+		HttpServletRequest request = mock(HttpServletRequest.class);
+
+		JsonObject object = new JsonObject();
+		object.addProperty("test","test");
+		object.addProperty("abc","abc");
+
+		BufferedReader bufferedReader = new BufferedReader(new StringReader(object.toString()));
+		doReturn(bufferedReader).when(request).getReader();
+
+		JsonObject object1 = uploadHlsChunk.getJsonFromPostRequest(request);
+
+        assertEquals(object1, object);
+	}
+	@Test
+	public void testDoPost() throws ServletException, IOException {
+		UploadHLSChunk uploadHlsChunk = spy(UploadHLSChunk.class);
+		HttpServletRequest request = mock(HttpServletRequest.class);
+		HttpServletResponse response = mock(HttpServletResponse.class);
+		StorageClient storageClient = mock(StorageClient.class);
+
+		ServletContext servletContext = mock(ServletContext.class);
+		ConfigurableWebApplicationContext appContext = mock(ConfigurableWebApplicationContext.class);
+
+		doReturn(servletContext).when(request).getServletContext();
+		doReturn(appContext).when(servletContext).getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+
+		doReturn(storageClient).when(uploadHlsChunk).getStorageClient(any());
+		doNothing().when(uploadHlsChunk).handlePostRequest(any(),any(),any());
+
+		uploadHlsChunk.doPostForUnitTests(request,response);
+
+		verify(uploadHlsChunk).handlePostRequest(storageClient,appContext,request);
+	}
 }
