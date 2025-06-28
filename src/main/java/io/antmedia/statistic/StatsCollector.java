@@ -71,6 +71,7 @@ import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.Vertx;
+import io.vertx.core.metrics.Measured;
 import io.vertx.ext.dropwizard.MetricsService;
 
 
@@ -355,8 +356,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			addCpuMeasurement(SystemUtils.getSystemCpuLoad(), SystemUtils.getProcessCpuLoad());
 
 			
-			//log every 5 minute
-			if (300000/measurementPeriod == time2Log) {
+			//log every 1 minute
+			if (30000/measurementPeriod == time2Log) {
 				if(logger != null) 
 				{
 
@@ -377,6 +378,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 						{
 							logger.info("DB Average Query Time:{}ms and Query Count:{} for app:{}", adaptor.getDataStore().getAverageQueryTimeMs(), adaptor.getDataStore().getExecutedQueryCount(), scope.getName());
 						
+							logger.info("Mux adaptor size:{} for {}", adaptor.getMuxAdaptors().size(), scope.getName());
+							
+							//System.out.println("queueSizeMetrics:"+webRTCVertxMetrics.getMetricsSnapshot(webRTCVertx));
+
 						}
 					}
 					
@@ -453,6 +458,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private static int getWebRTCVertxWorkerQueueSizeStatic() {
 		io.vertx.core.json.JsonObject queueSizeMetrics = webRTCVertxMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
+		
 		io.vertx.core.json.JsonObject jsonObject = null;
 		if (queueSizeMetrics != null) {
 			jsonObject = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE);
