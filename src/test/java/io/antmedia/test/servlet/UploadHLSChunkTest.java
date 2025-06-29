@@ -13,6 +13,8 @@ import java.io.StringReader;
 
 import com.google.gson.JsonObject;
 import io.antmedia.websocket.WebSocketConstants;
+import io.vertx.core.Vertx;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +26,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.servlet.UploadHLSChunk;
 import io.antmedia.storage.StorageClient;
 import jakarta.servlet.ServletContext;
@@ -47,6 +50,8 @@ public class UploadHLSChunkTest {
 	private StorageClient mockStorageClient;
 
 	private UploadHLSChunk servlet;
+	
+	private static Vertx vertx = Vertx.vertx();
 
 	@Before
 	public void setUp() throws ServletException {
@@ -205,6 +210,8 @@ public class UploadHLSChunkTest {
 		ConfigurableWebApplicationContext ctx = mock(ConfigurableWebApplicationContext.class);
 
 		doReturn(appSettings).when(ctx).getBean(AppSettings.BEAN_NAME);
+		doReturn(vertx).when(ctx).getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
 
 		try (MockedStatic<UploadHLSChunk> mockedStatic = mockStatic(UploadHLSChunk.class)) {
 			mockedStatic.when(() -> UploadHLSChunk.getJsonFromPostRequest(any()))
@@ -250,9 +257,12 @@ public class UploadHLSChunkTest {
 
 		doReturn(servletContext).when(request).getServletContext();
 		doReturn(appContext).when(servletContext).getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+		
+		AppSettings appSettings = new AppSettings();
+		doReturn(appSettings).when(appContext).getBean(AppSettings.BEAN_NAME);
 
 		doReturn(storageClient).when(uploadHlsChunk).getStorageClient(any());
-		doNothing().when(uploadHlsChunk).handlePostRequest(any(),any(),any());
+		doReturn(true).when(uploadHlsChunk).handlePostRequest(any(),any(),any());
 
 		uploadHlsChunk.doPostForUnitTests(request,response);
 
