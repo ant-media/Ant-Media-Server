@@ -2017,9 +2017,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Operation(description = "Converts the recorded HLS to MP4 file")
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{stream_id}/hls-to-mp4")
+	@Path("/{hls_filename}/hls-to-mp4")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response convertHLStoMP4(@PathParam("stream_id") String hlsFileName, 
+	public Response convertHLStoMP4(@PathParam("hls_filename") String hlsFileName, 
 			@QueryParam("download") boolean download,
 			@QueryParam("deleteHLSFiles") boolean deleteHLSFiles) 
 	{
@@ -2125,10 +2125,10 @@ public class BroadcastRestService extends RestServiceBase{
 		return Response.status(Status.OK).entity(new Result(result)).build();
 	}
 
-	private void deleteLocalHLSFiles(File hlsFile) {
+	public void deleteLocalHLSFiles(File hlsFile) {
 		File[] hlsFiles = HLSMuxer.getHLSFilesInDirectory(hlsFile, HLSMuxer.HLS_FILES_REGEX_MATCHER);
 
-		if (hlsFiles != null) {
+		if (hlsFiles != null && hlsFiles.length > 0) {
 			for (File hlsFileToDelete : hlsFiles) {
 				if (!hlsFileToDelete.delete()) {
 					logger.warn("Failed to delete HLS file: {}", hlsFileToDelete.getAbsolutePath());
@@ -2139,7 +2139,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 
-	private void uploadToS3(boolean deleteHLSFiles, String fileNameWithoutExtension, String streamId, String outputPath,
+	public void uploadToS3(boolean deleteHLSFiles, String fileNameWithoutExtension, String streamId, String outputPath,
 			AppSettings appSettings, StorageClient storageClient) {
 		String key = Muxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + fileNameWithoutExtension + ".mp4");
 
@@ -2157,6 +2157,9 @@ public class BroadcastRestService extends RestServiceBase{
 						logger.info("Deleting HLS files from S3 bucket for stream: {}", streamId);
 						storageClient.deleteMultipleFiles(appSettings.getS3StreamsFolderPath() + File.separator + streamId, HLSMuxer.HLS_FILES_REGEX_MATCHER);
 					}
+				}
+				else if (progressEvent.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT) {
+					logger.error("MP4 file upload failed to S3 bucket with key: {}", key);
 				}
 			}
 		});

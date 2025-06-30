@@ -9,6 +9,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.UUID;
@@ -382,7 +384,7 @@ public class HLSMuxer extends Muxer  {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
- 		if(!isRunning.get())
+		if(!isRunning.get())
 			return;
 
 		super.writeTrailer();
@@ -436,24 +438,44 @@ public class HLSMuxer extends Muxer  {
 
 			try {
 				String filePath = getAppSettings().getS3StreamsFolderPath() + File.separator 
-										+ (this.subFolder != null ? this.subFolder : "") + streamId;
-				
-                notifyStreamFinish(streamId,filePath);
-            } catch (IOException e) {
-                throw new RuntimeException("failed to notify finished http endpoint");
-            }
-        }
+						+ (this.subFolder != null ? this.subFolder : "") + streamId;
+
+				notifyStreamFinish(streamId,filePath);
+			} catch (IOException e) {
+				throw new RuntimeException("failed to notify finished http endpoint");
+			}
+		}
 
 	}
-	
+
 	public static boolean convertToMp4(String inputUrl, String outputUrl) {
 		boolean result = false;
 
+		URL url = null;
 		try {
+			url = new URL(inputUrl);
+		} catch (MalformedURLException e) {
+			File file = new File(inputUrl);
+			if (file.exists()) {
+				try {
+					url = file.toURI().toURL();
+				} catch (MalformedURLException ex) {
+					logger.error("Failed to convert file path to URL: {}", inputUrl);
+					return false;
+				}
+			} else {
+				logger.error("Input is neither a valid URL nor an existing file path: {}", inputUrl);
+				return false;
+			}
+		}
+
+		try {
+
+
 			long startTime = System.currentTimeMillis();
 			String ffmpeg = Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
 
-			String[] parameters = new String[] {ffmpeg, "-i", inputUrl, "-codec", "copy",  "-bsf:a", "aac_adtstoasc", outputUrl, "-y"};
+			String[] parameters = new String[] {ffmpeg, "-i",  url.toString(), "-codec", "copy",  "-bsf:a", "aac_adtstoasc", outputUrl, "-y"};
 
 			logger.info("Converting HLS to MP4 with command: {}", String.join(" ", parameters));
 
@@ -485,6 +507,7 @@ public class HLSMuxer extends Muxer  {
 		} 
 		catch (InterruptedException e) {
 			logger.error("Error while converting HLS to MP4: {}", ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
 		}
 
 		return result;
@@ -518,7 +541,7 @@ public class HLSMuxer extends Muxer  {
 						+ (subFolder != null ? subFolder : "") + File.separator + file.getName());
 				storageClient.save(path, file, deleteFileOnExit);
 
-				
+
 			} else if (deleteFileOnExit) {
 				Files.deleteIfExists(file.toPath());
 			}
@@ -529,8 +552,8 @@ public class HLSMuxer extends Muxer  {
 
 	public static File[] getHLSFilesInDirectory(File localFile, String regularExpression) {
 		return localFile.getParentFile().listFiles((dir, name) -> 
-						//matches m3u8 file or ts segment file
-						name.equals(localFile.getName()) || name.matches(regularExpression)
+		//matches m3u8 file or ts segment file
+		name.equals(localFile.getName()) || name.matches(regularExpression)
 				);
 	}
 

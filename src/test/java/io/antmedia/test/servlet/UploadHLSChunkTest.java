@@ -7,7 +7,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.mock;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 
@@ -32,6 +34,7 @@ import io.antmedia.storage.StorageClient;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -114,6 +117,46 @@ public class UploadHLSChunkTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testDoGet() throws ServletException, IOException {
+		when(mockRequest.getServletContext()).thenReturn(mockServletContext);
+		when(mockStorageClient.isEnabled()).thenReturn(false);
+		when(mockServletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(mockAppContext);
+		when(mockAppContext.isRunning()).thenReturn(true);
+		when(mockRequest.getServletContext()).thenReturn(mockServletContext);
+
+		// test with storage client
+		when(mockAppContext.getBean(StorageClient.BEAN_NAME)).thenReturn(mockStorageClient);
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setS3CacheControl(null);
+		assertNull(appSettings.getS3CacheControl());
+		when(mockAppContext.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+		
+		servlet.doGetForUnitTests(mockRequest, mockResponse);
+		
+		
+		when(mockStorageClient.isEnabled()).thenReturn(true);
+		servlet.doGetForUnitTests(mockRequest, mockResponse);
+		verify(mockResponse, times(1)).sendError(eq(HttpServletResponse.SC_NOT_FOUND), anyString());
+
+		
+		when(mockRequest.getPathInfo()).thenReturn("test.m3u8");
+		servlet.doGetForUnitTests(mockRequest, mockResponse);
+		verify(mockResponse, times(2)).sendError(eq(HttpServletResponse.SC_NOT_FOUND), anyString());
+		
+		
+		when(mockStorageClient.get(anyString())).thenReturn(new ByteArrayInputStream(new String("test content").getBytes()));
+		
+		ServletOutputStream outputStream = Mockito.mock(ServletOutputStream.class);
+		when(mockResponse.getOutputStream()).thenReturn(outputStream);
+		servlet.doGetForUnitTests(mockRequest, mockResponse);
+		verify(mockResponse, times(2)).sendError(eq(HttpServletResponse.SC_NOT_FOUND), anyString());
+		verify(outputStream).flush();
+		
+		
 	}
 
 	@Test

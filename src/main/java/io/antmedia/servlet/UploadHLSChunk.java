@@ -131,7 +131,9 @@ public class UploadHLSChunk extends HttpServlet{
 		return isHandled;
 	}
 
-
+	public void doGetForUnitTests(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doGet(req, resp);
+	}
 
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException 

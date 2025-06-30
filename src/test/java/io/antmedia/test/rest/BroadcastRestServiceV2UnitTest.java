@@ -42,6 +42,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
@@ -53,6 +54,9 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressEventType;
+import com.amazonaws.event.ProgressListener;
 import com.google.common.io.Files;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -3891,6 +3895,59 @@ public class BroadcastRestServiceV2UnitTest {
 
 		}
 
+	}
+	
+	@Test
+	public void testDeleteLocalHLSFiles() throws IOException {
+		
+		File file = new File("webapps/scope/streams/test.m3u8");
+		file.getParentFile().mkdirs();
+		if (file.exists()) {
+			file.delete();
+		}
+		restServiceReal.deleteLocalHLSFiles(file);
+		
+		file.createNewFile();
+		restServiceReal.deleteLocalHLSFiles(file);
+		
+		assertFalse(file.exists());
+		
+		
+		restServiceReal.deleteLocalHLSFiles(file);
+	}
+	
+	@Test
+	public void testUploadToS3() {
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		restServiceReal.uploadToS3(true, "streamId_480p", "streamId", "streamId.mp4", new AppSettings(), storageClient);
+		
+		ArgumentCaptor<ProgressListener> progressListener = ArgumentCaptor.forClass(ProgressListener.class);
+		verify(storageClient, times(1)).save(any(), any(), anyBoolean(), progressListener.capture());
+		
+		ProgressListener listener = progressListener.getValue();
+		
+		ProgressEvent progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT);
+		listener.progressChanged(progressEvent);
+		
+		verify(storageClient, times(1)).deleteMultipleFiles(any(), any());
+		
+		
+		progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_FAILED_EVENT);
+		listener.progressChanged(progressEvent);
+		
+		progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_STARTED_EVENT);
+		listener.progressChanged(progressEvent);
+		
+		
+		restServiceReal.uploadToS3(false, "streamId_480p", "streamId", "streamId.mp4", new AppSettings(), storageClient);
+		verify(storageClient, times(2)).save(any(), any(), anyBoolean(), progressListener.capture());
+		listener = progressListener.getValue();
+		progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT);
+		listener.progressChanged(progressEvent);
+		
+		verify(storageClient, times(1)).deleteMultipleFiles(any(), any());
+
+		
 	}
 	
 	@Test
