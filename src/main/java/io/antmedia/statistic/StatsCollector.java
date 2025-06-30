@@ -380,7 +380,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 						
 							logger.info("Mux adaptor size:{} for {}", adaptor.getMuxAdaptors().size(), scope.getName());
 							
-							//System.out.println("queueSizeMetrics:"+webRTCVertxMetrics.getMetricsSnapshot(webRTCVertx));
+							if(time2Log % 4 == 0) {
+								logger.info("Vertx metrics:"+webRTCVertxMetrics.getMetricsSnapshot(webRTCVertx));
+							}
 
 						}
 					}
