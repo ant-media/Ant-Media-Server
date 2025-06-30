@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -42,7 +43,6 @@ public class AmazonS3StorageClient extends StorageClient {
 	private long multipartUploadThreshold = 5L * 1024 * 1024;
 
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
-
 
 	public AmazonS3 getAmazonS3() {
 
@@ -99,6 +99,28 @@ public class AmazonS3StorageClient extends StorageClient {
 		{
 			list.add(s3ObjectSummary.getKey());
 		}
+	}
+
+
+	//regex can be null in that case it will delete all the files that matches the key
+	public void deleteMultipleFiles(String key, String regex){
+	if(key == null) {
+		logger.error("key is null cannot delete files from S3");
+		return;
+	}
+	List<String> objectList = getObjects(key);
+	if(regex != null)
+		regex = "^" + Pattern.quote(key) + regex;
+	else
+		regex = ".*";
+
+	Pattern pattern = Pattern.compile(regex);
+
+	for (String object : objectList) {
+		if (pattern.matcher(object).matches()) {
+			delete(object);
+		}
+	  }
 	}
 
 	public void delete(String key) {
@@ -208,6 +230,7 @@ public class AmazonS3StorageClient extends StorageClient {
 	}
 
 	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+
 		upload.addProgressListener((ProgressListener)event -> 
 		{
 			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)

@@ -44,10 +44,16 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.gson.JsonObject;
 import io.antmedia.*;
-import io.grpc.Context;
+
+import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.buffer.SimpleBufferAllocator;
 import org.awaitility.Awaitility;
@@ -78,7 +84,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
@@ -6066,6 +6071,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public static class  StorageClientMock extends StorageClient{
 		static  Boolean saveCalledWithCorrectParams = false;
 
+    @Override
+
+    public void deleteMultipleFiles(String key, String regex){
+		logger.info("test delete method");
+    }
 		@Override
 		public void delete(String key) {
 
@@ -6145,4 +6155,50 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
 
 	}
+
+
+	@Test
+	public void testNotifyStreamFinish() throws IOException {
+
+		HLSMuxer muxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, "test", false));
+
+		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
+		doReturn(appAdaptor).when(muxer).getAppAdaptor();
+
+		//if client is null
+		CloseableHttpClient client = mock(CloseableHttpClient.class);
+		doReturn(null).when(appAdaptor).getHttpClient();
+		verify(client,times(0)).execute(any());
+		doReturn(client).when(appAdaptor).getHttpClient();
+
+		ArgumentCaptor<HttpPost> captor = ArgumentCaptor.forClass(HttpPost.class);
+		String streamId = "test";
+		String path = "stream/test";
+		muxer.notifyStreamFinish(streamId,path);
+
+		verify(client).execute(captor.capture());
+		HttpPost capturedValue = captor.getValue();
+
+		HttpEntity entity = capturedValue.getEntity();
+		String content = EntityUtils.toString(entity, "UTF-8");
+
+		JsonObject streamFinished = new JsonObject();
+
+		streamFinished.addProperty("streamId", streamId);
+		streamFinished.addProperty("filePath", path);
+		streamFinished.addProperty("command", WebSocketConstants.PUBLISH_FINISHED);
+
+		assert(content.equals(streamFinished.toString()));
+
+		//test write trailer
+
+		muxer.setIsRunning(new AtomicBoolean(true));
+		AppSettings settings = new AppSettings();
+		settings.setS3StreamsFolderPath("streams");
+		doReturn(appSettings).when(muxer).getAppSettings();
+
+		muxer.writeTrailer();
+		verify(muxer).notifyStreamFinish(streamId,path);
+	}
+
 }

@@ -11,8 +11,14 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.UUID;
 
+import com.google.gson.JsonObject;
+import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+
 import org.bytedeco.ffmpeg.avcodec.*;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -33,12 +39,13 @@ public class HLSMuxer extends Muxer  {
 	public static final String SEI_USER_DATA = "sei_user_data";
 
 	private static final String LETTER_DOT = ".";
-	private static final String TS_EXTENSION = "ts";
-	private static final String FMP4_EXTENSION = "fmp4";
+	public static final String TS_EXTENSION = "ts";
+	public static final String FMP4_EXTENSION = "fmp4";
 
-	private static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
-	private static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
+	public static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
+	public static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
 
+	public static final String HLS_FILES_REGEX_MATCHER = "(\\d{9}\\.(ts|fmp4)|\\.m3u8)$";
 
 
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
@@ -85,6 +92,7 @@ public class HLSMuxer extends Muxer  {
 	private boolean hlsToMp4ConversionEnabled = false;
 
 	private boolean uploadMp4ToS3 = true;
+
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
@@ -448,8 +456,16 @@ public class HLSMuxer extends Muxer  {
 			});
 		}
 		else {
-			logger.info("http endpoint is {} so skipping delete or upload the m3u8 or ts files", httpEndpoint);
-		}
+
+            try {
+				String filePath = getAppSettings().getS3StreamsFolderPath() + File.separator 
+										+ (this.subFolder != null ? this.subFolder : "") + streamId;
+				
+                notifyStreamFinish(streamId,filePath);
+            } catch (IOException e) {
+                throw new RuntimeException("failed to notify finished http endpoint");
+            }
+        }
 
 	}
 
@@ -495,6 +511,25 @@ public class HLSMuxer extends Muxer  {
 		return result;
 	}
 
+	public void notifyStreamFinish(String streamId,String filePath) throws IOException {
+
+		CloseableHttpClient client = getAppAdaptor().getHttpClient();
+		if(client == null)
+			return;
+
+		HttpPost streamFinishNotify = new HttpPost(replaceDoubleSlashesWithSingleSlash(httpEndpoint));
+
+		JsonObject streamFinished = new JsonObject();
+
+		streamFinished.addProperty("streamId", streamId);
+		streamFinished.addProperty("filePath", filePath);
+		streamFinished.addProperty("command", WebSocketConstants.PUBLISH_FINISHED);
+
+		streamFinishNotify.setEntity(new StringEntity(streamFinished.toString()));
+
+		client.execute(streamFinishNotify);
+	}
+
 	private void handleFinalization(File file) {
 
 		try {
@@ -503,6 +538,8 @@ public class HLSMuxer extends Muxer  {
 				String path = replaceDoubleSlashesWithSingleSlash(s3StreamsFolderPath + File.separator
 						+ (subFolder != null ? subFolder : "") + File.separator + file.getName());
 				storageClient.save(path, file, deleteFileOnExit);
+
+				
 			} else if (deleteFileOnExit) {
 				Files.deleteIfExists(file.toPath());
 			}
