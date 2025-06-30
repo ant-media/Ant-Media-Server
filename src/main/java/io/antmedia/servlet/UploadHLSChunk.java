@@ -1,9 +1,16 @@
 package io.antmedia.servlet;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.websocket.WebSocketConstants;
+import io.vertx.core.Vertx;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
@@ -19,12 +26,13 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.amazonaws.event.ProgressEventType;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.storage.StorageClient;
 
 @MultipartConfig
-public class UploadHLSChunk extends HttpServlet {
+public class UploadHLSChunk extends HttpServlet{
 
 	private static final long serialVersionUID = 1L;
 
@@ -79,10 +87,75 @@ public class UploadHLSChunk extends HttpServlet {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
 	}
-	
+	public static JsonObject getJsonFromPostRequest(HttpServletRequest request) throws IOException {
+		BufferedReader reader = request.getReader();
+		StringBuilder sb = new StringBuilder();
+		String line;
+
+		while ((line = reader.readLine()) != null) {
+			sb.append(line);
+		}
+
+		String jsonString = sb.toString();
+        return new Gson().fromJson(jsonString, JsonObject.class);
+	}
+
+	public boolean handlePostRequest(StorageClient storageClient, ConfigurableWebApplicationContext ctx, HttpServletRequest request) throws IOException {
+
+		boolean isHandled = false;
+		JsonObject message = getJsonFromPostRequest(request);
+		String streamId = message.get("streamId").getAsString();
+		String command = message.get("command").getAsString();
+
+		if(command.equals(WebSocketConstants.PUBLISH_FINISHED)){
+			isHandled = true;
+			
+			AppSettings appSettings = (AppSettings) ctx.getBean(AppSettings.BEAN_NAME);
+
+			
+			logger.info("stream finished : {}",streamId);
+			
+			if(appSettings.isDeleteHLSFilesOnEnded()){
+				
+				Vertx vertx = (Vertx) ctx.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+				String filePath = message.get("filePath").getAsString();
+				vertx.setTimer(Integer.parseInt(appSettings.getHlsTime()) * Integer.parseInt(appSettings.getHlsListSize()) * 1000l, l ->{
+					storageClient.deleteMultipleFiles(filePath,HLSMuxer.HLS_FILES_REGEX_MATCHER);
+					logger.info("deleting files from S3 for streamId: {}",streamId);
+					}
+				);
+			}
+		}
+		
+		return isHandled;
+	}
+
 	@Override
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		super.doPut(req, resp);
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+		StorageClient storageClient = getStorageClient(req);
+
+		if (storageClient != null)
+		{
+			try {
+				ConfigurableWebApplicationContext appContext = (ConfigurableWebApplicationContext) req.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+				boolean isHandled = handlePostRequest(storageClient,appContext,req);
+				
+				if (!isHandled) {
+					resp.setStatus(HttpServletResponse.SC_OK);
+				} 
+				else {
+					// If the request is not handled, we assume it's an upload request
+					doPut(req, resp);
+				}
+				
+			}
+			catch (IllegalStateException | IOException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+
+		}
+		
 	}
 
 	@Override
@@ -109,7 +182,9 @@ public class UploadHLSChunk extends HttpServlet {
 	public void doPutForUnitTests(HttpServletRequest req, HttpServletResponse resp) {
 		doPut(req, resp);
 	}
-
+	public void doPostForUnitTests(HttpServletRequest req, HttpServletResponse resp) {
+		doPost(req, resp);
+	}
 
 	public void uploadHLSChunk(StorageClient storageClient, ConfigurableWebApplicationContext appContext, 
 			InputStream inputStream, HttpServletRequest req, HttpServletResponse resp) 
