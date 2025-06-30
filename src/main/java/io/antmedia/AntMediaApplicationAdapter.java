@@ -747,6 +747,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				notifyPublishStopped(streamId, role, mainTrackId);
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
+				
+				String streamEndedScript = appSettings.getStreamEndedScript();
+				if (StringUtils.isNotBlank(streamEndedScript)) 
+				{
+					runScript(streamEndedScript + "  " + broadcast.getStreamId());
+				}
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -942,6 +948,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				logPublishStartedEvent(streamId, publishType, subscriberId);
 				notifyPublishStarted(streamId, role, mainTrackId);
+				
+				String streamStartedScript = appSettings.getStreamStartedScript();
+				if (StringUtils.isNotBlank(streamStartedScript)) 
+				{
+					runScript(streamStartedScript + "  " + broadcast.getStreamId());
+				}
 
 
 			} catch (Exception e) {
@@ -1314,6 +1326,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			putToMap("mainTrackId", mainTrackId, variables);
 			putToMap("roomId", mainTrackId, variables);
 			putToMap("subscriberId", subscriberId, variables);
+			putToMap("app", getScope().getName(), variables);
 
 			if (StringUtils.isNotBlank(metadata)) {
 				Object metaDataJsonObj = null;
