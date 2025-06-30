@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -51,6 +52,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+
+import com.google.common.io.Files;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -96,6 +99,7 @@ import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.test.StreamFetcherUnitTest;
@@ -3887,6 +3891,90 @@ public class BroadcastRestServiceV2UnitTest {
 
 		}
 
+	}
+	
+	@Test
+	public void testConvertHLStoMP4() throws IOException 
+	{
+		AppSettings settings = new AppSettings();
+		String serverName = "fully.qualified.domain.name";
+		restServiceReal.setAppSettings(settings);
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+		DataStore store = Mockito.spy(new InMemoryDataStore("testdb"));
+		restServiceReal.setDataStore(store);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		restServiceReal.setScope(scope);
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(true));
+
+		restServiceReal.setApplication(appAdaptor);
+
+		String streamId = null;
+		Response response = restServiceReal.convertHLStoMP4(streamId, false, false);
+		Result result = (Result) response.getEntity();
+		assertFalse(result.isSuccess());
+		
+		streamId = "stream1";
+		response = restServiceReal.convertHLStoMP4(streamId, false, false);
+		result = (Result) response.getEntity();
+		assertFalse(result.isSuccess());
+		
+		streamId = "stream1.m3u8";
+		response = restServiceReal.convertHLStoMP4(streamId, false, false);
+		result = (Result) response.getEntity();
+		assertFalse(result.isSuccess());
+		
+		File file = new File("src/test/resources/test.m3u8");
+		File fileTarget = new File("webapps/scope/streams/test.m3u8");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0045.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0045.ts");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0046.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0046.ts");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0047.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0047.ts");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0048.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0048.ts");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0049.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0049.ts");
+		Files.copy(file, fileTarget);
+		
+		
+		streamId = "test.m3u8";
+		
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		when(appAdaptor.getStorageClient()).thenReturn(storageClient);
+		
+		response = restServiceReal.convertHLStoMP4(streamId, false, false);
+		result = (Result) response.getEntity();
+		assertTrue(result.isSuccess());
+		
+		
+		response = restServiceReal.convertHLStoMP4(streamId, true, true);
+		//cast to File
+		File f = (File)response.getEntity();
+		
+		
 	}
 
 

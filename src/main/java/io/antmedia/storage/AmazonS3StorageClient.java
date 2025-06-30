@@ -164,15 +164,19 @@ public class AmazonS3StorageClient extends StorageClient {
 
 
 	public void save(String key, InputStream inputStream, boolean waitForCompletion) {
-		save(key, null, inputStream, false, waitForCompletion);
+		save(key, null, inputStream, false, waitForCompletion, null);
 	}
 
 	
 	public void save(String key, File file, boolean deleteLocalFile) {
-		save(key, file, null, deleteLocalFile, false);
+		save(key, file, null, deleteLocalFile, false, null);
 	}
 	
-	public void save(String key, File file, InputStream inputStream, boolean deleteLocalFile, boolean waitForCompletion)
+	public void save(String key, File file, boolean deleteLocalFile, ProgressListener progressListener) {
+		save(key, file, null, deleteLocalFile, false, progressListener);
+	}
+	
+	public void save(String key, File file, InputStream inputStream, boolean deleteLocalFile, boolean waitForCompletion, ProgressListener localProgressListener)
 	{	
 		if (isEnabled()) 
 		{
@@ -209,8 +213,13 @@ public class AmazonS3StorageClient extends StorageClient {
 			 * Some blocking calls are removed. Please don't block any threads if it's really not necessary
 			 */
 			logger.info("File {} upload has started with key: {}", file != null ? file.getName() : "", key);
+			
+			if (localProgressListener == null) {
+				localProgressListener = this.progressListener;
+			}
+			
 
-			listenUploadProgress(key, file, deleteLocalFile, upload);
+			listenUploadProgress(key, file, deleteLocalFile, upload, localProgressListener);
 			
 			if (waitForCompletion) {
 				try {
@@ -229,7 +238,7 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 	}
 
-	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload, ProgressListener progressListenerParam) {
 
 		upload.addProgressListener((ProgressListener)event -> 
 		{
@@ -246,9 +255,9 @@ public class AmazonS3StorageClient extends StorageClient {
 				logger.info("File uploaded to S3 with key: {}", key);
 			}
 
-			if (progressListener != null) 
+			if (progressListenerParam != null) 
 			{
-				progressListener.progressChanged(event);
+				progressListenerParam.progressChanged(event);
 			}
 		});
 	}

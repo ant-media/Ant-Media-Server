@@ -124,8 +124,7 @@ public class UploadHLSChunk extends HttpServlet{
 				vertx.setTimer(Integer.parseInt(appSettings.getHlsTime()) * Integer.parseInt(appSettings.getHlsListSize()) * 1000l, l ->{
 					storageClient.deleteMultipleFiles(filePath,HLSMuxer.HLS_FILES_REGEX_MATCHER);
 					logger.info("deleting files from S3 for streamId: {}",streamId);
-					}
-				);
+				});
 			}
 		}
 		

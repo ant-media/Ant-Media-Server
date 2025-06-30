@@ -299,10 +299,10 @@ public class AmazonS3StorageClientTest {
 		TransferManager tm = Mockito.mock(TransferManager.class);
 		Mockito.doReturn(tm).when(storage).getTransferManager();
 		Mockito.doReturn(true).when(storage).isEnabled();
-		Mockito.doNothing().when(storage).listenUploadProgress(anyString(), nullable(File.class), anyBoolean(), any());
+		Mockito.doNothing().when(storage).listenUploadProgress(anyString(), nullable(File.class), anyBoolean(), any(), any());
 
 		
-		storage.save("key", null, mock(InputStream.class), false, false);
+		storage.save("key", null, mock(InputStream.class), false, false, null);
 
 		ArgumentCaptor<PutObjectRequest> putObjectRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
 		Mockito.verify(tm).upload(putObjectRequestCaptor.capture());

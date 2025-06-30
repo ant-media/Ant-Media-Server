@@ -4,7 +4,9 @@ import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -89,8 +91,6 @@ public class HLSMuxer extends Muxer  {
 
 	private String segmentFileNameSuffix;
 
-	private boolean hlsToMp4ConversionEnabled = false;
-
 	private boolean uploadMp4ToS3 = true;
 
 
@@ -119,7 +119,7 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, 
-			String hlsEncryptionKeyInfoFile, String hlsSegmentType, boolean hlsToMp4ConversionEnabled) 
+			String hlsEncryptionKeyInfoFile, String hlsSegmentType) 
 	{
 		if (hlsListSize != null && !hlsListSize.isEmpty()) {
 			this.hlsListSize = hlsListSize;
@@ -147,7 +147,6 @@ public class HLSMuxer extends Muxer  {
 			this.hlsSegmentType = hlsSegmentType;
 		}
 
-		this.hlsToMp4ConversionEnabled  = hlsToMp4ConversionEnabled;
 	}
 
 	/**
@@ -395,31 +394,9 @@ public class HLSMuxer extends Muxer  {
 		// - Use the S3 uploading with hls-upload http endpoint 
 		// - The `hlsToMp4ConversionEnabled` is set to true
 		// - `deleteFileOnExit` is set to false
-		
+
 		// then it will create a mp4 file from the hls segments and m3u8 file with have full recording
-		
-		
-		if (this.hlsToMp4ConversionEnabled) 
-		{
 
-			File mp4File = new File(file.getParentFile().getAbsolutePath() + File.separator + initialResourceNameWithoutExtension + "_from_hls.mp4"); 
-			boolean converted = convertToMp4(getOutputURL(), mp4File.getAbsolutePath());
-
-			if (converted) 
-			{
-				logger.info("HLS to MP4 conversion is successful for streamId:{}", streamId);
-				if(uploadMp4ToS3 && storageClient.isEnabled()) 
-				{
-					String path = replaceDoubleSlashesWithSingleSlash(s3StreamsFolderPath + File.separator
-							+ (subFolder != null ? subFolder : "") + File.separator + mp4File.getName());
-					storageClient.save(path, mp4File, true);
-				}
-
-			} 
-			else {
-				logger.error("HLS to MP4 conversion failed for streamId:{}", streamId);
-			}
-		}
 
 
 		if (StringUtils.isBlank(this.httpEndpoint)) 
@@ -439,7 +416,7 @@ public class HLSMuxer extends Muxer  {
 
 				String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
 				String regularExpression = segmentFileWithoutSuffix + ".*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
-				File[] files = getHLSFilesInDirectory(regularExpression);
+				File[] files = getHLSFilesInDirectory(file, regularExpression);
 
 				if (files != null)
 				{
@@ -457,7 +434,7 @@ public class HLSMuxer extends Muxer  {
 		}
 		else {
 
-            try {
+			try {
 				String filePath = getAppSettings().getS3StreamsFolderPath() + File.separator 
 										+ (this.subFolder != null ? this.subFolder : "") + streamId;
 				
@@ -468,14 +445,15 @@ public class HLSMuxer extends Muxer  {
         }
 
 	}
-
+	
 	public static boolean convertToMp4(String inputUrl, String outputUrl) {
 		boolean result = false;
 
 		try {
+			long startTime = System.currentTimeMillis();
 			String ffmpeg = Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
 
-			String[] parameters = new String[] {ffmpeg, "-i", inputUrl, "-codec", "copy",  "-bsf:a", "aac_adtstoasc", outputUrl};
+			String[] parameters = new String[] {ffmpeg, "-i", inputUrl, "-codec", "copy",  "-bsf:a", "aac_adtstoasc", outputUrl, "-y"};
 
 			logger.info("Converting HLS to MP4 with command: {}", String.join(" ", parameters));
 
@@ -498,7 +476,8 @@ public class HLSMuxer extends Muxer  {
 
 			result = process.waitFor() == 0;
 
-			logger.info("HLS to MP4 conversion finished for input: {} output: {} and success:{}", inputUrl, outputUrl, result);
+			long duration = System.currentTimeMillis() - startTime;
+			logger.info("HLS to MP4 conversion finished for input: {} output: {} and success:{} elapsed:{}ms", inputUrl, outputUrl, result, duration);
 		} 
 		catch (IOException e) 
 		{
@@ -548,11 +527,11 @@ public class HLSMuxer extends Muxer  {
 		}
 	}
 
-	public File[] getHLSFilesInDirectory(String regularExpression) {
-		return file.getParentFile().listFiles((dir, name) -> 
+	public static File[] getHLSFilesInDirectory(File localFile, String regularExpression) {
+		return localFile.getParentFile().listFiles((dir, name) -> 
 
 		//matches m3u8 file or ts segment file
-		name.equals(file.getName()) || name.matches(regularExpression)
+		name.equals(localFile.getName()) || name.matches(regularExpression)
 				);
 	}
 

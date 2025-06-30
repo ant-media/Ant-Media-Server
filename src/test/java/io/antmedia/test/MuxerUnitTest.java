@@ -10,7 +10,6 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HCA;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HEVC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_NONE;
-
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
@@ -25,12 +24,47 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
+import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
+import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -44,10 +78,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.gson.JsonObject;
-import io.antmedia.*;
-
-import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
@@ -120,6 +150,12 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.gson.JsonObject;
+
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
+import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -151,6 +187,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.test.eRTMP.HEVCDecoderConfigurationParserTest;
 import io.antmedia.test.utils.VideoInfo;
 import io.antmedia.test.utils.VideoProber;
+import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 
 
@@ -532,7 +569,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		String streamId = "stream_name_" + (int) (Math.random() * 10000);
-		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4", false);
+		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 		//init
 		hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -576,7 +613,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		String streamId = "stream_name_" + (int) (Math.random() * 10000);
-		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4", false);
+		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 		//init
 		hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -847,7 +884,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
-		hlsMuxer.setHlsParameters(null, null, null, null, null, null, false);
+		hlsMuxer.setHlsParameters(null, null, null, null, null, null);
 		hlsMuxer.init(appScope, "test", 0, null, 0);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
@@ -921,14 +958,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String streamId = "streamId";
 			String subFolder = "subfolder/";
 
-			hlsMuxer.setHlsParameters("1", "1", null, null, null, null, false);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
 			Mockito.when(file[0].exists()).thenReturn(true);
 			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
+			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(file[0], Mockito.anyString());
 
 			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
 
@@ -949,14 +986,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String streamId = "streamId";
 			String subFolder = "subfolder";
 
-			hlsMuxer.setHlsParameters("1", "1", null, null, null, null, false);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
 			Mockito.when(file[0].exists()).thenReturn(true);
 			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
+			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(file[0], Mockito.anyString());
 
 			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
 
@@ -975,14 +1012,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
 			hlsMuxer.setIsRunning(new AtomicBoolean(true));
 			String streamId = "streamId";
-			hlsMuxer.setHlsParameters("1", "1", null, null, null, null, false);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
 			Mockito.when(file[0].exists()).thenReturn(true);
 			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
+			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(file[0], Mockito.anyString());
 
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
 
@@ -3010,7 +3047,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		StorageClient client = Mockito.mock(AmazonS3StorageClient.class);
 		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, client, "streams", 1, null, false);
-		hlsMuxerTester.setHlsParameters(null, null, null, null, null, null, false);
+		hlsMuxerTester.setHlsParameters(null, null, null, null, null, null);
 		assertFalse(hlsMuxerTester.isUploadingToS3());
 
 
@@ -5504,7 +5541,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
-			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts", false);
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -5579,7 +5616,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
 
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
-			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4", false);
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -5616,7 +5653,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
 
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
-			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts", false);
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
@@ -5655,7 +5692,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
 
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
-			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts", false);
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);

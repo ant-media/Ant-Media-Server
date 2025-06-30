@@ -895,14 +895,6 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${hlsTime:${"+SETTINGS_HLS_TIME+":2}}")
 	private String hlsTime = "2";
-	
-	/**
-	 * hlsToMp4Conversion is used to convert HLS files to MP4 files
-	 * after HLS recording is finished. It is useful to have a single MP4 file after several disconnections/interruptions
-	 * For this to work, hlsMuxingEnabled must be true, append_list flag should be used. 
-	 */
-	@Value( "${hlsToMp4Conversion:false}" )
-	private boolean hlsToMp4Conversion = false;
 
 	/**
 	 * Binary entity for uploading the extensions
@@ -4312,14 +4304,6 @@ public class AppSettings implements Serializable{
 
 	public void setAudioLevelThreshold(int audioLevelThreshold) {
 		this.audioLevelThreshold = audioLevelThreshold;
-	}
-
-	public boolean isHlsToMp4Conversion() {
-		return hlsToMp4Conversion;
-	}
-
-	public void setHlsToMp4Conversion(boolean hlsToMp4Conversion) {
-		this.hlsToMp4Conversion = hlsToMp4Conversion;
 	}
 
 	public String getStreamStartedScript() {
