@@ -382,7 +382,7 @@ public class HLSMuxer extends Muxer  {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
-		if(!isRunning.get())
+ 		if(!isRunning.get())
 			return;
 
 		super.writeTrailer();
@@ -529,9 +529,8 @@ public class HLSMuxer extends Muxer  {
 
 	public static File[] getHLSFilesInDirectory(File localFile, String regularExpression) {
 		return localFile.getParentFile().listFiles((dir, name) -> 
-
-		//matches m3u8 file or ts segment file
-		name.equals(localFile.getName()) || name.matches(regularExpression)
+						//matches m3u8 file or ts segment file
+						name.equals(localFile.getName()) || name.matches(regularExpression)
 				);
 	}
 

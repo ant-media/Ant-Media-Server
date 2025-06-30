@@ -48,10 +48,12 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
@@ -114,6 +116,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
@@ -913,7 +916,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testHLSMuxerGetOutputURLAndSegmentFilename() {
+	public void testHLSMuxerGetOutputURLAndSegmentFilename() throws IOException {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -961,18 +964,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 
 			File[] file = new File[1];
-			file[0] = Mockito.mock(File.class);
-			Mockito.when(file[0].exists()).thenReturn(true);
-			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			file[0] = new File("./webapps/junit/streams/subfolder/streamId.m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(file[0], Mockito.anyString());
+			file[0].getParentFile().mkdirs(); // Ensure the directory exists
+			file[0].createNewFile(); // Create the file
+			file[0].deleteOnExit();
+	    
 
+			 // Code under test that uses the stubbed method
+			   
+			
 			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
-
 
 			hlsMuxer.writeTrailer();
 
 			Mockito.verify(storageClient, Mockito.timeout(2000)).save("streams/subfolder/" + streamId + ".m3u8", file[0], true);
+
+			
 
 		}
 
@@ -987,13 +995,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String subFolder = "subfolder";
 
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
-
 			File[] file = new File[1];
-			file[0] = Mockito.mock(File.class);
-			Mockito.when(file[0].exists()).thenReturn(true);
-			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			file[0] = new File("./webapps/junit/streams/subfolder/streamId.m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(file[0], Mockito.anyString());
+			file[0].getParentFile().mkdirs(); // Ensure the directory exists
+			file[0].createNewFile(); // Create the file
+			file[0].deleteOnExit();
+	    
+			
+
 
 			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
 
@@ -1015,14 +1025,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 
 			File[] file = new File[1];
-			file[0] = Mockito.mock(File.class);
-			Mockito.when(file[0].exists()).thenReturn(true);
-			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			file[0] = new File("./webapps/junit/streams/streamId.m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(file[0], Mockito.anyString());
-
+			file[0].getParentFile().mkdirs(); // Ensure the directory exists
+			file[0].createNewFile(); // Create the file
+			file[0].deleteOnExit();
+	    
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
-
 
 			hlsMuxer.writeTrailer();
 
