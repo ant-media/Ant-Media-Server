@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +35,7 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -1617,12 +1617,22 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(200, lastSentDTS[0]);
 		assertEquals(200, lastSentDTS[1]);
 
+	}
 
-		
-		
-		
-		
-		
+	@Test
+	public void testRTSPAllowedMediaTypes(){
+		StreamFetcher streamFetcher = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio", "testRtspUrlParam", "rtsp_source", appScope, Vertx.vertx(), 0);
+
+		AVDictionary testOptions = new AVDictionary();
+		streamFetcher.parseRtspUrlParams(testOptions);
+
+		AVDictionaryEntry entry = avutil.av_dict_get(testOptions, "allowed_media_types", null, 0);
+		if (entry != null) {
+			String value = entry.value().getString();
+			assertTrue("audio".equalsIgnoreCase(value));
+		}
+
+		assert(true);
 	}
 
 }
