@@ -1621,12 +1621,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testRTSPAllowedMediaTypes(){
-    // allowed_media_types should be remove from url params ( because what if rtsp server does not support url param eg. happytime rtsp server )
+  		// allowed_media_types should be remove from url params ( because what if rtsp server does not support url param eg. happytime rtsp server )
 		StreamFetcher streamFetcher = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio", "testRtspUrlParam", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions = new AVDictionary();
 		streamFetcher.parseRtspUrlParams(testOptions);
-    assertEquals(streamFetcher.getStreamUrl(),"rtsp://127.0.0.1:6554/test.flv");
+    		assertEquals(streamFetcher.getStreamUrl(),"rtsp://127.0.0.1:6554/test.flv");
 
 		AVDictionaryEntry entry = avutil.av_dict_get(testOptions, "allowed_media_types", null, 0);
 		if (entry != null) {
@@ -1636,22 +1636,22 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assert(true);
 
-    // other url parameters should not be removed
+    		// other url parameters should not be removed
 
 		StreamFetcher streamFetcher1 = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?testParam=testParam", "testRtspUrlParam1", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions1 = new AVDictionary();
 		streamFetcher1.parseRtspUrlParams(testOptions1);
-    assertEquals("rtsp://127.0.0.1:6554/test.flv?testParam=testParam",streamFetcher1.getStreamUrl());
+    		assertEquals("rtsp://127.0.0.1:6554/test.flv?testParam=testParam",streamFetcher1.getStreamUrl());
 
-    //incorrect url format
+    		//incorrect url format
 		StreamFetcher streamFetcher2 = new StreamFetcher("rtsp://127.0.0.1:  space  6554/test.flv?allowed_media_types=video", "testRtspUrlParam2", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions2 = new AVDictionary();
 		streamFetcher2.parseRtspUrlParams(testOptions2);
 
 		entry = avutil.av_dict_get(testOptions2, "allowed_media_types", null, 0);
-    assertTrue(entry == null);
+    		assertTrue(entry == null);
 
 
 	}
