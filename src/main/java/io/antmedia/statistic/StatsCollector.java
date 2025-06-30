@@ -379,14 +379,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 							logger.info("DB Average Query Time:{}ms and Query Count:{} for app:{}", adaptor.getDataStore().getAverageQueryTimeMs(), adaptor.getDataStore().getExecutedQueryCount(), scope.getName());
 						
 							logger.info("Mux adaptor size:{} for {}", adaptor.getMuxAdaptors().size(), scope.getName());
-							
-							if(time2Log % 4 == 0) {
-								logger.info("Vertx metrics:"+webRTCVertxMetrics.getMetricsSnapshot(webRTCVertx));
-							}
-
 						}
 					}
 					
+					logger.info("Vertx metrics:"+webRTCVertxMetrics.getMetricsSnapshot(webRTCVertx));
 					
 				}
 
