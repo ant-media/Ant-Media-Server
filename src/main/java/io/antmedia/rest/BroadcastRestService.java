@@ -2098,7 +2098,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if (storageClient.isEnabled() && (RecordMuxer.S3_CONSTANT & getAppSettings().getUploadExtensionsToS3()) != 0)
 		{
 
-			uploadToS3(deleteHLSFiles, fileNameWithoutExtension, streamId, outputPath, appSettings, storageClient);
+			uploadToS3(deleteHLSFiles, fileNameWithoutExtension, outputPath, appSettings, storageClient);
 
 			result = true;
 		}
@@ -2134,7 +2134,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 
-	public void uploadToS3(boolean deleteHLSFiles, String fileNameWithoutExtension, String streamId, String outputPath,
+	public void uploadToS3(boolean deleteHLSFiles, String fileNameWithoutExtension, String outputPath,
 			AppSettings appSettings, StorageClient storageClient) {
 		String key = Muxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + fileNameWithoutExtension + ".mp4");
 
@@ -2149,8 +2149,9 @@ public class BroadcastRestService extends RestServiceBase{
 					logger.info("MP4 file upload completed to S3 bucket with key: {}", key);
 					if (deleteHLSFiles) 
 					{
-						logger.info("Deleting HLS files from S3 bucket for stream: {}", streamId);
-						storageClient.deleteMultipleFiles(appSettings.getS3StreamsFolderPath() + File.separator + streamId, HLSMuxer.HLS_FILES_REGEX_MATCHER);
+						logger.info("Deleting HLS files from S3 bucket for stream: {}", fileNameWithoutExtension);
+						String key = RecordMuxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + fileNameWithoutExtension);
+						storageClient.deleteMultipleFiles(key, HLSMuxer.HLS_FILES_REGEX_MATCHER);
 					}
 				}
 				else if (progressEvent.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT) {

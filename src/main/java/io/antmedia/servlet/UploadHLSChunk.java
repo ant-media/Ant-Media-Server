@@ -255,7 +255,6 @@ public class UploadHLSChunk extends HttpServlet{
 
 				InputStream inputStream = null;
 
-
 				inputStream = req.getInputStream();
 
 				uploadHLSChunk(storageClient, appSettings, inputStream, req, resp);
@@ -282,7 +281,6 @@ public class UploadHLSChunk extends HttpServlet{
 	public void uploadHLSChunk(StorageClient storageClient, AppSettings appSettings, 
 			InputStream inputStream, HttpServletRequest req, HttpServletResponse resp) 
 	{
-
 		String s3FileKey = getS3Key(req, appSettings);
 
 		//TODO: we overwrite progressListener for the ongoing upload here. This may make logs misleading.
@@ -297,8 +295,7 @@ public class UploadHLSChunk extends HttpServlet{
 			}
 		});
 
-		storageClient.save(s3FileKey, inputStream, true);
-
+		storageClient.save(s3FileKey, inputStream, true );
 	}
 
 	public static String getS3Key(HttpServletRequest req, AppSettings appSettings) {

@@ -1497,7 +1497,7 @@ public abstract class Muxer {
 	}
 	
 	public static String replaceDoubleSlashesWithSingleSlash(String url) {
-		return url.replaceAll("(?<!:)//", "/");
+		return url.replaceAll("(?<!:)/{2,}", "/");
 	}
 	
 	public long getVideoNotWrittenCount() {

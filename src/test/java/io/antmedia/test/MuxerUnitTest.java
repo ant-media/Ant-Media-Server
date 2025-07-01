@@ -6151,6 +6151,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		}
 	}
+	
+	@Test
+	public void testReplaceMultipleSlashes() {
+		String replaceDoubleSlashesWithSingleSlash = RecordMuxer.replaceDoubleSlashesWithSingleSlash("WebRTCAppEE/streams///stream1.mp4");
+		assertEquals("WebRTCAppEE/streams/stream1.mp4", replaceDoubleSlashesWithSingleSlash);
+	}
 
 	@Test
 	public void testWriteTrailer() throws IOException, InterruptedException {
