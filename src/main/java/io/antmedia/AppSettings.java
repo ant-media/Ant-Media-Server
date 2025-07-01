@@ -1282,6 +1282,13 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${streamEndedScript:}" )
 	private String streamEndedScript = "";
+	
+	/**
+	 * This is a script file path that is called by Runtime when stream idle timeout occurs,
+	 * Bash script file path will be called after stream idle timeout.
+	 */
+	@Value( "${streamIdleTimeoutScript:}" )
+	private String streamIdleTimeoutScript = "";
 
 	/**
 	 * It's mandatory,
@@ -4320,5 +4327,13 @@ public class AppSettings implements Serializable{
 
 	public void setStreamEndedScript(String streamEndedScript) {
 		this.streamEndedScript = streamEndedScript;
+	}
+
+	public String getStreamIdleTimeoutScript() {
+		return streamIdleTimeoutScript;
+	}
+
+	public void setStreamIdleTimeoutScript(String streamIdleTimeoutScript) {
+		this.streamIdleTimeoutScript = streamIdleTimeoutScript;
 	}
 }
