@@ -3919,7 +3919,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testUploadToS3() {
 		StorageClient storageClient = Mockito.mock(StorageClient.class);
-		restServiceReal.uploadToS3(true, "streamId_480p", "streamId", "streamId.mp4", new AppSettings(), storageClient);
+		restServiceReal.uploadToS3(true, "streamId_480p", "streamId.mp4", new AppSettings(), storageClient);
 		
 		ArgumentCaptor<ProgressListener> progressListener = ArgumentCaptor.forClass(ProgressListener.class);
 		verify(storageClient, times(1)).save(any(), any(), anyBoolean(), progressListener.capture());
@@ -3939,7 +3939,7 @@ public class BroadcastRestServiceV2UnitTest {
 		listener.progressChanged(progressEvent);
 		
 		
-		restServiceReal.uploadToS3(false, "streamId_480p", "streamId", "streamId.mp4", new AppSettings(), storageClient);
+		restServiceReal.uploadToS3(false, "streamId_480p", "streamId.mp4", new AppSettings(), storageClient);
 		verify(storageClient, times(2)).save(any(), any(), anyBoolean(), progressListener.capture());
 		listener = progressListener.getValue();
 		progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT);
