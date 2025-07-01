@@ -447,7 +447,7 @@ public abstract class RestServiceBase {
 
 
 
-	protected Broadcast lookupBroadcast(String id) {
+	public Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
 		try {
 			broadcast = getDataStore().get(id);

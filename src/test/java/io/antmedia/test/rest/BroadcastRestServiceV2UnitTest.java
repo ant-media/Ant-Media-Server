@@ -3951,7 +3951,7 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
-	public void testConvertHLStoMP4() throws IOException 
+	public void testConvertHLStoMP4() throws Exception 
 	{
 		AppSettings settings = new AppSettings();
 		String serverName = "fully.qualified.domain.name";
@@ -3982,12 +3982,22 @@ public class BroadcastRestServiceV2UnitTest {
 		Result result = (Result) response.getEntity();
 		assertFalse(result.isSuccess());
 		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("stream1");
+		store.save(broadcast);
+		
+		
 		streamId = "stream1";
 		response = restServiceReal.convertHLStoMP4(streamId, false, false);
 		result = (Result) response.getEntity();
 		assertFalse(result.isSuccess());
 		
-		streamId = "stream1.m3u8";
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStreamId("stream2");
+		broadcast2.setSubFolder("subfolder");
+		store.save(broadcast2);
+		
+		streamId = "stream2.m3u8";
 		response = restServiceReal.convertHLStoMP4(streamId, false, false);
 		result = (Result) response.getEntity();
 		assertFalse(result.isSuccess());

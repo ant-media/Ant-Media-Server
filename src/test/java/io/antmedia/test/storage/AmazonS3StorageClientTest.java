@@ -2,6 +2,8 @@ package io.antmedia.test.storage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,7 +36,10 @@ import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -160,6 +165,27 @@ public class AmazonS3StorageClientTest {
 		assertTrue(storage.checkStorageClass("standard"));
 		assertTrue(storage.checkStorageClass("REDUCED_REDUNdancy"));
 		assertTrue(storage.checkStorageClass("ONEZONE_IA"));
+	}
+	
+	@Test
+	public void testGetS3() {
+		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
+		
+		AmazonS3 amazonS3 = Mockito.mock(AmazonS3.class);
+		Mockito.doReturn(amazonS3).when(storage).initAmazonS3();
+
+		assertNull(storage.get("test"));
+		
+		
+		S3Object s3Object = Mockito.mock(S3Object.class);
+		when(amazonS3.getObject(Mockito.any(GetObjectRequest.class))).thenReturn(s3Object);
+		
+		when(s3Object.getObjectContent()).thenReturn(Mockito.mock(S3ObjectInputStream.class));
+		
+		assertNotNull(storage.get("test"));
+
+
+		
 	}
 	
 	@Test

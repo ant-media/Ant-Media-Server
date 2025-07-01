@@ -2036,7 +2036,11 @@ public class BroadcastRestService extends RestServiceBase{
 		//check if m3u8 extension is given, if not add it
 		String fileNameWithoutExtension = null;
 		hlsFileName = hlsFileName.replaceAll(REPLACE_CHARS, "_");
-
+		if (!hlsFileName.endsWith(".m3u8")) 
+		{
+			hlsFileName += ".m3u8";
+		}
+		
 
 
 		String streamId = TokenFilterManager.getStreamId(hlsFileName);
@@ -2057,16 +2061,7 @@ public class BroadcastRestService extends RestServiceBase{
 			logger.warn("Broadcast not found for stream id: {}", streamId);
 		}
 
-		if (!hlsFileName.endsWith(".m3u8")) 
-		{
-			fileNameWithoutExtension = hlsFileName;
-			hlsFileName += ".m3u8";
-		}
-		else 
-		{
-			fileNameWithoutExtension = hlsFileName.substring(0, hlsFileName.length() - 5); // remove .m3u8
-		}	
-
+		fileNameWithoutExtension = hlsFileName.substring(0, hlsFileName.length() - 5); // remove .m3u8
 
 		File hlsFile = new File(IAntMediaStreamHandler.WEBAPPS_PATH + File.separator + getScope().getName() 
 				+ File.separator + "streams" + File.separator + hlsFileName);
