@@ -1738,7 +1738,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private void createIdleCheckTimer(Broadcast broadcast, boolean isMainTrack) {
 		logger.info("Idle check timer is set to {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
-		vertx.setTimer(broadcast.getMaxIdleTime()*1000, l -> {
+		vertx.setTimer(broadcast.getMaxIdleTime() * 1000L, l -> {
 			Broadcast currentBroadcast = dataStore.get(broadcast.getStreamId());
 			if(currentBroadcast == null) {
 				logger.info("Broadcast {} is not exist anymore", broadcast.getStreamId());
