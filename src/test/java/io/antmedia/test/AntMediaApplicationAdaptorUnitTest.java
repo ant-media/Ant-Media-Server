@@ -3185,8 +3185,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		verify(spyAdapter,Mockito.after(4000).never()).notifyHook(listenerHookURL, mainTrack.getStreamId(), mainTrack.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
 
-		when(db.getActiveSubtracksCount(anyString(), nullable(String.class))).thenReturn(1L);
-
 		verify(spyAdapter, Mockito.after(2000).times(1)).notifyHook(listenerHookURL, mainTrack.getStreamId(), mainTrack.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
 
     }
