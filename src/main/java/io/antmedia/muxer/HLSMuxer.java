@@ -448,6 +448,7 @@ public class HLSMuxer extends Muxer  {
 
 	}
 
+	@SuppressWarnings("javasecurity:S2076") //because we check if input url is valid or not
 	public static boolean convertToMp4(String inputUrl, String outputUrl) {
 		boolean result = false;
 
