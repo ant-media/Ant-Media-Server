@@ -191,17 +191,21 @@ public class UploadHLSChunk extends HttpServlet{
 			else 
 			{
 				logger.warn("Storage client is not available for request: {}", req.getRequestURI());
-				resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Storage client is not available");
+				sendError(resp, "Storage client is not available");
 
 			}
 		}
 		catch (Exception e) {
 			logger.error("Error processing GET request for HLS chunk upload: {}", ExceptionUtils.getStackTrace(e));
-			try {
-				resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error processing request");
-			} catch (IOException e1) {
-				logger.error("Error sending error response: {}", ExceptionUtils.getStackTrace(e1));
-			}
+			sendError(resp, "Error processing request: " + e.getMessage());
+		}
+	}
+
+	private void sendError(HttpServletResponse resp, String message) {
+		try {
+			resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
+		} catch (IOException e1) {
+			logger.error("Error sending error response: {}", ExceptionUtils.getStackTrace(e1));
 		}
 	}
 
