@@ -481,18 +481,12 @@ public class HLSMuxer extends Muxer  {
 			logger.info("Converting HLS to MP4 with command: {}", String.join(" ", parameters));
 
 			ProcessBuilder pb = new ProcessBuilder(parameters);
+			pb.redirectErrorStream(true); // Combine error and output streams
 
-			Process process = pb.inheritIO().start();
-			InputStream errorStream = process.getErrorStream();
+			Process process = pb.start();
+			InputStream inputStream = process.getInputStream();
 			byte[] data = new byte[1024];
 			int length = 0;
-
-			while ((length = errorStream.read(data, 0, data.length)) > 0) {
-				logger.info(new String(data, 0, length));
-			}
-
-			InputStream inputStream = process.getInputStream();
-
 			while ((length = inputStream.read(data, 0, data.length)) > 0) {
 				logger.info(new String(data, 0, length));
 			}
