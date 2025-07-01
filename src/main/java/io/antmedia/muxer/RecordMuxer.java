@@ -30,7 +30,7 @@ public abstract class RecordMuxer extends Muxer {
 
 	protected String previewPath;
 
-	private static final int S3_CONSTANT = 0b001;
+	public static final int S3_CONSTANT = 0b001;
 
 	private String s3FolderPath = "streams";
 

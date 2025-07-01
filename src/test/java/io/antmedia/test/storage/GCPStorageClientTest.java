@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
 
+import com.amazonaws.event.ProgressListener;
 import com.google.cloud.ByteArray;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
@@ -14,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.io.File;
@@ -41,6 +43,20 @@ public class GCPStorageClientTest {
         gcpStorageClient.reset(); // reset storage
         assertNotEquals(instance, gcpStorageClient.getGCPStorage());
     }
+    
+    @Test
+    public void testGetGCPStorage() {
+		GCPStorageClient gcpStorageClient = new GCPStorageClient();
+		Storage storage = gcpStorageClient.getGCPStorage();
+		assertNotNull(storage);
+		
+		gcpStorageClient.setStorageName("dummy");
+        gcpStorageClient.setEnabled(true);
+        String key = "test-key";
+        
+        assertNull(gcpStorageClient.get(key));
+
+	}
 
     @Test
     public void testDelete() {
@@ -136,7 +152,12 @@ public class GCPStorageClientTest {
 
         verify(storage, times(1)).create(any(BlobInfo.class), any(byte[].class));
         verify(gcpStorageClient, times(1)).deleteFile(any());
-
+        
+        tempFilePath = Files.createTempFile("test", ".tmp");
+        tempFile = tempFilePath.toFile();
+        gcpStorageClient.save("test-key", tempFile, true, Mockito.mock(ProgressListener.class));
+        verify(storage, times(2)).create(any(BlobInfo.class), any(byte[].class));
+        verify(gcpStorageClient, times(2)).deleteFile(any());
 
     }
 

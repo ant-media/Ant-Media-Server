@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,9 +9,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressEventType;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.util.Base32;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.RecordType;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.cluster.IClusterNotifier;
@@ -26,10 +31,13 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.ITokenService;
@@ -39,6 +47,7 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
@@ -907,7 +916,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return subscriberStats;
 	}
-	
+
 	@Operation(summary = "Retrieve all subscriber statistics of the requested stream. Deprecated ",
 			description = "Fetches comprehensive statistics for all subscribers of the specified stream.",
 			responses = {
@@ -931,7 +940,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return connectionEvents;
 	}
-	
+
 
 	@Operation(summary = "Add Subscriber to the requested stream",
 			description = "Adds a subscriber to the requested stream. If the subscriber's type is 'publish', they can also play the stream, which is critical in conferencing. If the subscriber's type is 'play', they can only play the stream. If 'b32Secret' is not set, it will default to the AppSettings. The length of 'b32Secret' should be a multiple of 8 and use base32 characters A–Z, 2–7.",
@@ -1542,7 +1551,7 @@ public class BroadcastRestService extends RestServiceBase{
 			if(room.getEndDate() == 0) {
 				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
 			}
-			
+
 			if (StringUtils.isNoneBlank(room.getRoomId())) 
 			{
 				Broadcast broadcast = getDataStore().get(room.getRoomId());
@@ -1831,7 +1840,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 			else {
 				roomInfo = new RootRestService.RoomInfo(roomId, RestServiceBase.getRoomInfoFromConference(broadcastRoom, streamId, getDataStore()));
-	
+
 				roomInfo.setStartDate(broadcastRoom.getPlannedStartDate());
 				roomInfo.setEndDate(broadcastRoom.getPlannedEndDate());
 			}
@@ -1977,7 +1986,7 @@ public class BroadcastRestService extends RestServiceBase{
 			return new Result(false, null, "ID3 tag is not enabled");
 		}
 		logger.info("ID3 data is received for stream: {} data: {}", streamId.replaceAll(REPLACE_CHARS, "_"), data.replaceAll(REPLACE_CHARS, "_"));
-		
+
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(muxAdaptor != null) {
 			return new Result(muxAdaptor.addID3Data(data));
@@ -1993,8 +2002,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{stream_id}/sei")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSEIData(@Parameter(description = "the id of the stream", required = true) @PathParam("stream_id") String streamId,
-							 @Parameter(description = "SEI data.", required = false) String data) {
-		
+			@Parameter(description = "SEI data.", required = false) String data) {
+
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(muxAdaptor != null) {
 			return new Result(muxAdaptor.addSEIData(data));
@@ -2002,5 +2011,153 @@ public class BroadcastRestService extends RestServiceBase{
 		else {
 			return new Result(false, null, "Stream is not available");
 		}
+	}
+
+	//TODO: add start and end time support
+	@Operation(description = "Converts the recorded HLS to MP4 file")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{hls_filename}/hls-to-mp4")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response convertHLStoMP4(@PathParam("hls_filename") String hlsFileName, 
+			@QueryParam("download") boolean download,
+			@QueryParam("deleteHLSFiles") boolean deleteHLSFiles) 
+	{
+		//check if the storageClient is enabled to record the stream to S3
+		//if it is recording to s3 and hlsHttpEndpoint is active
+		//Convert the hls to mp4 file by using hlsHttpEndpoint
+
+
+		boolean result = false;
+		if (StringUtils.isBlank(hlsFileName)) {
+			return Response.status(Status.OK).entity(new Result(false, "HLS file name is empty")).build();
+		}
+
+		//check if m3u8 extension is given, if not add it
+		String fileNameWithoutExtension = null;
+		hlsFileName = hlsFileName.replaceAll(REPLACE_CHARS, "_");
+		if (!hlsFileName.endsWith(".m3u8")) 
+		{
+			hlsFileName += ".m3u8";
+		}
+		
+
+
+		String streamId = TokenFilterManager.getStreamId(hlsFileName);
+
+		Broadcast broadcast = lookupBroadcast(streamId);
+		int height = 0;
+		long startTime = 0;
+		String subFolder = null;
+		if (broadcast != null) {
+			subFolder = broadcast.getSubFolder();
+			if (StringUtils.isNotBlank(subFolder)) {
+				hlsFileName = subFolder + File.separator + hlsFileName;
+			}
+			startTime = broadcast.getStartTime();
+			broadcast.getHeight();
+		} 
+		else {
+			logger.warn("Broadcast not found for stream id: {}", streamId);
+		}
+
+		fileNameWithoutExtension = hlsFileName.substring(0, hlsFileName.length() - 5); // remove .m3u8
+
+		File hlsFile = new File(IAntMediaStreamHandler.WEBAPPS_PATH + File.separator + getScope().getName() 
+				+ File.separator + "streams" + File.separator + hlsFileName);
+		File parentFolder = hlsFile.getParentFile();
+		parentFolder.mkdirs();
+
+		String outputPath = parentFolder.getAbsolutePath() + File.separator + fileNameWithoutExtension + ".mp4";
+
+		File outputFile = new File(outputPath);
+		AppSettings appSettings = getAppSettings();
+		String hlsHttpEndpoint = appSettings.getHlsHttpEndpoint();
+
+		String inputUrl = null;
+		if (StringUtils.isNotBlank(hlsHttpEndpoint)) 
+		{						
+			// check if the stream exists
+			inputUrl = hlsHttpEndpoint + File.separator + hlsFileName;
+		}
+		else {
+			inputUrl = hlsFile.getAbsolutePath();
+		}
+
+		result = HLSMuxer.convertToMp4(inputUrl, outputPath);
+
+		if (!result) {
+			return Response.status(Status.OK).entity(new Result(false, "HLS to MP4 conversion has failed")).build(); 
+		}
+
+		long durationInMs = Muxer.getDurationInMs(outputFile, streamId);
+		getApplication().muxingFinished(broadcast, streamId, outputFile, startTime, durationInMs, height, null, null);
+
+		StorageClient storageClient = getApplication().getStorageClient();
+
+		if (storageClient.isEnabled() && (RecordMuxer.S3_CONSTANT & getAppSettings().getUploadExtensionsToS3()) != 0)
+		{
+
+			uploadToS3(deleteHLSFiles, fileNameWithoutExtension, outputPath, appSettings, storageClient);
+
+			result = true;
+		}
+		else if (deleteHLSFiles) {
+			deleteLocalHLSFiles(hlsFile);
+		}
+
+		if (download) {
+			//return the file as a download
+
+			Response.ResponseBuilder response = Response.ok(outputFile);
+			response.header("Content-Disposition", "attachment; filename=\"" + fileNameWithoutExtension + ".mp4\"");
+
+			return response.build();
+		}
+
+
+
+		return Response.status(Status.OK).entity(new Result(result)).build();
+	}
+
+	public void deleteLocalHLSFiles(File hlsFile) {
+		File[] hlsFiles = HLSMuxer.getHLSFilesInDirectory(hlsFile, HLSMuxer.HLS_FILES_REGEX_MATCHER);
+
+		if (hlsFiles != null && hlsFiles.length > 0) {
+			for (File hlsFileToDelete : hlsFiles) {
+				if (!hlsFileToDelete.delete()) {
+					logger.warn("Failed to delete HLS file: {}", hlsFileToDelete.getAbsolutePath());
+				}
+			}
+		} else {
+			logger.warn("No HLS files found in directory: {}", hlsFile.getAbsolutePath());
+		}
+	}
+
+	public void uploadToS3(boolean deleteHLSFiles, String fileNameWithoutExtension, String outputPath,
+			AppSettings appSettings, StorageClient storageClient) {
+		String key = Muxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + fileNameWithoutExtension + ".mp4");
+
+		logger.info("Saving converted MP4 file to S3 bucket with key: {}", key);
+		storageClient.save(key, new File(outputPath), true, new ProgressListener() {
+
+			@Override
+			public void progressChanged(ProgressEvent progressEvent) 
+			{
+				if (progressEvent.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT) {
+					// The transfer is completed
+					logger.info("MP4 file upload completed to S3 bucket with key: {}", key);
+					if (deleteHLSFiles) 
+					{
+						logger.info("Deleting HLS files from S3 bucket for stream: {}", fileNameWithoutExtension);
+						String key = RecordMuxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + fileNameWithoutExtension);
+						storageClient.deleteMultipleFiles(key, HLSMuxer.HLS_FILES_REGEX_MATCHER);
+					}
+				}
+				else if (progressEvent.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT) {
+					logger.error("MP4 file upload failed to S3 bucket with key: {}", key);
+				}
+			}
+		});
 	}
 }
