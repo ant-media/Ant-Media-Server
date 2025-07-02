@@ -75,6 +75,12 @@ public class WebSocketConstants {
 	public static final String NO_STREAM_EXIST = "no_stream_exist";
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
+	
+	/**
+	 * This is the command that is sent from the server when a stream is started so that player can send a play command
+	 * or take any action
+	 */
+	public static final String STREAMING_STARTED = "streaming_started";
 
 	/**
 	 * Command to get ICE server configuration to frontend from server
@@ -131,6 +137,11 @@ public class WebSocketConstants {
 	 * this subscriber id is used to access resources or start broadcast when time based subscriber security is enabled
 	 */
 	public static final String SUBSCRIBER_ID = "subscriberId";
+	
+	/**
+	 * this subscriber name is the human readable name for a subscriber
+	 */
+	public static final String SUBSCRIBER_NAME = "subscriberName";
 	
 	/**
 	 * this subscriber code is used to access resources or start broadcast when time based subscriber security is enabled
@@ -609,6 +620,11 @@ public class WebSocketConstants {
 	 * Participant role in the room
 	 */
 	public static final String ROLE = "role";
+	
+	/**
+	 * Participant role in the room
+	 */
+	public static final String DISABLE_TRACKS_BY_DEFAULT = "disableTracksByDefault";
 
 	/**
 	 * Command to get subtrack infos for a main track
@@ -624,6 +640,27 @@ public class WebSocketConstants {
 	 * subtrack (broadcast) object list notification
 	 */
 	public static final String SUBTRACK_LIST_NOTIFICATION = "subtrackList";
+	
+	
+	/**
+	 * Command to get subscriber list size
+	 */
+	public static final String GET_SUBSCRIBER_LIST_SIZE = "getSubscriberCount";
+	
+	/**
+	 * subscriber count notification
+	 */
+	public static final String SUBSCRIBER_COUNT = "subscriberCount";
+	
+	/**
+	 * Command to get subscribers for a stream
+	 */
+	public static final String GET_SUBSCRIBER_LIST = "getSubscribers";
+
+	/**
+	 * subscribers list notification
+	 */
+	public static final String SUBSCRIBER_LIST_NOTIFICATION = "subscriberList";
 
 	/**
 	 * status field in websocket communication
@@ -660,6 +697,11 @@ public class WebSocketConstants {
 	 * subtrack (broadcast) object list
 	 */
 	public static final String SUBTRACK_LIST = "subtrackList";
+	
+	/**
+	 * subscribers list
+	 */
+	public static final String SUBCRIBER_LIST = "subscriberList";
 
 	/**
 	 * This is the error definition that is sent when the stream does not get video or audio packet for the timeout duration.
@@ -688,5 +730,20 @@ public class WebSocketConstants {
 	 * Notification to notify a new subtrack removal to a main track
 	 */
 	public static final String SUBTRACK_REMOVED = "subtrackRemoved";
+	
+	/**
+	 * This is the error definition that is sent when the stream does not exist or not streaming
+	 */
+	public static final String STREAM_NOT_EXIST_OR_NOT_STREAMING_DEFINITION = "stream_not_exist_or_not_streaming";
+	
+	/**
+	 * This is the error definition that is sent when the stream exits but not available as WebRTC because webrtc is not enabled
+	 */
+	public static final String WEBRTC_NOT_ENABLED_TO_PLAYBACK_DEFINITION = "webrtc_not_enabled";
+
+	/**
+	 * This is the definition that is sent when the is about to start for auto/start stop streams
+	 */
+	public static final String STREAMING_STARTS_SOON_DEFINITION = "streaming_starts_soon";
 
 }

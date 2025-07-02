@@ -148,8 +148,23 @@
 	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2025-22919</vulnerabilityName>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: spring-security-crypto-6.2.8.jar
+	   This vulnerability is about BCryptPasswordEncoder and it is not used by Ant Media Server.  
+	   ]]></notes>
+       <packageUrl regex="true">^pkg:maven/org\.springframework/security/spring\-security\-crypto@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-22228</vulnerabilityName>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   FFmpeg will be upgraded when a new version is available
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-1594</vulnerabilityName>
+	</suppress>
 	
-	
-	
-	
+		
 </suppressions>

@@ -1268,6 +1268,27 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${muxerFinishScript:${"+SETTINGS_MUXER_FINISH_SCRIPT+":}}" )
 	private String muxerFinishScript = "";
+	
+	/**
+	 * This is a script file path that is called by Runtime when streaming has started,
+	 * Bash script file path will be called.
+	 */
+	@Value( "${streamStartedScript:}" )
+	private String streamStartedScript = "";
+	
+	/**
+	 * This is a script file path that is called by Runtime when stream ends,
+	 * Bash script file path will be called after stream ends.
+	 */
+	@Value( "${streamEndedScript:}" )
+	private String streamEndedScript = "";
+	
+	/**
+	 * This is a script file path that is called by Runtime when stream idle timeout occurs,
+	 * Bash script file path will be called after stream idle timeout.
+	 */
+	@Value( "${streamIdleTimeoutScript:}" )
+	private String streamIdleTimeoutScript = "";
 
 	/**
 	 * It's mandatory,
@@ -2888,7 +2909,7 @@ public class AppSettings implements Serializable{
 		hlsMuxingEnabled = true;
 		hlsListSize = null;
 		hlsTime = null;
-		webRTCEnabled = false;
+		webRTCEnabled = true;
 		deleteHLSFilesOnEnded = true;
 		deleteDASHFilesOnEnded = true;
 		acceptOnlyStreamsInDataStore = false;
@@ -4290,5 +4311,29 @@ public class AppSettings implements Serializable{
 
 	public void setAudioLevelThreshold(int audioLevelThreshold) {
 		this.audioLevelThreshold = audioLevelThreshold;
+	}
+
+	public String getStreamStartedScript() {
+		return streamStartedScript;
+	}
+
+	public void setStreamStartedScript(String streamStartedScript) {
+		this.streamStartedScript = streamStartedScript;
+	}
+
+	public String getStreamEndedScript() {
+		return streamEndedScript;
+	}
+
+	public void setStreamEndedScript(String streamEndedScript) {
+		this.streamEndedScript = streamEndedScript;
+	}
+
+	public String getStreamIdleTimeoutScript() {
+		return streamIdleTimeoutScript;
+	}
+
+	public void setStreamIdleTimeoutScript(String streamIdleTimeoutScript) {
+		this.streamIdleTimeoutScript = streamIdleTimeoutScript;
 	}
 }
