@@ -1343,6 +1343,10 @@ public class MongoStore extends DataStore {
 		if (broadcast.getVirtual() != null) {
 			updates.add(set("virtual", broadcast.getVirtual()));
 		}
+		
+		if (broadcast.getMaxIdleTime() != null) {
+			updates.add(set("maxIdleTime", broadcast.getMaxIdleTime()));
+		}
 	}
 
 	/**

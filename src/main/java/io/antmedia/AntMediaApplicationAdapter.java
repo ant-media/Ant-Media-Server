@@ -5,6 +5,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URI;
@@ -137,6 +138,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
+
+	public static final String HOOK_IDLE_TIME_EXPIRED = "idleTimeIsExpired";
 
 
 	/**
@@ -743,7 +746,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 
 				notifyPublishStopped(streamId, role, mainTrackId);
+				
+				if(broadcast.getMaxIdleTime() > 0) {
+					createIdleCheckTimer(broadcast, false);
+				}
+				
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
+				
+				String streamEndedScript = appSettings.getStreamEndedScript();
+				if (StringUtils.isNotBlank(streamEndedScript)) 
+				{
+					runScript(streamEndedScript + "  " + broadcast.getStreamId());
+				}
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -840,6 +854,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
 				}
 				notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
+				
+				if(mainBroadcast.getMaxIdleTime() > 0) {
+					createIdleCheckTimer(mainBroadcast, true);
+				}
 			}
 			else {
 				logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
@@ -939,6 +957,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				logPublishStartedEvent(streamId, publishType, subscriberId);
 				notifyPublishStarted(streamId, role, mainTrackId);
+				
+				String streamStartedScript = appSettings.getStreamStartedScript();
+				if (StringUtils.isNotBlank(streamStartedScript)) 
+				{
+					runScript(streamStartedScript + "  " + broadcast.getStreamId());
+				}
 
 
 			} catch (Exception e) {
@@ -1215,6 +1239,22 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			try {
 				logger.info("running script: {}", scriptFile);
 				Process exec = Runtime.getRuntime().exec(scriptFile);
+				
+				InputStream errorStream = exec.getErrorStream();
+	            byte[] data = new byte[1024];
+	            int length = 0;
+
+	            while ((length = errorStream.read(data, 0, data.length)) > 0) {
+	                logger.info(new String(data, 0, length));
+	            }
+
+	            InputStream inputStream = exec.getInputStream();
+
+	            while ((length = inputStream.read(data, 0, data.length)) > 0) {
+	            	logger.info(new String(data, 0, length));
+	            }
+	            
+	            
 				int result = exec.waitFor();
 
 				logger.info("completing script: {} with return value {}", scriptFile, result);
@@ -1295,6 +1335,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			putToMap("mainTrackId", mainTrackId, variables);
 			putToMap("roomId", mainTrackId, variables);
 			putToMap("subscriberId", subscriberId, variables);
+			putToMap("app", getScope().getName(), variables);
 
 			if (StringUtils.isNotBlank(metadata)) {
 				Object metaDataJsonObj = null;
@@ -1691,7 +1732,54 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				result.setSuccess(true);
 			}
 		}
+		
 		return result;
+	}
+
+	private void createIdleCheckTimer(Broadcast broadcast, boolean isMainTrack) {
+		logger.info("Idle check timer is set to {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
+		vertx.setTimer(broadcast.getMaxIdleTime() * 1000L, l -> {
+			Broadcast currentBroadcast = dataStore.get(broadcast.getStreamId());
+			if(currentBroadcast == null) {
+				logger.info("Broadcast {} is not exist anymore", broadcast.getStreamId());
+				return;
+			}
+			
+			if(isMainTrack) {
+				long activeSubtrackCount = dataStore.getActiveSubtracksCount(currentBroadcast.getStreamId(), null);
+				logger.info("Room {} idle time {} has expired and active subtrack count is {}", currentBroadcast.getStreamId(), currentBroadcast.getMaxIdleTime(), activeSubtrackCount);
+				if(activeSubtrackCount == 0) {
+					notifyBroadcastIdleTimeExpired(currentBroadcast);
+				}
+			}
+			else {
+				long now = System.currentTimeMillis();
+				logger.info("Broadcast {} idle time {} has expired at {} and last update time {}", currentBroadcast.getStreamId(), currentBroadcast.getMaxIdleTime(), now, currentBroadcast.getUpdateTime());
+				if(now > (currentBroadcast.getUpdateTime() + currentBroadcast.getMaxIdleTime()*1000)) {
+					notifyBroadcastIdleTimeExpired(currentBroadcast);
+				}
+			}
+		});
+	}
+
+	private void notifyBroadcastIdleTimeExpired(Broadcast broadcast) {
+		logger.info("Idle time {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
+		final String listenerHookURL = getListenerHookURL(broadcast);
+		if (listenerHookURL != null && listenerHookURL.length() > 0)
+		{
+			final String streamId = broadcast.getStreamId();
+			final String mainTrackId = broadcast.getMainTrackStreamId();
+			final String name = broadcast.getName();
+			final String category = broadcast.getCategory();
+			
+			notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_IDLE_TIME_EXPIRED, name, category, null, null, null, null, null);
+		}
+		
+		String streamIdleTimeoutScript = getAppSettings().getStreamIdleTimeoutScript();
+		if (StringUtils.isNotBlank(streamIdleTimeoutScript)) {
+			runScript(streamIdleTimeoutScript + " " + broadcast.getStreamId() + " " + getScope().getName());
+		}
+		
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {

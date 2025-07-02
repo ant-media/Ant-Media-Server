@@ -1209,6 +1209,10 @@ public abstract class DataStore {
 			broadcast.setVirtual(newBroadcast.getVirtual());
 		}
 		
+		if (newBroadcast.getMaxIdleTime() != null) {
+			broadcast.setMaxIdleTime(newBroadcast.getMaxIdleTime());
+		}
+		
 		
 	}
 

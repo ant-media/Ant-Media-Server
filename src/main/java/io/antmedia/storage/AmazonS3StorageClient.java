@@ -23,9 +23,11 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
@@ -143,6 +145,18 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 		return false;
 	}
+	
+	@Override
+	public InputStream get(String key) {
+		 GetObjectRequest getObjectRequest = new GetObjectRequest(getStorageName(), key);
+
+		 S3Object s3Object =  getAmazonS3().getObject(getObjectRequest);
+		 if (s3Object == null) {
+			 logger.error("S3 Object not found for key: {}", key);
+			 return null;
+		 }
+		 return s3Object.getObjectContent();
+	}
 
 	public void save(final File file, String type) {
 		save(type + "/" + file.getName(), file);
@@ -150,15 +164,19 @@ public class AmazonS3StorageClient extends StorageClient {
 
 
 	public void save(String key, InputStream inputStream, boolean waitForCompletion) {
-		save(key, null, inputStream, false, waitForCompletion);
+		save(key, null, inputStream, false, waitForCompletion, null);
 	}
 
 	
 	public void save(String key, File file, boolean deleteLocalFile) {
-		save(key, file, null, deleteLocalFile, false);
+		save(key, file, null, deleteLocalFile, false, null);
 	}
 	
-	public void save(String key, File file, InputStream inputStream, boolean deleteLocalFile, boolean waitForCompletion)
+	public void save(String key, File file, boolean deleteLocalFile, ProgressListener progressListener) {
+		save(key, file, null, deleteLocalFile, false, progressListener);
+	}
+	
+	public void save(String key, File file, InputStream inputStream, boolean deleteLocalFile, boolean waitForCompletion, ProgressListener localProgressListener)
 	{	
 		if (isEnabled()) 
 		{
@@ -195,8 +213,13 @@ public class AmazonS3StorageClient extends StorageClient {
 			 * Some blocking calls are removed. Please don't block any threads if it's really not necessary
 			 */
 			logger.info("File {} upload has started with key: {}", file != null ? file.getName() : "", key);
+			
+			if (localProgressListener == null) {
+				localProgressListener = this.progressListener;
+			}
+			
 
-			listenUploadProgress(key, file, deleteLocalFile, upload);
+			listenUploadProgress(key, file, deleteLocalFile, upload, localProgressListener);
 			
 			if (waitForCompletion) {
 				try {
@@ -215,7 +238,7 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 	}
 
-	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload, ProgressListener progressListenerParam) {
 
 		upload.addProgressListener((ProgressListener)event -> 
 		{
@@ -232,9 +255,9 @@ public class AmazonS3StorageClient extends StorageClient {
 				logger.info("File uploaded to S3 with key: {}", key);
 			}
 
-			if (progressListener != null) 
+			if (progressListenerParam != null) 
 			{
-				progressListener.progressChanged(event);
+				progressListenerParam.progressChanged(event);
 			}
 		});
 	}
