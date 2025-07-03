@@ -756,7 +756,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				String streamEndedScript = appSettings.getStreamEndedScript();
 				if (StringUtils.isNotBlank(streamEndedScript)) 
 				{
-					runScript(streamEndedScript + "  " + broadcast.getStreamId());
+					runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
 				}
 			}
 		} catch (Exception e) {
@@ -961,7 +961,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				String streamStartedScript = appSettings.getStreamStartedScript();
 				if (StringUtils.isNotBlank(streamStartedScript)) 
 				{
-					runScript(streamStartedScript + "  " + broadcast.getStreamId());
+					runScript(streamStartedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
 				}
 
 
@@ -1200,7 +1200,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
 		if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {
-			runScript(muxerFinishScript + "  " + file.getAbsolutePath());
+			runScript(muxerFinishScript + "  " + file.getAbsolutePath() + "  " + getScope().getName());
 		}
 
 
