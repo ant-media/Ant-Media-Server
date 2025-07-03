@@ -24,6 +24,12 @@ public class PlayParameters {
 	public final boolean disableTracksByDefault;
 	public final boolean isWhepClient;
 
+	public PlayParameters(String streamId, Broadcast broadcast, String tokenId, boolean playTokenControlEnabled, String roomId,
+						  List<String> enabledTracks, boolean subscriberOnly, String subscriberId, String subscriberName, String subscriberCodeText,
+						  String viewerInfo, String linkedSessionForSignaling, String role, boolean isMainTrack, String userPublishId, boolean disableTracksByDefault) {
+		this(streamId, broadcast, tokenId, playTokenControlEnabled, roomId, enabledTracks, subscriberOnly, subscriberId, subscriberName, subscriberCodeText,
+			 viewerInfo, linkedSessionForSignaling, role, isMainTrack, userPublishId, disableTracksByDefault, false);
+	}
 
 	public PlayParameters(String streamId, Broadcast broadcast, String tokenId, boolean playTokenControlEnabled, String roomId,
 						  List<String> enabledTracks, boolean subscriberOnly, String subscriberId, String subscriberName, String subscriberCodeText,
