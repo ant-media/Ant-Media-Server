@@ -81,7 +81,7 @@ public class WhepEndpoint extends RestServiceBase {
         logger.info("Whep playback initiated for stream: {} with sessionId: {}, viewerInfo: {}", streamId, sessionId, viewerInfo);
         List<String> enabledTracks = new ArrayList<>();
         // Create play parameters
-        PlayParameters playParameters = new PlayParameters(streamId, null, null, false, null, enabledTracks, false, subscriberId, null, null, viewerInfo, sessionId, "default", false, null, false, true);
+        PlayParameters playParameters = new PlayParameters(streamId, null, token, false, null, enabledTracks, false, subscriberId, null, null, viewerInfo, sessionId, "default", false, null, false, true);
 
         // Start HTTP signaling for playback
         CompletableFuture<Result> startHttpSignaling = getApplication().startWhepHttpSignaling(playParameters, sdp, sessionId);

@@ -45,12 +45,12 @@ public class WhepEndpointTest {
 
 		ArgumentCaptor<PlayParameters> playParamsCaptor = ArgumentCaptor.forClass(PlayParameters.class);
 		Mockito.verify(app).startWhepHttpSignaling(playParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
-		assertEquals("stream456", playParamsCaptor.getValue().getStreamId());
-		assertEquals("subscriber456", playParamsCaptor.getValue().getSubscriberId());
-		assertEquals("viewerInfo", playParamsCaptor.getValue().getViewerInfo());
-		assertEquals("Bearer token456", playParamsCaptor.getValue().getToken());
-        assertNotNull(playParamsCaptor.getValue().getLinkedSessionForSignaling());
-        assertEquals("default", playParamsCaptor.getValue().getRole());
+		assertEquals("stream456", playParamsCaptor.getValue().streamId);
+		assertEquals("subscriber456", playParamsCaptor.getValue().subscriberId);
+		assertEquals("viewerInfo", playParamsCaptor.getValue().viewerInfo);
+		assertEquals("Bearer token456", playParamsCaptor.getValue().tokenId);
+        assertNotNull(playParamsCaptor.getValue().linkedSessionForSignaling);
+        assertEquals("default", playParamsCaptor.getValue().role);
 	}
 
 	@Test
