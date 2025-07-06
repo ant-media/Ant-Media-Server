@@ -29,11 +29,10 @@ import org.red5.server.messaging.IMessageComponent;
  * {@link io.antmedia.plugin.PacketFeeder} into Red5 RTMP messages and pushes them to an
  * {@link InMemoryPushPushPipe}.  The pipe is registered as a provider in a {@link org.red5.server.api.scope.IBroadcastScope},
  * so standard RTMP play ( {@code ProviderService.lookupProviderInput(...)=LIVE} ) works without opening a TCP socket.
- * <p>
- * NOTE – current implementation assumes<br/>
- *      • H.264 Annex-B video<br/>
- *      • AAC LC audio<br/>
- * and <b>does not</b> do any transcoding.  It wraps raw frames in minimum-viable FLV tags.
+ * NOTE – current implementation assumes
+ *      • H.264 Annex-B video
+ *      • AAC LC audio
+ * and does not do any transcoding.  It wraps raw frames in minimum-viable FLV tags.
  * Further optimisations (SPS/PPS extraction, metadata, PTS/DTS re-ordering) can be added incrementally.
  */
 public class InProcessRtmpPublisher implements IPacketListener, IProvider {
@@ -46,18 +45,11 @@ public class InProcessRtmpPublisher implements IPacketListener, IProvider {
 
     private final AtomicInteger firstVideoTs = new AtomicInteger(-1);
 
-    private volatile boolean videoSeqHdrSent = false;
-    private volatile boolean audioSeqHdrSent = false;
-
     public InProcessRtmpPublisher(BroadcastScope scope, AVRational videoTimebase, AVRational audioTimebase) {
         this.scope = scope;
         this.videoTb = videoTimebase;
         this.audioTb = audioTimebase;
     }
-
-    // --------------------------------------------------------------------
-    //  IPacketListener implementation
-    // --------------------------------------------------------------------
 
     @Override
     public AVPacket onVideoPacket(String streamId, AVPacket packet) {
@@ -127,13 +119,8 @@ public class InProcessRtmpPublisher implements IPacketListener, IProvider {
         // send onStatus or simply ignore – RTMP connection will detect EOS when pipe unsubscribes
     }
 
-    // Metadata not used for now
     @Override public void setVideoStreamInfo(String streamId, StreamParametersInfo videoStreamInfo) {}
     @Override public void setAudioStreamInfo(String streamId, StreamParametersInfo audioStreamInfo) {}
-
-    // --------------------------------------------------------------------
-    // IProvider / IMessageComponent dummy implementation
-    // --------------------------------------------------------------------
     @Override
     public void onOOBControlMessage(IMessageComponent source, IPipe pipe, OOBControlMessage oobCtrlMsg) {
         // No special OOB handling required for internal publisher
