@@ -200,6 +200,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 		dataStore.close(false);
 
@@ -297,6 +298,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 
 		dataStore.close(false);
@@ -381,6 +383,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 		dataStore.close(true);
 
@@ -4179,5 +4182,92 @@ public class DBStoresUnitTest {
 		
 	}
 	
+
+	/**
+	 * Test custom TOTP expiry periods per subscriber
+	 */
+	public void testCustomTotpExpiry(DataStore dataStore) {
+		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+		
+		// Test 1: Subscriber with custom expiry time
+		Subscriber subscriber1 = new Subscriber();
+		subscriber1.setSubscriberId("subscriber1");
+		subscriber1.setStreamId(streamId);
+		subscriber1.setTotpExpiryPeriodSeconds(60); // Custom 1-minute expiry
+		
+		assertTrue(dataStore.addSubscriber(streamId, subscriber1));
+		
+		Subscriber retrievedSubscriber1 = dataStore.getSubscriber(streamId, "subscriber1");
+		assertNotNull(retrievedSubscriber1);
+		assertEquals(Integer.valueOf(60), retrievedSubscriber1.getTotpExpiryPeriodSeconds());
+		
+		// Test 2: Subscriber without custom expiry (should be null)
+		Subscriber subscriber2 = new Subscriber();
+		subscriber2.setSubscriberId("subscriber2");
+		subscriber2.setStreamId(streamId);
+		// Not setting totpExpiryPeriodSeconds - should remain null
+		
+		assertTrue(dataStore.addSubscriber(streamId, subscriber2));
+		
+		Subscriber retrievedSubscriber2 = dataStore.getSubscriber(streamId, "subscriber2");
+		assertNotNull(retrievedSubscriber2);
+		assertNull(retrievedSubscriber2.getTotpExpiryPeriodSeconds());
+		
+		// Test 3: Update subscriber with custom expiry
+		subscriber2.setTotpExpiryPeriodSeconds(120); // 2-minute expiry
+		assertTrue(dataStore.addSubscriber(streamId, subscriber2));
+		
+		retrievedSubscriber2 = dataStore.getSubscriber(streamId, "subscriber2");
+		assertNotNull(retrievedSubscriber2);
+		assertEquals(Integer.valueOf(120), retrievedSubscriber2.getTotpExpiryPeriodSeconds());
+		
+		// Test 4: Boundary value testing with configurable limits
+		AppSettings appSettings = new AppSettings();
+		appSettings.setTotpExpiryMinSeconds(10);
+		appSettings.setTotpExpiryMaxSeconds(1000);
+		
+		Subscriber subscriber3 = new Subscriber();
+		subscriber3.setSubscriberId("subscriber3");
+		subscriber3.setStreamId(streamId);
+		subscriber3.setTotpExpiryPeriodSeconds(10, appSettings.getTotpExpiryMinSeconds(), appSettings.getTotpExpiryMaxSeconds()); // Minimum allowed value
+		
+		assertTrue(dataStore.addSubscriber(streamId, subscriber3));
+		
+		Subscriber retrievedSubscriber3 = dataStore.getSubscriber(streamId, "subscriber3");
+		assertNotNull(retrievedSubscriber3);
+		assertEquals(Integer.valueOf(10), retrievedSubscriber3.getTotpExpiryPeriodSeconds());
+		
+		Subscriber subscriber4 = new Subscriber();
+		subscriber4.setSubscriberId("subscriber4");
+		subscriber4.setStreamId(streamId);
+		subscriber4.setTotpExpiryPeriodSeconds(1000, appSettings.getTotpExpiryMinSeconds(), appSettings.getTotpExpiryMaxSeconds()); // Maximum allowed value
+		
+		assertTrue(dataStore.addSubscriber(streamId, subscriber4));
+		
+		Subscriber retrievedSubscriber4 = dataStore.getSubscriber(streamId, "subscriber4");
+		assertNotNull(retrievedSubscriber4);
+		assertEquals(Integer.valueOf(1000), retrievedSubscriber4.getTotpExpiryPeriodSeconds());
+		
+		// Test 5: Validation testing with configurable limits
+		Subscriber invalidSubscriber = new Subscriber();
+		invalidSubscriber.setSubscriberId("invalidSubscriber");
+		invalidSubscriber.setStreamId(streamId);
+		
+		// Test values below minimum
+		try {
+			invalidSubscriber.setTotpExpiryPeriodSeconds(9, appSettings.getTotpExpiryMinSeconds(), appSettings.getTotpExpiryMaxSeconds());
+			fail("Should have thrown IllegalArgumentException for value below minimum");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("TOTP expiry must be between 10 and 1000 seconds"));
+		}
+		
+		// Test values above maximum
+		try {
+			invalidSubscriber.setTotpExpiryPeriodSeconds(1001, appSettings.getTotpExpiryMinSeconds(), appSettings.getTotpExpiryMaxSeconds());
+			fail("Should have thrown IllegalArgumentException for value above maximum");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("TOTP expiry must be between 10 and 1000 seconds"));
+		}
+	}
 
 }

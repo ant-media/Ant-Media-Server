@@ -987,7 +987,21 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 
 			if (secretCodeLengthCorrect) {
-				result = getDataStore().addSubscriber(streamId, subscriber);
+				// Validate custom TOTP expiry period if set
+				try {
+					if (subscriber.getTotpExpiryPeriodSeconds() != null) {
+						logger.info("Setting custom TOTP expiry period for subscriber: {}", subscriber.getSubscriberId());
+						subscriber.setTotpExpiryPeriodSeconds(
+							subscriber.getTotpExpiryPeriodSeconds(),
+							getAppSettings().getTotpExpiryMinSeconds(),
+							getAppSettings().getTotpExpiryMaxSeconds()
+						);
+					}
+					result = getDataStore().addSubscriber(streamId, subscriber);
+				} catch (IllegalArgumentException e) {
+					result = false;
+					message = e.getMessage();
+				}
 			}
 			else {
 				message = "Secret code is not multiple of 8 bytes length. Use b32Secret which is a string and its lenght is multiple of 8 bytes and allowed characters A-Z, 2-7";
@@ -1024,7 +1038,12 @@ public class BroadcastRestService extends RestServiceBase{
 			if (subscriber != null && StringUtils.isNotBlank(subscriber.getB32Secret())) 
 			{
 				byte[] decodedSubscriberSecret = Base32.decode(subscriber.getB32Secret().getBytes());
-				totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, getAppSettings().getTimeTokenPeriod(),  6, ITokenService.HMAC_SHA1);
+
+				// Use custom expiry period for this subscriber if it is set; otherwise fall back to global setting
+				int period = subscriber.getTotpExpiryPeriodSeconds() != null ?
+						subscriber.getTotpExpiryPeriodSeconds() : getAppSettings().getTimeTokenPeriod();
+
+				totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, period,  6, ITokenService.HMAC_SHA1);
 			}
 			else 
 			{	

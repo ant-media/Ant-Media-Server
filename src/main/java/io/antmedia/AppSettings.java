@@ -193,6 +193,14 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
+	private static final String SETTINGS_TOTP_EXPIRY_MIN_SECONDS = "settings.totpExpiryMinSeconds";
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_TOTP_EXPIRY_MAX_SECONDS = "settings.totpExpiryMaxSeconds";
+	/**
+	 * @hidden
+	 */
 	private static final String SETTINGS_HLS_PLAY_LIST_TYPE = "settings.hlsPlayListType";
 	/**
 	 * @hidden
@@ -1131,6 +1139,18 @@ public class AppSettings implements Serializable{
 	 */
 	@Value ("${timeTokenPeriod:${"+SETTINGS_TIME_TOKEN_PERIOD+":60}}")
 	private int timeTokenPeriod = 60;
+
+	/**
+	 * Minimum allowed TOTP expiry period in seconds for subscribers
+	 */
+	@Value ("${totpExpiryMinSeconds:${"+SETTINGS_TOTP_EXPIRY_MIN_SECONDS+":10}}")
+	private int totpExpiryMinSeconds = 10;
+
+	/**
+	 * Maximum allowed TOTP expiry period in seconds for subscribers
+	 */
+	@Value ("${totpExpiryMaxSeconds:${"+SETTINGS_TOTP_EXPIRY_MAX_SECONDS+":1000}}")
+	private int totpExpiryMaxSeconds = 1000;
 
 	/**
 	 * It can be event or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
@@ -3565,6 +3585,22 @@ public class AppSettings implements Serializable{
 
 	public void setTimeTokenPeriod(int timeTokenPeriod) {
 		this.timeTokenPeriod = timeTokenPeriod;
+	}
+
+	public int getTotpExpiryMinSeconds() {
+		return totpExpiryMinSeconds;
+	}
+
+	public void setTotpExpiryMinSeconds(int totpExpiryMinSeconds) {
+		this.totpExpiryMinSeconds = totpExpiryMinSeconds;
+	}
+
+	public int getTotpExpiryMaxSeconds() {
+		return totpExpiryMaxSeconds;
+	}
+
+	public void setTotpExpiryMaxSeconds(int totpExpiryMaxSeconds) {
+		this.totpExpiryMaxSeconds = totpExpiryMaxSeconds;
 	}
 
 	@Deprecated(forRemoval = true, since = "2.12.0")
