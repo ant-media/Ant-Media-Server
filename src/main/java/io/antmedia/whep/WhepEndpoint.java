@@ -78,7 +78,7 @@ public class WhepEndpoint extends RestServiceBase {
         // Generate a unique session ID
         String sessionId = UUID.randomUUID().toString();
 
-        logger.info("Whep playback initiated for stream: {} with sessionId: {}, viewerInfo: {}", streamId, sessionId, viewerInfo);
+        logger.info("Whep playback initiated for stream: {} with sessionId: {}", streamId, sessionId);
         List<String> enabledTracks = new ArrayList<>();
         // Create play parameters
         PlayParameters playParameters = new PlayParameters(streamId, null, token, false, null, enabledTracks, false, subscriberId, null, null, viewerInfo, sessionId, "default", false, null, false, true);
