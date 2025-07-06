@@ -690,13 +690,15 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("", appSettings.getStreamEndedScript());
 		assertEquals("", appSettings.getStreamIdleTimeoutScript());
 
+		assertEquals(10, appSettings.getTotpExpiryMinSeconds());
+		assertEquals(1000, appSettings.getTotpExpiryMaxSeconds());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				204, numberOfFields);
+				206, numberOfFields);
 	}
 
 
