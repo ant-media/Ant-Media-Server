@@ -60,7 +60,8 @@
 						<map>
 							<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}" />
 							<entry key="keepAliveTimout" value="-1" />
-							<entry key="disableUploadTimeout" value="false" />
+							<!-- max http upload/connection timeout to not terminate ffmpeg vod fetching -->
+							<entry key="disableUploadTimeout" value="false" /> 
 							<entry key="connectionTimeout" value="-1" />
 							<entry key="connectionUploadTimeout" value="-1" />
 							<entry key="useExecutor" value="true"/> 
@@ -97,9 +98,9 @@
 				                                <entry key="clientAuth" value="false" />
 				                                <entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
 				                                <entry key="keepAliveTimout" value="-1"/>
-                                        <entry key="disableUploadTimeout" value="false" />
-                                        <entry key="connectionTimeout" value="-1" />
-                                        <entry key="connectionUploadTimeout" value="-1" />
+												<entry key="disableUploadTimeout" value="false" />
+												<entry key="connectionTimeout" value="-1" />
+												<entry key="connectionUploadTimeout" value="-1" />
 				                                <entry key="useExecutor" value="true"/>
 				                                <entry key="maxThreads" value="${http.max_threads}"/>
 				                                <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
