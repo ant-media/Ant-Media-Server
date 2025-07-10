@@ -60,7 +60,7 @@
 						<map>
 							<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}" />
 							<entry key="keepAliveTimout" value="-1" />
-							<!-- max http upload/connection timeout to not terminate ffmpeg vod fetching -->
+							<!--  max http upload/connection timeout to not terminate ffmpeg vod fetching -->
 							<entry key="disableUploadTimeout" value="false" /> 
 							<entry key="connectionTimeout" value="-1" />
 							<entry key="connectionUploadTimeout" value="-1" />
@@ -88,28 +88,28 @@
 
 						<property name="connectionProperties"> 
 							<map> 
-				                                <entry key="sslEnabledProtocols" value="TLSv1.2" />
-				                                <entry key="SSLEnabled" value="true" />
-				                                <entry key="useServerCipherSuitesOrder" value="true" />
-				                                <entry key="ciphers" value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_RSA_WITH_AES_256_CCM_8,TLS_DHE_RSA_WITH_AES_256_CCM" />
-				                                <entry key="SSLCertificateFile" value="${http.ssl_certificate_file}" />
-				                                <entry key="SSLCertificateChainFile" value="${http.ssl_certificate_chain_file}" />
-				                                <entry key="SSLCertificateKeyFile" value="${http.ssl_certificate_key_file}" />
-				                                <entry key="clientAuth" value="false" />
-				                                <entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
-				                                <entry key="keepAliveTimout" value="-1"/>
+								<entry key="sslEnabledProtocols" value="TLSv1.2" />
+								<entry key="SSLEnabled" value="true" />
+								<entry key="useServerCipherSuitesOrder" value="true" />
+								<entry key="ciphers" value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_RSA_WITH_AES_256_CCM_8,TLS_DHE_RSA_WITH_AES_256_CCM" />
+								<entry key="SSLCertificateFile" value="${http.ssl_certificate_file}" />
+								<entry key="SSLCertificateChainFile" value="${http.ssl_certificate_chain_file}" />
+								<entry key="SSLCertificateKeyFile" value="${http.ssl_certificate_key_file}" />
+								<entry key="clientAuth" value="false" />
+								<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
+								<entry key="keepAliveTimout" value="-1"/>
 								<entry key="disableUploadTimeout" value="false" />
 								<entry key="connectionTimeout" value="-1" />
 								<entry key="connectionUploadTimeout" value="-1" />
-				                                <entry key="useExecutor" value="true"/>
-				                                <entry key="maxThreads" value="${http.max_threads}"/>
-				                                <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
-				                                <entry key="processorCache" value="${http.processor_cache}"/>
-				                                <entry key="relaxedQueryChars" value="{}" />
-				                                <entry key="compression" value="on" />
+								<entry key="useExecutor" value="true"/>
+								<entry key="maxThreads" value="${http.max_threads}"/>
+								<entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
+								<entry key="processorCache" value="${http.processor_cache}"/>
+								<entry key="relaxedQueryChars" value="{}" />
+								<entry key="compression" value="on" />
 								<entry key="compressionMinSize" value="2048" />
-							    	<entry key="noCompressionUserAgents" value="gozilla,traviata" />
-							    	<entry key="compressibleMimeType" value="application/vnd.apple.mpegurl,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml" />
+								<entry key="noCompressionUserAgents" value="gozilla,traviata" />
+								<entry key="compressibleMimeType" value="application/vnd.apple.mpegurl,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml" />
 							
 							</map> 
 						</property> 
