@@ -677,7 +677,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	@Deprecated
 	public void closeBroadcast(String streamId) {
-		closeBroadcast(streamId, null);
+		closeBroadcast(streamId, null, null);
+	}
+	
+	@Deprecated
+	public void closeBroadcast(String streamId, String subscriberId) {
+		closeBroadcast(streamId, subscriberId, null);
 	}
 
 	/**
@@ -686,7 +691,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @param streamId
 	 * @param subscriberId
 	 */
-	public void closeBroadcast(String streamId, String subscriberId) {
+	public void closeBroadcast(String streamId, String subscriberId, Map<String, String> parameters) {
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
@@ -724,7 +729,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 					logger.info("call live stream ended hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
-							null, null, metaData, subscriberId, null);
+							null, null, metaData, subscriberId, parameters);
 				}
 
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
@@ -2726,9 +2731,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void stopPublish(String streamId, String subscriberId) {
-
+		stopPublish(streamId, subscriberId, null);
+	}
+	
+	public void stopPublish(String streamId, String subscriberId, Map<String, String> publishParameters) {
 		vertx.executeBlocking(() -> {
-			closeBroadcast(streamId, subscriberId);
+			closeBroadcast(streamId, subscriberId, publishParameters);
 			return null;
 		}, false);
 	}

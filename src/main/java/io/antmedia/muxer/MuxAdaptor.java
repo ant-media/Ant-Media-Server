@@ -1489,7 +1489,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		closeResources();
 		logger.warn("closed adaptor for {}", streamId);
 
-		getStreamHandler().stopPublish(streamId, subscriberId);
+		getStreamHandler().stopPublish(streamId, subscriberId, parameters);
 	}
 
 
