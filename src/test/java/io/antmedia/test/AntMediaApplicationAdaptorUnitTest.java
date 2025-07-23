@@ -1693,6 +1693,39 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, broadcast.getDashViewerCount());
 
 	}
+	
+	@Test
+	public void testCloseBroadcastOverload() {
+
+		DataStore db = new InMemoryDataStore("db");
+		Broadcast broadcast = new Broadcast();
+		broadcast.setListenerHookURL("url");
+		broadcast.setWebRTCViewerCount(10);
+		broadcast.setDashViewerCount(11);
+		broadcast.setHlsViewerCount(12);
+		db.save(broadcast);
+
+		Vertx vertx = Mockito.mock(VertxImpl.class);
+		adapter.setDataStore(db);
+
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		IContext context = Mockito.mock(IContext.class);
+		when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+		when(scope.getContext()).thenReturn(context);
+
+		adapter.setScope(scope);
+		adapter.setVertx(vertx);
+
+		adapter.closeBroadcast(broadcast.getStreamId(), "subscriberId");
+
+		broadcast = db.get(broadcast.getStreamId());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
+		assertEquals(0, broadcast.getWebRTCViewerCount());
+		assertEquals(0, broadcast.getHlsViewerCount());
+		assertEquals(0, broadcast.getDashViewerCount());
+
+	}
 
 	@Test
 	public void testInitializationFile() {
