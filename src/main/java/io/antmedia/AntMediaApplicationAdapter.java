@@ -758,14 +758,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 				
-				String streamEndedScript = appSettings.getStreamEndedScript();
-				if (StringUtils.isNotBlank(streamEndedScript)) 
-				{
-					runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
-				}
+				runStreamEndedScript(broadcast);
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+	private void runStreamEndedScript(Broadcast broadcast) {
+		String streamEndedScript = appSettings.getStreamEndedScript();
+		if (StringUtils.isNotBlank(streamEndedScript)) 
+		{
+			runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
 		}
 	}
 

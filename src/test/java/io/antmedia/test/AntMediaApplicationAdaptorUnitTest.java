@@ -1707,6 +1707,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Vertx vertx = Mockito.mock(VertxImpl.class);
 		adapter.setDataStore(db);
+		adapter.setAppSettings(new AppSettings());
 
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
