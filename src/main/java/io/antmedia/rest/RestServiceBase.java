@@ -639,7 +639,7 @@ public abstract class RestServiceBase {
 		String endpointServiceId = endpoint.getEndpointServiceId();
 		if (endpointServiceId == null || endpointServiceId.isEmpty()) {
 			//generate custom endpoint invidual ID
-			endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);
+			endpointServiceId = "custom"+RandomStringUtils.secure().nextAlphabetic(6);
 		}
 		endpoint.setEndpointServiceId(endpointServiceId);
 
@@ -1286,7 +1286,7 @@ public abstract class RestServiceBase {
 					if (!streamsDirectory.exists()) {
 						streamsDirectory.mkdirs();
 					}
-					String vodId = RandomStringUtils.randomNumeric(24);
+					String vodId = RandomStringUtils.secure().nextNumeric(24);
 
 
 					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
