@@ -680,6 +680,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		closeBroadcast(streamId, null, null);
 	}
 	
+	
+	/**
+	 * 
+	 * @param streamId
+	 * @param subscriberId
+	 * 
+	 * @deprecated use {@link #closeBroadcast(String, String, Map)}
+	 */
 	@Deprecated
 	public void closeBroadcast(String streamId, String subscriberId) {
 		closeBroadcast(streamId, subscriberId, null);
@@ -690,6 +698,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * 
 	 * @param streamId
 	 * @param subscriberId
+	 * @param parameters
 	 */
 	public void closeBroadcast(String streamId, String subscriberId, Map<String, String> parameters) {
 

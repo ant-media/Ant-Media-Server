@@ -1705,7 +1705,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		broadcast.setHlsViewerCount(12);
 		db.save(broadcast);
 
-		Vertx vertx = Mockito.mock(VertxImpl.class);
+		Vertx vertxLocal = Mockito.mock(VertxImpl.class);
 		adapter.setDataStore(db);
 		adapter.setAppSettings(new AppSettings());
 
@@ -1716,7 +1716,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(scope.getContext()).thenReturn(context);
 
 		adapter.setScope(scope);
-		adapter.setVertx(vertx);
+		adapter.setVertx(vertxLocal);
 
 		adapter.closeBroadcast(broadcast.getStreamId(), "subscriberId");
 
