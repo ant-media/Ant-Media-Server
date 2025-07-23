@@ -1694,6 +1694,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	}
 	
+	
+	@SuppressWarnings("java:S1874")
 	@Test
 	public void testCloseBroadcastOverload() {
 

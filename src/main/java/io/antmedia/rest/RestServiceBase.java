@@ -2186,7 +2186,7 @@ public abstract class RestServiceBase {
 							{
 								muxer = startRecord(streamId, recordType, resolutionHeight);
 								if (muxer != null) {
-									vodId = RandomStringUtils.randomAlphanumeric(24);
+									vodId = RandomStringUtils.secure().nextAlphanumeric(24);
 									muxer.setVodId(vodId);
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
 									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
