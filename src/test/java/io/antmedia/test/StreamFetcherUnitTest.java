@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +35,7 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -249,7 +249,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getStreamFetcherManager().stopStreaming(newCam.getStreamId());
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 
-		app.stopStreaming(newCam, false);
+		app.stopStreaming(newCam, false, null);
 
 
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
@@ -1617,12 +1617,42 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(200, lastSentDTS[0]);
 		assertEquals(200, lastSentDTS[1]);
 
-
-		
-		
-		
-		
-		
 	}
 
+	@Test
+	public void testRTSPAllowedMediaTypes(){
+  		// allowed_media_types should be remove from url params ( because what if rtsp server does not support url param eg. happytime rtsp server )
+		StreamFetcher streamFetcher = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio", "testRtspUrlParam", "rtsp_source", appScope, Vertx.vertx(), 0);
+
+		AVDictionary testOptions = new AVDictionary();
+		streamFetcher.parseRtspUrlParams(testOptions);
+    		assertEquals(streamFetcher.getStreamUrl(),"rtsp://127.0.0.1:6554/test.flv");
+
+		AVDictionaryEntry entry = avutil.av_dict_get(testOptions, "allowed_media_types", null, 0);
+		if (entry != null) {
+			String value = entry.value().getString();
+			assertTrue("audio".equalsIgnoreCase(value));
+		}
+
+		assert(true);
+
+    		// other url parameters should not be removed
+
+		StreamFetcher streamFetcher1 = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?testParam=testParam", "testRtspUrlParam1", "rtsp_source", appScope, Vertx.vertx(), 0);
+
+		AVDictionary testOptions1 = new AVDictionary();
+		streamFetcher1.parseRtspUrlParams(testOptions1);
+    		assertEquals("rtsp://127.0.0.1:6554/test.flv?testParam=testParam",streamFetcher1.getStreamUrl());
+
+    		//incorrect url format
+		StreamFetcher streamFetcher2 = new StreamFetcher("rtsp://127.0.0.1:  space  6554/test.flv?allowed_media_types=video", "testRtspUrlParam2", "rtsp_source", appScope, Vertx.vertx(), 0);
+
+		AVDictionary testOptions2 = new AVDictionary();
+		streamFetcher2.parseRtspUrlParams(testOptions2);
+
+		entry = avutil.av_dict_get(testOptions2, "allowed_media_types", null, 0);
+    		assertTrue(entry == null);
+
+
+	}
 }

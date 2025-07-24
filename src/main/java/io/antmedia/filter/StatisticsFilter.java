@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
@@ -33,8 +34,14 @@ public abstract class StatisticsFilter extends AbstractFilter {
 		if (HttpMethod.GET.equals(method) && isFilterMatching(httpRequest.getRequestURI())) {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
+			
+			String hlsSegmentFileSuffixFormat = "";
+			AppSettings appSettings = getAppSettings();
+			if(appSettings != null) {
+				hlsSegmentFileSuffixFormat = appSettings.getHlsSegmentFileSuffixFormat();
+			}
 
-			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
+			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI(), hlsSegmentFileSuffixFormat);
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 
 			if (isViewerCountExceeded((HttpServletRequest) request, (HttpServletResponse) response, streamId)) { 
@@ -59,7 +66,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 		}
 		else if (HttpMethod.HEAD.equals(method) && isFilterMatching(httpRequest.getRequestURI())) {
-			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
+			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI(), getAppSettings().getHlsSegmentFileSuffixFormat());
 
 			chain.doFilter(request, response);
 

@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -22,9 +23,11 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
@@ -40,7 +43,6 @@ public class AmazonS3StorageClient extends StorageClient {
 	private long multipartUploadThreshold = 5L * 1024 * 1024;
 
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
-
 
 	public AmazonS3 getAmazonS3() {
 
@@ -99,6 +101,28 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 	}
 
+
+	//regex can be null in that case it will delete all the files that matches the key
+	public void deleteMultipleFiles(String key, String regex){
+	if(key == null) {
+		logger.error("key is null cannot delete files from S3");
+		return;
+	}
+	List<String> objectList = getObjects(key);
+	if(regex != null)
+		regex = "^" + Pattern.quote(key) + regex;
+	else
+		regex = ".*";
+
+	Pattern pattern = Pattern.compile(regex);
+
+	for (String object : objectList) {
+		if (pattern.matcher(object).matches()) {
+			delete(object);
+		}
+	  }
+	}
+
 	public void delete(String key) {
 		if (isEnabled()) 
 		{
@@ -121,6 +145,18 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 		return false;
 	}
+	
+	@Override
+	public InputStream get(String key) {
+		 GetObjectRequest getObjectRequest = new GetObjectRequest(getStorageName(), key);
+
+		 S3Object s3Object =  getAmazonS3().getObject(getObjectRequest);
+		 if (s3Object == null) {
+			 logger.error("S3 Object not found for key: {}", key);
+			 return null;
+		 }
+		 return s3Object.getObjectContent();
+	}
 
 	public void save(final File file, String type) {
 		save(type + "/" + file.getName(), file);
@@ -128,15 +164,19 @@ public class AmazonS3StorageClient extends StorageClient {
 
 
 	public void save(String key, InputStream inputStream, boolean waitForCompletion) {
-		save(key, null, inputStream, false, waitForCompletion);
+		save(key, null, inputStream, false, waitForCompletion, null);
 	}
 
 	
 	public void save(String key, File file, boolean deleteLocalFile) {
-		save(key, file, null, deleteLocalFile, false);
+		save(key, file, null, deleteLocalFile, false, null);
 	}
 	
-	public void save(String key, File file, InputStream inputStream, boolean deleteLocalFile, boolean waitForCompletion)
+	public void save(String key, File file, boolean deleteLocalFile, ProgressListener progressListener) {
+		save(key, file, null, deleteLocalFile, false, progressListener);
+	}
+	
+	public void save(String key, File file, InputStream inputStream, boolean deleteLocalFile, boolean waitForCompletion, ProgressListener localProgressListener)
 	{	
 		if (isEnabled()) 
 		{
@@ -173,8 +213,13 @@ public class AmazonS3StorageClient extends StorageClient {
 			 * Some blocking calls are removed. Please don't block any threads if it's really not necessary
 			 */
 			logger.info("File {} upload has started with key: {}", file != null ? file.getName() : "", key);
+			
+			if (localProgressListener == null) {
+				localProgressListener = this.progressListener;
+			}
+			
 
-			listenUploadProgress(key, file, deleteLocalFile, upload);
+			listenUploadProgress(key, file, deleteLocalFile, upload, localProgressListener);
 			
 			if (waitForCompletion) {
 				try {
@@ -193,7 +238,8 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 	}
 
-	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+	public void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload, ProgressListener progressListenerParam) {
+
 		upload.addProgressListener((ProgressListener)event -> 
 		{
 			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
@@ -209,9 +255,9 @@ public class AmazonS3StorageClient extends StorageClient {
 				logger.info("File uploaded to S3 with key: {}", key);
 			}
 
-			if (progressListener != null) 
+			if (progressListenerParam != null) 
 			{
-				progressListener.progressChanged(event);
+				progressListenerParam.progressChanged(event);
 			}
 		});
 	}

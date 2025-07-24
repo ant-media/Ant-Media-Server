@@ -1,6 +1,7 @@
 package io.antmedia.muxer;
 
 import java.io.File;
+import java.util.Map;
 
 import org.onvif.ver10.device.wsdl.GetScopes;
 import org.red5.server.api.scope.IScope;
@@ -157,7 +158,7 @@ public interface IAntMediaStreamHandler {
 	 * @param publishType
 	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
 	 */
-	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId);
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> publishParameters);
 
 	
 	/**
@@ -176,6 +177,15 @@ public interface IAntMediaStreamHandler {
 	 */
 	public void stopPublish(String streamId, String subscriberId);
 	
+	
+	/**
+	 * Notify the handler that is stream is stopped
+	 * 
+	 * @param streamId
+	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
+	 * @param publishParameters: It's the parameters of the publish. It can be null if it's not available.
+	 */
+	public void stopPublish(String streamId, String subscriberId, Map<String, String> publishParameters);	
 	/**
 	 * Update broadcast status to BROADCASTING
 	 * 

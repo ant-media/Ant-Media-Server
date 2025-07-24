@@ -415,6 +415,12 @@ public class Broadcast {
 	 */
 	private boolean virtual = false;
 	
+	/**
+	 * This parameter indicates the maximum idle time in seconds without updating the broadcast
+	 * If broadcast is not updated as long as this value, webhook is fired 
+	 */
+	private int maxIdleTime = 0;
+	
 
 	@Entity
 	public static class HLSParameters
@@ -1239,5 +1245,13 @@ public class Broadcast {
 	 */
 	public void setVirtual(boolean virtual) {
 		this.virtual = virtual;
+	}
+
+	public int getMaxIdleTime() {
+		return maxIdleTime;
+	}
+
+	public void setMaxIdleTime(int maxIdleTime) {
+		this.maxIdleTime = maxIdleTime;
 	}
 }

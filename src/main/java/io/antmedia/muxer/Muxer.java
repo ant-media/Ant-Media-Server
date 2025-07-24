@@ -216,7 +216,7 @@ public abstract class Muxer {
 			this.firstFrameTimeStamp = firstFrameTimeStamp;
 			this.originalFrameTimeMs = originalFrameTimeMs;
 		}
-		
+
 		public void setFrameRotation(int frameRotation) {
 			this.frameRotation = frameRotation;
 		}
@@ -1497,7 +1497,7 @@ public abstract class Muxer {
 	}
 	
 	public static String replaceDoubleSlashesWithSingleSlash(String url) {
-		return url.replaceAll("(?<!:)//", "/");
+		return url.replaceAll("(?<!:)/{2,}", "/");
 	}
 	
 	public long getVideoNotWrittenCount() {
@@ -1518,6 +1518,10 @@ public abstract class Muxer {
 	
 	public String getSubFolder() {
 		return subFolder;
+	}
+	
+	public void setStreamId(String streamId){
+		this.streamId = streamId;
 	}
 
 }
