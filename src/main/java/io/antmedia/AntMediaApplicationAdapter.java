@@ -33,7 +33,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -612,7 +611,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							subDirectory.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() - baseDirectory.getName().length())
 							+  File.separator + file.getName();
 
-					String vodId = RandomStringUtils.secure().nextNumeric(24);
+					String vodId = RandomStringUtils.randomNumeric(24);
 
 					//add base directory folder name as streamId in order to find it easily
 					VoD newVod = new VoD(baseDirectory.getName(), baseDirectory.getName(), relativePath, file.getName(), unixTime, 0, Muxer.getDurationInMs(file, null),
@@ -801,7 +800,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public static boolean isInstanceAlive(String originAdress, String hostAddress, int httpPort, String appName) {
-		if (StringUtils.isBlank(originAdress) || Strings.CS.equals(originAdress, hostAddress)) {
+		if (StringUtils.isBlank(originAdress) || StringUtils.equals(originAdress, hostAddress)) {
 			return true;
 		}
 
@@ -1186,7 +1185,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		if (StringUtils.isBlank(vodId)) {
-			vodId = RandomStringUtils.secure().nextAlphanumeric(24);
+			vodId = RandomStringUtils.randomAlphanumeric(24);
 		}
 
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
