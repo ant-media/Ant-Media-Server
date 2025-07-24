@@ -49,6 +49,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
@@ -1213,7 +1214,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
-		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
+		ClientBroadcastStream broadcastStream = mock(ClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
@@ -1314,7 +1315,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
-		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
+		ClientBroadcastStream broadcastStream = mock(ClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
