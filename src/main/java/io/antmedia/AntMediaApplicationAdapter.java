@@ -33,6 +33,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -611,7 +612,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							subDirectory.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() - baseDirectory.getName().length())
 							+  File.separator + file.getName();
 
-					String vodId = RandomStringUtils.randomNumeric(24);
+					String vodId = RandomStringUtils.secure().nextNumeric(24);
 
 					//add base directory folder name as streamId in order to find it easily
 					VoD newVod = new VoD(baseDirectory.getName(), baseDirectory.getName(), relativePath, file.getName(), unixTime, 0, Muxer.getDurationInMs(file, null),
@@ -677,7 +678,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	@Deprecated
 	public void closeBroadcast(String streamId) {
-		closeBroadcast(streamId, null);
+		closeBroadcast(streamId, null, null);
+	}
+	
+	
+	/**
+	 * 
+	 * @param streamId
+	 * @param subscriberId
+	 * 
+	 * @deprecated use {@link #closeBroadcast(String, String, Map)}
+	 */
+	@Deprecated
+	public void closeBroadcast(String streamId, String subscriberId) {
+		closeBroadcast(streamId, subscriberId, null);
 	}
 
 	/**
@@ -685,8 +699,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * 
 	 * @param streamId
 	 * @param subscriberId
+	 * @param parameters
 	 */
-	public void closeBroadcast(String streamId, String subscriberId) {
+	public void closeBroadcast(String streamId, String subscriberId, Map<String, String> parameters) {
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
@@ -724,7 +739,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 					logger.info("call live stream ended hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
-							null, null, metaData, subscriberId, null);
+							null, null, metaData, subscriberId, parameters);
 				}
 
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
@@ -753,14 +768,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 				
-				String streamEndedScript = appSettings.getStreamEndedScript();
-				if (StringUtils.isNotBlank(streamEndedScript)) 
-				{
-					runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
-				}
+				runStreamEndedScript(broadcast);
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+	private void runStreamEndedScript(Broadcast broadcast) {
+		String streamEndedScript = appSettings.getStreamEndedScript();
+		if (StringUtils.isNotBlank(streamEndedScript)) 
+		{
+			runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
 		}
 	}
 
@@ -782,7 +801,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public static boolean isInstanceAlive(String originAdress, String hostAddress, int httpPort, String appName) {
-		if (StringUtils.isBlank(originAdress) || StringUtils.equals(originAdress, hostAddress)) {
+		if (StringUtils.isBlank(originAdress) || Strings.CS.equals(originAdress, hostAddress)) {
 			return true;
 		}
 
@@ -1167,7 +1186,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		if (StringUtils.isBlank(vodId)) {
-			vodId = RandomStringUtils.randomAlphanumeric(24);
+			vodId = RandomStringUtils.secure().nextAlphanumeric(24);
 		}
 
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
@@ -2726,9 +2745,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void stopPublish(String streamId, String subscriberId) {
-
+		stopPublish(streamId, subscriberId, null);
+	}
+	
+	public void stopPublish(String streamId, String subscriberId, Map<String, String> publishParameters) {
 		vertx.executeBlocking(() -> {
-			closeBroadcast(streamId, subscriberId);
+			closeBroadcast(streamId, subscriberId, publishParameters);
 			return null;
 		}, false);
 	}
