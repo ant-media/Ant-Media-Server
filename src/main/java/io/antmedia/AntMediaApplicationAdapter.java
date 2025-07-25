@@ -1741,7 +1741,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (broadcastStream != null)
 			{
 				ClientBroadcastStream clientBroadcastStream = (ClientBroadcastStream) broadcastStream;
-				boolean stopStreaming = isSubscriberIdMatching(subscriberId, clientBroadcastStream);
+				String subscriberIdParameter = clientBroadcastStream.getParameters().get(WebSocketConstants.SUBSCRIBER_ID);
+				boolean stopStreaming = isSubscriberIdMatching(subscriberId, subscriberIdParameter);
 
 				IStreamCapableConnection connection = ((IClientBroadcastStream) broadcastStream).getConnection();
 				if (connection != null) {
@@ -1763,18 +1764,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	public boolean isSubscriberIdMatching(String subscriberId, ClientBroadcastStream clientBroadcastStream) {
+	public static boolean isSubscriberIdMatching(String subscriberId, String subscriberIdParameter) {
 		boolean subscriberIdMatching = true;
 		if (StringUtils.isNotBlank(subscriberId)) 
 		{
-			subscriberIdMatching = false;
-			String subscriberIdParameter = clientBroadcastStream.getParameters().get(WebSocketConstants.SUBSCRIBER_ID);
+			subscriberIdMatching = false;		
 			if (Strings.CS.equals(subscriberId, subscriberIdParameter)) {
 				subscriberIdMatching = true;
 			}
 		}
 		return subscriberIdMatching;
 	}
+	
+	
 
 	private void createIdleCheckTimer(Broadcast broadcast, boolean isMainTrack) {
 		logger.info("Idle check timer is set to {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
