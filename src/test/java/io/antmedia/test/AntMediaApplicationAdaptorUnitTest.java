@@ -1694,6 +1694,22 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	}
 	
+	@Test
+	public void testiSSubscriberIdMatching() {
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		ClientBroadcastStream clientBroadcastStream = Mockito.mock(ClientBroadcastStream.class);
+		boolean result = spyAdaptor.isSubscriberIdMatching("subscriberId", clientBroadcastStream);
+		assertFalse(result);
+		
+		Map<String, String> parameters = new HashMap<>();
+		when(clientBroadcastStream.getParameters()).thenReturn(parameters);
+		parameters.put("subscriberId", "sub1");
+		
+		result = spyAdaptor.isSubscriberIdMatching("sub1", clientBroadcastStream);
+		assertTrue(result);
+		
+	}
+	
 	
 	@SuppressWarnings("java:S1874")
 	@Test

@@ -1108,7 +1108,12 @@ public class BroadcastRestService extends RestServiceBase{
 			message = "streamId or subscriberId is blank";
 			return new Result(result, message);
 		}
+    
+        // Replace special characters in streamId and subscriberId
+		streamId = streamId.replaceAll(REPLACE_CHARS, "_");
+		subscriberId = subscriberId.replaceAll(REPLACE_CHARS, "_");
 
+    
 		//if the user is not in this node, it's in another node in the cluster.
 		//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
 		result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);

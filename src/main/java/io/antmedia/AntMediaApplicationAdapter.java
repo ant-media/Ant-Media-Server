@@ -1763,7 +1763,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	private boolean isSubscriberIdMatching(String subscriberId, ClientBroadcastStream clientBroadcastStream) {
+	public boolean isSubscriberIdMatching(String subscriberId, ClientBroadcastStream clientBroadcastStream) {
 		boolean subscriberIdMatching = true;
 		if (StringUtils.isNotBlank(subscriberId)) 
 		{
