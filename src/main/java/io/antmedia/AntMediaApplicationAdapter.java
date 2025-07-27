@@ -1741,8 +1741,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (broadcastStream != null)
 			{
 				ClientBroadcastStream clientBroadcastStream = (ClientBroadcastStream) broadcastStream;
-				String subscriberIdParameter = clientBroadcastStream.getParameters().get(WebSocketConstants.SUBSCRIBER_ID);
-				boolean stopStreaming = isSubscriberIdMatching(subscriberId, subscriberIdParameter);
+				Map<String,String> parameters = clientBroadcastStream.getParameters();
+				boolean stopStreaming = true;
+				if (parameters != null) {
+					String subscriberIdParameter = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+					stopStreaming = isSubscriberIdMatching(subscriberId, subscriberIdParameter);
+				}
 
 				IStreamCapableConnection connection = ((IClientBroadcastStream) broadcastStream).getConnection();
 				if (connection != null) {
