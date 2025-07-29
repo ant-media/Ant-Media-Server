@@ -18,14 +18,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -1771,8 +1764,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 			}
 		}
-		if(broadcast.getOriginAdress().equals(serverSettings.getHostAddress()))
-			updateQualityParameters(pkt.pts(), stream.time_base(),pkt.size(),keyFrame==1);
+		updateQualityParameters(pkt.pts(), stream.time_base(),pkt.size(),keyFrame==1);
 
 		synchronized (muxerList)
 		{

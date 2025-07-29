@@ -14,17 +14,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -708,7 +699,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			logger.info("Closing broadcast stream id: {}", streamId);
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
-				if(!broadcast.getOriginAdress().equals(serverSettings.getHostAddress())){
+				if(!isBroadcastOnThisServer(broadcast)){
 					logger.info("not closing rtmp pull broadcast here because its hosted on another server");
 					return;
 				}
@@ -1033,6 +1024,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
 		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 	}
+	public boolean isBroadcastOnThisServer(Broadcast broadcast){
+		if(broadcast.getOriginAdress() == null)
+			return true;
+        return broadcast.getOriginAdress().equals(serverSettings.getHostAddress());
+    }
+
 
 	/**
 	 * 
@@ -1053,7 +1050,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else 
 		{
-			if(!broadcast.getOriginAdress().equals(serverSettings.getHostAddress())){
+			if(!isBroadcastOnThisServer(broadcast)){
 				logger.trace("not updating broadcast here because rtmp pull");
 				return broadcast;
 			}
@@ -1967,7 +1964,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean fetchRtmpFromOriginIfExist(String name){
 		Broadcast broadcast = dataStore.get(name);
 		if(broadcast != null && (getStreamFetcherManager().getStreamFetcher(name) == null || !getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
-			if (broadcast.getOriginAdress().equals(getServerSettings().getHostAddress())) {
+			if (isBroadcastOnThisServer(broadcast)) {
 				logger.info("stream is on same origin {} no need to fetch the stream", broadcast.getOriginAdress());
 				return false;
 			} else {
