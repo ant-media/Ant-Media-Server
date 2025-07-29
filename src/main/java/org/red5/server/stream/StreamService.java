@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.red5.io.utils.ObjectMap;
@@ -715,17 +718,28 @@ public class StreamService implements IStreamService {
                     String subscriberId=null;
                     String subscriberCode=null;
                     String token=null;
+                    String mainTrackId = null; 
 
                     if (params != null) {
                         subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
                         subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
                         token = params.get(WebSocketConstants.TOKEN);
+                        mainTrackId = params.get("mainTrack");
                     }
                     if (!handler.isPublishAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
                         sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to publish the stream.", name, streamId);
                         log.error("You are not allowed to publish the stream {}", name);
                         return;
                     }
+                   
+                    AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+						
+                    if(AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), name, subscriberId, Subscriber.PUBLISH_TYPE)
+                				|| AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), mainTrackId, subscriberId, Subscriber.PUBLISH_TYPE))
+            		{
+                    	sendNSFailed(streamConn, StatusCodes.NS_FAILED, "Subscriber "+subscriberId+" is blocked to publish stream.", name, streamId);
+            			return;
+            		}
                 }
             }
 
