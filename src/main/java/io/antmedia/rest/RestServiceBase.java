@@ -6,12 +6,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
-import java.net.MalformedURLException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -49,15 +47,12 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
-import io.antmedia.filter.JWTFilter;
-import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
-import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
@@ -351,7 +346,7 @@ public abstract class RestServiceBase {
 		{
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
-			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks);
+			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks, null);
 
 			//if it's something about scheduled playlist
 			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
@@ -447,7 +442,7 @@ public abstract class RestServiceBase {
 
 
 
-	protected Broadcast lookupBroadcast(String id) {
+	public Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
 		try {
 			broadcast = getDataStore().get(id);
@@ -571,10 +566,10 @@ public abstract class RestServiceBase {
 
 		if(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
 		{
-			return getApplication().stopStreaming(broadcast, false).isSuccess();
+			return getApplication().stopStreaming(broadcast, false, null).isSuccess();
 		}
 		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
-			return getApplication().stopStreaming(broadcast, false).isSuccess();
+			return getApplication().stopStreaming(broadcast, false, null).isSuccess();
 		}
 		else
 		{
@@ -639,7 +634,7 @@ public abstract class RestServiceBase {
 		String endpointServiceId = endpoint.getEndpointServiceId();
 		if (endpointServiceId == null || endpointServiceId.isEmpty()) {
 			//generate custom endpoint invidual ID
-			endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);
+			endpointServiceId = "custom"+RandomStringUtils.secure().nextAlphabetic(6);
 		}
 		endpoint.setEndpointServiceId(endpointServiceId);
 
@@ -1286,7 +1281,7 @@ public abstract class RestServiceBase {
 					if (!streamsDirectory.exists()) {
 						streamsDirectory.mkdirs();
 					}
-					String vodId = RandomStringUtils.randomNumeric(24);
+					String vodId = RandomStringUtils.secure().nextNumeric(24);
 
 
 					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
@@ -1642,10 +1637,10 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks) {
+	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks, String subscriberId) {
 		Result result = new Result(false);
 		if (broadcast != null) {
-			result = getApplication().stopStreaming(broadcast, stopSubrtracks);
+			result = getApplication().stopStreaming(broadcast, stopSubrtracks, subscriberId);
 			if (result.isSuccess()) 
 			{
 				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
@@ -1659,13 +1654,13 @@ public abstract class RestServiceBase {
 
 
 
-	public Result stopStreaming(String id, Boolean stopSubtracks)
+	public Result stopStreaming(String id, Boolean stopSubtracks, String subscriberId)
 	{
 		if (stopSubtracks == null) {
 			stopSubtracks = true;
 		}
 		Broadcast broadcast = getDataStore().get(id);
-		return stopBroadcastInternal(broadcast, stopSubtracks);
+		return stopBroadcastInternal(broadcast, stopSubtracks, subscriberId);
 	}
 
 
@@ -2186,7 +2181,7 @@ public abstract class RestServiceBase {
 							{
 								muxer = startRecord(streamId, recordType, resolutionHeight);
 								if (muxer != null) {
-									vodId = RandomStringUtils.randomAlphanumeric(24);
+									vodId = RandomStringUtils.secure().nextAlphanumeric(24);
 									muxer.setVodId(vodId);
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
 									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
