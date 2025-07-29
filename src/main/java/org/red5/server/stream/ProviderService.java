@@ -23,16 +23,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Set;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
 import org.red5.server.api.service.IStreamableFileService;
-import org.red5.server.api.stream.IBroadcastStream;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IStreamFilenameGenerator;
+import org.red5.server.api.stream.*;
 import org.red5.server.api.stream.IStreamFilenameGenerator.GenerationType;
-import org.red5.server.api.stream.IStreamableFileFactory;
 import org.red5.server.messaging.IMessageInput;
 import org.red5.server.messaging.IPipe;
 import org.red5.server.messaging.InMemoryPullPullPipe;
@@ -47,8 +45,19 @@ public class ProviderService implements IProviderService {
 
 	private static final Logger log = Red5LoggerFactory.getLogger(ProviderService.class);
 
+	public ProviderService() {
+    }
+
+	public static AntMediaApplicationAdapter getAppInstance(IScope scope) {
+		return (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+	}
+
 	/** {@inheritDoc} */
 	public INPUT_TYPE lookupProviderInput(IScope scope, String name, int type) {
+
+		AntMediaApplicationAdapter applicationAdapter = getAppInstance(scope);
+		applicationAdapter.fetchRtmpFromOriginIfExist(name);
+
 		INPUT_TYPE result = INPUT_TYPE.NOT_FOUND;
 		if (scope.getBasicScope(ScopeType.BROADCAST, name) != null) {
 			// we have live input

@@ -1,7 +1,7 @@
 package io.antmedia;
 
 import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import io.antmedia.rtmp.InProcessRtmpPublisher;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -689,6 +690,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			logger.info("Closing broadcast stream id: {}", streamId);
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
+				if(!broadcast.getOriginAdress().equals(serverSettings.getHostAddress())){
+					logger.info("not closing rtmp pull broadcast here because its hosted on another server");
+					return;
+				}
 
 				if (broadcast.isZombi()) {
 
@@ -1005,7 +1010,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else 
 		{
-			if (broadcastUpdate == null) 
+			if(!broadcast.getOriginAdress().equals(serverSettings.getHostAddress())){
+				logger.trace("not updating broadcast here because rtmp pull");
+				return broadcast;
+			}
+			if (broadcastUpdate == null)
 			{
 				broadcastUpdate = getFreshBroadcastUpdateForStatus(publishType, status);
 			}
@@ -1819,6 +1828,58 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
+	}
+
+	public boolean fetchRtmpFromOriginIfExist(String name){
+		Broadcast broadcast = dataStore.get(name);
+		if(broadcast != null && (getStreamFetcherManager().getStreamFetcher(name) == null || !getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
+			if (broadcast.getOriginAdress().equals(getServerSettings().getHostAddress())) {
+				logger.info("stream is on same origin {} no need to fetch the stream", broadcast.getOriginAdress());
+				return false;
+			} else {
+				logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());
+
+				broadcast.setCategory("rtmp_origin_pull");
+				broadcast.setStreamUrl(broadcast.getRtmpURL());
+
+
+				StreamFetcher streamScheduler = getStreamFetcherManager().make(broadcast, scope, vertx);
+				streamScheduler.setRestartStream(getStreamFetcherManager().isRestartStreamAutomatically());
+				streamScheduler.setDataStore(streamScheduler.getDataStore());
+				getStreamFetcherManager().startStreamScheduler(streamScheduler);
+
+				streamScheduler.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {
+					@Override
+					public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
+						StreamFetcher streamFetcher = getStreamFetcherManager().getStreamFetcher(name);
+						InProcessRtmpPublisher rtmpPublisher = streamFetcher.getInProcessRtmpPublisher();
+
+						if(getMuxAdaptor(name) == null || rtmpPublisher == null)
+							return;
+
+						rtmpPublisher.detachRtmpPublisher(name);
+					}
+
+					@Override
+					public void streamStarted(StreamFetcher.IStreamFetcherListener listener) {
+						StreamFetcher streamFetcher = getStreamFetcherManager().getStreamFetcher(name);
+						MuxAdaptor muxAdaptor = getMuxAdaptor(name);
+
+						if(streamFetcher == null ||  muxAdaptor == null)
+							return;
+
+						InProcessRtmpPublisher rtmpFeeder = new InProcessRtmpPublisher(getScope(), vertx, name, muxAdaptor.getVideoTimeBase(), muxAdaptor.getAudioTimeBase());
+						streamFetcher.setInProcessRtmpPublisher(rtmpFeeder);
+						muxAdaptor.addMuxer(rtmpFeeder);
+
+						logger.info("feeding packets in INProcessRtmpPublisher");
+
+					}
+				});
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public void closeRTMPStreams()

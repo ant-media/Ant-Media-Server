@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.antmedia.rtmp.InProcessRtmpPublisher;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -100,6 +101,8 @@ public class StreamFetcher {
 
 		void streamFinished(IStreamFetcherListener listener);
 
+		void streamStarted(IStreamFetcherListener listener);
+
 	}
 
 	IStreamFetcherListener streamFetcherListener;
@@ -120,6 +123,16 @@ public class StreamFetcher {
 
 	public void setStreamFetcherListener(IStreamFetcherListener streamFetcherListener) {
 		this.streamFetcherListener = streamFetcherListener;
+	}
+
+	public InProcessRtmpPublisher inProcessRtmpPublisher;
+
+	public void setInProcessRtmpPublisher(InProcessRtmpPublisher inProcessRtmpPublisher) {
+		this.inProcessRtmpPublisher = inProcessRtmpPublisher;
+	}
+
+	public InProcessRtmpPublisher getInProcessRtmpPublisher() {
+		return inProcessRtmpPublisher;
 	}
 
 	public StreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx, long seekTimeInMs)  {
@@ -285,7 +298,7 @@ public class StreamFetcher {
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
-				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
+				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && !broadcast.getCategory().equals("rtmp_origin_pull")) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
 
 					return;
@@ -299,6 +312,9 @@ public class StreamFetcher {
 				pkt = avcodec.av_packet_alloc();
 				if(prepareInputContext(broadcast))
 				{
+					if(streamFetcherListener != null){
+						streamFetcherListener.streamStarted(streamFetcherListener);
+					}
 
 					boolean readTheNextFrame = true;
 					//In some odd cases stopRequest is received immediately and status of the stream changed to finished
@@ -1036,6 +1052,9 @@ public class StreamFetcher {
 
 	public WorkerThread getThread() {
 		return thread;
+	}
+	public  Broadcast getBroadcast(){
+		return dataStore.get(streamId);
 	}
 
 	public void setThread(WorkerThread thread) {

@@ -88,8 +88,11 @@ public class StreamFetcherManager {
 		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
 	}
-	
-	public void shuttingDown() {
+
+    public StreamFetcherManager() {
+    }
+
+    public void shuttingDown() {
 		serverShuttingDown = true;
 	}
 
@@ -371,8 +374,16 @@ public class StreamFetcherManager {
 
 				String streamId = playlist.getStreamId();
 
-				streamScheduler.setStreamFetcherListener(listener -> {
-					playNextItemInList(streamId, listener);
+				streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
+					@Override
+					public void streamFinished(IStreamFetcherListener listener) {
+						playNextItemInList(streamId, listener);
+					}
+
+					@Override
+					public void streamStarted(IStreamFetcherListener listener) {
+
+					}
 				});
 
 				streamScheduler.setRestartStream(false);
@@ -569,15 +580,22 @@ public class StreamFetcherManager {
 				if (isStreamRunning(broadcast)) 
 				{
 					logger.info("Setting stream fetcher listener to restart when it's finished for streamId:{}", broadcast.getStreamId());
-					streamScheduler.setStreamFetcherListener((l) -> {
-						//Get the updated version because we don't know when it's called and we need up to date info
-						Broadcast freshBroadcast = datastore.get(streamScheduler.getStreamId());
-						if (freshBroadcast != null) {
-							startStreaming(freshBroadcast);
+					streamScheduler.setStreamFetcherListener(
+						new IStreamFetcherListener() {
+							@Override
+							//Get the updated version because we don't know when it's called and we need up to date info
+							public void streamFinished(IStreamFetcherListener listener) {
+								Broadcast freshBroadcast = datastore.get(streamScheduler.getStreamId());
+								if (freshBroadcast != null) {
+									startStreaming(freshBroadcast);
+								}
+							}
+							public void streamStarted(IStreamFetcherListener listener) {
+							}
 						}
-					});
+					);
 				}
-				else 
+				else
 				{
 					startStreaming(broadcast);
 				}

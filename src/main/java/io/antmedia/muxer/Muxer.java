@@ -686,16 +686,18 @@ public abstract class Muxer {
 				}
 			}
 
-			audioPkt = avcodec.av_packet_alloc();
-			av_init_packet(audioPkt);
-
-			videoPkt = avcodec.av_packet_alloc();
-			av_init_packet(videoPkt);
-
-			tmpPacket = avcodec.av_packet_alloc();
-			av_init_packet(tmpPacket);
-
+			allocateAVPacket();
 		}
+	}
+	public void allocateAVPacket(){
+		audioPkt = avcodec.av_packet_alloc();
+		av_init_packet(audioPkt);
+
+		videoPkt = avcodec.av_packet_alloc();
+		av_init_packet(videoPkt);
+
+		tmpPacket = avcodec.av_packet_alloc();
+		av_init_packet(tmpPacket);
 	}
 
 	public void setSubfolder(String subFolder) {
@@ -1030,7 +1032,7 @@ public abstract class Muxer {
 		 * in case of initiation and preparation takes long.
 		 * because native objects like videoPkt can not be initiated yet
 		 */
-		if (!isRunning.get()) {
+		if (!isRunning.get() || videoPkt == null) {
 			logPacketIssue("Not writing VideoBuffer for {} because Is running:{}", streamId, isRunning.get());
 			return;
 		}
@@ -1170,7 +1172,7 @@ public abstract class Muxer {
 	 * @param outputTimebase
 	 * output time base is required to calculate the correct dts and pts values for the container
 	 */
-	protected synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
+	public synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 		AVFormatContext context = getOutputFormatContext();
 

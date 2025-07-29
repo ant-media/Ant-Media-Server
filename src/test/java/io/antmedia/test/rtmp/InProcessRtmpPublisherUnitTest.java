@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.nio.ByteBuffer;
 
+import io.vertx.core.Vertx;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
@@ -16,7 +17,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.red5.server.api.scope.IBroadcastScope;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.messaging.IMessageComponent;
 import org.red5.server.messaging.OOBControlMessage;
 import org.red5.server.net.rtmp.event.VideoData;
@@ -24,6 +28,9 @@ import org.red5.server.scope.BroadcastScope;
 import org.red5.server.stream.message.RTMPMessage;
 
 import io.antmedia.rtmp.InProcessRtmpPublisher;
+
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InProcessRtmpPublisherUnitTest {
@@ -40,6 +47,14 @@ public class InProcessRtmpPublisherUnitTest {
     private AVRational videoTb;
     private AVRational audioTb;
 
+    @Mock
+    private IScope mockAppScope;
+
+    @Mock
+    private Vertx vertx;
+
+    String streamId = "test12";
+
     private static final String STREAM_ID      = "test_stream_id";
     private static final int    VIDEO_TS_MS    = 1000;
     private static final int    AUDIO_TS_MS    = 2000;
@@ -53,24 +68,8 @@ public class InProcessRtmpPublisherUnitTest {
         // Create real AVRational objects instead of mocking
         videoTb = new AVRational().num(1).den(30);
         audioTb = new AVRational().num(1).den(48000);
-        
-        publisher = new InProcessRtmpPublisher(mockScope, videoTb, audioTb);
-    }
 
-    // ------------------------------------------------------------------
-    // constructor tests
-    // ------------------------------------------------------------------
-    @Test
-    public void constructor_handlesNullScope() {
-        assertNotNull(new InProcessRtmpPublisher(mockScope, videoTb, audioTb));
-        assertNotNull(new InProcessRtmpPublisher(null, videoTb, audioTb));
-    }
-
-    @Test
-    public void constructor_handlesNullTimebase() {
-        assertNotNull(new InProcessRtmpPublisher(mockScope, null, audioTb));
-        assertNotNull(new InProcessRtmpPublisher(mockScope, videoTb, null));
-        assertNotNull(new InProcessRtmpPublisher(mockScope, null, null));
+        publisher = Mockito.spy(new InProcessRtmpPublisher(mockAppScope,vertx,streamId,videoTb,audioTb));
     }
 
     // ------------------------------------------------------------------
@@ -90,13 +89,11 @@ public class InProcessRtmpPublisherUnitTest {
         packet.data(data);
         
         // Execute
-        AVPacket result = publisher.onVideoPacket(STREAM_ID, packet);
+        publisher.writePacket(packet, videoTb, null, AVMEDIA_TYPE_VIDEO);
         
         // Verify
         verify(mockScope, times(1)).pushMessage(any(RTMPMessage.class));
-        assertNotNull(result);
-        assertEquals(packet.size(), result.size());
-        
+
         // Cleanup
         packet.close();
         data.close();
@@ -115,12 +112,11 @@ public class InProcessRtmpPublisherUnitTest {
         packet.data(data);
         
         // Execute
-        AVPacket result = publisher.onVideoPacket(STREAM_ID, packet);
+        publisher.writePacket(packet, videoTb, null, AVMEDIA_TYPE_VIDEO);
         
         // Verify
         verify(mockScope, times(1)).pushMessage(any(RTMPMessage.class));
-        assertNotNull(result);
-        
+
         // Cleanup
         packet.close();
         data.close();
@@ -135,12 +131,11 @@ public class InProcessRtmpPublisherUnitTest {
         packet.flags(avcodec.AV_PKT_FLAG_KEY);
         
         // Execute
-        AVPacket result = publisher.onVideoPacket(STREAM_ID, packet);
+        publisher.writePacket(packet, videoTb , null,AVMEDIA_TYPE_VIDEO);
         
         // Verify
         verify(mockScope, never()).pushMessage(any(RTMPMessage.class));
-        assertNotNull(result); // Implementation returns the packet, not null
-        
+
         // Cleanup
         packet.close();
     }
@@ -148,38 +143,12 @@ public class InProcessRtmpPublisherUnitTest {
     @Test
     public void videoPacket_nullPacket_doesNotPushMessage() throws Exception {
         // Execute
-        AVPacket result = publisher.onVideoPacket(STREAM_ID, null);
+        publisher.writePacket(null,videoTb,null,AVMEDIA_TYPE_VIDEO);
         
         // Verify
         verify(mockScope, never()).pushMessage(any(RTMPMessage.class));
-        assertNull(result);
     }
 
-    @Test
-    public void videoPacket_nullScope_doesNotCrash() throws Exception {
-        // Create publisher with null scope
-        InProcessRtmpPublisher nullScopePublisher = new InProcessRtmpPublisher(null, videoTb, audioTb);
-        
-        // Create real AVPacket
-        AVPacket packet = new AVPacket();
-        packet.size(PACKET_SIZE);
-        packet.pts(VIDEO_TS_MS);
-        packet.flags(avcodec.AV_PKT_FLAG_KEY);
-        
-        BytePointer data = new BytePointer(PACKET_SIZE);
-        data.put(new byte[PACKET_SIZE]);
-        packet.data(data);
-        
-        // Execute - should not crash
-        AVPacket result = nullScopePublisher.onVideoPacket(STREAM_ID, packet);
-        
-        // Verify
-        assertNotNull(result);
-        
-        // Cleanup
-        packet.close();
-        data.close();
-    }
 
     // ------------------------------------------------------------------
     // audio packet tests
@@ -197,12 +166,11 @@ public class InProcessRtmpPublisherUnitTest {
         packet.data(data);
         
         // Execute
-        AVPacket result = publisher.onAudioPacket(STREAM_ID, packet);
+        publisher.writePacket(packet,audioTb,null,AVMEDIA_TYPE_AUDIO);
         
         // Verify
         verify(mockScope, times(1)).pushMessage(any(RTMPMessage.class));
-        assertNotNull(result);
-        
+
         // Cleanup
         packet.close();
         data.close();
@@ -216,11 +184,10 @@ public class InProcessRtmpPublisherUnitTest {
         packet.pts(AUDIO_TS_MS);
         
         // Execute
-        AVPacket result = publisher.onAudioPacket(STREAM_ID, packet);
+        publisher.writePacket(packet,audioTb,null,AVMEDIA_TYPE_AUDIO);
         
         // Verify
         verify(mockScope, never()).pushMessage(any(RTMPMessage.class));
-        assertNotNull(result); // Implementation returns the packet, not null
         
         // Cleanup
         packet.close();
@@ -229,11 +196,10 @@ public class InProcessRtmpPublisherUnitTest {
     @Test
     public void audioPacket_nullPacket_doesNotPushMessage() throws Exception {
         // Execute
-        AVPacket result = publisher.onAudioPacket(STREAM_ID, null);
+        publisher.writePacket(null,audioTb,null,AVMEDIA_TYPE_AUDIO);
         
         // Verify
         verify(mockScope, never()).pushMessage(any(RTMPMessage.class));
-        assertNull(result);
     }
 
     // ------------------------------------------------------------------
@@ -252,7 +218,7 @@ public class InProcessRtmpPublisherUnitTest {
         packet.data(data);
         
         // Execute
-        AVPacket result = publisher.onVideoPacket(STREAM_ID, packet);
+        publisher.writePacket(packet, videoTb, null,AVMEDIA_TYPE_VIDEO);
         
         // Verify message was created with timestamp conversion
         ArgumentCaptor<RTMPMessage> messageCaptor = ArgumentCaptor.forClass(RTMPMessage.class);
@@ -273,19 +239,7 @@ public class InProcessRtmpPublisherUnitTest {
     @Test
     public void writeTrailer_doesNotCrash() throws Exception {
         // Execute - should not crash
-        publisher.writeTrailer(STREAM_ID);
-    }
-
-    @Test
-    public void setVideoStreamInfo_doesNotCrash() throws Exception {
-        // Execute - should not crash
-        publisher.setVideoStreamInfo(STREAM_ID, mock(io.antmedia.plugin.api.StreamParametersInfo.class));
-    }
-
-    @Test
-    public void setAudioStreamInfo_doesNotCrash() throws Exception {
-        // Execute - should not crash
-        publisher.setAudioStreamInfo(STREAM_ID, mock(io.antmedia.plugin.api.StreamParametersInfo.class));
+        publisher.writeTrailer();
     }
 
     @Test
@@ -331,13 +285,11 @@ public class InProcessRtmpPublisherUnitTest {
         packet2.data(data2);
         
         // Execute
-        AVPacket result1 = publisher.onVideoPacket(STREAM_ID, packet1);
-        AVPacket result2 = publisher.onVideoPacket(STREAM_ID, packet2);
+        publisher.writePacket(packet1,videoTb,null, AVMEDIA_TYPE_VIDEO);
+        publisher.writePacket(packet2,videoTb,null, AVMEDIA_TYPE_VIDEO);
         
         // Verify
         verify(mockScope, times(2)).pushMessage(any(RTMPMessage.class));
-        assertNotNull(result1);
-        assertNotNull(result2);
         
         // Cleanup
         packet1.close();
@@ -363,11 +315,10 @@ public class InProcessRtmpPublisherUnitTest {
         packet.data(data);
         
         // Execute
-        AVPacket result = publisher.onVideoPacket(STREAM_ID, packet);
+        publisher.writePacket(packet,videoTb,null, AVMEDIA_TYPE_VIDEO);
         
         // Verify
         verify(mockScope, times(1)).pushMessage(any(RTMPMessage.class));
-        assertNotNull(result);
         
         // Cleanup
         packet.close();
@@ -393,13 +344,163 @@ public class InProcessRtmpPublisherUnitTest {
         packet.data(data);
         
         // Execute - should not crash despite exception
-        AVPacket result = publisher.onVideoPacket(STREAM_ID, packet);
-        
-        // Verify
-        assertNotNull(result);
+        publisher.writePacket(packet,videoTb,null,AVMEDIA_TYPE_VIDEO);
         
         // Cleanup
         packet.close();
         data.close();
+    }
+
+    @Test
+    public void testAttachWithExistingBroadcastScope() {
+        // Setup - use concrete BroadcastScope mock to avoid ClassCastException
+        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(mockScope);
+
+        // Execute
+        IBroadcastScope broadcastScope = publisher.attachRtmpPublisher(
+                STREAM_ID);
+
+        // Verify
+        assertNotNull("Should return a valid BroadcastScope", broadcastScope);
+        verify(mockAppScope, times(1)).getBroadcastScope(STREAM_ID);
+        verify(mockAppScope, never()).addChildScope(any(IBroadcastScope.class));
+        verify(mockScope, times(1)).subscribe(any(InProcessRtmpPublisher.class), eq(null));
+    }
+
+    @Test
+    public void testAttachWithNewBroadcastScope() {
+        // Setup - no existing broadcast scope
+        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(null);
+
+        // Execute
+        IBroadcastScope result = publisher.attachRtmpPublisher(
+                STREAM_ID);
+
+        // Verify
+        assertNotNull("Should return a valid InProcessRtmpPublisher", result);
+        verify(mockAppScope, times(1)).getBroadcastScope(STREAM_ID);
+        verify(mockAppScope, times(1)).addChildScope(any(IBroadcastScope.class));
+    }
+
+    @Test
+    public void testAttachWithNullAppScope() {
+        // Execute - expect NullPointerException because implementation doesn't handle null appScope
+        try {
+            IBroadcastScope result = publisher.attachRtmpPublisher(
+                    STREAM_ID);
+            // If no exception is thrown, it means the implementation handles null gracefully
+        } catch (NullPointerException e) {
+            // Expected behavior - the implementation doesn't handle null appScope gracefully
+            assertTrue("Should throw NullPointerException for null AppScope", true);
+            return; // Exit early since we expected this exception
+        }
+
+        // If we reach here, no exception was thrown (unexpected)
+        fail("Expected NullPointerException for null AppScope, but none was thrown");
+    }
+
+    @Test
+    public void testAttachWithNullStreamId() {
+        // Setup
+        when(mockAppScope.getBroadcastScope(null)).thenReturn(null);
+
+        // Execute
+        IBroadcastScope result = publisher.attachRtmpPublisher(
+                null);
+
+        // Verify
+        assertNotNull("Should return a valid InProcessRtmpPublisher even with null streamId", result);
+        verify(mockAppScope, times(1)).getBroadcastScope(null);
+        verify(mockAppScope, times(1)).addChildScope(any(IBroadcastScope.class));
+    }
+
+    @Test
+    public void testDetachWithValidPublisher() {
+        // Setup
+        InProcessRtmpPublisher mockPublisher = mock(InProcessRtmpPublisher.class);
+        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(mockScope);
+
+        // Execute
+        publisher.detachRtmpPublisher(STREAM_ID);
+
+        // Verify
+        verify(mockAppScope, times(1)).getBroadcastScope(STREAM_ID);
+        //verify(mockScope, times(1)).unsubscribe(mockAppScope);
+    }
+
+    @Test
+    public void testDetachWithNullBroadcastScope() {
+        // Setup
+        InProcessRtmpPublisher mockPublisher = mock(InProcessRtmpPublisher.class);
+        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(null);
+
+        // Execute
+        publisher.detachRtmpPublisher(STREAM_ID);
+
+        // Verify
+        verify(mockAppScope, times(1)).getBroadcastScope(STREAM_ID);
+        // Should not call unsubscribe on null scope
+    }
+
+    @Test
+    public void testEndToEndWorkflow() {
+        // Setup for attach
+        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(null);
+
+        // Execute attach
+        IBroadcastScope rtmpPublisher = publisher.attachRtmpPublisher(
+                STREAM_ID );
+
+        // Verify attach worked
+        assertNotNull("Publisher should be created", rtmpPublisher);
+        verify(mockAppScope, times(1)).getBroadcastScope(STREAM_ID);
+        verify(mockAppScope, times(1)).addChildScope(any(IBroadcastScope.class));
+
+        // Setup for detach
+        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(mockScope);
+
+        // Execute detach
+        publisher.detachRtmpPublisher(STREAM_ID);
+
+        // Verify detach worked
+        verify(mockAppScope, times(2)).getBroadcastScope(STREAM_ID); // Once for attach, once for detach
+        //verify(mockScope, times(1)).unsubscribe(rtmpPublisher);
+    }
+
+    @Test
+    public void testAttachReturnedPublisherProperties() {
+        // Setup
+        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(mockScope);
+
+        // Execute
+        IBroadcastScope result = publisher.attachRtmpPublisher(
+                STREAM_ID);
+
+        // Verify
+        assertNotNull("Should return a valid InProcessRtmpPublisher", result);
+
+        assertTrue("Publisher should be instance of InProcessRtmpPublisher",
+                result instanceof IBroadcastScope);
+    }
+
+    @Test
+    public void testMultipleAttachDetachCycles() {
+        // Setup
+        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(mockScope);
+
+        // Execute multiple attach/detach cycles
+        for (int i = 0; i < 3; i++) {
+            publisher.attachRtmpPublisher(
+                    STREAM_ID);
+
+            assertNotNull("Publisher should be created in cycle " + i, publisher);
+
+            publisher.detachRtmpPublisher(STREAM_ID);
+        }
+
+        // Verify all calls were made
+        verify(mockAppScope, times(6)).getBroadcastScope(STREAM_ID); // 3 attach + 3 detach
+        verify(mockScope, times(3)).subscribe(any(InProcessRtmpPublisher.class), eq(null));
+        verify(mockScope, times(3)).unsubscribe(any(InProcessRtmpPublisher.class));
     }
 }

@@ -227,6 +227,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return false;
 	}
 
+	public void setScope(IScope scope) {
+		this.scope = scope;
+	}
+
 	public boolean addSEIData(String data) {
 		for (Muxer muxer : muxerList) {
 			if(muxer instanceof HLSMuxer) {
@@ -872,7 +876,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (enableVideo && (width == 0 || height == 0)) {
 			logger.info("Width or height is zero so returning for stream: {}", streamId);
-			return false;
+			// return false;
 		}
 
 		isRecording.set(true); 
@@ -1767,7 +1771,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 			}
 		}
-		updateQualityParameters(pkt.pts(), stream.time_base(),pkt.size(),keyFrame==1);
+		if(broadcast.getOriginAdress().equals(serverSettings.getHostAddress()))
+			updateQualityParameters(pkt.pts(), stream.time_base(),pkt.size(),keyFrame==1);
 
 		synchronized (muxerList)
 		{
