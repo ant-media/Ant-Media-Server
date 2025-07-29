@@ -1025,7 +1025,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 	}
 	public boolean isBroadcastOnThisServer(Broadcast broadcast){
-		if(broadcast.getOriginAdress() == null)
+		if(broadcast.getOriginAdress() == null || serverSettings == null || serverSettings.getHostAddress() == null )
 			return true;
         return broadcast.getOriginAdress().equals(serverSettings.getHostAddress());
     }
