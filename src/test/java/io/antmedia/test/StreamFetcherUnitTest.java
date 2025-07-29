@@ -249,7 +249,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getStreamFetcherManager().stopStreaming(newCam.getStreamId());
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 
-		app.stopStreaming(newCam, false);
+		app.stopStreaming(newCam, false, null);
 
 
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
