@@ -3012,7 +3012,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, broadcastUpdateForStatus.getHlsViewerCount().intValue());
 		assertEquals(0, broadcastUpdateForStatus.getDashViewerCount().intValue());
 	}
-<<<<<<< HEAD
 	@Test
 	public void testFetchRtmpFromOriginIfExist() throws Exception {
 		AntMediaApplicationAdapter spyAdapter = spy(adapter);
