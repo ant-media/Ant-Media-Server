@@ -76,7 +76,7 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(InProcessRtmpPublisher.class);
 
-    private final IBroadcastScope broadcastScope;
+    private IBroadcastScope broadcastScope;
     private final AVRational videoTb;
     private final AVRational audioTb;
 
@@ -91,6 +91,13 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
         this.broadcastScope = attachRtmpPublisher(streamId);
         this.isInitialized = true;
         allocateAVPacket();
+    }
+    public void setBroadcastScope(IBroadcastScope broadcastScope) {
+        this.broadcastScope = broadcastScope;
+    }
+
+    public IBroadcastScope getBroadcastScope() {
+        return broadcastScope;
     }
 
     @Override
