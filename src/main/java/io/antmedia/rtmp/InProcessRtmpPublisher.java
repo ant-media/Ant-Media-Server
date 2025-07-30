@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+
+import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Muxer;
 import io.vertx.core.Vertx;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -74,7 +76,7 @@ e pipe is registered as a provider in a {@link org.red5.server.api.scope.IBroadc
  */
 public class InProcessRtmpPublisher extends Muxer implements IProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(InProcessRtmpPublisher.class);
+    protected static Logger logger = LoggerFactory.getLogger(InProcessRtmpPublisher.class);
 
     private IBroadcastScope broadcastScope;
     private final AVRational videoTb;
@@ -200,11 +202,11 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
         return true;
     }
     @Override
-    public void writeTrailer() {
+    public synchronized void writeTrailer() {
         detachRtmpPublisher(streamId);
     }
     @Override
     public void onOOBControlMessage(IMessageComponent source, IPipe pipe, OOBControlMessage oobCtrlMsg) {
-
+        // No special OOB handling required for internal publisher
     }
 }

@@ -382,7 +382,7 @@ public class StreamFetcherManager {
 
 					@Override
 					public void streamStarted(IStreamFetcherListener listener) {
-
+						// not needed
 					}
 				});
 
@@ -591,6 +591,7 @@ public class StreamFetcherManager {
 								}
 							}
 							public void streamStarted(IStreamFetcherListener listener) {
+								//not needed
 							}
 						}
 					);

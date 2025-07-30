@@ -45,9 +45,6 @@ public class ProviderService implements IProviderService {
 
 	private static final Logger log = Red5LoggerFactory.getLogger(ProviderService.class);
 
-	public ProviderService() {
-    }
-
 	public static AntMediaApplicationAdapter getAppInstance(IScope scope) {
 		return (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 	}

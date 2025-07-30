@@ -334,7 +334,6 @@ public class StreamFetcher {
 				}
 				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && !broadcast.getCategory().equals("rtmp_origin_pull")) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
-
 					return;
 				}
 
