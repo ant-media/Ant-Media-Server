@@ -20,6 +20,9 @@ import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.red5.server.util.ScopeUtils;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.DataStore;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.internal.util.MockUtil.resetMock;
@@ -129,6 +132,11 @@ public class StreamServiceTest {
 		when(appContext.containsBean(IStreamSecurityService.BEAN_NAME)).thenReturn(true);
 		when(appContext.getBean(IStreamSecurityService.BEAN_NAME)).thenReturn(securityService);
 		when(context.getBean(IProviderService.BEAN_NAME)).thenReturn(providerService);
+		
+		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(antMediaApplicationAdapter);
+		
+		when(antMediaApplicationAdapter.getDataStore()).thenReturn(mock(DataStore.class));
 
 		Set<IStreamPublishSecurity> publishSecuritySet = new HashSet<>();
 
