@@ -1,12 +1,7 @@
 package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -1692,6 +1687,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, broadcast.getWebRTCViewerCount());
 		assertEquals(0, broadcast.getHlsViewerCount());
 		assertEquals(0, broadcast.getDashViewerCount());
+
+		broadcast = new Broadcast();
+		broadcast.setOriginAdress("testing");
+		db.save(broadcast);
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		doReturn(false).when(spyAdapter).isBroadcastOnThisServer(broadcast);
+		spyAdapter.closeBroadcast(broadcast.getStreamId());
+		assertNotEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 
 	}
 	
