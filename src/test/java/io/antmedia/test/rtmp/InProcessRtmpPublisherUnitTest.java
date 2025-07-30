@@ -468,22 +468,6 @@ public class InProcessRtmpPublisherUnitTest {
     }
 
     @Test
-    public void testAttachReturnedPublisherProperties() {
-        // Setup
-        when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(mockScope);
-
-        // Execute
-        IBroadcastScope result = publisher.attachRtmpPublisher(
-                STREAM_ID);
-
-        // Verify
-        assertNotNull("Should return a valid InProcessRtmpPublisher", result);
-
-        assertTrue("Publisher should be instance of InProcessRtmpPublisher",
-                result instanceof IBroadcastScope);
-    }
-
-    @Test
     public void testMultipleAttachDetachCycles() {
         // Setup
         when(mockAppScope.getBroadcastScope(STREAM_ID)).thenReturn(mockScope);

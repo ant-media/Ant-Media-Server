@@ -87,6 +87,7 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
         this.videoTb = videoTimebase;
         this.audioTb = audioTimebase;
         this.scope = appScope;
+        this.streamId = streamId;
         this.broadcastScope = attachRtmpPublisher(streamId);
         this.isInitialized = true;
         allocateAVPacket();
