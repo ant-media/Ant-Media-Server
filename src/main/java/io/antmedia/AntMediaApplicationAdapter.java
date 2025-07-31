@@ -1047,10 +1047,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else 
 		{
-			if(!isBroadcastOnThisServer(broadcast)){
-				logger.trace("not updating broadcast here because rtmp pull");
-				return broadcast;
-			}
 			if (broadcastUpdate == null)
 			{
 				broadcastUpdate = getFreshBroadcastUpdateForStatus(publishType, status);
