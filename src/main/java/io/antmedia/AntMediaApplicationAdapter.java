@@ -66,6 +66,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.JWTFilter;
@@ -1768,6 +1769,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		
 		return result;
+	}
+	
+
+	public static boolean isSubscriberBlocked(DataStore dataStore, String streamId, String subscriberId, String type) {
+
+		if (StringUtils.isNoneBlank(subscriberId, streamId)) {
+			Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
+			if(subscriber == null){
+				return false;
+			}
+
+			return subscriber.isBlocked(type);
+		}
+
+		return false;
 	}
 
 	public static boolean isSubscriberIdMatching(String subscriberId, String subscriberIdParameter) {

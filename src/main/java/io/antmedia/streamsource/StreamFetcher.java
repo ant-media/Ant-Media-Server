@@ -46,7 +46,7 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
-import jakarta.ws.rs.core.UriBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public class StreamFetcher {
 
@@ -177,7 +177,8 @@ public class StreamFetcher {
 	public void parseRtspUrlParams(AVDictionary optionsDictionary){
 		try {
 		  URI uri = new URI(streamUrl);
-		  UriBuilder uriBuilder = UriBuilder.fromUri(uri);
+		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
+
 		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
 
 		  for (NameValuePair param : params) {
