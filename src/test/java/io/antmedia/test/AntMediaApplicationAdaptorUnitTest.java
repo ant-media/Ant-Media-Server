@@ -1,12 +1,7 @@
 package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -43,6 +38,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.rtmp.InProcessRtmpPublisher;
+import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.StatsCollector;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
@@ -98,7 +97,6 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -109,8 +107,6 @@ import io.antmedia.plugin.api.IStreamListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.statistic.IStatsCollector;
-import io.antmedia.statistic.StatsCollector;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -1692,6 +1688,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, broadcast.getHlsViewerCount());
 		assertEquals(0, broadcast.getDashViewerCount());
 
+		broadcast = new Broadcast();
+		broadcast.setOriginAdress("testing");
+		db.save(broadcast);
+
+
 	}
 	
 	@Test
@@ -3011,7 +3012,92 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, broadcastUpdateForStatus.getHlsViewerCount().intValue());
 		assertEquals(0, broadcastUpdateForStatus.getDashViewerCount().intValue());
 	}
-	
+	@Test
+	public void testFetchRtmpFromOriginIfExist() throws Exception {
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		DataStore db = new InMemoryDataStore("db");
+		spyAdapter.setDataStore(db);
+		String streamId = "test";
+
+		spyAdapter.setServerSettings(new ServerSettings());
+		IScope scope = mock(IScope.class);
+		spyAdapter.setScope(scope);
+		when(scope.getName()).thenReturn("junit");
+		IContext context = Mockito.mock(IContext.class);
+		ApplicationContext applicationContext = Mockito.mock(org.springframework.context.ApplicationContext.class);
+		doReturn(new AppSettings()).when(applicationContext).getBean(AppSettings.BEAN_NAME);
+		doReturn(applicationContext).when(context).getApplicationContext();
+		doReturn(context).when(scope).getContext();
+
+		//broadcast is null
+		Boolean result = spyAdapter.fetchRtmpFromOriginIfExist("test");
+		assertFalse(result);
+
+
+		//stream fetcher is already alive for this stream
+		StreamFetcherManager streamFetcherManagerMock = mock(StreamFetcherManager.class);
+		StreamFetcher streamFetcherMock = Mockito.spy(new StreamFetcher("test", streamId, "test", scope, Vertx.vertx(), 0));
+		doReturn(db).when(streamFetcherMock).getDataStore();
+		doReturn(true).when(streamFetcherMock).isThreadActive();
+		doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
+
+		doReturn(streamFetcherManagerMock).when(spyAdapter).getStreamFetcherManager();
+		result = spyAdapter.fetchRtmpFromOriginIfExist(streamId);
+		assertFalse(result);
+
+		// broadcast exist on same server no need to fetch the stream
+
+		doReturn(null).when(streamFetcherManagerMock).getStreamFetcher(streamId);
+		Broadcast broadcast = Mockito.spy(new Broadcast());
+		broadcast.setStreamId(streamId);
+		broadcast.setOriginAdress(spyAdapter.getServerSettings().getHostAddress());
+		broadcast.setRtmpURL("rtmp_url_test");
+		db.save(broadcast);
+
+		result = spyAdapter.fetchRtmpFromOriginIfExist(streamId);
+		assertFalse(result);
+
+		//stream exist on another node fetch the stream
+
+		doReturn(streamFetcherMock).when(streamFetcherManagerMock).make(any(),any(),any());
+		broadcast.setOriginAdress("1234");
+		result = spyAdapter.fetchRtmpFromOriginIfExist(streamId);
+		assertTrue(result);
+		Mockito.verify(streamFetcherManagerMock).startStreamScheduler(streamFetcherMock);
+		assertEquals(broadcast.getRtmpURL(),broadcast.getStreamUrl());
+
+
+		// stream Started Stream fetcher stream fetcher is null on started should not crash
+		streamFetcherMock.getStreamFetcherListener().streamStarted(streamFetcherMock.getStreamFetcherListener());
+
+		// stream Started Stream fetcher stream fetcher mux adapter is null should not crash
+		doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
+		streamFetcherMock.getStreamFetcherListener().streamStarted(streamFetcherMock.getStreamFetcherListener());
+
+		// stream finished Stream fetcher stream fetcher is null on started should not crash
+		streamFetcherMock.getStreamFetcherListener().streamFinished(streamFetcherMock.getStreamFetcherListener());
+
+		// stream finished Stream fetcher stream fetcher mux adapter is null should not crash
+		doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
+		streamFetcherMock.getStreamFetcherListener().streamFinished(streamFetcherMock.getStreamFetcherListener());
+
+		// stream Started Stream fetcher stream fetcher
+
+		MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
+		doReturn(muxAdaptor).when(spyAdapter).getMuxAdaptor(streamId);
+		streamFetcherMock.getStreamFetcherListener().streamStarted(streamFetcherMock.getStreamFetcherListener());
+		verify(streamFetcherMock).setInProcessRtmpPublisher(any());
+		verify(muxAdaptor).addMuxer(any());
+
+		// stream finished
+		InProcessRtmpPublisher inProcessRtmpPublisher = mock(InProcessRtmpPublisher.class);
+		doReturn(inProcessRtmpPublisher).when(streamFetcherMock).getInProcessRtmpPublisher();
+		streamFetcherMock.getStreamFetcherListener().streamFinished(streamFetcherMock.getStreamFetcherListener());
+		verify(inProcessRtmpPublisher).detachRtmpPublisher(streamId);
+
+	}
+
+
 	@Test
     public void testBroadcastTriggersIdleHook() {
 		AntMediaApplicationAdapter spyAdapter = spy(adapter);
