@@ -701,7 +701,8 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					getInstance().closeBroadcast(streamId, null, null);
+					if(getInstance().isBroadcastOnThisServer(getBroadcast()))
+						getInstance().closeBroadcast(streamId, null, null);
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -737,7 +738,7 @@ public class StreamFetcher {
 					logger.info("Stream fetcher will not try again for streamUrl:{} and streamId:{} because stopRequestReceived:{} and restartStream:{}",
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
-					if (!closeCalled) {
+					if (!closeCalled && getInstance().isBroadcastOnThisServer(getBroadcast())) {
 						getInstance().closeBroadcast(streamId, null, null);
 					}
 				}

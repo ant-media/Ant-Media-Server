@@ -699,10 +699,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			logger.info("Closing broadcast stream id: {}", streamId);
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
-				if(!isBroadcastOnThisServer(broadcast)){
-					logger.info("not closing rtmp pull broadcast here because its hosted on another server");
-					return;
-				}
 
 				if (broadcast.isZombi()) {
 
@@ -1972,7 +1968,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				broadcast.setCategory("rtmp_origin_pull");
 				broadcast.setStreamUrl(broadcast.getRtmpURL());
-
 
 				StreamFetcher streamScheduler = getStreamFetcherManager().make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(getStreamFetcherManager().isRestartStreamAutomatically());
