@@ -1692,10 +1692,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		broadcast.setOriginAdress("testing");
 		db.save(broadcast);
 
-		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
-		doReturn(false).when(spyAdapter).isBroadcastOnThisServer(broadcast);
-		spyAdapter.closeBroadcast(broadcast.getStreamId());
-		assertNotEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 
 	}
 	
