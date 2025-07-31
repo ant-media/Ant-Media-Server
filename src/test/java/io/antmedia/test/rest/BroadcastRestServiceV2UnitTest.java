@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -41,16 +42,23 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressEventType;
+import com.amazonaws.event.ProgressListener;
+import com.google.common.io.Files;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -96,6 +104,7 @@ import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.test.StreamFetcherUnitTest;
@@ -1205,7 +1214,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
-		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
+		ClientBroadcastStream broadcastStream = mock(ClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
@@ -1306,7 +1315,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
-		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
+		ClientBroadcastStream broadcastStream = mock(ClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
@@ -2290,7 +2299,7 @@ public class BroadcastRestServiceV2UnitTest {
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
-		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam, false);
+		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam, false, null);
 		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
 
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
@@ -2555,7 +2564,7 @@ public class BroadcastRestServiceV2UnitTest {
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(mock(StreamFetcherManager.class));
-		Mockito.when(adaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(false));
+		Mockito.when(adaptor.stopStreaming(any(), anyBoolean(), any())).thenReturn(new Result(false));
 
 		Broadcast broadcast = new Broadcast();
 		//It means there is no stream to stop
@@ -3611,7 +3620,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(datastore).when(streamSourceRest).getDataStore();
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id, streamId);
 
 		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber1Id, 10, Subscriber.PLAY_TYPE).isSuccess());
 
@@ -3621,7 +3630,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 10000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 10000);
 
-		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber1Id, streamId);
 
 		String subscriber2Id = "subscriber2";
 		Subscriber subscriber2 = new Subscriber();
@@ -3638,7 +3647,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
 
-		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber2Id);
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber2Id, streamId);
 
 
 		String subscriber3Id = "subscriber3";
@@ -3657,8 +3666,8 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
 
-		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
-		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id, streamId);
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id, streamId);
 
 	}
 
@@ -3793,7 +3802,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(true));
+		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean(), any())).thenReturn(new Result(true));
 
 		restServiceReal.setApplication(appAdaptor);
 
@@ -3851,7 +3860,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Result result = restServiceReal.deleteBroadcast(mainTrack.getStreamId(), true);
 		assertTrue(result.isSuccess());
 
-		verify(appAdaptor).stopStreaming(eq(mainTrack), anyBoolean());
+		verify(appAdaptor).stopStreaming(eq(mainTrack), anyBoolean(), any());
 
 		assertNull(store.get(mainTrack.getStreamId()));
 		assertNull(store.get(subtrack1.getStreamId()));
@@ -3887,6 +3896,153 @@ public class BroadcastRestServiceV2UnitTest {
 
 		}
 
+	}
+	
+	@Test
+	public void testDeleteLocalHLSFiles() throws IOException {
+		
+		File file = new File("webapps/scope/streams/test.m3u8");
+		file.getParentFile().mkdirs();
+		if (file.exists()) {
+			file.delete();
+		}
+		restServiceReal.deleteLocalHLSFiles(file);
+		
+		file.createNewFile();
+		restServiceReal.deleteLocalHLSFiles(file);
+		
+		assertFalse(file.exists());
+		
+		
+		restServiceReal.deleteLocalHLSFiles(file);
+	}
+	
+	@Test
+	public void testUploadToS3() {
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		restServiceReal.uploadToS3(true, "streamId_480p", "streamId.mp4", new AppSettings(), storageClient);
+		
+		ArgumentCaptor<ProgressListener> progressListener = ArgumentCaptor.forClass(ProgressListener.class);
+		verify(storageClient, times(1)).save(any(), any(), anyBoolean(), progressListener.capture());
+		
+		ProgressListener listener = progressListener.getValue();
+		
+		ProgressEvent progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT);
+		listener.progressChanged(progressEvent);
+		
+		verify(storageClient, times(1)).deleteMultipleFiles(any(), any());
+		
+		
+		progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_FAILED_EVENT);
+		listener.progressChanged(progressEvent);
+		
+		progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_STARTED_EVENT);
+		listener.progressChanged(progressEvent);
+		
+		
+		restServiceReal.uploadToS3(false, "streamId_480p", "streamId.mp4", new AppSettings(), storageClient);
+		verify(storageClient, times(2)).save(any(), any(), anyBoolean(), progressListener.capture());
+		listener = progressListener.getValue();
+		progressEvent = new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT);
+		listener.progressChanged(progressEvent);
+		
+		verify(storageClient, times(1)).deleteMultipleFiles(any(), any());
+
+		
+	}
+	
+	@Test
+	public void testConvertHLStoMP4() throws Exception 
+	{
+		AppSettings settings = new AppSettings();
+		String serverName = "fully.qualified.domain.name";
+		restServiceReal.setAppSettings(settings);
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+		DataStore store = Mockito.spy(new InMemoryDataStore("testdb"));
+		restServiceReal.setDataStore(store);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		restServiceReal.setScope(scope);
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean(), any())).thenReturn(new Result(true));
+
+		restServiceReal.setApplication(appAdaptor);
+
+		String streamId = null;
+		Response response = restServiceReal.convertHLStoMP4(streamId, false, false);
+		Result result = (Result) response.getEntity();
+		assertFalse(result.isSuccess());
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("stream1");
+		store.save(broadcast);
+		
+		
+		streamId = "stream1";
+		response = restServiceReal.convertHLStoMP4(streamId, false, false);
+		result = (Result) response.getEntity();
+		assertFalse(result.isSuccess());
+		
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStreamId("stream2");
+		broadcast2.setSubFolder("subfolder");
+		store.save(broadcast2);
+		
+		streamId = "stream2.m3u8";
+		response = restServiceReal.convertHLStoMP4(streamId, false, false);
+		result = (Result) response.getEntity();
+		assertFalse(result.isSuccess());
+		
+		File file = new File("src/test/resources/test.m3u8");
+		File fileTarget = new File("webapps/scope/streams/test.m3u8");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0045.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0045.ts");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0046.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0046.ts");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0047.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0047.ts");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0048.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0048.ts");
+		Files.copy(file, fileTarget);
+		
+		file = new File("src/test/resources/test_0p0049.ts");
+		fileTarget = new File("webapps/scope/streams/test_0p0049.ts");
+		Files.copy(file, fileTarget);
+		
+		
+		streamId = "test.m3u8";
+		
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		when(appAdaptor.getStorageClient()).thenReturn(storageClient);
+		
+		response = restServiceReal.convertHLStoMP4(streamId, false, false);
+		result = (Result) response.getEntity();
+		assertTrue(result.isSuccess());
+		
+		
+		response = restServiceReal.convertHLStoMP4(streamId, true, true);
+		//cast to File
+		File f = (File)response.getEntity();
+		
+		
 	}
 
 

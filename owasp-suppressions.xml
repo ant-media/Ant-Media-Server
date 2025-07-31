@@ -156,6 +156,24 @@
        <packageUrl regex="true">^pkg:maven/org\.springframework/security/spring\-security\-crypto@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2025-22228</vulnerabilityName>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11.jar
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   FFmpeg will be upgraded when a new version is available
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-1594</vulnerabilityName>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-7.1-1.5.11-linux-arm64.jar
+	   This vulnerability is related to the ALS Decoder and we don't use the alsdecoder in Ant Media Server so we are supressing it.
+       When the fix is available, we'll also update the FFmpeg version in Ant Media Server.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2025-7700</vulnerabilityName>
+	</suppress>
 	
 		
 </suppressions>

@@ -139,6 +139,11 @@ public class WebSocketConstants {
 	public static final String SUBSCRIBER_ID = "subscriberId";
 	
 	/**
+	 * this subscriber name is the human readable name for a subscriber
+	 */
+	public static final String SUBSCRIBER_NAME = "subscriberName";
+	
+	/**
 	 * this subscriber code is used to access resources or start broadcast when time based subscriber security is enabled
 	 */
 	public static final String SUBSCRIBER_CODE = "subscriberCode";
@@ -615,6 +620,11 @@ public class WebSocketConstants {
 	 * Participant role in the room
 	 */
 	public static final String ROLE = "role";
+	
+	/**
+	 * Participant role in the room
+	 */
+	public static final String DISABLE_TRACKS_BY_DEFAULT = "disableTracksByDefault";
 
 	/**
 	 * Command to get subtrack infos for a main track
@@ -630,6 +640,27 @@ public class WebSocketConstants {
 	 * subtrack (broadcast) object list notification
 	 */
 	public static final String SUBTRACK_LIST_NOTIFICATION = "subtrackList";
+	
+	
+	/**
+	 * Command to get subscriber list size
+	 */
+	public static final String GET_SUBSCRIBER_LIST_SIZE = "getSubscriberCount";
+	
+	/**
+	 * subscriber count notification
+	 */
+	public static final String SUBSCRIBER_COUNT = "subscriberCount";
+	
+	/**
+	 * Command to get subscribers for a stream
+	 */
+	public static final String GET_SUBSCRIBER_LIST = "getSubscribers";
+
+	/**
+	 * subscribers list notification
+	 */
+	public static final String SUBSCRIBER_LIST_NOTIFICATION = "subscriberList";
 
 	/**
 	 * status field in websocket communication
@@ -666,6 +697,11 @@ public class WebSocketConstants {
 	 * subtrack (broadcast) object list
 	 */
 	public static final String SUBTRACK_LIST = "subtrackList";
+	
+	/**
+	 * subscribers list
+	 */
+	public static final String SUBCRIBER_LIST = "subscriberList";
 
 	/**
 	 * This is the error definition that is sent when the stream does not get video or audio packet for the timeout duration.

@@ -38,6 +38,12 @@ public class Subscriber {
      */
     @Schema(description = "The subscriber id of the subscriber")
     private String subscriberId;
+    
+    /**
+     * The subscriber name of the subscriber
+     */
+    @Schema(description = "The subscriber name of the subscriber")
+    private String subscriberName;
 
     /**
      * The stream id of the token
@@ -119,6 +125,14 @@ public class Subscriber {
 	
 	public String getSubscriberId() {
 		return subscriberId;
+	}
+	
+	public void setSubscriberName(String subscriberName) {
+		this.subscriberName = subscriberName;
+	}
+	
+	public String getSubscriberName() {
+		return subscriberName;
 	}
 
 	public void setStreamId(String streamId) {
