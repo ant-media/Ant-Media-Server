@@ -364,7 +364,8 @@ public class StreamFetcher {
 				close(pkt);
 
 				setThreadActive(false);
-				streamFetcherListener.streamFinished(streamFetcherListener);
+				if(streamFetcherListener != null)
+					streamFetcherListener.streamFinished(streamFetcherListener);
 			}
 
 		}
