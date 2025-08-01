@@ -280,7 +280,7 @@ public class StreamFetcherManager {
 			return result;
 		}
 
-
+		final StreamFetcher oldStreamFetcher = getStreamFetcher(playlist.getStreamId());
 		//Check playlist is not stopped and there is an item to play
 
 		if(!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
@@ -293,8 +293,6 @@ public class StreamFetcherManager {
 			// If stream URL is not valid, it's trying next broadcast and trying.
 			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess())
 			{
-				//update broadcast informations
-				final StreamFetcher oldStreamFetcher = getStreamFetcher(playlist.getStreamId());
 
 				Broadcast finalPlaylist = playlist;
 				oldStreamFetcher.setStreamFetcherListener((l)->{
@@ -328,9 +326,11 @@ public class StreamFetcherManager {
 		}
 
 		// It's necessary for skip new Stream Fetcher
-		stopStreaming(playlist.getStreamId());
+		if(oldStreamFetcher.isThreadActive())
+			stopStreaming(playlist.getStreamId());
+		else
+			oldStreamFetcher.streamFetcherListener.streamFinished(oldStreamFetcher.streamFetcherListener);
 		return result;
-
 	}
 
 
