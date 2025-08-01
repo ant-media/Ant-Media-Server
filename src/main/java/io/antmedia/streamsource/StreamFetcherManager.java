@@ -272,16 +272,14 @@ public class StreamFetcherManager {
 	 */
 	public Result playItemInList(Broadcast playlist, IStreamFetcherListener listener, int index) 
 	{
-		// It's necessary for skip new Stream Fetcher
-		stopStreaming(playlist.getStreamId());
 		Result result = new Result(false);
-		
+
 		if (serverShuttingDown) {
 			logger.info("Playlist will not try to play the next item because server is shutting down");
 			result.setMessage("Playlist will not try to play the next item because server is shutting down");
 			return result;
 		}
-		
+
 
 		//Check playlist is not stopped and there is an item to play
 
@@ -293,23 +291,32 @@ public class StreamFetcherManager {
 			int currentStreamIndex = playlist.getCurrentPlayIndex();
 			// Check Stream URL is valid.
 			// If stream URL is not valid, it's trying next broadcast and trying.
-			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess()) 
+			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess())
 			{
 				//update broadcast informations
-				PlayListItem fetchedBroadcast = playlist.getPlayListItemList().get(currentStreamIndex);
-				
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setPlayListStatus(playlist.getPlayListStatus());
-				broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
-				
-				datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
+				final StreamFetcher oldStreamFetcher = getStreamFetcher(playlist.getStreamId());
 
-				StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), playlist.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
-				newStreamScheduler.setStreamFetcherListener(listener);
-				newStreamScheduler.setRestartStream(false);
-				result = startStreamScheduler(newStreamScheduler);
+				Broadcast finalPlaylist = playlist;
+				oldStreamFetcher.setStreamFetcherListener((l)->{
+					PlayListItem fetchedBroadcast = finalPlaylist.getPlayListItemList().get(currentStreamIndex);
+
+					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+					broadcastUpdate.setPlayListStatus(finalPlaylist.getPlayListStatus());
+					broadcastUpdate.setCurrentPlayIndex(finalPlaylist.getCurrentPlayIndex());
+
+					datastore.updateBroadcastFields(finalPlaylist.getStreamId(), broadcastUpdate);
+
+					StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), finalPlaylist.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
+					newStreamScheduler.setRestartStream(false);
+					newStreamScheduler.setStreamFetcherListener(listener);
+
+					startStreamScheduler(newStreamScheduler);
+				});
+
+
+				result.setSuccess(true);
 			}
-			else 
+			else
 			{
 				logger.info("Current Playlist Stream URL -> {} is invalid", playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl());
 				playlist = skipNextPlaylistQueue(playlist, -1);
@@ -320,7 +327,8 @@ public class StreamFetcherManager {
 			result.setMessage("Playlist is either stopped or there is no item to play");
 		}
 
-
+		// It's necessary for skip new Stream Fetcher
+		stopStreaming(playlist.getStreamId());
 		return result;
 
 	}
