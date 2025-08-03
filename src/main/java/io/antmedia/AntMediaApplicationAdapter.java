@@ -74,6 +74,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.JWTFilter;
@@ -965,7 +966,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (ingestingStreamLimit != -1 && activeBroadcastNumber > ingestingStreamLimit)
 				{
 					logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
-					stopStreaming(broadcast, true);
+					stopStreaming(broadcast, true, null);
 				}
 
 				for (IStreamListener listener : streamListeners) {
@@ -1720,7 +1721,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		});
 	}
 
-	public Result stopStreaming(Broadcast broadcast, boolean stopSubtracks)
+	public Result stopStreaming(Broadcast broadcast, boolean stopSubtracks, String subscriberId)
 	{
 		Result result = new Result(false);
 		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
@@ -1740,10 +1741,23 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
 			if (broadcastStream != null)
 			{
+				ClientBroadcastStream clientBroadcastStream = (ClientBroadcastStream) broadcastStream;
+				Map<String,String> parameters = clientBroadcastStream.getParameters();
+				boolean stopStreaming = true;
+				if (parameters != null) {
+					String subscriberIdParameter = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+					stopStreaming = isSubscriberIdMatching(subscriberId, subscriberIdParameter);
+				}
 
 				IStreamCapableConnection connection = ((IClientBroadcastStream) broadcastStream).getConnection();
 				if (connection != null) {
-					connection.close();
+					if (stopStreaming) {
+						connection.close();
+					}
+					else {
+						logger.info("Not closing the connection for stream: {} because subscriberId({}) is not matched. "
+								+ "Connection will be closed when the subscriber leaves", broadcast.getStreamId(), subscriberId);
+					}
 				}
 				else {
 					logger.warn("Connection is null. It should not happen for stream: {}. Analyze the logs", broadcast.getStreamId());
@@ -1754,6 +1768,35 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		
 		return result;
 	}
+	
+
+	public static boolean isSubscriberBlocked(DataStore dataStore, String streamId, String subscriberId, String type) {
+
+		if (StringUtils.isNoneBlank(subscriberId, streamId)) {
+			Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
+			if(subscriber == null){
+				return false;
+			}
+
+			return subscriber.isBlocked(type);
+		}
+
+		return false;
+	}
+
+	public static boolean isSubscriberIdMatching(String subscriberId, String subscriberIdParameter) {
+		boolean subscriberIdMatching = true;
+		if (StringUtils.isNotBlank(subscriberId)) 
+		{
+			subscriberIdMatching = false;		
+			if (Strings.CS.equals(subscriberId, subscriberIdParameter)) {
+				subscriberIdMatching = true;
+			}
+		}
+		return subscriberIdMatching;
+	}
+	
+	
 
 	private void createIdleCheckTimer(Broadcast broadcast, boolean isMainTrack) {
 		logger.info("Idle check timer is set to {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());

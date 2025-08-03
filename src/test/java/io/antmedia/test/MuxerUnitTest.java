@@ -2128,14 +2128,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		if (activeBroadcastCount == 1) {
-			Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any(), Mockito.any());
+			Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any(), Mockito.any(), Mockito.any());
 		}
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
 		appAdaptor.startPublish(streamId, 0, null, null, null);
 
-		Mockito.verify(appAdaptor, timeout(1000).times((int) activeBroadcastCount + 1)).stopStreaming(Mockito.any(), Mockito.anyBoolean());
+		Mockito.verify(appAdaptor, timeout(1000).times((int) activeBroadcastCount + 1)).stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any());
 
 	}
 
