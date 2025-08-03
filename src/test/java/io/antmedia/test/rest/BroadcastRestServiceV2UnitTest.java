@@ -49,6 +49,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
@@ -1213,7 +1214,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
-		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
+		ClientBroadcastStream broadcastStream = mock(ClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
@@ -1314,7 +1315,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
-		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
+		ClientBroadcastStream broadcastStream = mock(ClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
@@ -2298,7 +2299,7 @@ public class BroadcastRestServiceV2UnitTest {
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
-		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam, false);
+		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam, false, null);
 		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
 
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
@@ -2563,7 +2564,7 @@ public class BroadcastRestServiceV2UnitTest {
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(mock(StreamFetcherManager.class));
-		Mockito.when(adaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(false));
+		Mockito.when(adaptor.stopStreaming(any(), anyBoolean(), any())).thenReturn(new Result(false));
 
 		Broadcast broadcast = new Broadcast();
 		//It means there is no stream to stop
@@ -3801,7 +3802,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(true));
+		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean(), any())).thenReturn(new Result(true));
 
 		restServiceReal.setApplication(appAdaptor);
 
@@ -3859,7 +3860,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Result result = restServiceReal.deleteBroadcast(mainTrack.getStreamId(), true);
 		assertTrue(result.isSuccess());
 
-		verify(appAdaptor).stopStreaming(eq(mainTrack), anyBoolean());
+		verify(appAdaptor).stopStreaming(eq(mainTrack), anyBoolean(), any());
 
 		assertNull(store.get(mainTrack.getStreamId()));
 		assertNull(store.get(subtrack1.getStreamId()));
@@ -3973,7 +3974,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean())).thenReturn(new Result(true));
+		Mockito.when(appAdaptor.stopStreaming(any(), anyBoolean(), any())).thenReturn(new Result(true));
 
 		restServiceReal.setApplication(appAdaptor);
 

@@ -1123,27 +1123,31 @@ public class BroadcastRestService extends RestServiceBase{
 		String message = "";
 
 
-
-		if (!StringUtils.isAnyBlank(streamId, subscriberId)) 
-		{
-			//if the user is not in this node, it's in another node in the cluster.  
-			//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
-
-			result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
-
-			if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType) ) 
-			{
-				getApplication().stopPlayingBySubscriberId(subscriberId, streamId);
-			} 
-
-			if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
-				getApplication().stopPublishingBySubscriberId(subscriberId, streamId);
-			}
-
-
-		}
-		else {
+        if (StringUtils.isAnyBlank(streamId, subscriberId)) {
 			message = "streamId or subscriberId is blank";
+			return new Result(result, message);
+		}
+    
+        // Replace special characters in streamId and subscriberId
+		streamId = streamId.replaceAll(REPLACE_CHARS, "_");
+		subscriberId = subscriberId.replaceAll(REPLACE_CHARS, "_");
+
+    
+		//if the user is not in this node, it's in another node in the cluster.
+		//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
+		result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
+
+		AntMediaApplicationAdapter application = getApplication();
+		if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
+			application.stopPlayingBySubscriberId(subscriberId, streamId);
+		}
+
+		if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
+			// Stops WebRTC streams
+			if (!application.stopPublishingBySubscriberId(subscriberId, streamId)) {
+				// WebRTC stream not stopped. Try to stop other streams
+				this.stopStreaming(streamId, false, subscriberId);
+			}
 		}
 
 		return new Result(result, message);
@@ -1417,7 +1421,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result stopStreamingV2(@Parameter(description = "the id of the broadcast.", required = true) @PathParam("id") String id,
 			@Parameter(description = "Stop also subtracks", required = false) @QueryParam("stopSubtracks") Boolean stopSubtracks) 
 	{
-		return super.stopStreaming(id, stopSubtracks);
+		return super.stopStreaming(id, stopSubtracks, null);
 	}
 
 
