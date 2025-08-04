@@ -291,6 +291,7 @@ public class StreamFetcherManager {
 		Result result = new Result(false);
 
 		if (serverShuttingDown) {
+			stopStreaming(playlist.getStreamId());
 			logger.info("Playlist will not try to play the next item because server is shutting down");
 			result.setMessage("Playlist will not try to play the next item because server is shutting down");
 			return result;
@@ -311,19 +312,19 @@ public class StreamFetcherManager {
 			{
 
 				Broadcast finalPlaylist = playlist;
-				if(oldStreamFetcher != null && oldStreamFetcher.isThreadActive())
-					oldStreamFetcher.setStreamFetcherListener((l)->{
-						createAndStartNextPlaylistItem(finalPlaylist,listener,currentStreamIndex);
+				if(oldStreamFetcher != null && oldStreamFetcher.isThreadActive()) {
+					oldStreamFetcher.setStreamFetcherListener((l) -> {
+						createAndStartNextPlaylistItem(finalPlaylist, listener, currentStreamIndex);
 					});
+					result.setSuccess(true);
+				}
 				else
-					stopStreaming(playlist.getStreamId());
 					return createAndStartNextPlaylistItem(playlist,listener,playlist.getCurrentPlayIndex());
 
 			}
 			else
 			{
 				logger.info("Current Playlist Stream URL -> {} is invalid", playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl());
-				stopStreaming(playlist.getStreamId());
 				playlist = skipNextPlaylistQueue(playlist, -1);
 				result = startPlaylist(playlist);
 				return result;
