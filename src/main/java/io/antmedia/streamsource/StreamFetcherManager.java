@@ -334,6 +334,7 @@ public class StreamFetcherManager {
 		else {
 			result.setMessage("Playlist is either stopped or there is no item to play");
 		}
+		stopStreaming(playlist.getStreamId());
 
 
 		return result;
