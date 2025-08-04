@@ -325,6 +325,7 @@ public class StreamFetcherManager {
 			else
 			{
 				logger.info("Current Playlist Stream URL -> {} is invalid", playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl());
+				stopStreaming(playlist.getStreamId());
 				playlist = skipNextPlaylistQueue(playlist, -1);
 				result = startPlaylist(playlist);
 				return result;
@@ -334,7 +335,6 @@ public class StreamFetcherManager {
 			result.setMessage("Playlist is either stopped or there is no item to play");
 		}
 
-		stopStreaming(playlist.getStreamId());
 
 		return result;
 	}
