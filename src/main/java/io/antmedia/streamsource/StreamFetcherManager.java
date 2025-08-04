@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import io.lindstrom.m3u8.model.Playlist;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
@@ -263,6 +264,21 @@ public class StreamFetcherManager {
 		}
 	}
 
+	public Result createAndStartNextPlaylistItem(Broadcast playlistBroadcast, IStreamFetcherListener listener,int currentStreamIndex){
+		PlayListItem fetchedBroadcast = playlistBroadcast.getPlayListItemList().get(currentStreamIndex);
+
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setPlayListStatus(playlistBroadcast.getPlayListStatus());
+		broadcastUpdate.setCurrentPlayIndex(playlistBroadcast.getCurrentPlayIndex());
+
+		datastore.updateBroadcastFields(playlistBroadcast.getStreamId(), broadcastUpdate);
+
+		StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), playlistBroadcast.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
+		newStreamScheduler.setRestartStream(false);
+		newStreamScheduler.setStreamFetcherListener(listener);
+
+		return startStreamScheduler(newStreamScheduler);
+	}
 
 	/**
 	 * 
@@ -295,41 +311,30 @@ public class StreamFetcherManager {
 			{
 
 				Broadcast finalPlaylist = playlist;
-				oldStreamFetcher.setStreamFetcherListener((l)->{
-					PlayListItem fetchedBroadcast = finalPlaylist.getPlayListItemList().get(currentStreamIndex);
+				if(oldStreamFetcher != null && oldStreamFetcher.isThreadActive())
+					oldStreamFetcher.setStreamFetcherListener((l)->{
+						createAndStartNextPlaylistItem(finalPlaylist,listener,currentStreamIndex);
+					});
+				else
+					stopStreaming(playlist.getStreamId());
+					return createAndStartNextPlaylistItem(playlist,listener,playlist.getCurrentPlayIndex());
 
-					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-					broadcastUpdate.setPlayListStatus(finalPlaylist.getPlayListStatus());
-					broadcastUpdate.setCurrentPlayIndex(finalPlaylist.getCurrentPlayIndex());
-
-					datastore.updateBroadcastFields(finalPlaylist.getStreamId(), broadcastUpdate);
-
-					StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), finalPlaylist.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
-					newStreamScheduler.setRestartStream(false);
-					newStreamScheduler.setStreamFetcherListener(listener);
-
-					startStreamScheduler(newStreamScheduler);
-				});
-
-
-				result.setSuccess(true);
 			}
 			else
 			{
 				logger.info("Current Playlist Stream URL -> {} is invalid", playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl());
+				stopStreaming(playlist.getStreamId());
 				playlist = skipNextPlaylistQueue(playlist, -1);
 				result = startPlaylist(playlist);
+				return result;
 			}
 		}
 		else {
 			result.setMessage("Playlist is either stopped or there is no item to play");
 		}
 
-		// It's necessary for skip new Stream Fetcher
-		if(oldStreamFetcher.isThreadActive())
-			stopStreaming(playlist.getStreamId());
-		else
-			oldStreamFetcher.streamFetcherListener.streamFinished(oldStreamFetcher.streamFetcherListener);
+		stopStreaming(playlist.getStreamId());
+
 		return result;
 	}
 
