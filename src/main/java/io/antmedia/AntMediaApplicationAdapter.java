@@ -1307,10 +1307,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void sendWebHook(String id, String mainTrackId, String action, String streamName, String category,
 			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters)  
 	{
-		String listenerHookURL = getListenerHookURL(getDataStore().get(id));	
+		Broadcast broadcast = getDataStore().get(id);
+		String metaDataLocal = StringUtils.isNotBlank(metadata) ? broadcast.getMetaData() : metadata;
+		
+		String listenerHookURL = getListenerHookURL(broadcast);	
 		if (StringUtils.isNotBlank(listenerHookURL)) 
 		{
-			notifyHook(listenerHookURL, id, mainTrackId, action, streamName, category, vodName, vodId, metadata, subscriberId, parameters);
+			notifyHook(listenerHookURL, id, mainTrackId, action, streamName, category, vodName, vodId, metaDataLocal, subscriberId, parameters);
 		} 
 	}
 
