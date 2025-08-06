@@ -678,7 +678,7 @@ public class StreamService implements IStreamService {
         return params;
     }
 
-    public void verifySecurity(IScope scope , IStreamCapableConnection streamConn, String name, Number streamId, Map<String, String> params, String mode){
+    public Boolean verifySecurity(IScope scope , IStreamCapableConnection streamConn, String name, Number streamId, Map<String, String> params, String mode){
         IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
         if (security != null) {
             Set<IStreamPublishSecurity> handlers = security.getStreamPublishSecurity();
@@ -697,7 +697,7 @@ public class StreamService implements IStreamService {
                 if (!handler.isPublishAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
                     sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to publish the stream.", name, streamId);
                     log.error("You are not allowed to publish the stream {}", name);
-                    return;
+                    return false;
                 }
 
                 AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
@@ -706,10 +706,11 @@ public class StreamService implements IStreamService {
                         || AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), mainTrackId, subscriberId, Subscriber.PUBLISH_TYPE))
                 {
                     sendNSFailed(streamConn, StatusCodes.NS_FAILED, "Subscriber "+subscriberId+" is blocked to publish stream.", name, streamId);
-                    return;
+                    return false;
                 }
             }
         }
+        return true;
     }
 
     /**
@@ -757,7 +758,9 @@ public class StreamService implements IStreamService {
                 return;
             }
 
-            verifySecurity(scope, streamConn, name, streamId, params, mode);
+            if(!verifySecurity(scope, streamConn, name, streamId, params, mode));
+                return;
+
 
             IBroadcastScope bsScope = getBroadcastScope(scope, name);
             if (bsScope != null && !bsScope.getProviders().isEmpty()) {
