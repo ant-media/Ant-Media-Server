@@ -51,7 +51,9 @@ public class ProviderService implements IProviderService {
 
 	/** {@inheritDoc} */
 	public INPUT_TYPE lookupProviderInput(IScope scope, String name, int type) {
-
+		if (name.contains("?")) {
+			name = name.split("\\?")[0];
+		}
 		AntMediaApplicationAdapter applicationAdapter = getAppInstance(scope);
 		applicationAdapter.fetchRtmpFromOriginIfExist(name);
 

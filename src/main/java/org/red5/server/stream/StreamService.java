@@ -341,6 +341,19 @@ public class StreamService implements IStreamService {
     public void play(String name, int start, int length, boolean flushPlaylist) {
         log.debug("Play called - name: {} start: {} length: {} flush playlist: {}", new Object[] { name, start, length, flushPlaylist });
         IConnection conn = Red5.getConnectionLocal();
+
+        Map<String, String> params = null;
+
+        if (name != null && name.contains("?")) {
+            // read and utilize the query string values
+            params = parseQueryParameters(name);
+            name = name.substring(0, name.indexOf("?"));
+        } else if (name != null && name.matches(".*[/%2F].*")) { // match / or %2F
+            params = parsePathSegments(name);
+            name = params.getOrDefault("streamName", name);
+        }
+
+
         if (conn instanceof IStreamCapableConnection) {
             IScope scope = conn.getScope();
             IStreamCapableConnection streamConn = (IStreamCapableConnection) conn;
@@ -665,6 +678,39 @@ public class StreamService implements IStreamService {
         return params;
     }
 
+    public void verifySecurity(IScope scope , IStreamCapableConnection streamConn, String name, Number streamId, Map<String, String> params, String mode){
+        IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
+        if (security != null) {
+            Set<IStreamPublishSecurity> handlers = security.getStreamPublishSecurity();
+            for (IStreamPublishSecurity handler : handlers) {
+                String subscriberId=null;
+                String subscriberCode=null;
+                String token=null;
+                String mainTrackId = null;
+
+                if (params != null) {
+                    subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
+                    subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
+                    token = params.get(WebSocketConstants.TOKEN);
+                    mainTrackId = params.get("mainTrack");
+                }
+                if (!handler.isPublishAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
+                    sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to publish the stream.", name, streamId);
+                    log.error("You are not allowed to publish the stream {}", name);
+                    return;
+                }
+
+                AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+
+                if(AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), name, subscriberId, Subscriber.PUBLISH_TYPE)
+                        || AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), mainTrackId, subscriberId, Subscriber.PUBLISH_TYPE))
+                {
+                    sendNSFailed(streamConn, StatusCodes.NS_FAILED, "Subscriber "+subscriberId+" is blocked to publish stream.", name, streamId);
+                    return;
+                }
+            }
+        }
+    }
 
     /**
      * {@inheritDoc}
@@ -711,37 +757,7 @@ public class StreamService implements IStreamService {
                 return;
             }
 
-            IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
-            if (security != null) {
-                Set<IStreamPublishSecurity> handlers = security.getStreamPublishSecurity();
-                for (IStreamPublishSecurity handler : handlers) {
-                    String subscriberId=null;
-                    String subscriberCode=null;
-                    String token=null;
-                    String mainTrackId = null; 
-
-                    if (params != null) {
-                        subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
-                        subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
-                        token = params.get(WebSocketConstants.TOKEN);
-                        mainTrackId = params.get("mainTrack");
-                    }
-                    if (!handler.isPublishAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
-                        sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to publish the stream.", name, streamId);
-                        log.error("You are not allowed to publish the stream {}", name);
-                        return;
-                    }
-                   
-                    AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
-						
-                    if(AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), name, subscriberId, Subscriber.PUBLISH_TYPE)
-                				|| AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), mainTrackId, subscriberId, Subscriber.PUBLISH_TYPE))
-            		{
-                    	sendNSFailed(streamConn, StatusCodes.NS_FAILED, "Subscriber "+subscriberId+" is blocked to publish stream.", name, streamId);
-            			return;
-            		}
-                }
-            }
+            verifySecurity(scope, streamConn, name, streamId, params, mode);
 
             IBroadcastScope bsScope = getBroadcastScope(scope, name);
             if (bsScope != null && !bsScope.getProviders().isEmpty()) {
