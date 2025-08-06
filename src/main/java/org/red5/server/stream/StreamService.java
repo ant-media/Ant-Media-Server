@@ -758,7 +758,7 @@ public class StreamService implements IStreamService {
                 return;
             }
 
-            if(!verifySecurity(scope, streamConn, name, streamId, params, mode));
+            if(!verifySecurity(scope, streamConn, name, streamId, params, mode))
                 return;
 
 
