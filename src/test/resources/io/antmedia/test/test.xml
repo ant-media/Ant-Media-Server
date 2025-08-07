@@ -98,6 +98,11 @@
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
 		<property name="streamAcceptFilter" ref="streamAcceptFilter"/>
+		<property name="streamPlaySecurityList">
+			<list>
+			</list>
+		</property>
+
 		<property name="streamPublishSecurityList">
 			<list>
 				<bean class="io.antmedia.security.ExpireStreamPublishSecurity" >
