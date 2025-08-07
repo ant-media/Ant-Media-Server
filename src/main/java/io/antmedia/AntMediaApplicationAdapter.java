@@ -1020,7 +1020,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
-		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		if(getStreamFetcherManager().getStreamFetcher(streamId) == null || !getStreamFetcherManager().getStreamFetcher(streamId).getIsSilentMode())
+			return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		else
+			return broadcast;
 	}
 	public boolean isBroadcastOnThisServer(Broadcast broadcast){
 		if(broadcast.getOriginAdress() == null || serverSettings == null || serverSettings.getHostAddress() == null )
@@ -1987,12 +1990,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			} else {
 				logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());
 
-				broadcast.setCategory("rtmp_origin_pull");
 				broadcast.setStreamUrl(broadcast.getRtmpURL());
 
-				InternalStreamFetcher streamScheduler = new InternalStreamFetcher(broadcast.getStreamUrl(), broadcast.getStreamId(), broadcast.getType(), scope, vertx, broadcast.getSeekTimeInMs());
+				InternalStreamFetcher streamScheduler = getStreamFetcherManager().makeIternalStreamFetcher(broadcast,scope,vertx);
 				streamScheduler.setRestartStream(getStreamFetcherManager().isRestartStreamAutomatically());
-				streamScheduler.setDataStore(streamScheduler.getDataStore());
+				streamScheduler.setDataStore(getDataStore());        
+				streamScheduler.setIsSilentMode(true);        
 				getStreamFetcherManager().startStreamScheduler(streamScheduler);
 
 				streamScheduler.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {

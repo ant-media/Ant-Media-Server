@@ -42,6 +42,7 @@ import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.rtmp.InProcessRtmpPublisher;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
+import io.antmedia.streamsource.InternalStreamFetcher;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
@@ -1881,7 +1882,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testStreamFetcherStartAutomatically() 
+	public void testStreamFetcherStartAutomatically()
 	{
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
@@ -2406,7 +2407,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 	@Test
-	public void testStreamFetcherNotStartAutomatically() 
+	public void testStreamFetcherNotStartAutomatically()
 	{
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
@@ -3036,7 +3037,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//stream fetcher is already alive for this stream
 		StreamFetcherManager streamFetcherManagerMock = mock(StreamFetcherManager.class);
-		StreamFetcher streamFetcherMock = Mockito.spy(new StreamFetcher("test", streamId, "test", scope, Vertx.vertx(), 0));
+		InternalStreamFetcher streamFetcherMock = Mockito.spy(new InternalStreamFetcher("test", streamId, "test", scope, Vertx.vertx(), 0));
 		doReturn(db).when(streamFetcherMock).getDataStore();
 		doReturn(true).when(streamFetcherMock).isThreadActive();
 		doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
@@ -3059,11 +3060,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//stream exist on another node fetch the stream
 
-		doReturn(streamFetcherMock).when(streamFetcherManagerMock).make(any(),any(),any());
+		doReturn(streamFetcherMock).when(streamFetcherManagerMock).makeIternalStreamFetcher(any(),any(),any());
 		broadcast.setOriginAdress("1234");
 		result = spyAdapter.fetchRtmpFromOriginIfExist(streamId);
 		assertTrue(result);
 		Mockito.verify(streamFetcherManagerMock).startStreamScheduler(streamFetcherMock);
+		Mockito.verify(streamFetcherMock).setIsSilentMode(true);
 		assertEquals(broadcast.getRtmpURL(),broadcast.getStreamUrl());
 
 

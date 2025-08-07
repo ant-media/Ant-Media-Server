@@ -124,6 +124,15 @@ public class StreamFetcher {
 
 	private static final String RTSP_ALLOWED_MEDIA_TYPES = "allowed_media_types";
 
+	public boolean isSilentMode = false;
+
+	public boolean getIsSilentMode(){
+		return isSilentMode;
+	}
+	public void setIsSilentMode(boolean isSilentMode){
+		this.isSilentMode = isSilentMode;
+	}
+
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
 	}
@@ -233,7 +242,8 @@ public class StreamFetcher {
 
 
 		public Result prepareInput(AVFormatContext inputFormatContext) {
-			int timeout = appSettings.getRtspTimeoutDurationMs();
+			int timeout = appSettings.getRtspTimeoutDurationMs(); 
+      streamUrl = getStreamUrl();
 			setConnectionTimeout(timeout);
 
 			Result result = new Result(false);
@@ -323,12 +333,12 @@ public class StreamFetcher {
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
-				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && !broadcast.getCategory().equals("rtmp_origin_pull")) {
+				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && !getIsSilentMode()) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
 					return;
 				}
 
-				if(getInstance().isBroadcastOnThisServer(getBroadcast()))
+				if(!getIsSilentMode())
 					getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
@@ -693,7 +703,7 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					if(getInstance().isBroadcastOnThisServer(getBroadcast()))
+					if(!getIsSilentMode())
 						getInstance().closeBroadcast(streamId, null, null);
 					streamPublished=false;
 					closeCalled = true;
@@ -716,7 +726,8 @@ public class StreamFetcher {
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+          if(!getIsSilentMode())
+            getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
@@ -730,7 +741,7 @@ public class StreamFetcher {
 					logger.info("Stream fetcher will not try again for streamUrl:{} and streamId:{} because stopRequestReceived:{} and restartStream:{}",
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
-					if (!closeCalled && getInstance().isBroadcastOnThisServer(getBroadcast())) {
+					if (!closeCalled && !getIsSilentMode()) {
 						getInstance().closeBroadcast(streamId, null, null);
 					}
 				}
@@ -1171,7 +1182,7 @@ public class StreamFetcher {
 		this.bufferTime = bufferTime;
 	}
 
-	private AppSettings getAppSettings() {
+	protected AppSettings getAppSettings() {
 		if (appSettings == null) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}

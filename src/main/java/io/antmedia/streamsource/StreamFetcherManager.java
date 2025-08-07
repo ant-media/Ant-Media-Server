@@ -100,6 +100,10 @@ public class StreamFetcherManager {
 		return new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
 	}
 
+	public InternalStreamFetcher makeIternalStreamFetcher(Broadcast stream, IScope scope, Vertx vertx) {
+		return new InternalStreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
+	}
+
 	public int getStreamCheckerInterval() {
 		return streamCheckerIntervalMs;
 	}
