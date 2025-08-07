@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.metrics.Stat;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -65,6 +66,7 @@ import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.WorkerThread;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -197,6 +199,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.getDataStore().save(playlist);
 
+    StatsCollector statsCollectorMock = Mockito.mock(StatsCollector.class);
+    doReturn(true).when(statsCollectorMock).enoughResource();
+    app.setStatsCollector(statsCollectorMock);
 		boolean startStreaming = app.startStreaming(playlist).isSuccess();
 		assertTrue(startStreaming);
 
