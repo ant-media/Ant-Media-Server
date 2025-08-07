@@ -499,7 +499,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 		spyAdapter.setAppSettings(new AppSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
-
+		spyAdapter.setStreamPlaySecurityList(new ArrayList<>());
 
 		// Add 1. Broadcast
 		Broadcast broadcast = new Broadcast();
@@ -1920,6 +1920,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		spyAdapter.setStreamPlaySecurityList(new ArrayList<>());
 
 		spyAdapter.appStart(scope);
 
@@ -2446,6 +2447,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		spyAdapter.setStreamPlaySecurityList(new ArrayList<>());
 
 		spyAdapter.appStart(scope);
 
@@ -2529,6 +2531,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(Mockito.mock(AcceptOnlyStreamsInDataStore.class));
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		spyAdapter.setStreamPlaySecurityList(new ArrayList<>());
 
 		spyAdapter.appStart(scope);
 

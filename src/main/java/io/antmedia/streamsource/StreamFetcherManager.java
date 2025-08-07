@@ -89,9 +89,6 @@ public class StreamFetcherManager {
 		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
 	}
 
-    public StreamFetcherManager() {
-    }
-
     public void shuttingDown() {
 		serverShuttingDown = true;
 	}
