@@ -132,16 +132,6 @@ public class StreamFetcher {
 		this.streamFetcherListener = streamFetcherListener;
 	}
 
-	public InProcessRtmpPublisher inProcessRtmpPublisher;
-
-	public void setInProcessRtmpPublisher(InProcessRtmpPublisher inProcessRtmpPublisher) {
-		this.inProcessRtmpPublisher = inProcessRtmpPublisher;
-	}
-
-	public InProcessRtmpPublisher getInProcessRtmpPublisher() {
-		return inProcessRtmpPublisher;
-	}
-
 	public StreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx, long seekTimeInMs)  {
 		if (streamUrl == null  || streamId == null) {
 

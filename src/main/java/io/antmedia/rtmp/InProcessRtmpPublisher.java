@@ -32,6 +32,9 @@ import org.red5.server.messaging.IProvider;
 import org.red5.server.messaging.IPipe;
 import org.red5.server.messaging.OOBControlMessage;
 import org.red5.server.messaging.IMessageComponent;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
+
 
 /**
  * Lightweight provider that converts encoded H.264 / AAC {@link AVPacket}s coming from
@@ -179,7 +182,7 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
 
     @Override
     public boolean isCodecSupported(int codecId) {
-        return true;
+        return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC);
     }
 
     public AVFormatContext getOutputFormatContext() {

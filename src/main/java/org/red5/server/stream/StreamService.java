@@ -28,6 +28,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
+import org.red5.io.object.StreamAction;
 import org.red5.io.utils.ObjectMap;
 import org.red5.server.BaseConnection;
 import org.red5.server.api.IConnection;
@@ -363,6 +364,9 @@ public class StreamService implements IStreamService {
                 sendNSFailed(streamConn, StatusCodes.NS_FAILED, "The stream name may not be empty.", name, streamId);
                 return;
             }
+            if(!verifySecurity(scope, streamConn, name, streamId, params, "", StreamAction.PLAY))
+                return;
+
             IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
             if (security != null) {
                 Set<IStreamPlaybackSecurity> handlers = security.getStreamPlaybackSecurity();
@@ -678,35 +682,47 @@ public class StreamService implements IStreamService {
         return params;
     }
 
-    public Boolean verifySecurity(IScope scope , IStreamCapableConnection streamConn, String name, Number streamId, Map<String, String> params, String mode){
+    public Boolean verifySecurity(IScope scope , IStreamCapableConnection streamConn, String name, Number streamId, Map<String, String> params, String mode, StreamAction action){
         IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
         if (security != null) {
-            Set<IStreamPublishSecurity> handlers = security.getStreamPublishSecurity();
-            for (IStreamPublishSecurity handler : handlers) {
-                String subscriberId=null;
-                String subscriberCode=null;
-                String token=null;
-                String mainTrackId = null;
+            Set<IStreamPublishSecurity> publishSecurityHandlers = security.getStreamPublishSecurity();
+            Set<IStreamPlaybackSecurity> playbackSecurityHandlers = security.getStreamPlaybackSecurity();
 
-                if (params != null) {
-                    subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
-                    subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
-                    token = params.get(WebSocketConstants.TOKEN);
-                    mainTrackId = params.get("mainTrack");
-                }
-                if (!handler.isPublishAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
-                    sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to publish the stream.", name, streamId);
-                    log.error("You are not allowed to publish the stream {}", name);
-                    return false;
-                }
+            String subscriberId=null;
+            String subscriberCode=null;
+            String token=null;
+            String mainTrackId = null;
 
+            if (params != null) {
+                subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
+                subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
+                token = params.get(WebSocketConstants.TOKEN);
+                mainTrackId = params.get("mainTrack");
+            }
+
+            if(action.equals(StreamAction.PUBLISH)) {
+                for (IStreamPublishSecurity handler : publishSecurityHandlers) {
+                    if (!handler.isPublishAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
+                        sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to publish the stream.", name, streamId);
+                        log.error("You are not allowed to publish the stream {}", name);
+                        return false;
+                    }
+                }
                 AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 
-                if(AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), name, subscriberId, Subscriber.PUBLISH_TYPE)
-                        || AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), mainTrackId, subscriberId, Subscriber.PUBLISH_TYPE))
-                {
-                    sendNSFailed(streamConn, StatusCodes.NS_FAILED, "Subscriber "+subscriberId+" is blocked to publish stream.", name, streamId);
+                if (AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), name, subscriberId, Subscriber.PUBLISH_TYPE)
+                        || AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), mainTrackId, subscriberId, Subscriber.PUBLISH_TYPE)) {
+                    sendNSFailed(streamConn, StatusCodes.NS_FAILED, "Subscriber " + subscriberId + " is blocked to publish stream.", name, streamId);
                     return false;
+                }
+            }
+            else if(action.equals(StreamAction.PLAY)){
+                for (IStreamPlaybackSecurity handler : playbackSecurityHandlers) {
+                    if (!handler.isPlayAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
+                        sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to play the stream.", name, streamId);
+                        log.error("You are not allowed to play the stream {}", name);
+                        return false;
+                    }
                 }
             }
         }
@@ -758,7 +774,7 @@ public class StreamService implements IStreamService {
                 return;
             }
 
-            if(!verifySecurity(scope, streamConn, name, streamId, params, mode))
+            if(!verifySecurity(scope, streamConn, name, streamId, params, mode, StreamAction.PUBLISH))
                 return;
 
 

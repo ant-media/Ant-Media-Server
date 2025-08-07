@@ -46,12 +46,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IBroadcastStream;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IPlayItem;
-import org.red5.server.api.stream.IStreamCapableConnection;
-import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.red5.server.api.stream.ISubscriberStream;
+import org.red5.server.api.stream.*;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +92,7 @@ import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.streamsource.InternalStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.track.ISubtrackPoller;
@@ -112,6 +108,7 @@ import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import org.springframework.security.core.token.TokenService;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -194,6 +191,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
+	private List<IStreamPlaybackSecurity> streamPlaySecurityList;
 	private Map<String, OnvifCamera> onvifCameraList = new ConcurrentHashMap<>();
 	protected StreamFetcherManager streamFetcherManager;
 	protected Map<String, MuxAdaptor> muxAdaptors = new ConcurrentHashMap<>();
@@ -244,6 +242,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		setScope(app);
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 			registerStreamPublishSecurity(streamPublishSecurity);
+		}
+		for (IStreamPlaybackSecurity streamPlaybackSecurity : getStreamPlaySecurityList()) {
+			registerStreamPlaybackSecurity(streamPlaybackSecurity);
 		}
 		//init vertx
 		getVertx();
@@ -1592,6 +1593,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.streamPublishSecurityList = streamPublishSecurityList;
 	}
 
+	public void setStreamPlaySecurityList(List<IStreamPlaybackSecurity> streamPlaySecurityList) {
+		this.streamPlaySecurityList = streamPlaySecurityList;
+	}
+
+	public List<IStreamPlaybackSecurity> getStreamPlaySecurityList() {
+		return streamPlaySecurityList;
+	}
+
 	@Override
 	public AppSettings getAppSettings() {
 		return appSettings;
@@ -1981,7 +1990,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcast.setCategory("rtmp_origin_pull");
 				broadcast.setStreamUrl(broadcast.getRtmpURL());
 
-				StreamFetcher streamScheduler = getStreamFetcherManager().make(broadcast, scope, vertx);
+				InternalStreamFetcher streamScheduler = new InternalStreamFetcher(broadcast.getStreamUrl(), broadcast.getStreamId(), broadcast.getType(), scope, vertx, broadcast.getSeekTimeInMs());
 				streamScheduler.setRestartStream(getStreamFetcherManager().isRestartStreamAutomatically());
 				streamScheduler.setDataStore(streamScheduler.getDataStore());
 				getStreamFetcherManager().startStreamScheduler(streamScheduler);
@@ -1989,7 +1998,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				streamScheduler.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {
 					@Override
 					public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
-						StreamFetcher streamFetcher = getStreamFetcherManager().getStreamFetcher(name);
+						InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
 						InProcessRtmpPublisher rtmpPublisher = streamFetcher.getInProcessRtmpPublisher();
 
 						if(getMuxAdaptor(name) == null || rtmpPublisher == null)
@@ -2000,7 +2009,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 					@Override
 					public void streamStarted(StreamFetcher.IStreamFetcherListener listener) {
-						StreamFetcher streamFetcher = getStreamFetcherManager().getStreamFetcher(name);
+						InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
 						MuxAdaptor muxAdaptor = getMuxAdaptor(name);
 
 						if(streamFetcher == null ||  muxAdaptor == null)

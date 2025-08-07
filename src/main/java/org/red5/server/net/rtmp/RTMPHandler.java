@@ -286,7 +286,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 								call.getArguments()[0] = streamId;
 							}
 							String[] urlPrams = streamId.split("\\?");
-
+							
 							if (streamId.contains("?")) {
 								streamId = urlPrams[0];
 							}
