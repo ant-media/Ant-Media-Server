@@ -491,7 +491,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	@Override
-	public boolean init(IScope scope, String streamId, boolean isAppend) {
+	public boolean init(IScope scope, String streamId, boolean isSilent) {
 
 		this.streamId = streamId;
 		this.scope = scope;
