@@ -4223,13 +4223,11 @@ public class DBStoresUnitTest {
 		
 		// Test 4: Boundary value testing with configurable limits
 		AppSettings appSettings = new AppSettings();
-		appSettings.setTotpExpiryMinSeconds(10);
-		appSettings.setTotpExpiryMaxSeconds(1000);
 		
 		Subscriber subscriber3 = new Subscriber();
 		subscriber3.setSubscriberId("subscriber3");
 		subscriber3.setStreamId(streamId);
-		subscriber3.setTotpExpiryPeriodSeconds(10, appSettings.getTotpExpiryMinSeconds(), appSettings.getTotpExpiryMaxSeconds()); // Minimum allowed value
+		subscriber3.setTotpExpiryPeriodSeconds(10, 10, 1000); // Minimum allowed value
 		
 		assertTrue(dataStore.addSubscriber(streamId, subscriber3));
 		
@@ -4240,7 +4238,7 @@ public class DBStoresUnitTest {
 		Subscriber subscriber4 = new Subscriber();
 		subscriber4.setSubscriberId("subscriber4");
 		subscriber4.setStreamId(streamId);
-		subscriber4.setTotpExpiryPeriodSeconds(1000, appSettings.getTotpExpiryMinSeconds(), appSettings.getTotpExpiryMaxSeconds()); // Maximum allowed value
+		subscriber4.setTotpExpiryPeriodSeconds(1000, 10, 1000); // Maximum allowed value
 		
 		assertTrue(dataStore.addSubscriber(streamId, subscriber4));
 		
@@ -4255,7 +4253,7 @@ public class DBStoresUnitTest {
 		
 		// Test values below minimum
 		try {
-			invalidSubscriber.setTotpExpiryPeriodSeconds(9, appSettings.getTotpExpiryMinSeconds(), appSettings.getTotpExpiryMaxSeconds());
+			invalidSubscriber.setTotpExpiryPeriodSeconds(9, 10, 1000);
 			fail("Should have thrown IllegalArgumentException for value below minimum");
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("TOTP expiry must be between 10 and 1000 seconds"));
@@ -4263,7 +4261,7 @@ public class DBStoresUnitTest {
 		
 		// Test values above maximum
 		try {
-			invalidSubscriber.setTotpExpiryPeriodSeconds(1001, appSettings.getTotpExpiryMinSeconds(), appSettings.getTotpExpiryMaxSeconds());
+			invalidSubscriber.setTotpExpiryPeriodSeconds(1001, 10, 1000);
 			fail("Should have thrown IllegalArgumentException for value above maximum");
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("TOTP expiry must be between 10 and 1000 seconds"));

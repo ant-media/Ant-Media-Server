@@ -989,12 +989,15 @@ public class BroadcastRestService extends RestServiceBase{
 			if (secretCodeLengthCorrect) {
 				// Validate custom TOTP expiry period if set
 				try {
+					//Hardcoding values for not having a lot of settings
+					int totpExpiryMinSeconds = 10; // 10 seconds
+					int totpExpiryMaxSeconds = 1000; // 1000 seconds
 					if (subscriber.getTotpExpiryPeriodSeconds() != null) {
 						logger.info("Setting custom TOTP expiry period for subscriber: {}", subscriber.getSubscriberId());
 						subscriber.setTotpExpiryPeriodSeconds(
 							subscriber.getTotpExpiryPeriodSeconds(),
-							getAppSettings().getTotpExpiryMinSeconds(),
-							getAppSettings().getTotpExpiryMaxSeconds()
+							totpExpiryMinSeconds,
+							totpExpiryMaxSeconds
 						);
 					}
 					result = getDataStore().addSubscriber(streamId, subscriber);
