@@ -1020,7 +1020,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
-		if(streamFetcherManager == null || !streamFetcherManager.getStreamFetcher(streamId).getIsSilentMode())
+		if(!streamFetcherManager.isStreamInSilentMode(streamId))
 			return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		else
 			return broadcast;

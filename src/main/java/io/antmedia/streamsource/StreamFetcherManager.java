@@ -623,6 +623,11 @@ public class StreamFetcherManager {
 	{
 		return streamFetcherList.get(streamId);
 	}
+	public Boolean isStreamInSilentMode(String streamId){
+		if(streamFetcherList == null || streamFetcherList.get(streamId) == null)
+			return false;
+		return streamFetcherList.get(streamId).getIsSilentMode();
+	}
 
 
 	public void setStreamFetcherList(Map<String, StreamFetcher> streamFetcherList) {
