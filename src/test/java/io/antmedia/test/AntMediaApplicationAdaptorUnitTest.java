@@ -2975,8 +2975,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertNotNull(db.get(streamId));
 		
 		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, db.get(streamId).getStatus());
-		
-		
 		spyAdapter.updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, db.get(streamId), null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 		Broadcast broadcast = db.get(streamId);
 		assertNotNull(broadcast);
@@ -2991,7 +2989,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertNotNull(broadcast);
 		assertTrue(broadcast.isVirtual());
 		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, db.get(streamId).getStatus());
-		
+
+		StreamFetcherManager manager = mock(StreamFetcherManager.class);
+		doReturn(true).when(manager).isStreamInSilentMode(anyString());
+		spyAdapter.setStreamFetcherManager(manager);
+		Broadcast updateBroadcast = spyAdapter.updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, null);
+		assertEquals(updateBroadcast,null);
 	}
 	
 	@Test

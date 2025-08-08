@@ -2002,6 +2002,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					@Override
 					public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
 						InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
+						if(streamFetcher == null)
+							return;
+
 						InProcessRtmpPublisher rtmpPublisher = streamFetcher.getInProcessRtmpPublisher();
 
 						if(getMuxAdaptor(name) == null || rtmpPublisher == null)
