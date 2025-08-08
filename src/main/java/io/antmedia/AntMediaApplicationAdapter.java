@@ -1985,7 +1985,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		Broadcast broadcast = dataStore.get(name);
 		if(broadcast != null && (getStreamFetcherManager().getStreamFetcher(name) == null || !getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
 			if (isBroadcastOnThisServer(broadcast)) {
-				logger.info("stream is on same origin {} no need to fetch the stream", broadcast.getOriginAdress());
+				logger.trace("stream is on same origin {} no need to fetch the stream", broadcast.getOriginAdress());
 				return false;
 			} else {
 				logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());

@@ -1,5 +1,6 @@
 package io.antmedia.test.rtmp;
 
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -8,6 +9,8 @@ import java.nio.ByteBuffer;
 
 import io.vertx.core.Vertx;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVOutputFormat;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -440,4 +443,20 @@ public class InProcessRtmpPublisherUnitTest {
         verify(mockScope, times(3)).subscribe(any(InProcessRtmpPublisher.class), eq(null));
         verify(mockScope, times(3)).unsubscribe(any(InProcessRtmpPublisher.class));
     }
+    @Test
+    public void testIsCodecSupported(){
+        assertTrue(publisher.isCodecSupported(AV_CODEC_ID_H264));
+        assertTrue(publisher.isCodecSupported(AV_CODEC_ID_AAC));
+        assertFalse(publisher.isCodecSupported(AV_CODEC_ID_OPUS));
+
+    }
+    @Test
+    public void testOutputFormatCtx(){
+        InProcessRtmpPublisher rtmpPublisher = Mockito.spy(new InProcessRtmpPublisher(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
+        AVFormatContext ctx = rtmpPublisher.getOutputFormatContext();
+        assertEquals("null",ctx.oformat().name().getString());
+        ctx = rtmpPublisher.getOutputFormatContext();
+        assertEquals("null",ctx.oformat().name().getString());
+    }
+
 }
