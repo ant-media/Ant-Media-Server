@@ -93,11 +93,20 @@
 
 	<bean id="app.storageClient" class="io.antmedia.storage.AmazonS3StorageClient">
 	</bean>
+	<bean id="token.service" t class="io.antmedia.security.MockTokenService">
+	</bean>
+
 
 	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
 		<property name="streamAcceptFilter" ref="streamAcceptFilter"/>
+		<property name="streamPlaySecurityList">
+			<list>
+				<ref bean="token.service"/>
+			</list>
+		</property>
+
 		<property name="streamPublishSecurityList">
 			<list>
 				<bean class="io.antmedia.security.ExpireStreamPublishSecurity" >

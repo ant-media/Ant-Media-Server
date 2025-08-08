@@ -89,15 +89,16 @@ public class StreamFetcherManager {
 		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
 	}
 
-    public StreamFetcherManager() {
-    }
-
     public void shuttingDown() {
 		serverShuttingDown = true;
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
 		return new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
+	}
+
+	public InternalStreamFetcher makeIternalStreamFetcher(Broadcast stream, IScope scope, Vertx vertx) {
+		return new InternalStreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
 	}
 
 	public int getStreamCheckerInterval() {
@@ -382,7 +383,7 @@ public class StreamFetcherManager {
 
 					@Override
 					public void streamStarted(IStreamFetcherListener listener) {
-
+						// not needed
 					}
 				});
 
@@ -591,6 +592,7 @@ public class StreamFetcherManager {
 								}
 							}
 							public void streamStarted(IStreamFetcherListener listener) {
+								//not needed
 							}
 						}
 					);
@@ -620,6 +622,11 @@ public class StreamFetcherManager {
 	public StreamFetcher getStreamFetcher(String streamId) 
 	{
 		return streamFetcherList.get(streamId);
+	}
+	public Boolean isStreamInSilentMode(String streamId){
+		if(streamFetcherList == null || streamFetcherList.get(streamId) == null)
+			return false;
+		return streamFetcherList.get(streamId).getIsSilentMode();
 	}
 
 

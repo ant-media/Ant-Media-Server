@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+
+import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Muxer;
 import io.vertx.core.Vertx;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -30,6 +32,9 @@ import org.red5.server.messaging.IProvider;
 import org.red5.server.messaging.IPipe;
 import org.red5.server.messaging.OOBControlMessage;
 import org.red5.server.messaging.IMessageComponent;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
+
 
 /**
  * Lightweight provider that converts encoded H.264 / AAC {@link AVPacket}s coming from
@@ -74,9 +79,9 @@ e pipe is registered as a provider in a {@link org.red5.server.api.scope.IBroadc
  */
 public class InProcessRtmpPublisher extends Muxer implements IProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(InProcessRtmpPublisher.class);
+    protected static Logger logger = LoggerFactory.getLogger(InProcessRtmpPublisher.class);
 
-    private final IBroadcastScope broadcastScope;
+    private IBroadcastScope broadcastScope;
     private final AVRational videoTb;
     private final AVRational audioTb;
 
@@ -87,9 +92,17 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
         this.videoTb = videoTimebase;
         this.audioTb = audioTimebase;
         this.scope = appScope;
+        this.streamId = streamId;
         this.broadcastScope = attachRtmpPublisher(streamId);
         this.isInitialized = true;
         allocateAVPacket();
+    }
+    public void setBroadcastScope(IBroadcastScope broadcastScope) {
+        this.broadcastScope = broadcastScope;
+    }
+
+    public IBroadcastScope getBroadcastScope() {
+        return broadcastScope;
     }
 
     @Override
@@ -169,7 +182,7 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
 
     @Override
     public boolean isCodecSupported(int codecId) {
-        return true;
+        return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC);
     }
 
     public AVFormatContext getOutputFormatContext() {
@@ -192,11 +205,11 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
         return true;
     }
     @Override
-    public void writeTrailer() {
+    public synchronized void writeTrailer() {
         detachRtmpPublisher(streamId);
     }
     @Override
     public void onOOBControlMessage(IMessageComponent source, IPipe pipe, OOBControlMessage oobCtrlMsg) {
-
+        // No special OOB handling required for internal publisher
     }
 }

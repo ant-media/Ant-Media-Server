@@ -45,16 +45,15 @@ public class ProviderService implements IProviderService {
 
 	private static final Logger log = Red5LoggerFactory.getLogger(ProviderService.class);
 
-	public ProviderService() {
-    }
-
 	public static AntMediaApplicationAdapter getAppInstance(IScope scope) {
 		return (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 	}
 
 	/** {@inheritDoc} */
 	public INPUT_TYPE lookupProviderInput(IScope scope, String name, int type) {
-
+		if (name.contains("?")) {
+			name = name.split("\\?")[0];
+		}
 		AntMediaApplicationAdapter applicationAdapter = getAppInstance(scope);
 		applicationAdapter.fetchRtmpFromOriginIfExist(name);
 

@@ -13,6 +13,8 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -22,6 +24,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import io.antmedia.rtmp.InProcessRtmpPublisher;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -42,6 +46,7 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public class StreamFetcher {
 
@@ -117,22 +122,23 @@ public class StreamFetcher {
 
 	private AtomicLong seekTimeInMs = new AtomicLong(0);
 
+	private static final String RTSP_ALLOWED_MEDIA_TYPES = "allowed_media_types";
+
+	public boolean isSilentMode = false;
+
+	public boolean getIsSilentMode(){
+		return isSilentMode;
+	}
+	public void setIsSilentMode(boolean isSilentMode){
+		this.isSilentMode = isSilentMode;
+	}
+
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
 	}
 
 	public void setStreamFetcherListener(IStreamFetcherListener streamFetcherListener) {
 		this.streamFetcherListener = streamFetcherListener;
-	}
-
-	public InProcessRtmpPublisher inProcessRtmpPublisher;
-
-	public void setInProcessRtmpPublisher(InProcessRtmpPublisher inProcessRtmpPublisher) {
-		this.inProcessRtmpPublisher = inProcessRtmpPublisher;
-	}
-
-	public InProcessRtmpPublisher getInProcessRtmpPublisher() {
-		return inProcessRtmpPublisher;
 	}
 
 	public StreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx, long seekTimeInMs)  {
@@ -165,6 +171,32 @@ public class StreamFetcher {
 		}
 
 
+	}
+
+	public void parseRtspUrlParams(AVDictionary optionsDictionary){
+		try {
+		  URI uri = new URI(streamUrl);
+		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
+
+		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+
+		  for (NameValuePair param : params) {
+			String key = param.getName();
+			String value = param.getValue();
+
+			if(key == null && value == null)
+			  continue;
+
+			if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
+			  av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
+			  uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
+			}
+		  }
+
+		  streamUrl = uriBuilder.build().toString();
+		} catch (Exception URISyntaxException) {
+		  logger.warn("cannot parse URL parameters incorrect URL format");
+		}
 	}
 
 	public class WorkerThread extends Thread {
@@ -208,8 +240,10 @@ public class StreamFetcher {
 
 		}
 
+
 		public Result prepareInput(AVFormatContext inputFormatContext) {
-			int timeout = appSettings.getRtspTimeoutDurationMs();
+			int timeout = appSettings.getRtspTimeoutDurationMs(); 
+      streamUrl = getStreamUrl();
 			setConnectionTimeout(timeout);
 
 			Result result = new Result(false);
@@ -236,7 +270,8 @@ public class StreamFetcher {
 				String timeoutStr = String.valueOf(StreamFetcher.this.timeoutMicroSeconds);
 				av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 
-
+				// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
+				parseRtspUrlParams(optionsDictionary);
 
 			}
 
@@ -298,13 +333,13 @@ public class StreamFetcher {
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
-				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && !broadcast.getCategory().equals("rtmp_origin_pull")) {
+				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && !getIsSilentMode()) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
-
 					return;
 				}
 
-				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				if(!getIsSilentMode())
+					getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
 
@@ -668,7 +703,8 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					getInstance().closeBroadcast(streamId, null);
+					if(!getIsSilentMode())
+						getInstance().closeBroadcast(streamId, null, null);
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -690,7 +726,8 @@ public class StreamFetcher {
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+          if(!getIsSilentMode())
+            getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
@@ -704,8 +741,8 @@ public class StreamFetcher {
 					logger.info("Stream fetcher will not try again for streamUrl:{} and streamId:{} because stopRequestReceived:{} and restartStream:{}",
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
-					if (!closeCalled) {
-						getInstance().closeBroadcast(streamId, null);
+					if (!closeCalled && !getIsSilentMode()) {
+						getInstance().closeBroadcast(streamId, null, null);
 					}
 				}
 
@@ -1145,7 +1182,7 @@ public class StreamFetcher {
 		this.bufferTime = bufferTime;
 	}
 
-	private AppSettings getAppSettings() {
+	protected AppSettings getAppSettings() {
 		if (appSettings == null) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}

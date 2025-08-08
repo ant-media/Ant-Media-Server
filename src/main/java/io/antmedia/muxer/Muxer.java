@@ -1499,7 +1499,7 @@ public abstract class Muxer {
 	}
 	
 	public static String replaceDoubleSlashesWithSingleSlash(String url) {
-		return url.replaceAll("(?<!:)//", "/");
+		return url.replaceAll("(?<!:)/{2,}", "/");
 	}
 	
 	public long getVideoNotWrittenCount() {
@@ -1520,6 +1520,10 @@ public abstract class Muxer {
 	
 	public String getSubFolder() {
 		return subFolder;
+	}
+	
+	public void setStreamId(String streamId){
+		this.streamId = streamId;
 	}
 
 }
