@@ -93,7 +93,7 @@
 
 	<bean id="app.storageClient" class="io.antmedia.storage.AmazonS3StorageClient">
 	</bean>
-	<bean id="token.service" t class="io.antmedia.security.MockTokenService">
+	<bean id="token.service" class="io.antmedia.security.MockTokenService">
 	</bean>
 
 
