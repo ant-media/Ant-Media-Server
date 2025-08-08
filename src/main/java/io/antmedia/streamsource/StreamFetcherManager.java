@@ -88,13 +88,17 @@ public class StreamFetcherManager {
 		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
 	}
-	
-	public void shuttingDown() {
+
+    public void shuttingDown() {
 		serverShuttingDown = true;
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
 		return new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
+	}
+
+	public InternalStreamFetcher makeIternalStreamFetcher(Broadcast stream, IScope scope, Vertx vertx) {
+		return new InternalStreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
 	}
 
 	public int getStreamCheckerInterval() {
@@ -371,8 +375,16 @@ public class StreamFetcherManager {
 
 				String streamId = playlist.getStreamId();
 
-				streamScheduler.setStreamFetcherListener(listener -> {
-					playNextItemInList(streamId, listener);
+				streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
+					@Override
+					public void streamFinished(IStreamFetcherListener listener) {
+						playNextItemInList(streamId, listener);
+					}
+
+					@Override
+					public void streamStarted(IStreamFetcherListener listener) {
+						// not needed
+					}
 				});
 
 				streamScheduler.setRestartStream(false);
@@ -569,15 +581,23 @@ public class StreamFetcherManager {
 				if (isStreamRunning(broadcast)) 
 				{
 					logger.info("Setting stream fetcher listener to restart when it's finished for streamId:{}", broadcast.getStreamId());
-					streamScheduler.setStreamFetcherListener((l) -> {
-						//Get the updated version because we don't know when it's called and we need up to date info
-						Broadcast freshBroadcast = datastore.get(streamScheduler.getStreamId());
-						if (freshBroadcast != null) {
-							startStreaming(freshBroadcast);
+					streamScheduler.setStreamFetcherListener(
+						new IStreamFetcherListener() {
+							@Override
+							//Get the updated version because we don't know when it's called and we need up to date info
+							public void streamFinished(IStreamFetcherListener listener) {
+								Broadcast freshBroadcast = datastore.get(streamScheduler.getStreamId());
+								if (freshBroadcast != null) {
+									startStreaming(freshBroadcast);
+								}
+							}
+							public void streamStarted(IStreamFetcherListener listener) {
+								//not needed
+							}
 						}
-					});
+					);
 				}
-				else 
+				else
 				{
 					startStreaming(broadcast);
 				}
@@ -602,6 +622,11 @@ public class StreamFetcherManager {
 	public StreamFetcher getStreamFetcher(String streamId) 
 	{
 		return streamFetcherList.get(streamId);
+	}
+	public Boolean isStreamInSilentMode(String streamId){
+		if(streamFetcherList == null || streamFetcherList.get(streamId) == null)
+			return false;
+		return streamFetcherList.get(streamId).getIsSilentMode();
 	}
 
 

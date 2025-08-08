@@ -4,12 +4,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IStreamPlaybackSecurity;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 
 import io.antmedia.datastore.db.types.Token;
 
 
-public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
+public class MockTokenService implements  IStreamPublishSecurity , IStreamPlaybackSecurity, ITokenService{
 
 	Map<String, String> authenticatedMap = new ConcurrentHashMap<>();
 	Map<String, String> subscriberAuthenticatedMap = new ConcurrentHashMap<>();
@@ -65,4 +66,13 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 		return true;
 	}
 
+	@Override
+	public boolean isPlaybackAllowed(IScope scope, String name, int start, int length, boolean flushPlaylist) {
+		return true;
+	}
+
+	@Override
+	public boolean isPlayAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode) {
+		return true;
+	}
 }

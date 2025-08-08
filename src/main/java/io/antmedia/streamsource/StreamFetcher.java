@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.antmedia.rtmp.InProcessRtmpPublisher;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -105,6 +106,8 @@ public class StreamFetcher {
 
 		void streamFinished(IStreamFetcherListener listener);
 
+		void streamStarted(IStreamFetcherListener listener);
+
 	}
 
 	IStreamFetcherListener streamFetcherListener;
@@ -120,6 +123,15 @@ public class StreamFetcher {
 	private AtomicLong seekTimeInMs = new AtomicLong(0);
 
 	private static final String RTSP_ALLOWED_MEDIA_TYPES = "allowed_media_types";
+
+	public boolean isSilentMode = false;
+
+	public boolean getIsSilentMode(){
+		return isSilentMode;
+	}
+	public void setIsSilentMode(boolean isSilentMode){
+		this.isSilentMode = isSilentMode;
+	}
 
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
@@ -230,7 +242,8 @@ public class StreamFetcher {
 
 
 		public Result prepareInput(AVFormatContext inputFormatContext) {
-			int timeout = appSettings.getRtspTimeoutDurationMs();
+			int timeout = appSettings.getRtspTimeoutDurationMs(); 
+      streamUrl = getStreamUrl();
 			setConnectionTimeout(timeout);
 
 			Result result = new Result(false);
@@ -320,13 +333,13 @@ public class StreamFetcher {
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
-				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
+				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()) && !getIsSilentMode()) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
-
 					return;
 				}
 
-				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				if(!getIsSilentMode())
+					getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
 
@@ -334,6 +347,9 @@ public class StreamFetcher {
 				pkt = avcodec.av_packet_alloc();
 				if(prepareInputContext(broadcast))
 				{
+					if(streamFetcherListener != null){
+						streamFetcherListener.streamStarted(streamFetcherListener);
+					}
 
 					boolean readTheNextFrame = true;
 					//In some odd cases stopRequest is received immediately and status of the stream changed to finished
@@ -687,7 +703,8 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					getInstance().closeBroadcast(streamId, null, null);
+					if(!getIsSilentMode())
+						getInstance().closeBroadcast(streamId, null, null);
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -709,7 +726,8 @@ public class StreamFetcher {
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+          if(!getIsSilentMode())
+            getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
@@ -723,7 +741,7 @@ public class StreamFetcher {
 					logger.info("Stream fetcher will not try again for streamUrl:{} and streamId:{} because stopRequestReceived:{} and restartStream:{}",
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
-					if (!closeCalled) {
+					if (!closeCalled && !getIsSilentMode()) {
 						getInstance().closeBroadcast(streamId, null, null);
 					}
 				}
@@ -1072,6 +1090,9 @@ public class StreamFetcher {
 	public WorkerThread getThread() {
 		return thread;
 	}
+	public  Broadcast getBroadcast(){
+		return dataStore.get(streamId);
+	}
 
 	public void setThread(WorkerThread thread) {
 		this.thread = thread;
@@ -1161,7 +1182,7 @@ public class StreamFetcher {
 		this.bufferTime = bufferTime;
 	}
 
-	private AppSettings getAppSettings() {
+	protected AppSettings getAppSettings() {
 		if (appSettings == null) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}
