@@ -1489,7 +1489,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		closeResources();
 		logger.warn("closed adaptor for {}", streamId);
 
-		getStreamHandler().stopPublish(streamId, subscriberId);
+		getStreamHandler().stopPublish(streamId, subscriberId, parameters);
 	}
 
 
@@ -1629,6 +1629,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			String subscriberId = null;
 			if (parameters != null) {
 				subscriberId = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+				
+				setBroadcastMetaData(parameters);
 			}
 			
 			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId, parameters);
@@ -1638,6 +1640,39 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			closeRtmpConnection();
 		}
+	}
+	
+	public void setBroadcastMetaData(Map<String, String> parameters) {
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		String metaData = getParametersAsJson(parameters);
+		broadcastUpdate.setMetaData(metaData);
+		
+		getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+	}
+
+	private String getParametersAsJson(Map<String, String> parameters) {
+	    StringBuilder jsonBuilder = new StringBuilder();
+	    jsonBuilder.append("{");
+
+	    int size = parameters.size();
+	    int index = 0;
+
+	    for (Map.Entry<String, String> entry : parameters.entrySet()) {
+	        jsonBuilder.append("\"")
+	                   .append(entry.getKey())
+	                   .append("\":")
+	                   .append("\"")
+	                   .append(entry.getValue())
+	                   .append("\"");
+
+	        if (index < size - 1) {
+	            jsonBuilder.append(",");
+	        }
+	        index++;
+	    }
+
+	    jsonBuilder.append("}");
+	    return jsonBuilder.toString();
 	}
 
 
