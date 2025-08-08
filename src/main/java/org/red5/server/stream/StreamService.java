@@ -777,7 +777,6 @@ public class StreamService implements IStreamService {
             if(!verifySecurity(scope, streamConn, name, streamId, params, mode, StreamAction.PUBLISH))
                 return;
 
-
             IBroadcastScope bsScope = getBroadcastScope(scope, name);
             if (bsScope != null && !bsScope.getProviders().isEmpty()) {
                 // another stream with that name is already published			
