@@ -4051,8 +4051,6 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setDataStore(store);
 		
 		AppSettings appSettings = new AppSettings();
-		appSettings.setTotpExpiryMinSeconds(10);
-		appSettings.setTotpExpiryMaxSeconds(1000);
 		restServiceReal.setAppSettings(appSettings);
 
 		String streamId = "stream1";
