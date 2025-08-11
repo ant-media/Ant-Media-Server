@@ -868,6 +868,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				audioCodecParameters = codecpar;
 				streamIndex++;
 			}
+			else if (codecpar.codec_type() == AVMEDIA_TYPE_DATA)
+			{
+				logger.info("Data stream detected (e.g., SCTE-35) codec Id: {} for stream: {} source index:{} target index:{}", codecpar.codec_id(), streamId, i, streamIndex);
+				addStream2Muxers(codecpar, stream.time_base(), i);
+				streamIndex++;
+			}
 		}
 
 		if (enableVideo && (width == 0 || height == 0)) {
