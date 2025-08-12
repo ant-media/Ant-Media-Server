@@ -4,19 +4,20 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 
-import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Muxer;
 import io.vertx.core.Vertx;
 import org.apache.mina.core.buffer.IoBuffer;
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avcodec.*;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.net.rtmp.event.AudioData;
@@ -32,8 +33,6 @@ import org.red5.server.messaging.IProvider;
 import org.red5.server.messaging.IPipe;
 import org.red5.server.messaging.OOBControlMessage;
 import org.red5.server.messaging.IMessageComponent;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 
 
 /**
@@ -106,6 +105,22 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
     }
 
     @Override
+    public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
+        if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
+        {
+            videoExtradata = new byte[codecParameters.extradata_size()];
+
+            if(videoExtradata.length > 0) {
+                BytePointer extraDataPointer = codecParameters.extradata();
+                extraDataPointer.get(videoExtradata).close();
+                extraDataPointer.close();
+            }
+        }
+        super.addStream(codecParameters,timebase,streamIndex);
+        return true;
+    }
+
+    @Override
     public synchronized void writePacket(AVPacket packet, AVRational inputTimebase, AVRational outputTimebase, int codecType){
         if (packet == null || packet.size() <= 0) {
             return;
@@ -115,6 +130,11 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
                 int ts = (int) avutil.av_rescale_q(packet.pts(), videoTb, MuxAdaptor.TIME_BASE_FOR_MS);
                 if (firstVideoTs.compareAndSet(-1, ts)) {
                     // remember first ts so we can normalise later if needed
+                }
+
+                if((packet.flags() & AV_PKT_FLAG_KEY)==1 && videoExtradata!=null){
+                    super.addExtradataIfRequired(packet,true);
+                    packet = tmpPacket;
                 }
 
                 ByteBuffer nioBuf = packet.data().limit(packet.size()).asByteBuffer();

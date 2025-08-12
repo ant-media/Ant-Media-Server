@@ -6,7 +6,7 @@ import org.red5.server.api.scope.IScope;
 
 public class InternalStreamFetcher extends StreamFetcher {
 
-    String rtmpUrl;
+    public String rtmpUrl;
 
     public InternalStreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx, long seekTimeInMs) {
         super(streamUrl, streamId, streamType, scope, vertx, seekTimeInMs);

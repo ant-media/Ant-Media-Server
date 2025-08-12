@@ -25,7 +25,6 @@ import java.util.Set;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Subscriber;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.red5.io.object.StreamAction;
