@@ -12,7 +12,7 @@
 
 # Welcome to Ant Media Server!
 
-Are you ready to revolutionize your live video streaming experience? Look no further! Ant Media Server is your ultimate solution for high-quality, ultra-low latency streaming. With over 2000 enterprises worldwide already relying on our platform, you can trust us to deliver outstanding performance and exceptional user experiences.
+asdffasdfasdf further! Ant Media Server is your ultimate solution for high-quality, ultra-low latency streaming. With over 2000 enterprises worldwide already relying on our platform, you can trust us to deliver outstanding performance and exceptional user experiences.
 
 TL;DR
 
