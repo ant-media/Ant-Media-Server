@@ -725,7 +725,7 @@ public class StreamFetcher {
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-				  	if(!getIsSilentMode())
+					if(!getIsSilentMode())
 						getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					
 

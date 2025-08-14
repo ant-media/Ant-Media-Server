@@ -1985,7 +1985,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean fetchRtmpFromOriginIfExist(String name){
 		Broadcast broadcast = dataStore.get(name);
-		if(broadcast == null || (getStreamFetcherManager().getStreamFetcher(name) == null || getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
+		if(broadcast == null || (getStreamFetcherManager().getStreamFetcher(name) != null && getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
 			return false;
 		}
 		if (isBroadcastOnThisServer(broadcast)) {
@@ -2022,7 +2022,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
 				MuxAdaptor muxAdaptor = getMuxAdaptor(name);
 
-				if (streamFetcher == null || muxAdaptor == null || muxAdaptor.getClass().getSimpleName().equals("EncoderAdaptor"))
+				if (streamFetcher == null || muxAdaptor == null || !appSettings.getEncoderSettings().isEmpty())
 					return;
 
 				InProcessRtmpPublisher rtmpFeeder = new InProcessRtmpPublisher(getScope(), vertx, name, muxAdaptor.getVideoTimeBase(), muxAdaptor.getAudioTimeBase());

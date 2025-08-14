@@ -3043,7 +3043,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		doReturn(context).when(scope).getContext();
 
 		//broadcast is null
-		Boolean result = spyAdapter.fetchRtmpFromOriginIfExist("test");
+		boolean result = spyAdapter.fetchRtmpFromOriginIfExist("test");
 		assertFalse(result);
 
 
