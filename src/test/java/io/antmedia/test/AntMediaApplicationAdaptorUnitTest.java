@@ -3343,6 +3343,64 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(spyAdapter, Mockito.after(2000).times(1)).notifyHook(listenerHookURL, mainTrack.getStreamId(), mainTrack.getMainTrackStreamId(), AntMediaApplicationAdapter.HOOK_IDLE_TIME_EXPIRED, null,null,null,null, null, null, null);
 
     }
+	
+	
+	@Test
+	public void testSendWebHook() {
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		
+		AppSettings appSettings = new AppSettings();
+		String listenerHookURL = "something";
+		appSettings.setListenerHookURL(listenerHookURL);
+		spyAdapter.setAppSettings(appSettings);
+
+		String id = "stream123";
+		String mainTrackId = "mainTrack";
+		String action = "publish";
+		String streamName = "testStream";
+		String category = "category";
+		String vodName = "vod.mp4";
+		String vodId = "vod123";
+		String subscriberId = "subscriber1";
+		Map<String, String> parameters = new HashMap<>();
+		parameters.put("key", "value");
+
+		Broadcast broadcast = new Broadcast(streamName);
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		broadcast.setMetaData("metaFromBroadcast");
+		
+		
+		DataStore dataStore = mock(DataStore.class);
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		
+		when(dataStore.get(id)).thenReturn(broadcast);
+
+		doNothing().when(spyAdapter).notifyHook(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+
+		spyAdapter.sendWebHook(id, mainTrackId, action, streamName, category, vodName, vodId, "", subscriberId, parameters);
+
+		verify(spyAdapter).notifyHook(
+			eq(listenerHookURL), eq(id), eq(mainTrackId), eq(action),
+			eq(streamName), eq(category), eq(vodName), eq(vodId),
+			eq("metaFromBroadcast"), eq(subscriberId), eq(parameters)
+		);
+
+	
+		spyAdapter.sendWebHook(id, mainTrackId, action, streamName, category, vodName, vodId, "meta from params", subscriberId, parameters);
+
+		verify(spyAdapter).notifyHook(
+			eq(listenerHookURL), eq(id), eq(mainTrackId), eq(action),
+			eq(streamName), eq(category), eq(vodName), eq(vodId),
+			eq("meta from params"), eq(subscriberId), eq(parameters)
+		);
+
+	}
 
    
 }
