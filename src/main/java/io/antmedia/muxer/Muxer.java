@@ -294,7 +294,12 @@ public abstract class Muxer {
 		return new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
 				"previews/" + name + extension));
 	}
-	public static File getRecordFile(IScope scope, String name, String extension, String subFolder) 
+
+	public byte[] getVideoExtradata() {
+		return videoExtradata;
+	}
+
+	public static File getRecordFile(IScope scope, String name, String extension, String subFolder)
 	{
 		// get stream filename generator
 		IStreamFilenameGenerator generator = (IStreamFilenameGenerator) ScopeUtils.getScopeService(scope,

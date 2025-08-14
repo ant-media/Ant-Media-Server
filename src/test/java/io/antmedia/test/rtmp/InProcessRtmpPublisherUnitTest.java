@@ -8,9 +8,9 @@ import static org.mockito.Mockito.*;
 import java.nio.ByteBuffer;
 
 import io.vertx.core.Vertx;
+import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.bytedeco.ffmpeg.avformat.AVOutputFormat;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -71,8 +71,8 @@ public class InProcessRtmpPublisherUnitTest {
         videoTb = new AVRational().num(1).den(30);
         audioTb = new AVRational().num(1).den(48000);
 
-        publisher = Mockito.spy(new InProcessRtmpPublisher(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
-        publisher.setBroadcastScope(Mockito.spy(publisher.getBroadcastScope()));
+        publisher = spy(new InProcessRtmpPublisher(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
+        publisher.setBroadcastScope(spy(publisher.getBroadcastScope()));
         mockScope  = publisher.getBroadcastScope();
         doReturn(mockScope).when(mockAppScope).getBroadcastScope(STREAM_ID);
     }
@@ -86,7 +86,7 @@ public class InProcessRtmpPublisherUnitTest {
         AVPacket packet = new AVPacket();
         packet.size(PACKET_SIZE);
         packet.pts(VIDEO_TS_MS);
-        packet.flags(avcodec.AV_PKT_FLAG_KEY); // Key frame
+        packet.flags(AV_PKT_FLAG_KEY); // Key frame
         
         // Create real data
         BytePointer data = new BytePointer(PACKET_SIZE);
@@ -133,7 +133,7 @@ public class InProcessRtmpPublisherUnitTest {
         AVPacket packet = new AVPacket();
         packet.size(0);
         packet.pts(VIDEO_TS_MS);
-        packet.flags(avcodec.AV_PKT_FLAG_KEY);
+        packet.flags(AV_PKT_FLAG_KEY);
         
         // Execute
         publisher.writePacket(packet, videoTb , null,AVMEDIA_TYPE_VIDEO);
@@ -216,7 +216,7 @@ public class InProcessRtmpPublisherUnitTest {
         AVPacket packet = new AVPacket();
         packet.size(PACKET_SIZE);
         packet.pts(VIDEO_TS_MS);
-        packet.flags(avcodec.AV_PKT_FLAG_KEY);
+        packet.flags(AV_PKT_FLAG_KEY);
         
         BytePointer data = new BytePointer(PACKET_SIZE);
         data.put(new byte[PACKET_SIZE]);
@@ -277,7 +277,7 @@ public class InProcessRtmpPublisherUnitTest {
         AVPacket packet1 = new AVPacket();
         packet1.size(PACKET_SIZE);
         packet1.pts(VIDEO_TS_MS);
-        packet1.flags(avcodec.AV_PKT_FLAG_KEY);
+        packet1.flags(AV_PKT_FLAG_KEY);
         
         BytePointer data1 = new BytePointer(PACKET_SIZE);
         data1.put(new byte[PACKET_SIZE]);
@@ -316,7 +316,7 @@ public class InProcessRtmpPublisherUnitTest {
         AVPacket packet = new AVPacket();
         packet.size(PACKET_SIZE);
         packet.pts(inputTimestamp);
-        packet.flags(avcodec.AV_PKT_FLAG_KEY);
+        packet.flags(AV_PKT_FLAG_KEY);
         
         BytePointer data = new BytePointer(PACKET_SIZE);
         data.put(new byte[PACKET_SIZE]);
@@ -345,7 +345,7 @@ public class InProcessRtmpPublisherUnitTest {
         AVPacket packet = new AVPacket();
         packet.size(PACKET_SIZE);
         packet.pts(VIDEO_TS_MS);
-        packet.flags(avcodec.AV_PKT_FLAG_KEY);
+        packet.flags(AV_PKT_FLAG_KEY);
         
         BytePointer data = new BytePointer(PACKET_SIZE);
         data.put(new byte[PACKET_SIZE]);
@@ -452,11 +452,33 @@ public class InProcessRtmpPublisherUnitTest {
     }
     @Test
     public void testOutputFormatCtx(){
-        InProcessRtmpPublisher rtmpPublisher = Mockito.spy(new InProcessRtmpPublisher(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
+        InProcessRtmpPublisher rtmpPublisher = spy(new InProcessRtmpPublisher(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
         AVFormatContext ctx = rtmpPublisher.getOutputFormatContext();
         assertEquals("null",ctx.oformat().name().getString());
         ctx = rtmpPublisher.getOutputFormatContext();
         assertEquals("null",ctx.oformat().name().getString());
+    }
+    @Test
+    public void testAddStream(){
+        AVCodecParameters codecParameters = new AVCodecParameters();
+        AVRational timebase = new AVRational();
+        int streamIndex = 1;
+        codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+        publisher.addStream(codecParameters,timebase,streamIndex);
+        verify(publisher).addStream(codecParameters,timebase,streamIndex);
+        assertNull(publisher.getVideoExtradata());
+
+        BytePointer bp = new BytePointer("tstting");
+
+        codecParameters.extradata_size(5);
+        codecParameters.extradata(bp);
+        publisher.addStream(codecParameters,timebase,streamIndex);
+        assertNotNull(publisher.getVideoExtradata());
+        verify(publisher,times(2)).addStream(codecParameters,timebase,streamIndex);
+
+        codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+        publisher.addStream(codecParameters,timebase,streamIndex);
+        verify(publisher,times(3)).addStream(codecParameters,timebase,streamIndex);
     }
 
 }
