@@ -115,6 +115,8 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
                 extraDataPointer.get(videoExtradata).close();
                 extraDataPointer.close();
             }
+            else
+                videoExtradata = null;
         }
         super.addStream(codecParameters,timebase,streamIndex);
         return true;

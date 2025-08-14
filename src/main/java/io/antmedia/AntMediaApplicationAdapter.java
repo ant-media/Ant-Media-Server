@@ -2018,7 +2018,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
 						MuxAdaptor muxAdaptor = getMuxAdaptor(name);
 
-						if(streamFetcher == null ||  muxAdaptor == null)
+						if(streamFetcher == null ||  muxAdaptor == null || muxAdaptor.getClass().getSimpleName().equals("EncoderAdaptor"))
 							return;
 
 						InProcessRtmpPublisher rtmpFeeder = new InProcessRtmpPublisher(getScope(), vertx, name, muxAdaptor.getVideoTimeBase(), muxAdaptor.getAudioTimeBase());
