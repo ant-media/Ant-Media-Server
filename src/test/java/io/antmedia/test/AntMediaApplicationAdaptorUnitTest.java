@@ -3033,6 +3033,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String streamId = "test";
 
 		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.setAppSettings(new AppSettings());
 		IScope scope = mock(IScope.class);
 		spyAdapter.setScope(scope);
 		when(scope.getName()).thenReturn("junit");
