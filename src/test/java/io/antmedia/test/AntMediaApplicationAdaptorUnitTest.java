@@ -1,7 +1,6 @@
 package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -77,7 +76,6 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 
@@ -104,7 +102,6 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -115,8 +112,6 @@ import io.antmedia.plugin.api.IStreamListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.statistic.IStatsCollector;
-import io.antmedia.statistic.StatsCollector;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;

@@ -31,6 +31,7 @@ import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.stream.message.RTMPMessage;
 
 import io.antmedia.rtmp.InProcessRtmpPublisher;
+import org.tensorflow.op.core.AssertThat;
 
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
@@ -245,7 +246,7 @@ public class InProcessRtmpPublisherUnitTest {
     public void writeTrailer_doesNotCrash() throws Exception {
         // Execute - should not crash
         publisher.writeTrailer();
-        assert(true);
+        assertTrue(true);
     }
 
     @Test
@@ -258,14 +259,14 @@ public class InProcessRtmpPublisherUnitTest {
         
         // Execute - should not crash
         publisher.onOOBControlMessage(source, null, message);
-        assert(true);
+        assertTrue(true);
     }
 
     @Test
-    public void onOOBControlMessage_handlesNullMessage() throws Exception {
+    public void onOOBControlMessage_handlesNullMessage() {
         // Execute - should not crash
         publisher.onOOBControlMessage(null, null, null);
-        assert(true);
+        assertTrue(true);
     }
 
     // ------------------------------------------------------------------
@@ -310,8 +311,7 @@ public class InProcessRtmpPublisherUnitTest {
     public void testRealTimestampConversion() throws Exception {
         // Test with real timestamp conversion using av_rescale_q
         long inputTimestamp = 1000;
-        long expectedOutputTimestamp = avutil.av_rescale_q(inputTimestamp, videoTb, new AVRational().num(1).den(1000));
-        
+
         // Create real AVPacket
         AVPacket packet = new AVPacket();
         packet.size(PACKET_SIZE);
@@ -358,7 +358,7 @@ public class InProcessRtmpPublisherUnitTest {
         packet.close();
         data.close();
 
-        assert(true);
+        assertTrue(true);
     }
 
     @Test
@@ -468,7 +468,7 @@ public class InProcessRtmpPublisherUnitTest {
         verify(publisher).addStream(codecParameters,timebase,streamIndex);
         assertNull(publisher.getVideoExtradata());
 
-        BytePointer bp = new BytePointer("tstting");
+        BytePointer bp = new BytePointer("testing 123");
 
         codecParameters.extradata_size(5);
         codecParameters.extradata(bp);

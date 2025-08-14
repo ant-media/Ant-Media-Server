@@ -28,9 +28,7 @@ public class InternalStreamFetcher extends StreamFetcher {
         String jwtToken = JWTFilter.generateJwtToken(
         getAppSettings().getClusterCommunicationKey(),
         System.currentTimeMillis() + 30000);
-        String tokenUrl = this.rtmpUrl + "?token=" + jwtToken;
-
-        return tokenUrl;
+        return this.rtmpUrl + "?token=" + jwtToken;
     }
 
 

@@ -78,7 +78,6 @@ e pipe is registered as a provider in a {@link org.red5.server.api.scope.IBroadc
  */
 public class InProcessRtmpPublisher extends Muxer implements IProvider {
 
-    protected static Logger logger = LoggerFactory.getLogger(InProcessRtmpPublisher.class);
 
     private IBroadcastScope broadcastScope;
     private final AVRational videoTb;
@@ -144,8 +143,7 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
                 flvPayload.setAutoExpand(false);
 
                 // FrameType (key/inter) + CodecID (7 = AVC)
-                int frameType = (packet.flags() & avcodec.AV_PKT_FLAG_KEY) != 0 ? 0x10 : 0x20; // KEY=1(interleaved) but shift later
-                frameType = ((packet.flags() & avcodec.AV_PKT_FLAG_KEY) != 0) ? 0x17 : 0x27; // 1:keyframe|7=AVC , 2:inter frame|7
+                int frameType = ((packet.flags() & avcodec.AV_PKT_FLAG_KEY) != 0) ? 0x17 : 0x27; // 1:keyframe|7=AVC , 2:inter frame|7
                 flvPayload.put((byte) frameType);
                 flvPayload.put((byte) 0x01);             // AVC NALU packet
                 flvPayload.put((byte) 0x00);             // composition time 0

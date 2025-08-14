@@ -108,7 +108,6 @@ import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
-import org.springframework.security.core.token.TokenService;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 

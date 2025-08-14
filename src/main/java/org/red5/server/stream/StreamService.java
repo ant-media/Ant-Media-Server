@@ -681,7 +681,7 @@ public class StreamService implements IStreamService {
         return params;
     }
 
-    public Boolean verifySecurity(IScope scope , IStreamCapableConnection streamConn, String name, Number streamId, Map<String, String> params, String mode, StreamAction action){
+    public boolean verifySecurity(IScope scope , IStreamCapableConnection streamConn, String name, Number streamId, Map<String, String> params, String mode, StreamAction action){
         IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
         if (security != null) {
             Set<IStreamPublishSecurity> publishSecurityHandlers = security.getStreamPublishSecurity();
