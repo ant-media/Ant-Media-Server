@@ -1238,12 +1238,9 @@ public abstract class Muxer {
 
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
 			// until the first key frame
-			boolean isKeyFrame = false;
-			if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
-				isKeyFrame = true;
-			}
+			boolean isKeyFrame = (pkt.flags() & AV_PKT_FLAG_KEY) == 1;
 
-			int ret = av_packet_ref(tmpPacket , pkt);
+            int ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
 				logger.error("Cannot copy video packet for {}", streamId);
 				return;

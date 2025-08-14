@@ -12,15 +12,12 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVRational;
-import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.red5.server.api.scope.IBroadcastScope;
@@ -31,7 +28,6 @@ import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.stream.message.RTMPMessage;
 
 import io.antmedia.rtmp.InProcessRtmpPublisher;
-import org.tensorflow.op.core.AssertThat;
 
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
@@ -243,14 +239,14 @@ public class InProcessRtmpPublisherUnitTest {
     // interface method tests
     // ------------------------------------------------------------------
     @Test
-    public void writeTrailer_doesNotCrash() throws Exception {
+    public void writeTrailer_doesNotCrash() {
         // Execute - should not crash
         publisher.writeTrailer();
         assertTrue(true);
     }
 
     @Test
-    public void onOOBControlMessage_handlesMessage() throws Exception {
+    public void onOOBControlMessage_handlesMessage() {
         // Create mock message
         IMessageComponent source = mock(IMessageComponent.class);
         OOBControlMessage message = new OOBControlMessage();

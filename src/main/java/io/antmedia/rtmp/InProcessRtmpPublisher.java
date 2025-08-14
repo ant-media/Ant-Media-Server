@@ -24,8 +24,6 @@ import org.red5.server.net.rtmp.event.AudioData;
 import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.stream.message.RTMPMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.antmedia.muxer.MuxAdaptor;
 import org.red5.server.scope.BroadcastScope;

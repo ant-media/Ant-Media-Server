@@ -67,6 +67,8 @@ public class StreamService implements IStreamService {
 
     private static Logger log = LoggerFactory.getLogger(StreamService.class);
 
+    static  String STREAM_NAME = "streamName";
+
     /**
      * Use to determine playback type.
      */
@@ -350,7 +352,7 @@ public class StreamService implements IStreamService {
             name = name.substring(0, name.indexOf("?"));
         } else if (name != null && name.matches(".*[/%2F].*")) { // match / or %2F
             params = parsePathSegments(name);
-            name = params.getOrDefault("streamName", name);
+            name = params.getOrDefault( STREAM_NAME, name);
         }
 
 
@@ -491,7 +493,7 @@ public class StreamService implements IStreamService {
     public void play2(String oldStreamName, int start, String transition, int length, double offset, String streamName) {
         Map<String, Object> playOptions = new HashMap<String, Object>();
         playOptions.put("oldStreamName", oldStreamName);
-        playOptions.put("streamName", streamName);
+        playOptions.put(STREAM_NAME, streamName);
         playOptions.put("start", start);
         playOptions.put("len", length);
         playOptions.put("offset", offset);
@@ -562,7 +564,7 @@ public class StreamService implements IStreamService {
         	start=0, len=-1, offset=12.195, transition=switch } */
         // get the transition type
         String transition = (String) playOptions.get("transition");
-        String streamName = (String) playOptions.get("streamName");
+        String streamName = (String) playOptions.get(STREAM_NAME);
         String oldStreamName = (String) playOptions.get("oldStreamName");
         // now initiate new playback
         int start = (Integer) playOptions.get("start");
@@ -759,7 +761,7 @@ public class StreamService implements IStreamService {
             name = name.substring(0, name.indexOf("?"));
         } else if (name != null && name.matches(".*[/%2F].*")) { // match / or %2F
             params = parsePathSegments(name);
-            name = params.getOrDefault("streamName", name);
+            name = params.getOrDefault(STREAM_NAME, name);
         }
 
         log.debug("publish called with name {} and mode {}", name, mode);

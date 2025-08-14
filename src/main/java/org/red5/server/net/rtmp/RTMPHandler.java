@@ -278,7 +278,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 				case RECEIVE_AUDIO:
 					IStreamService streamService = (IStreamService) ScopeUtils.getScopeService(conn.getScope(), IStreamService.class, StreamService.class);
 					try {
-						if((streamAction == StreamAction.PUBLISH || streamAction == streamAction.PLAY ) && conn.getScope().getContext().hasBean(IStatsCollector.BEAN_NAME)) {
+						if((streamAction == StreamAction.PUBLISH || streamAction == StreamAction.PLAY ) && conn.getScope().getContext().hasBean(IStatsCollector.BEAN_NAME)) {
 							String streamId = (String) call.getArguments()[0];
 
 							if (streamId.startsWith("/")) {

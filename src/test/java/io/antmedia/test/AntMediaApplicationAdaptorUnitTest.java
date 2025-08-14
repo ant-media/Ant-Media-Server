@@ -3000,7 +3000,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		doReturn(true).when(manager).isStreamInSilentMode(anyString());
 		spyAdapter.setStreamFetcherManager(manager);
 		Broadcast updateBroadcast = spyAdapter.updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, null);
-		assertEquals(updateBroadcast,null);
+		assertEquals(null, updateBroadcast);
 	}
 	
 	@Test
@@ -3072,6 +3072,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//stream exist on another node fetch the stream
 
+		doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
+		doReturn(false).when(streamFetcherMock).isThreadActive();
 		doReturn(streamFetcherMock).when(streamFetcherManagerMock).makeIternalStreamFetcher(any(),any(),any());
 		broadcast.setOriginAdress("1234");
 		result = spyAdapter.fetchRtmpFromOriginIfExist(streamId);

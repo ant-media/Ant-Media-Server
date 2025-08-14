@@ -1985,56 +1985,55 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean fetchRtmpFromOriginIfExist(String name){
 		Broadcast broadcast = dataStore.get(name);
-		if(broadcast != null && (getStreamFetcherManager().getStreamFetcher(name) == null || !getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
-			if (isBroadcastOnThisServer(broadcast)) {
-				logger.trace("stream is on same origin {} no need to fetch the stream", broadcast.getOriginAdress());
-				return false;
-			} else {
-				logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());
-
-				broadcast.setStreamUrl(broadcast.getRtmpURL());
-
-				InternalStreamFetcher streamScheduler = getStreamFetcherManager().makeIternalStreamFetcher(broadcast,scope,vertx);
-				streamScheduler.setRestartStream(getStreamFetcherManager().isRestartStreamAutomatically());
-				streamScheduler.setDataStore(getDataStore());        
-				streamScheduler.setIsSilentMode(true);        
-				getStreamFetcherManager().startStreamScheduler(streamScheduler);
-
-				streamScheduler.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {
-					@Override
-					public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
-						InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
-						if(streamFetcher == null)
-							return;
-
-						InProcessRtmpPublisher rtmpPublisher = streamFetcher.getInProcessRtmpPublisher();
-
-						if(getMuxAdaptor(name) == null || rtmpPublisher == null)
-							return;
-
-						rtmpPublisher.detachRtmpPublisher(name);
-					}
-
-					@Override
-					public void streamStarted(StreamFetcher.IStreamFetcherListener listener) {
-						InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
-						MuxAdaptor muxAdaptor = getMuxAdaptor(name);
-
-						if(streamFetcher == null ||  muxAdaptor == null || muxAdaptor.getClass().getSimpleName().equals("EncoderAdaptor"))
-							return;
-
-						InProcessRtmpPublisher rtmpFeeder = new InProcessRtmpPublisher(getScope(), vertx, name, muxAdaptor.getVideoTimeBase(), muxAdaptor.getAudioTimeBase());
-						streamFetcher.setInProcessRtmpPublisher(rtmpFeeder);
-						muxAdaptor.addMuxer(rtmpFeeder);
-
-						logger.info("feeding packets in INProcessRtmpPublisher");
-
-					}
-				});
-				return true;
-			}
+		if(broadcast == null || (getStreamFetcherManager().getStreamFetcher(name) == null || getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
+			return false;
 		}
-		return false;
+		if (isBroadcastOnThisServer(broadcast)) {
+			logger.trace("stream is on same origin {} no need to fetch the stream", broadcast.getOriginAdress());
+			return false;
+		}
+		logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());
+
+		broadcast.setStreamUrl(broadcast.getRtmpURL());
+
+		InternalStreamFetcher streamScheduler = getStreamFetcherManager().makeIternalStreamFetcher(broadcast,scope,vertx);
+		streamScheduler.setRestartStream(getStreamFetcherManager().isRestartStreamAutomatically());
+		streamScheduler.setDataStore(getDataStore());
+		streamScheduler.setIsSilentMode(true);
+		getStreamFetcherManager().startStreamScheduler(streamScheduler);
+
+		streamScheduler.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {
+			@Override
+			public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
+				InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
+				if(streamFetcher == null)
+					return;
+
+				InProcessRtmpPublisher rtmpPublisher = streamFetcher.getInProcessRtmpPublisher();
+
+				if(rtmpPublisher == null)
+					return;
+
+				rtmpPublisher.detachRtmpPublisher(name);
+			}
+
+			@Override
+			public void streamStarted(StreamFetcher.IStreamFetcherListener listener) {
+				InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
+				MuxAdaptor muxAdaptor = getMuxAdaptor(name);
+
+				if (streamFetcher == null || muxAdaptor == null || muxAdaptor.getClass().getSimpleName().equals("EncoderAdaptor"))
+					return;
+
+				InProcessRtmpPublisher rtmpFeeder = new InProcessRtmpPublisher(getScope(), vertx, name, muxAdaptor.getVideoTimeBase(), muxAdaptor.getAudioTimeBase());
+				streamFetcher.setInProcessRtmpPublisher(rtmpFeeder);
+				muxAdaptor.addMuxer(rtmpFeeder);
+
+				logger.info("feeding packets in INProcessRtmpPublisher");
+
+			}
+		});
+		return true;
 	}
 
 	public void closeRTMPStreams()

@@ -725,8 +725,8 @@ public class StreamFetcher {
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-          if(!getIsSilentMode())
-            getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+				  	if(!getIsSilentMode())
+						getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
