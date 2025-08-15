@@ -2914,6 +2914,7 @@ public class AppSettings implements Serializable{
 		deleteDASHFilesOnEnded = true;
 		acceptOnlyStreamsInDataStore = false;
 		publishTokenControlEnabled = false;
+		rtmpPlaybackEnabled = false;
 		playTokenControlEnabled = false;
 		timeTokenSubscriberOnly = false;
 		enableTimeTokenForPlay = false;
