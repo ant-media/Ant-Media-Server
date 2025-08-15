@@ -1,7 +1,7 @@
 package io.antmedia;
 
 import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,21 +14,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import io.antmedia.rtmp.InProcessRtmpPublisher;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -54,12 +46,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IBroadcastStream;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IPlayItem;
-import org.red5.server.api.stream.IStreamCapableConnection;
-import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.red5.server.api.stream.ISubscriberStream;
+import org.red5.server.api.stream.*;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,6 +92,7 @@ import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.streamsource.InternalStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.track.ISubtrackPoller;
@@ -202,6 +190,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
+	private List<IStreamPlaybackSecurity> streamPlaySecurityList;
 	private Map<String, OnvifCamera> onvifCameraList = new ConcurrentHashMap<>();
 	protected StreamFetcherManager streamFetcherManager;
 	protected Map<String, MuxAdaptor> muxAdaptors = new ConcurrentHashMap<>();
@@ -252,6 +241,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		setScope(app);
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 			registerStreamPublishSecurity(streamPublishSecurity);
+		}
+		for (IStreamPlaybackSecurity streamPlaybackSecurity : getStreamPlaySecurityList()) {
+			registerStreamPlaybackSecurity(streamPlaybackSecurity);
 		}
 		//init vertx
 		getVertx();
@@ -1027,8 +1019,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
-		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		if(streamFetcherManager == null || !streamFetcherManager.isStreamInSilentMode(streamId))
+			return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		else
+			return broadcast;
 	}
+	public boolean isBroadcastOnThisServer(Broadcast broadcast){
+		if(broadcast.getOriginAdress() == null || serverSettings == null || serverSettings.getHostAddress() == null )
+			return true;
+        return broadcast.getOriginAdress().equals(serverSettings.getHostAddress());
+    }
+
 
 	/**
 	 * 
@@ -1049,7 +1050,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else 
 		{
-			if (broadcastUpdate == null) 
+			if (broadcastUpdate == null)
 			{
 				broadcastUpdate = getFreshBroadcastUpdateForStatus(publishType, status);
 			}
@@ -1597,6 +1598,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.streamPublishSecurityList = streamPublishSecurityList;
 	}
 
+	public void setStreamPlaySecurityList(List<IStreamPlaybackSecurity> streamPlaySecurityList) {
+		this.streamPlaySecurityList = streamPlaySecurityList;
+	}
+
+	public List<IStreamPlaybackSecurity> getStreamPlaySecurityList() {
+		return streamPlaySecurityList;
+	}
+
 	@Override
 	public AppSettings getAppSettings() {
 		return appSettings;
@@ -1972,6 +1981,59 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
+	}
+
+	public boolean fetchRtmpFromOriginIfExist(String name){
+		Broadcast broadcast = dataStore.get(name);
+		if(broadcast == null || (getStreamFetcherManager().getStreamFetcher(name) != null && getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
+			return false;
+		}
+		if (isBroadcastOnThisServer(broadcast)) {
+			logger.trace("stream is on same origin {} no need to fetch the stream", broadcast.getOriginAdress());
+			return false;
+		}
+		logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());
+
+		broadcast.setStreamUrl(broadcast.getRtmpURL());
+
+		InternalStreamFetcher streamScheduler = getStreamFetcherManager().makeIternalStreamFetcher(broadcast,scope,vertx);
+		streamScheduler.setRestartStream(getStreamFetcherManager().isRestartStreamAutomatically());
+		streamScheduler.setDataStore(getDataStore());
+		streamScheduler.setIsSilentMode(true);
+		getStreamFetcherManager().startStreamScheduler(streamScheduler);
+
+		streamScheduler.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {
+			@Override
+			public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
+				InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
+				if(streamFetcher == null)
+					return;
+
+				InProcessRtmpPublisher rtmpPublisher = streamFetcher.getInProcessRtmpPublisher();
+
+				if(rtmpPublisher == null)
+					return;
+
+				rtmpPublisher.detachRtmpPublisher(name);
+			}
+
+			@Override
+			public void streamStarted(StreamFetcher.IStreamFetcherListener listener) {
+				InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
+				MuxAdaptor muxAdaptor = getMuxAdaptor(name);
+
+				if (streamFetcher == null || muxAdaptor == null || !appSettings.getEncoderSettings().isEmpty())
+					return;
+
+				InProcessRtmpPublisher rtmpFeeder = new InProcessRtmpPublisher(getScope(), vertx, name, muxAdaptor.getVideoTimeBase(), muxAdaptor.getAudioTimeBase());
+				streamFetcher.setInProcessRtmpPublisher(rtmpFeeder);
+				muxAdaptor.addMuxer(rtmpFeeder);
+
+				logger.info("feeding packets in INProcessRtmpPublisher");
+
+			}
+		});
+		return true;
 	}
 
 	public void closeRTMPStreams()
