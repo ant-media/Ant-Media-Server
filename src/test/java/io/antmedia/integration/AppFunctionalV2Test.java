@@ -324,6 +324,7 @@ public class AppFunctionalV2Test {
 			Random r = new Random();
 			String streamId = "streamId" + r.nextInt();
 
+			ConsoleAppRestServiceTest.callGetAppSettings("LiveApp").resetDefaults();
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 			{
 				appSettingsModel.setMaxResolutionAccept(144);

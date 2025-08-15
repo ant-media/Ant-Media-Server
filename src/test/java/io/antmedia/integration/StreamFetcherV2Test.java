@@ -407,9 +407,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 
 		rtmpSendingProcess.destroy();
 
-		appSettingsModel.setRtmpPlaybackEnabled(false);
-		result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
-		
+
 		result = restService.callDeleteBroadcast(rtmpNormalStreamId);
 		assertTrue(result.isSuccess());
 
