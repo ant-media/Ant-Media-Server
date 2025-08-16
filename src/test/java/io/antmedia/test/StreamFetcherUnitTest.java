@@ -249,7 +249,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getStreamFetcherManager().stopStreaming(newCam.getStreamId());
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 
-		app.stopStreaming(newCam, false);
+		app.stopStreaming(newCam, false, null);
 
 
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
@@ -1644,7 +1644,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		streamFetcher1.parseRtspUrlParams(testOptions1);
     		assertEquals("rtsp://127.0.0.1:6554/test.flv?testParam=testParam",streamFetcher1.getStreamUrl());
 
-    		//incorrect url format
+		//incorrect url format
 		StreamFetcher streamFetcher2 = new StreamFetcher("rtsp://127.0.0.1:  space  6554/test.flv?allowed_media_types=video", "testRtspUrlParam2", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions2 = new AVDictionary();
@@ -1653,6 +1653,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		entry = avutil.av_dict_get(testOptions2, "allowed_media_types", null, 0);
     		assertTrue(entry == null);
 
+		// param order should be preserverd
+
+		streamFetcher1 = new StreamFetcher("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1&allowed_media_types=video", "testRtspUrlParam1", "rtsp_source", appScope, Vertx.vertx(), 0);
+
+		testOptions1 = new AVDictionary();
+		streamFetcher1.parseRtspUrlParams(testOptions1);
+		assertEquals("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1",streamFetcher1.getStreamUrl());
 
 	}
 }

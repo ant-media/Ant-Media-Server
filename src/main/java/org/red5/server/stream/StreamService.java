@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.red5.io.utils.ObjectMap;
@@ -681,12 +684,13 @@ public class StreamService implements IStreamService {
          * instead of just "LiveApp". This code addresses that issue by correctly 
          * extracting and handling the application name and streamid
          */
-        if(path.contains("/")){
+        if (path.contains("/")) {
             String[] pathSplit = path.split("/");
             if(pathSplit.length >=2) {
                 name = pathSplit[1] + "/" + name;
             }
         }
+
         if (name != null && name.contains("?")) {
             // read and utilize the query string values
             params = parseQueryParameters(name);
@@ -706,6 +710,7 @@ public class StreamService implements IStreamService {
                 log.error("The stream name may not be empty.");
                 return;
             }
+
             IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
             if (security != null) {
                 Set<IStreamPublishSecurity> handlers = security.getStreamPublishSecurity();
@@ -713,19 +718,31 @@ public class StreamService implements IStreamService {
                     String subscriberId=null;
                     String subscriberCode=null;
                     String token=null;
+                    String mainTrackId = null; 
 
-                    if(params != null) {
+                    if (params != null) {
                         subscriberId = params.get(WebSocketConstants.SUBSCRIBER_ID);
                         subscriberCode = params.get(WebSocketConstants.SUBSCRIBER_CODE);
                         token = params.get(WebSocketConstants.TOKEN);
+                        mainTrackId = params.get("mainTrack");
                     }
                     if (!handler.isPublishAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
                         sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to publish the stream.", name, streamId);
                         log.error("You are not allowed to publish the stream {}", name);
                         return;
                     }
+                   
+                    AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+						
+                    if(AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), name, subscriberId, Subscriber.PUBLISH_TYPE)
+                				|| AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), mainTrackId, subscriberId, Subscriber.PUBLISH_TYPE))
+            		{
+                    	sendNSFailed(streamConn, StatusCodes.NS_FAILED, "Subscriber "+subscriberId+" is blocked to publish stream.", name, streamId);
+            			return;
+            		}
                 }
             }
+
             IBroadcastScope bsScope = getBroadcastScope(scope, name);
             if (bsScope != null && !bsScope.getProviders().isEmpty()) {
                 // another stream with that name is already published			
@@ -733,16 +750,19 @@ public class StreamService implements IStreamService {
                 log.error("Bad name {}", name);
                 return;
             }
+
             IClientStream stream = streamConn.getStreamById(streamId);
             if (stream != null && !(stream instanceof IClientBroadcastStream)) {
                 log.error("Stream not found or is not instance of IClientBroadcastStream, name: {}, streamId: {}", name, streamId);
                 return;
             }
+
             boolean created = false;
             if (stream == null) {
                 stream = streamConn.newBroadcastStream(streamId);
                 created = true;
             }
+
             IClientBroadcastStream bs = (IClientBroadcastStream) stream;
             try {
                 // set publish name

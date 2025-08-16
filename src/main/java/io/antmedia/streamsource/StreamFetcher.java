@@ -45,7 +45,7 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
-import jakarta.ws.rs.core.UriBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public class StreamFetcher {
 
@@ -164,7 +164,8 @@ public class StreamFetcher {
 	public void parseRtspUrlParams(AVDictionary optionsDictionary){
 		try {
 		  URI uri = new URI(streamUrl);
-		  UriBuilder uriBuilder = UriBuilder.fromUri(uri);
+		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
+
 		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
 
 		  for (NameValuePair param : params) {
@@ -686,7 +687,7 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					getInstance().closeBroadcast(streamId, null);
+					getInstance().closeBroadcast(streamId, null, null);
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -723,7 +724,7 @@ public class StreamFetcher {
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
-						getInstance().closeBroadcast(streamId, null);
+						getInstance().closeBroadcast(streamId, null, null);
 					}
 				}
 
