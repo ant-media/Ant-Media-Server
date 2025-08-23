@@ -200,6 +200,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 		dataStore.close(false);
 
@@ -297,6 +298,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 
 		dataStore.close(false);
@@ -381,6 +383,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 		dataStore.close(true);
 
@@ -4179,5 +4182,36 @@ public class DBStoresUnitTest {
 		
 	}
 	
+
+	/**
+	 * Test custom TOTP expiry periods per subscriber
+	 */
+	public void testCustomTotpExpiry(DataStore dataStore) {
+		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+		
+		// Test 1: Subscriber with custom expiry time
+		Subscriber subscriber1 = new Subscriber();
+		subscriber1.setSubscriberId("subscriber1");
+		subscriber1.setStreamId(streamId);
+		subscriber1.setTotpExpiryPeriodSeconds(60); // Custom 1-minute expiry
+		
+		assertTrue(dataStore.addSubscriber(streamId, subscriber1));
+		
+		Subscriber retrievedSubscriber1 = dataStore.getSubscriber(streamId, "subscriber1");
+		assertNotNull(retrievedSubscriber1);
+		assertEquals(Integer.valueOf(60), retrievedSubscriber1.getTotpExpiryPeriodSeconds());
+		
+		// Test 2: Subscriber without custom expiry (should be null)
+		Subscriber subscriber2 = new Subscriber();
+		subscriber2.setSubscriberId("subscriber2");
+		subscriber2.setStreamId(streamId);
+		// Not setting totpExpiryPeriodSeconds - should remain null
+		
+		assertTrue(dataStore.addSubscriber(streamId, subscriber2));
+		
+		Subscriber retrievedSubscriber2 = dataStore.getSubscriber(streamId, "subscriber2");
+		assertNotNull(retrievedSubscriber2);
+		assertNull(retrievedSubscriber2.getTotpExpiryPeriodSeconds());
+	}
 
 }
