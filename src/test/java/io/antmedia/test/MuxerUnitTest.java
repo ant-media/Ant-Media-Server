@@ -163,6 +163,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
@@ -6251,6 +6252,34 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		muxer.writeTrailer();
 		verify(muxer).notifyStreamFinish(streamId,path);
+	}
+	
+	
+	@Test
+	public void testRTMPStreamMedaData(){
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		logger.info("Application / web scope: {}", appScope);
+		assertEquals(1, appScope.getDepth());
+		
+		
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), null, false, appScope));
+		String streamId = "stream " + (int) (Math.random() * 10000);
+		muxAdaptor.setStreamId(streamId);
+		
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		doReturn(dataStore).when(muxAdaptor).getDataStore();		
+		
+		Map<String, String> parameters = new HashMap<String, String>();
+		parameters.put("key1", "val1");
+		parameters.put("key2", "val2");
+		
+		muxAdaptor.setBroadcastMetaData(parameters);
+		
+		ArgumentCaptor<BroadcastUpdate> argument = ArgumentCaptor.forClass(BroadcastUpdate.class);
+		verify(dataStore, times(1)).updateBroadcastFields(eq(streamId), argument.capture());
+		assertEquals("{\"key1\":\"val1\",\"key2\":\"val2\"}", argument.getValue().getMetaData());
+		
 	}
 
 }
