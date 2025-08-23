@@ -364,6 +364,8 @@ public class StreamFetcher {
 				close(pkt);
 
 				setThreadActive(false);
+				if(streamFetcherListener != null)
+					streamFetcherListener.streamFinished(streamFetcherListener);
 			}
 
 		}
@@ -698,7 +700,6 @@ public class StreamFetcher {
 					stopRequestReceived = true;
 					restartStream = false;
 					logger.info("Calling streamFinished listener for streamId:{} and it will not restart the stream automatically because callback is getting the responsbility", streamId);
-					streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
 				if(!stopRequestReceived && restartStream) {
