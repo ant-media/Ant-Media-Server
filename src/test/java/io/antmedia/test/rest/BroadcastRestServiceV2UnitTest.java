@@ -1962,6 +1962,8 @@ public class BroadcastRestServiceV2UnitTest {
 		store.setAppSettings(appSettings);
 
 		restServiceReal.setDataStore(store);
+		
+		restServiceReal.setAppSettings(appSettings);
 
 
 		//create subscribers

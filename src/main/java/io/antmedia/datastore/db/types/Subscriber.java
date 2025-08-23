@@ -19,7 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "The time based token subscriber class. This keeps which subscriber can access to which stream and which TOTP")
 public class Subscriber {
     
-    @JsonIgnore
+	@JsonIgnore
     public static final String PLAY_TYPE = "play";
     
     @JsonIgnore
@@ -293,36 +293,8 @@ public class Subscriber {
 	/**
 	 * Sets the custom TOTP expiry period in seconds for this subscriber.
 	 * @param totpExpiryPeriodSeconds the expiry period in seconds configurable by the user
-	 * @throws IllegalArgumentException if the value is not between allowed values
 	 */
 	public void setTotpExpiryPeriodSeconds(Integer totpExpiryPeriodSeconds) {
-		validateTotpExpiryPeriod(totpExpiryPeriodSeconds, 10, 1000); // Default fallback values
 		this.totpExpiryPeriodSeconds = totpExpiryPeriodSeconds;
-	}
-
-	/**
-	 * Sets the custom TOTP expiry period in seconds for this subscriber with configurable validation.
-	 * @param totpExpiryPeriodSeconds the expiry period in seconds
-	 * @param minSeconds minimum allowed value
-	 * @param maxSeconds maximum allowed value
-	 * @throws IllegalArgumentException if the value is not between min and max values
-	 */
-	public void setTotpExpiryPeriodSeconds(Integer totpExpiryPeriodSeconds, int minSeconds, int maxSeconds) {
-		validateTotpExpiryPeriod(totpExpiryPeriodSeconds, minSeconds, maxSeconds);
-		this.totpExpiryPeriodSeconds = totpExpiryPeriodSeconds;
-	}
-
-	/**
-	 * Validates the TOTP expiry period against the given constraints.
-	 * @param totpExpiryPeriodSeconds the value to validate
-	 * @param minSeconds minimum allowed value
-	 * @param maxSeconds maximum allowed value
-	 * @throws IllegalArgumentException if the value is not within the allowed range
-	 */
-	private void validateTotpExpiryPeriod(Integer totpExpiryPeriodSeconds, int minSeconds, int maxSeconds) {
-		if (totpExpiryPeriodSeconds != null && 
-			(totpExpiryPeriodSeconds < minSeconds || totpExpiryPeriodSeconds > maxSeconds)) {
-			throw new IllegalArgumentException("TOTP expiry must be between " + minSeconds + " and " + maxSeconds + " seconds");
-		}
 	}
 }

@@ -101,6 +101,10 @@ public class BroadcastRestService extends RestServiceBase{
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
 	private static final String CONTINUOUS_MOVE = "continuous";
+	
+	private static final int MIN_TOTP_EXPIRATION_TIME = 10;
+    private static final int MAX_TOTP_EXPIRATION_TIME = 1000;
+    
 
 	@Schema(description="Simple generic statistics class to return single values")
 	public static class SimpleStat {
@@ -987,23 +991,21 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 
 			if (secretCodeLengthCorrect) {
-				// Validate custom TOTP expiry period if set
-				try {
-					//Hardcoding values for not having a lot of settings
-					int totpExpiryMinSeconds = 10; // 10 seconds
-					int totpExpiryMaxSeconds = 1000; // 1000 seconds
-					if (subscriber.getTotpExpiryPeriodSeconds() != null) {
-						logger.info("Setting custom TOTP expiry period for subscriber: {}", subscriber.getSubscriberId());
-						subscriber.setTotpExpiryPeriodSeconds(
-							subscriber.getTotpExpiryPeriodSeconds(),
-							totpExpiryMinSeconds,
-							totpExpiryMaxSeconds
-						);
-					}
-					result = getDataStore().addSubscriber(streamId, subscriber);
-				} catch (IllegalArgumentException e) {
-					result = false;
-					message = e.getMessage();
+				Integer totpExpiryPeriodSeconds = subscriber.getTotpExpiryPeriodSeconds();
+				if (totpExpiryPeriodSeconds == null) {
+					logger.info("Custom TOTP expiry period is set from AppSetings:{}", getAppSettings().getTimeTokenPeriod());
+					totpExpiryPeriodSeconds = getAppSettings().getTimeTokenPeriod();
+					subscriber.setTotpExpiryPeriodSeconds(totpExpiryPeriodSeconds);
+				}
+				
+				if(totpExpiryPeriodSeconds >= MIN_TOTP_EXPIRATION_TIME 
+						&& totpExpiryPeriodSeconds <= MAX_TOTP_EXPIRATION_TIME) {
+					result = getDataStore().addSubscriber(streamId, subscriber);					
+				}
+				else {
+					logger.info("Custom TOTP expiry period {} is out of range ({},{})",
+							totpExpiryPeriodSeconds, MIN_TOTP_EXPIRATION_TIME, MAX_TOTP_EXPIRATION_TIME);
+					message = "Custom TOTP expiry period must be between " + MIN_TOTP_EXPIRATION_TIME + " and " + MAX_TOTP_EXPIRATION_TIME;
 				}
 			}
 			else {
@@ -1016,7 +1018,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result, message);
 	}
-
+	
 	@Operation(description="Return TOTP for the subscriberId, streamId, type. This is a helper method. You can generate TOTP on your end."
 			+ "If subscriberId is not in the database, it generates TOTP from the secret in the AppSettings. Secret code is for the subscriberId not in the database"
 
