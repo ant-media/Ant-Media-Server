@@ -102,10 +102,16 @@ public class TokenFilterManager extends AbstractFilter   {
 				
 				boolean checkJwtToken = false;
 				if (streamId != null) {
-					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+					String streamIdToCheck = streamId;
+					if (streamId.startsWith("drm/")) {
+						// In case we are using DRM, we need to remove 'drm/' before checking streamID
+						streamIdToCheck = streamId.substring(4);
+					}
+
+					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamIdToCheck, Token.PLAY_TOKEN);
 				}
-				if (!checkJwtToken) 
-				{
+
+				if (!checkJwtToken) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);
 					logger.warn("Cluster communication token is not valid for streamId:{}" , streamId);
 					return; 	
