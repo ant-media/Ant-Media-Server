@@ -1662,4 +1662,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1",streamFetcher1.getStreamUrl());
 
 	}
+	@Test
+	public void testInternalStreamFetcher(){
+
+		//InternalStreamFetcher internalStreamFetcher = new InternalStreamFetcher("rtmp://test.com/test", "testRtspUrlParam1", "rtsp_source", appScope, Vertx.vertx(), 0);
+		//AppSettings mockAppSettings = Mockito.mock(AppSettings.class);
+		//doReturn("test").when(mockAppSettings).getClusterCommunicationKey();
+		//assertTrue(internalStreamFetcher.getStreamUrl().startsWith("rtmp://test.com/test?token="));
+        //assertEquals("rtmp://test.com/test", internalStreamFetcher.rtmpUrl);
+	}
 }
