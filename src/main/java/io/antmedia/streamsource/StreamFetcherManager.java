@@ -97,10 +97,6 @@ public class StreamFetcherManager {
 		return new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
 	}
 
-	public InternalStreamFetcher makeIternalStreamFetcher(Broadcast stream, IScope scope, Vertx vertx) {
-		return new InternalStreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
-	}
-
 	public int getStreamCheckerInterval() {
 		return streamCheckerIntervalMs;
 	}
@@ -623,12 +619,6 @@ public class StreamFetcherManager {
 	{
 		return streamFetcherList.get(streamId);
 	}
-	public Boolean isStreamInSilentMode(String streamId){
-		if(streamFetcherList == null || streamFetcherList.get(streamId) == null)
-			return false;
-		return streamFetcherList.get(streamId).getIsSilentMode();
-	}
-
 
 	public void setStreamFetcherList(Map<String, StreamFetcher> streamFetcherList) {
 		this.streamFetcherList = streamFetcherList;

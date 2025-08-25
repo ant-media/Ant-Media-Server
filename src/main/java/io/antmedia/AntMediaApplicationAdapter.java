@@ -92,7 +92,7 @@ import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
-import io.antmedia.streamsource.InternalStreamFetcher;
+import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.track.ISubtrackPoller;
@@ -236,14 +236,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private Set<IAppSettingsUpdateListener> settingsUpdateListenerSet = new ConcurrentHashSet<IAppSettingsUpdateListener>();
 
+	private Map<String, RTMPClusterStreamFetcher> rtmpClusterStreamFetcherMap = new ConcurrentHashMap<>();
+
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 			registerStreamPublishSecurity(streamPublishSecurity);
 		}
-		for (IStreamPlaybackSecurity streamPlaybackSecurity : getStreamPlaySecurityList()) {
-			registerStreamPlaybackSecurity(streamPlaybackSecurity);
+		
+		//make it bacward compatible because old apps does not have stream playback security
+		if (getStreamPlaySecurityList() != null) 
+		{
+			for (IStreamPlaybackSecurity streamPlaybackSecurity : getStreamPlaySecurityList()) {
+				registerStreamPlaybackSecurity(streamPlaybackSecurity);
+			}
 		}
 		//init vertx
 		getVertx();
@@ -1018,16 +1025,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		LoggerUtils.logAnalyticsFromServer(event);
 	}
 
-	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
-		if(streamFetcherManager == null || !streamFetcherManager.isStreamInSilentMode(streamId))
-			return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-		else
-			return broadcast;
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) 
+	{
+		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		
 	}
-	public boolean isBroadcastOnThisServer(Broadcast broadcast){
-		if(broadcast.getOriginAdress() == null || serverSettings == null || serverSettings.getHostAddress() == null )
-			return true;
-        return broadcast.getOriginAdress().equals(serverSettings.getHostAddress());
+	public boolean isBroadcastOnThisServer(Broadcast broadcast)
+	{
+        return Strings.CS.equals(broadcast.getOriginAdress(), serverSettings.getHostAddress());
     }
 
 
@@ -1983,54 +1988,81 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.vertx = vertx;
 	}
 
-	public boolean fetchRtmpFromOriginIfExist(String name){
-		Broadcast broadcast = dataStore.get(name);
-		if(broadcast == null || (getStreamFetcherManager().getStreamFetcher(name) != null && getStreamFetcherManager().getStreamFetcher(name).isThreadActive())) {
+	public boolean fetchRtmpFromOriginIfExist(String streamId){
+		Broadcast broadcast = getDataStore().get(streamId);
+		if(broadcast == null) {
 			return false;
 		}
+		
+		
+		if (!isStreaming(broadcast.getStatus())) {
+			logger.warn("Broadcast:{} is not streaming(status:{}) no need to fetch", streamId, broadcast.getStatus());
+			return false;
+		}
+		
 		if (isBroadcastOnThisServer(broadcast)) {
-			logger.trace("stream is on same origin {} no need to fetch the stream", broadcast.getOriginAdress());
+			logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
 			return false;
 		}
+		
 		logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());
 
-		broadcast.setStreamUrl(broadcast.getRtmpURL());
+		RTMPClusterStreamFetcher rtmpClusterStreamFetcherTmp = null;
+		synchronized(rtmpClusterStreamFetcherMap) {
+			if (rtmpClusterStreamFetcherMap.containsKey(broadcast.getRtmpURL())) {
+				logger.warn("There is already RTMP ClusterStreamFetcherfor the same url: {}. No need to create a new one", broadcast.getRtmpURL());
+				return false;
+			}
+			rtmpClusterStreamFetcherTmp = new RTMPClusterStreamFetcher(broadcast.getRtmpURL(), getScope());
+			rtmpClusterStreamFetcherMap.put(broadcast.getRtmpURL(), rtmpClusterStreamFetcherTmp);
+		}
+		
+		
+		
+		RTMPClusterStreamFetcher rtmpClusterStreamFetcher = rtmpClusterStreamFetcherTmp;
+		
+		rtmpClusterStreamFetcher.startStream();
 
-		InternalStreamFetcher streamScheduler = getStreamFetcherManager().makeIternalStreamFetcher(broadcast,scope,vertx);
-		streamScheduler.setRestartStream(getStreamFetcherManager().isRestartStreamAutomatically());
-		streamScheduler.setDataStore(getDataStore());
-		streamScheduler.setIsSilentMode(true);
-		getStreamFetcherManager().startStreamScheduler(streamScheduler);
-
-		streamScheduler.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {
+		rtmpClusterStreamFetcher.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {
+			
+			
 			@Override
 			public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
-				InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
-				if(streamFetcher == null)
+					
+				InProcessRtmpPublisher rtmpPublisher = rtmpClusterStreamFetcher.getRtmpPublisher();
+				Broadcast broadcast = dataStore.get(streamId);
+				if(broadcast == null || 
+						(getStreamFetcherManager().getStreamFetcher(streamId) != null && getStreamFetcherManager().getStreamFetcher(streamId).isThreadActive())) {
+					rtmpPublisher.detachRtmpPublisher(streamId);
+
 					return;
-
-				InProcessRtmpPublisher rtmpPublisher = streamFetcher.getInProcessRtmpPublisher();
-
-				if(rtmpPublisher == null)
+				}
+				
+				
+				if (!isStreaming(broadcast.getStatus()) ) {
+					logger.warn("broadcast is not streaming(status:{}) no need to fetch the streamId:{}", broadcast.getStatus(), broadcast.getStreamId());
+					rtmpPublisher.detachRtmpPublisher(streamId);
 					return;
+				}
+					
+				if (isBroadcastOnThisServer(broadcast)) {
+					logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
+					rtmpPublisher.detachRtmpPublisher(streamId);
 
-				rtmpPublisher.detachRtmpPublisher(name);
+					return ;
+				}
+				
+				
+				vertx.setTimer(5000, h -> {
+					rtmpClusterStreamFetcher.startStream();
+				});
+				
+
 			}
 
 			@Override
 			public void streamStarted(StreamFetcher.IStreamFetcherListener listener) {
-				InternalStreamFetcher streamFetcher = (InternalStreamFetcher) getStreamFetcherManager().getStreamFetcher(name);
-				MuxAdaptor muxAdaptor = getMuxAdaptor(name);
-
-				if (streamFetcher == null || muxAdaptor == null || !appSettings.getEncoderSettings().isEmpty())
-					return;
-
-				InProcessRtmpPublisher rtmpFeeder = new InProcessRtmpPublisher(getScope(), vertx, name, muxAdaptor.getVideoTimeBase(), muxAdaptor.getAudioTimeBase());
-				streamFetcher.setInProcessRtmpPublisher(rtmpFeeder);
-				muxAdaptor.addMuxer(rtmpFeeder);
-
-				logger.info("feeding packets in INProcessRtmpPublisher");
-
+				//no need to implement
 			}
 		});
 		return true;
@@ -2113,8 +2145,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.warn("Following streams status set to finished explicitly because they're not stopped properly: {}", String.join(",", streamIdList));
 			}
 		}
-
-
 	}
 
 

@@ -130,7 +130,7 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
                 if (firstVideoTs.compareAndSet(-1, ts)) {
                     // remember first ts so we can normalise later if needed
                 }
-
+                
                 if((packet.flags() & AV_PKT_FLAG_KEY)==1 && videoExtradata!=null){
                     super.addExtradataIfRequired(packet,true);
                     packet = tmpPacket;

@@ -491,7 +491,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	@Override
-	public boolean init(IScope scope, String streamId, boolean isSilent) {
+	public boolean init(IScope scope, String streamId, boolean isAppend) {
 
 		this.streamId = streamId;
 		this.scope = scope;
@@ -500,8 +500,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		getDataStore();
 
 		//TODO: Refactor -> saving broadcast is called two times in RTMP ingesting. It should be one time
-		if(!isSilent)
-		    getStreamHandler().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, getDataStore().get(streamId));
+		getStreamHandler().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, getDataStore().get(streamId));
 
 		enableSettings();
 		initServerSettings();
@@ -518,7 +517,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (hlsMuxingEnabled) {
 			addHLSMuxer();
 		}
-
+		
 		getDashMuxer();
 		if (dashMuxer != null) {
 			addMuxer(dashMuxer);
