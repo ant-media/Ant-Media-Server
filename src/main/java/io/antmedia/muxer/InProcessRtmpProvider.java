@@ -1,4 +1,4 @@
-package io.antmedia.rtmp;
+package io.antmedia.muxer;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -9,7 +9,6 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 
-import io.antmedia.muxer.Muxer;
 import io.vertx.core.Vertx;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.bytedeco.ffmpeg.avcodec.*;
@@ -24,8 +23,6 @@ import org.red5.server.net.rtmp.event.AudioData;
 import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.stream.message.RTMPMessage;
-
-import io.antmedia.muxer.MuxAdaptor;
 import org.red5.server.scope.BroadcastScope;
 import org.red5.server.messaging.IProvider;
 import org.red5.server.messaging.IPipe;
@@ -74,7 +71,7 @@ e pipe is registered as a provider in a {@link org.red5.server.api.scope.IBroadc
  * and does not do any transcoding.  It wraps raw frames in minimum-viable FLV tags.
  * Further optimisations (SPS/PPS extraction, metadata, PTS/DTS re-ordering) can be added incrementally.
  */
-public class InProcessRtmpPublisher extends Muxer implements IProvider {
+public class InProcessRtmpProvider extends Muxer implements IProvider {
 
 
     private IBroadcastScope broadcastScope;
@@ -83,7 +80,7 @@ public class InProcessRtmpPublisher extends Muxer implements IProvider {
 
     private final AtomicInteger firstVideoTs = new AtomicInteger(-1);
 
-    public InProcessRtmpPublisher(IScope appScope, Vertx vertx, String streamId, AVRational videoTimebase, AVRational audioTimebase) {
+    public InProcessRtmpProvider(IScope appScope, Vertx vertx, String streamId, AVRational videoTimebase, AVRational audioTimebase) {
         super(vertx);
         this.videoTb = videoTimebase;
         this.audioTb = audioTimebase;

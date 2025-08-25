@@ -20,7 +20,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import io.antmedia.rtmp.InProcessRtmpPublisher;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -70,6 +69,7 @@ import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.InProcessRtmpProvider;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
@@ -2029,7 +2029,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			@Override
 			public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
 					
-				InProcessRtmpPublisher rtmpPublisher = rtmpClusterStreamFetcher.getRtmpPublisher();
+				InProcessRtmpProvider rtmpPublisher = rtmpClusterStreamFetcher.getRtmpProvider();
 				Broadcast broadcast = getDataStore().get(streamId);
 				if(broadcast == null) {
 					rtmpPublisher.detachRtmpPublisher(streamId);

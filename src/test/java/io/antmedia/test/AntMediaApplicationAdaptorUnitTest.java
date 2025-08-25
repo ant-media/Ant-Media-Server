@@ -44,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import io.antmedia.filter.TokenFilterManager;
-import io.antmedia.rtmp.InProcessRtmpPublisher;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
 import org.apache.commons.io.FilenameUtils;
@@ -104,6 +103,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.InProcessRtmpProvider;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IPacketListener;
