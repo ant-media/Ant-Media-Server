@@ -2030,11 +2030,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
 					
 				InProcessRtmpPublisher rtmpPublisher = rtmpClusterStreamFetcher.getRtmpPublisher();
-				Broadcast broadcast = dataStore.get(streamId);
-				if(broadcast == null || 
-						(getStreamFetcherManager().getStreamFetcher(streamId) != null && getStreamFetcherManager().getStreamFetcher(streamId).isThreadActive())) {
+				Broadcast broadcast = getDataStore().get(streamId);
+				if(broadcast == null) {
 					rtmpPublisher.detachRtmpPublisher(streamId);
-
 					return;
 				}
 				

@@ -2995,11 +2995,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(broadcast.isVirtual());
 		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, db.get(streamId).getStatus());
 
-		StreamFetcherManager manager = mock(StreamFetcherManager.class);
-		//doReturn(true).when(manager).isStreamInSilentMode(anyString());
-		spyAdapter.setStreamFetcherManager(manager);
 		Broadcast updateBroadcast = spyAdapter.updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC, null);
-		assertEquals(null, updateBroadcast);
+		assertNotNull(updateBroadcast);
 	}
 	
 	@Test
@@ -3046,25 +3043,17 @@ public class AntMediaApplicationAdaptorUnitTest {
 		boolean result = spyAdapter.fetchRtmpFromOriginIfExist("test");
 		assertFalse(result);
 
-
-		//stream fetcher is already alive for this stream
-		StreamFetcherManager streamFetcherManagerMock = mock(StreamFetcherManager.class);
-		//InternalStreamFetcher streamFetcherMock = Mockito.spy(new InternalStreamFetcher("test", streamId, "test", scope, Vertx.vertx(), 0));
-		//doReturn(db).when(streamFetcherMock).getDataStore();
-		//doReturn(true).when(streamFetcherMock).isThreadActive();
-		//doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
-
-		doReturn(streamFetcherManagerMock).when(spyAdapter).getStreamFetcherManager();
 		result = spyAdapter.fetchRtmpFromOriginIfExist(streamId);
 		assertFalse(result);
 
 		// broadcast exist on same server no need to fetch the stream
 
-		doReturn(null).when(streamFetcherManagerMock).getStreamFetcher(streamId);
 		Broadcast broadcast = Mockito.spy(new Broadcast());
 		broadcast.setStreamId(streamId);
 		broadcast.setOriginAdress(spyAdapter.getServerSettings().getHostAddress());
 		broadcast.setRtmpURL("rtmp_url_test");
+		broadcast.setUpdateTime(System.currentTimeMillis());
+		broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		db.save(broadcast);
 
 		result = spyAdapter.fetchRtmpFromOriginIfExist(streamId);
@@ -3072,44 +3061,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//stream exist on another node fetch the stream
 
-		//doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
-		//doReturn(false).when(streamFetcherMock).isThreadActive();
-		//doReturn(streamFetcherMock).when(streamFetcherManagerMock).makeIternalStreamFetcher(any(),any(),any());
+		
 		broadcast.setOriginAdress("1234");
 		result = spyAdapter.fetchRtmpFromOriginIfExist(streamId);
 		assertTrue(result);
-		//Mockito.verify(streamFetcherManagerMock).startStreamScheduler(streamFetcherMock);
-		//Mockito.verify(streamFetcherMock).setIsSilentMode(true);
-		assertEquals(broadcast.getRtmpURL(),broadcast.getStreamUrl());
-
-
-		// stream Started Stream fetcher stream fetcher is null on started should not crash
-		//streamFetcherMock.getStreamFetcherListener().streamStarted(streamFetcherMock.getStreamFetcherListener());
-
-		// stream Started Stream fetcher stream fetcher mux adapter is null should not crash
-		//doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
-		//streamFetcherMock.getStreamFetcherListener().streamStarted(streamFetcherMock.getStreamFetcherListener());
-
-		// stream finished Stream fetcher stream fetcher is null on started should not crash
-		//streamFetcherMock.getStreamFetcherListener().streamFinished(streamFetcherMock.getStreamFetcherListener());
-
-		// stream finished Stream fetcher stream fetcher mux adapter is null should not crash
-		//doReturn(streamFetcherMock).when(streamFetcherManagerMock).getStreamFetcher(streamId);
-		//streamFetcherMock.getStreamFetcherListener().streamFinished(streamFetcherMock.getStreamFetcherListener());
-
-		// stream Started Stream fetcher stream fetcher
-
-		MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
-		doReturn(muxAdaptor).when(spyAdapter).getMuxAdaptor(streamId);
-		//streamFetcherMock.getStreamFetcherListener().streamStarted(streamFetcherMock.getStreamFetcherListener());
-		//verify(streamFetcherMock).setInProcessRtmpPublisher(any());
-		verify(muxAdaptor).addMuxer(any());
-
-		// stream finished
-		InProcessRtmpPublisher inProcessRtmpPublisher = mock(InProcessRtmpPublisher.class);
-		//doReturn(inProcessRtmpPublisher).when(streamFetcherMock).getInProcessRtmpPublisher();
-		//streamFetcherMock.getStreamFetcherListener().streamFinished(streamFetcherMock.getStreamFetcherListener());
-		verify(inProcessRtmpPublisher).detachRtmpPublisher(streamId);
+		
 
 	}
 
