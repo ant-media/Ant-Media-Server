@@ -171,7 +171,75 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		 */
 	}
-	
+	@Test
+	public void testPlayItemInList() throws Exception {
+
+		StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
+		String streamId = String.valueOf((Math.random() * 100000));
+
+		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+
+		//create a broadcast
+		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+
+		//create a broadcast
+		Broadcast.PlayListItem broadcastItem3 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+
+		List<Broadcast.PlayListItem> broadcastList = new ArrayList<>();
+
+		broadcastList.add(broadcastItem1);
+		broadcastList.add(broadcastItem2);
+		broadcastList.add(broadcastItem3);
+
+		Broadcast playlist = new Broadcast();
+		playlist.setStreamId(streamId);
+		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		playlist.setPlayListItemList(broadcastList);
+		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+        StreamFetcher streamFetcher = mock(StreamFetcher.class);
+        doReturn(false).when(streamFetcher).isThreadActive();
+        doReturn(streamFetcher).when(manager).getStreamFetcher(streamId);
+
+		app.getDataStore().save(playlist);
+
+        StatsCollector statsCollectorMock = Mockito.mock(StatsCollector.class);
+        doReturn(true).when(statsCollectorMock).enoughResource();
+        app.setStatsCollector(statsCollectorMock);
+		boolean startStreaming = app.startStreaming(playlist).isSuccess();
+		assertTrue(startStreaming);
+
+
+		assertEquals(1, app.getStreamFetcherManager().getStreamFetcherList().size());
+
+		StreamFetcher.IStreamFetcherListener listener = Mockito.mock(StreamFetcher.IStreamFetcherListener.class);
+		manager.getStreamFetcher(streamId).setStreamFetcherListener(listener);
+		manager.playItemInList(playlist,listener,1);
+
+		// stream not stoped need to wait for the thread to stop to start next playlist
+        verify(manager).waitForStreamingThreadToStop(streamFetcher);
+		verify(manager,timeout(10000).times(1)).createAndStartNextPlaylistItem(any(),any(),anyInt());
+
+        Mockito.reset(manager);
+
+		// thread already start next stream directly
+        doReturn(streamFetcher).when(manager).getStreamFetcher(streamId);
+		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
+        verify(manager).waitForStreamingThreadToStop(streamFetcher);
+		verify(manager,times(1)).createAndStartNextPlaylistItem(any(),any(),anyInt());
+
+		// invalid url
+		Mockito.reset(manager);
+		broadcastItem1.setStreamUrl("test");
+		playlist.getPlayListItemList().set(playlist.getCurrentPlayIndex(),broadcastItem1);
+		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
+		verify(manager,times(1)).stopStreaming(streamId);
+		verify(manager).skipNextPlaylistQueue(playlist,1);
+		verify(manager).startPlaylist(playlist);
+	}
+
+
+
 	@Test
 	public void testBugUpdateStreamFetcherStatus() {
 
@@ -1655,69 +1723,4 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		streamFetcher1.parseRtspUrlParams(testOptions1);
 		assertEquals("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1",streamFetcher1.getStreamUrl());
 	}
-	@Test
-	public void testPlayItemInList() throws Exception {
-
-		StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
-		String streamId = String.valueOf((Math.random() * 100000));
-
-		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
-
-		//create a broadcast
-		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
-
-		//create a broadcast
-		Broadcast.PlayListItem broadcastItem3 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
-
-		List<Broadcast.PlayListItem> broadcastList = new ArrayList<>();
-
-		broadcastList.add(broadcastItem1);
-		broadcastList.add(broadcastItem2);
-		broadcastList.add(broadcastItem3);
-
-		Broadcast playlist = new Broadcast();
-		playlist.setStreamId(streamId);
-		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
-		playlist.setPlayListItemList(broadcastList);
-		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-
-		app.getDataStore().save(playlist);
-
-	    	StatsCollector statsCollectorMock = Mockito.mock(StatsCollector.class);
-	    	doReturn(true).when(statsCollectorMock).enoughResource();
-	    	app.setStatsCollector(statsCollectorMock);
-		boolean startStreaming = app.startStreaming(playlist).isSuccess();
-		assertTrue(startStreaming);
-
-
-		assertEquals(1, app.getStreamFetcherManager().getStreamFetcherList().size());
-
-		StreamFetcher.IStreamFetcherListener listener = Mockito.mock(StreamFetcher.IStreamFetcherListener.class);
-		manager.getStreamFetcher(streamId).setStreamFetcherListener(listener);
-		manager.playItemInList(playlist,listener,1);
-
-		// stream not stoped need to wait for the thread to stop to start next playlist
-		verify(manager,timeout(10000).times(1)).createAndStartNextPlaylistItem(any(),any(),anyInt());
-		assertFalse(manager.getStreamFetcher(streamId).getStreamFetcherListener() != listener);
-
-
-		StreamFetcher streamFetcher = mock(StreamFetcher.class);
-		doReturn(false).when(streamFetcher).isThreadActive();
-		doReturn(streamFetcher).when(manager).getStreamFetcher(streamId);
-
-		// thread already start next stream directly
-		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
-		verify(manager,times(2)).createAndStartNextPlaylistItem(any(),any(),anyInt());
-
-		// invalid url
-		Mockito.reset(manager);
-		broadcastItem1.setStreamUrl("test");
-		playlist.getPlayListItemList().set(playlist.getCurrentPlayIndex(),broadcastItem1);
-		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
-		verify(manager,times(1)).stopStreaming(streamId);
-		verify(manager).skipNextPlaylistQueue(playlist,1);
-		verify(manager).startPlaylist(playlist);
-	}
-
-
 }
