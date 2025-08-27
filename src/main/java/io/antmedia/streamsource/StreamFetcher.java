@@ -361,9 +361,9 @@ public class StreamFetcher {
 			}
 			finally {
 
+                setThreadActive(false);
 				close(pkt);
 
-				setThreadActive(false);
 
 			}
 

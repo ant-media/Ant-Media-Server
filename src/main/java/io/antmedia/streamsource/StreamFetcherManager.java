@@ -294,7 +294,7 @@ public class StreamFetcherManager {
 
 				if(i > 20) {
 					logger.warn("thread did not stop for Stream fetcher cannot play next item", streamFetcher.getStreamId() , i*waitPeriod);
-          return false;
+                    return false;
 				}
 			} catch (InterruptedException e) {
 				logger.error(e.getMessage());
