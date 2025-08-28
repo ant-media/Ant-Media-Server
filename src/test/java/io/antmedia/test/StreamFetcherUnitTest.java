@@ -177,9 +177,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
         StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
         Semaphore semaphore = new Semaphore(0);
         when(streamFetcher.getIsThreadStopedSemaphore()).thenReturn(semaphore);
-        assertEquals(manager.waitForStreamingThreadToStop(streamFetcher),false);
+        assertFalse(manager.waitForStreamingThreadToStop(streamFetcher));
         semaphore.release();
-        assertEquals(manager.waitForStreamingThreadToStop(streamFetcher),true);
+        assertTrue(manager.waitForStreamingThreadToStop(streamFetcher));
 
     }
 	@Test
