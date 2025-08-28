@@ -54,8 +54,7 @@ public class ProviderService implements IProviderService {
 		if (name.contains("?")) {
 			name = name.split("\\?")[0];
 		}
-		AntMediaApplicationAdapter applicationAdapter = getAppInstance(scope);
-		applicationAdapter.fetchRtmpFromOriginIfExist(name);
+		
 
 		INPUT_TYPE result = INPUT_TYPE.NOT_FOUND;
 		if (scope.getBasicScope(ScopeType.BROADCAST, name) != null) {
@@ -72,6 +71,9 @@ public class ProviderService implements IProviderService {
 				
 					if (type == -2) {
 						result = INPUT_TYPE.LIVE_WAIT;
+						//check if the stream is exist in the cluster
+						AntMediaApplicationAdapter applicationAdapter = getAppInstance(scope);
+						applicationAdapter.fetchRtmpFromOriginIfExist(name);
 					}
 					log.warn("Requested stream: {} does not appear to be of VOD type", name);
 
@@ -104,6 +106,7 @@ public class ProviderService implements IProviderService {
 				}
 			}
 		}
+		log.info("Found broadcastScope: {} and scope:{}", broadcastScope != null ? broadcastScope.hashCode() : null, scope.hashCode());
 		return broadcastScope;
 	}
 

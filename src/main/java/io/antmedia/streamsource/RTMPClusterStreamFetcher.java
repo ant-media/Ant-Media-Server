@@ -10,21 +10,24 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.messaging.IConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AppSettings;
 import io.antmedia.filter.JWTFilter;
-import io.antmedia.muxer.InProcessRtmpProvider;
+import io.antmedia.muxer.RtmpProvider;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
@@ -35,12 +38,16 @@ public class RTMPClusterStreamFetcher {
 	private String rtmpUrl;
 	private IScope scope;
 	private Vertx vertx;
-	public  InProcessRtmpProvider rtmpProvider;
+	public  RtmpProvider rtmpProvider;
 	private AppSettings appSettings;
 	private Logger logger = LoggerFactory.getLogger(RTMPClusterStreamFetcher.class);
 	private RtmpFetcherThread thread;
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
 	private IStreamFetcherListener streamFetcherListener;
+	private String streamId;
+	int checkNumberOfViewers = 0;
+	private AtomicBoolean finishing = new AtomicBoolean(false);
+
 	
 	
 	public class RtmpFetcherThread extends Thread {
@@ -51,6 +58,8 @@ public class RTMPClusterStreamFetcher {
 		long firstPacketTime = 0;
 		long bufferDuration = 0;
 		long timeOffsetInMs = 0;
+		private AVRational videoTimeBase;
+		private AVRational audioTimeBase;
 
 
 		public Result prepareInput(AVFormatContext inputFormatContext) {
@@ -69,7 +78,7 @@ public class RTMPClusterStreamFetcher {
 			
 			String rtmpUrlWithToken = getStreamUrl();
 
-			logger.debug("open stream url: {}", rtmpUrlWithToken);
+			logger.info("open stream url: {}", rtmpUrlWithToken);
 
 			if ((ret = avformat_open_input(inputFormatContext, rtmpUrlWithToken, null, optionsDictionary)) < 0) {
 
@@ -106,12 +115,10 @@ public class RTMPClusterStreamFetcher {
 
 
 			AVPacket pkt = null;
-			AVRational videoTimeBase = new AVRational().num(1).den(1000);
-			AVRational audioTimeBase = new AVRational().num(1).den(1000);
+			videoTimeBase = new AVRational().num(1).den(1000);
+			audioTimeBase = new AVRational().num(1).den(1000);
 
 			rtmpProvider = initRtmpProvider(videoTimeBase, audioTimeBase);
-
-			logger.info("rtmpProvider2: {}", rtmpProvider);
 
 			try {
 				//update broadcast status to preparing
@@ -123,12 +130,11 @@ public class RTMPClusterStreamFetcher {
 				if(prepareInputContext())
 				{
 					
-					rtmpProvider.init(scope, rtmpUrl, 0, "", 0);
+					rtmpProvider.init(scope, streamId, 0, "", 0);
 
 					for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
 						
 						rtmpProvider.addStream(inputFormatContext.streams(i).codecpar(), inputFormatContext.streams(i).time_base(), i);
-
 					}
 					
 					boolean prepareIO = rtmpProvider.prepareIO();
@@ -138,6 +144,7 @@ public class RTMPClusterStreamFetcher {
 						close(pkt);
 						return;
 					}
+					logger.info("Starting the RTMPClusterStream fetcher loop for stream: {}", rtmpUrl);
 					
 					while (readTheNextFrame) {
 						try {
@@ -164,16 +171,14 @@ public class RTMPClusterStreamFetcher {
 
 		}
 
-	
-
-
 		public boolean readMore(AVPacket pkt) {
 			boolean readTheNextFrame = true;
 			int readResult = readNextPacket(pkt);
 			if(readResult >= 0) {
+				AVStream stream = inputFormatContext.streams(pkt.stream_index());
 			
 				
-				rtmpProvider.writePacket(pkt, inputFormatContext.streams(pkt.stream_index()));
+				rtmpProvider.writePacket(pkt, stream.time_base(), videoTimeBase, stream.codecpar().codec_type());
 				
 				unReferencePacket(pkt);
 			}
@@ -182,11 +187,28 @@ public class RTMPClusterStreamFetcher {
 				logger.warn("Cannot read next packet for url:{} and error is {}", rtmpUrl, Muxer.getErrorDefinition(readResult));
 				readTheNextFrame = false;
 			}
+			
+			checkNumberOfViewers++;
+			if (checkNumberOfViewers % 500  == 0) 
+			{
+				List<IConsumer> consumers = rtmpProvider.getBroadcastScope().getConsumers();
+				logger.info("Checking the number of viewers for stream: {} and viewers: {}", rtmpUrl, consumers);
+				checkNumberOfViewers = 0;
+				if (consumers == null || consumers.isEmpty()) 
+				{
+					logger.info("No viewers, stopping the stream fetcher for stream: {}", rtmpUrl);
+					readTheNextFrame = false;
+					finishing.set(true);
+				}
+				
+			}
+			
 
 			return readTheNextFrame;
 		}
 
-
+		
+		
 
 		public int readNextPacket(AVPacket pkt) {
 			return av_read_frame(inputFormatContext, pkt);
@@ -198,7 +220,6 @@ public class RTMPClusterStreamFetcher {
 
 		public boolean prepareInputContext() throws Exception 
 		{
-			logger.info("Preparing the StreamFetcher for {}", rtmpUrl);
 			Result result = prepareInput(inputFormatContext);
 
 			if (result.isSuccess()) {
@@ -247,7 +268,6 @@ public class RTMPClusterStreamFetcher {
 				closeInputFormatContext();
 				
 				rtmpProvider.writeTrailer();
-				logger.info("rtmpProvider.writeTrailer fetcher  {}", rtmpProvider);
 				
 				streamFetcherListener.streamFinished(streamFetcherListener);
 
@@ -264,16 +284,22 @@ public class RTMPClusterStreamFetcher {
 
 
 
-	public RTMPClusterStreamFetcher(String streamUrl, IScope scope) {
+	public RTMPClusterStreamFetcher(String streamUrl, String streamId, IScope scope) {
 		this.rtmpUrl = streamUrl;
 		this.scope = scope;
+		this.streamId = streamId;
+		
 		//init app settings
 		getAppSettings();
 	}
 
 	
-	public InProcessRtmpProvider initRtmpProvider(AVRational videoTimeBase, AVRational audioTimeBase) {
-		return new InProcessRtmpProvider(scope, vertx, rtmpUrl, videoTimeBase, audioTimeBase);
+	public RtmpProvider initRtmpProvider(AVRational videoTimeBase, AVRational audioTimeBase) {
+		return new RtmpProvider(scope, vertx, streamId, videoTimeBase, audioTimeBase);
+	}
+
+	public boolean isFinishing() {
+		return finishing.get();
 	}
 
 	
@@ -333,7 +359,7 @@ public class RTMPClusterStreamFetcher {
 
 	}
 	
-	public InProcessRtmpProvider getRtmpProvider() {
+	public RtmpProvider getRtmpProvider() {
 		return rtmpProvider;
 	}
 

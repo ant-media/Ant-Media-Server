@@ -23,7 +23,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.integration.AppFunctionalV2Test;
-import io.antmedia.muxer.InProcessRtmpProvider;
+import io.antmedia.muxer.RtmpProvider;
 import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
@@ -83,8 +83,8 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 		
 		File flvFile = new File("src/test/resources/test.flv");
 		assertTrue(flvFile.exists());
-		RTMPClusterStreamFetcher fetcher = Mockito.spy(new RTMPClusterStreamFetcher(flvFile.getAbsolutePath(), appScope));
-		InProcessRtmpProvider rtmpProvider = Mockito.mock(InProcessRtmpProvider.class);
+		RTMPClusterStreamFetcher fetcher = Mockito.spy(new RTMPClusterStreamFetcher(flvFile.getAbsolutePath(), "stream1", appScope));
+		RtmpProvider rtmpProvider = Mockito.mock(RtmpProvider.class);
 		Mockito.doReturn(rtmpProvider).when(fetcher).initRtmpProvider(Mockito.any(), Mockito.any());
 		
 		logger.info("rtmpProvider: {}", rtmpProvider);

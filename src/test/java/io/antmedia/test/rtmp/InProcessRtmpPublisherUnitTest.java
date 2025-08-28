@@ -7,7 +7,7 @@ import static org.mockito.Mockito.*;
 
 import java.nio.ByteBuffer;
 
-import io.antmedia.muxer.InProcessRtmpProvider;
+import io.antmedia.muxer.RtmpProvider;
 import io.vertx.core.Vertx;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -42,7 +42,7 @@ public class InProcessRtmpPublisherUnitTest {
     @Mock private BytePointer     mockBytePointer;
     @Mock private ByteBuffer      mockByteBuffer;
 
-    private InProcessRtmpProvider publisher;
+    private RtmpProvider publisher;
     private AVRational videoTb;
     private AVRational audioTb;
 
@@ -67,7 +67,7 @@ public class InProcessRtmpPublisherUnitTest {
         videoTb = new AVRational().num(1).den(30);
         audioTb = new AVRational().num(1).den(48000);
 
-        publisher = spy(new InProcessRtmpProvider(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
+        publisher = spy(new RtmpProvider(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
         publisher.setBroadcastScope(spy(publisher.getBroadcastScope()));
         mockScope  = publisher.getBroadcastScope();
         doReturn(mockScope).when(mockAppScope).getBroadcastScope(STREAM_ID);
@@ -366,7 +366,7 @@ public class InProcessRtmpPublisherUnitTest {
         assertNotNull("Should return a valid BroadcastScope", broadcastScope);
         verify(mockAppScope, times(2)).getBroadcastScope(STREAM_ID);
         verify(mockAppScope, times(1)).addChildScope(any(IBroadcastScope.class));
-        verify(mockScope, times(1)).subscribe(any(InProcessRtmpProvider.class), eq(null));
+        verify(mockScope, times(1)).subscribe(any(RtmpProvider.class), eq(null));
     }
 
     @Test
@@ -435,8 +435,8 @@ public class InProcessRtmpPublisherUnitTest {
 
         // Verify all calls were made
         verify(mockAppScope, times(7)).getBroadcastScope(STREAM_ID); // 3 attach + 3 detach
-        verify(mockScope, times(3)).subscribe(any(InProcessRtmpProvider.class), eq(null));
-        verify(mockScope, times(3)).unsubscribe(any(InProcessRtmpProvider.class));
+        verify(mockScope, times(3)).subscribe(any(RtmpProvider.class), eq(null));
+        verify(mockScope, times(3)).unsubscribe(any(RtmpProvider.class));
     }
     @Test
     public void testIsCodecSupported(){
@@ -447,7 +447,7 @@ public class InProcessRtmpPublisherUnitTest {
     }
     @Test
     public void testOutputFormatCtx(){
-        InProcessRtmpProvider rtmpPublisher = spy(new InProcessRtmpProvider(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
+        RtmpProvider rtmpPublisher = spy(new RtmpProvider(mockAppScope,vertx,STREAM_ID,videoTb,audioTb));
         AVFormatContext ctx = rtmpPublisher.getOutputFormatContext();
         assertEquals("null",ctx.oformat().name().getString());
         ctx = rtmpPublisher.getOutputFormatContext();

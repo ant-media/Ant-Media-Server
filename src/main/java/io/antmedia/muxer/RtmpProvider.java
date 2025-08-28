@@ -1,6 +1,7 @@
 package io.antmedia.muxer;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,16 +18,23 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
+import org.red5.codec.IStreamCodecInfo;
+import org.red5.codec.IVideoStreamCodec;
+import org.red5.codec.StreamCodecInfo;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.net.rtmp.event.AudioData;
 import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.message.Constants;
+import org.red5.server.stream.ClientBroadcastStream;
+import org.red5.server.stream.VideoCodecFactory;
 import org.red5.server.stream.message.RTMPMessage;
 import org.red5.server.scope.BroadcastScope;
 import org.red5.server.messaging.IProvider;
 import org.red5.server.messaging.IPipe;
 import org.red5.server.messaging.OOBControlMessage;
+import org.red5.server.messaging.IConsumer;
 import org.red5.server.messaging.IMessageComponent;
 
 
@@ -71,7 +79,7 @@ e pipe is registered as a provider in a {@link org.red5.server.api.scope.IBroadc
  * and does not do any transcoding.  It wraps raw frames in minimum-viable FLV tags.
  * Further optimisations (SPS/PPS extraction, metadata, PTS/DTS re-ordering) can be added incrementally.
  */
-public class InProcessRtmpProvider extends Muxer implements IProvider {
+public class RtmpProvider extends Muxer implements IProvider {
 
 
     private IBroadcastScope broadcastScope;
@@ -80,7 +88,7 @@ public class InProcessRtmpProvider extends Muxer implements IProvider {
 
     private final AtomicInteger firstVideoTs = new AtomicInteger(-1);
 
-    public InProcessRtmpProvider(IScope appScope, Vertx vertx, String streamId, AVRational videoTimebase, AVRational audioTimebase) {
+    public RtmpProvider(IScope appScope, Vertx vertx, String streamId, AVRational videoTimebase, AVRational audioTimebase) {
         super(vertx);
         this.videoTb = videoTimebase;
         this.audioTb = audioTimebase;
@@ -107,7 +115,24 @@ public class InProcessRtmpProvider extends Muxer implements IProvider {
             if(videoExtradata.length > 0) {
                 BytePointer extraDataPointer = codecParameters.extradata();
                 extraDataPointer.get(videoExtradata).close();
+                
                 extraDataPointer.close();
+                
+                IoBuffer flvPayload = IoBuffer.allocate(5 + videoExtradata.length);
+                flvPayload.put((byte) 0x17);
+                flvPayload.put((byte) 0x00); // AVC sequence header
+                flvPayload.put((byte) 0x00); // composition time 0
+                flvPayload.put((byte) 0x00);
+                flvPayload.put((byte) 0x00);
+                flvPayload.put(videoExtradata);
+                flvPayload.flip();
+
+                ClientBroadcastStream clientBroadcastStream = (ClientBroadcastStream) broadcastScope.getClientBroadcastStream();
+                StreamCodecInfo codecInfo = (StreamCodecInfo) clientBroadcastStream.getCodecInfo();
+                
+                IVideoStreamCodec videoStreamCodec = VideoCodecFactory.getVideoCodec(flvPayload);
+                codecInfo.setVideoCodec(videoStreamCodec);
+                videoStreamCodec.addData(flvPayload);
             }
             else
                 videoExtradata = null;
@@ -115,10 +140,11 @@ public class InProcessRtmpProvider extends Muxer implements IProvider {
         super.addStream(codecParameters,timebase,streamIndex);
         return true;
     }
-
+    
     @Override
     public synchronized void writePacket(AVPacket packet, AVRational inputTimebase, AVRational outputTimebase, int codecType){
         if (packet == null || packet.size() <= 0) {
+        	logger.warn("Packet is null or empty for stream id: {}", streamId);
             return;
         }
         try {
@@ -128,10 +154,10 @@ public class InProcessRtmpProvider extends Muxer implements IProvider {
                     // remember first ts so we can normalise later if needed
                 }
                 
-                if((packet.flags() & AV_PKT_FLAG_KEY)==1 && videoExtradata!=null){
-                    super.addExtradataIfRequired(packet,true);
-                    packet = tmpPacket;
-                }
+               // if((packet.flags() & AV_PKT_FLAG_KEY)==1 && videoExtradata!=null){
+               //   	super.addExtradataIfRequired(packet,true);
+               //     packet = tmpPacket;
+               // }
 
                 ByteBuffer nioBuf = packet.data().limit(packet.size()).asByteBuffer();
                 IoBuffer flvPayload = IoBuffer.allocate(5 + nioBuf.remaining());
@@ -151,6 +177,8 @@ public class InProcessRtmpProvider extends Muxer implements IProvider {
                 videoData.setTimestamp(ts);
                 RTMPMessage rtmp = RTMPMessage.build(videoData, Constants.SOURCE_TYPE_LIVE);
                 broadcastScope.pushMessage(rtmp);
+                
+          
             } else if (codecType == AVMEDIA_TYPE_AUDIO) {
                 int ts = (int) avutil.av_rescale_q(packet.pts(), audioTb, MuxAdaptor.TIME_BASE_FOR_MS);
 
@@ -167,6 +195,11 @@ public class InProcessRtmpProvider extends Muxer implements IProvider {
                 audioData.setTimestamp(ts);
                 RTMPMessage rtmp = RTMPMessage.build(audioData, Constants.SOURCE_TYPE_LIVE);
                 broadcastScope.pushMessage(rtmp);
+                
+
+            }
+            else {
+            	logger.warn("Unsupported codec type: {} for stream id: {}", codecType, streamId);
             }
         } catch (Exception e) {
             logger.error("Error while pushing video packet", e);
@@ -178,13 +211,16 @@ public class InProcessRtmpProvider extends Muxer implements IProvider {
         IBroadcastScope bs = this.scope.getBroadcastScope(streamId);
         if (bs == null) {
             bs = new BroadcastScope(this.scope, streamId);
-            this.scope.addChildScope(bs);
+            ClientBroadcastStream clientStream = new ClientBroadcastStream();
+            bs.setClientBroadcastStream(clientStream);
+            boolean result = this.scope.addChildScope(bs);
+            logger.info("Created new broadcastScope {} in scope {} class name:{} result: {}", bs.hashCode(), this.scope.hashCode(), this.scope.getClass().getSimpleName(), result);
         }
 
         // connect provider to scope pipe
         bs.subscribe(this, null);
 
-        logger.info("In-process RTMP pipeline ready for stream {}", streamId);
+        logger.info("RTMP Provider ready for stream {} and broadcast scope:{}", streamId, bs);
         return bs;
     }
 

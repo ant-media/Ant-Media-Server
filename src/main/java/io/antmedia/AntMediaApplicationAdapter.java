@@ -44,6 +44,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.*;
 import org.red5.server.stream.ClientBroadcastStream;
@@ -69,7 +70,7 @@ import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.InProcessRtmpProvider;
+import io.antmedia.muxer.RtmpProvider;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
@@ -1032,7 +1033,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 	public boolean isBroadcastOnThisServer(Broadcast broadcast)
 	{
-        return Strings.CS.equals(broadcast.getOriginAdress(), serverSettings.getHostAddress());
+        return Strings.CS.equals(broadcast.getOriginAdress(), getServerSettings().getHostAddress());
     }
 
 
@@ -1991,6 +1992,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean fetchRtmpFromOriginIfExist(String streamId){
 		Broadcast broadcast = getDataStore().get(streamId);
 		if(broadcast == null) {
+			logger.warn("Broadcast not found for streamId: {} to play with RTMP", streamId);
 			return false;
 		}
 		
@@ -2009,19 +2011,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		RTMPClusterStreamFetcher rtmpClusterStreamFetcherTmp = null;
 		synchronized(rtmpClusterStreamFetcherMap) {
-			if (rtmpClusterStreamFetcherMap.containsKey(broadcast.getRtmpURL())) {
-				logger.warn("There is already RTMP ClusterStreamFetcherfor the same url: {}. No need to create a new one", broadcast.getRtmpURL());
+			RTMPClusterStreamFetcher streamFetcher = rtmpClusterStreamFetcherMap.get(broadcast.getRtmpURL());
+			if (streamFetcher != null && !streamFetcher.isFinishing()) {
+				logger.warn("There is already RTMP ClusterStreamFetcher for the same url: {}. No need to create a new one", broadcast.getRtmpURL());
 				return false;
 			}
-			rtmpClusterStreamFetcherTmp = new RTMPClusterStreamFetcher(broadcast.getRtmpURL(), getScope());
+			rtmpClusterStreamFetcherTmp = new RTMPClusterStreamFetcher(broadcast.getRtmpURL(), streamId, getScope());
 			rtmpClusterStreamFetcherMap.put(broadcast.getRtmpURL(), rtmpClusterStreamFetcherTmp);
 		}
-		
-		
 		
 		RTMPClusterStreamFetcher rtmpClusterStreamFetcher = rtmpClusterStreamFetcherTmp;
 		
 		rtmpClusterStreamFetcher.startStream();
+		
+		String rtmpUrl = broadcast.getRtmpURL();
 
 		rtmpClusterStreamFetcher.setStreamFetcherListener(new StreamFetcher.IStreamFetcherListener() {
 			
@@ -2029,10 +2032,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			@Override
 			public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
 					
-				InProcessRtmpProvider rtmpPublisher = rtmpClusterStreamFetcher.getRtmpProvider();
+				RtmpProvider rtmpPublisher = rtmpClusterStreamFetcher.getRtmpProvider();
 				Broadcast broadcast = getDataStore().get(streamId);
 				if(broadcast == null) {
 					rtmpPublisher.detachRtmpPublisher(streamId);
+					//use the rtmpUrl from the outer scope because broadcast is null
+					rtmpClusterStreamFetcherMap.remove(rtmpUrl);
 					return;
 				}
 				
@@ -2040,14 +2045,26 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (!isStreaming(broadcast.getStatus()) ) {
 					logger.warn("broadcast is not streaming(status:{}) no need to fetch the streamId:{}", broadcast.getStatus(), broadcast.getStreamId());
 					rtmpPublisher.detachRtmpPublisher(streamId);
+					rtmpClusterStreamFetcherMap.remove(broadcast.getRtmpURL());
+
 					return;
 				}
 					
 				if (isBroadcastOnThisServer(broadcast)) {
 					logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
 					rtmpPublisher.detachRtmpPublisher(streamId);
-
+					rtmpClusterStreamFetcherMap.remove(broadcast.getRtmpURL());
 					return ;
+				}
+				
+				
+				IBroadcastScope broadcastScope = rtmpPublisher.getBroadcastScope();
+				
+				if (broadcastScope == null || broadcastScope.getConsumers().isEmpty()) {
+					logger.warn("No RTMP viewer for the streamId:{}. It will not restart the RTMPCLusterStreamFetcher", streamId);
+					rtmpPublisher.detachRtmpPublisher(streamId);
+					rtmpClusterStreamFetcherMap.remove(broadcast.getRtmpURL());
+					return;
 				}
 				
 				
