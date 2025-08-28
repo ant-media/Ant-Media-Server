@@ -1,6 +1,7 @@
 package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -34,6 +35,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -42,6 +44,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -57,6 +60,7 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.hamcrest.Matchers;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
@@ -3295,5 +3299,68 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	}
 
+	@Test
+	public void testExceptionInStreamListener() throws Exception {
+		AtomicBoolean listener1Invoked = new AtomicBoolean(false);
+		AtomicBoolean listener2Invoked = new AtomicBoolean(false);
+
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		spyAdaptor.setDataStore(new InMemoryDataStore("testStartStopPublishWithSubscriberId"));
+		spyAdaptor.setServerSettings(new ServerSettings());
+		AppSettings appSettings = new AppSettings();
+		spyAdaptor.setAppSettings(appSettings);
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("streamId");
+
+
+		String hookURL = "listener_hook_url";
+		appSettings.setListenerHookURL(hookURL);
+
+		IStreamListener streamListener = Mockito.mock(IStreamListener.class);
+		spyAdaptor.addStreamListener(streamListener);
+
+		String subscriberId = "subscriberId";
+
+		spyAdaptor.addStreamListener(new IStreamListener() {
+			@Override
+			public void joinedTheRoom(String roomId, String streamId) {
+			}
+			@Override
+			public void leftTheRoom(String roomId, String streamId) {
+			}
+
+			@Override
+			public void streamStarted(Broadcast broadcast) {
+				listener1Invoked.set(true);
+				throw new NoClassDefFoundError("Plugin misses a dependency");
+			}
+		});
+
+		spyAdaptor.addStreamListener(new IStreamListener() {
+			@Override
+			public void joinedTheRoom(String roomId, String streamId) {
+			}
+			@Override
+			public void leftTheRoom(String roomId, String streamId) {
+			}
+
+			@Override
+			public void streamStarted(Broadcast broadcast) {
+				listener2Invoked.set(true);
+			}
+		});
+
+		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId, null);
+
+		await("The first listener should have been invoked")
+				.atMost(Duration.ofMillis(200))
+				.untilAtomic(listener1Invoked, is(true));
+
+		await("The second listener should have been invoked even if the first one threw an error")
+				.atMost(Duration.ofMillis(200))
+				.untilAtomic(listener2Invoked, is(true));
+
+	}
    
 }
