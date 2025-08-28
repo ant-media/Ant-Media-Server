@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.metrics.Stat;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -171,6 +170,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		 */
 	}
+    @Test
+    public void testWaitForStreamThreadToStop(){
+        StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
+        StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
+        when(streamFetcher.isThreadActive()).thenReturn(true);
+        assertEquals(manager.waitForStreamingThreadToStop(streamFetcher),false);
+        when(streamFetcher.isThreadActive()).thenReturn(false);
+        assertEquals(manager.waitForStreamingThreadToStop(streamFetcher),true);
+
+    }
 	@Test
 	public void testPlayItemInList() throws Exception {
 
