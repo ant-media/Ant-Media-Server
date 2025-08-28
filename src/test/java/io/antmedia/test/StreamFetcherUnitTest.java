@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -174,9 +175,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
     public void testWaitForStreamThreadToStop(){
         StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
         StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
-        when(streamFetcher.isThreadActive()).thenReturn(true);
+        Semaphore semaphore = new Semaphore(0);
+        when(streamFetcher.getIsThreadStopedSemaphore()).thenReturn(semaphore);
         assertEquals(manager.waitForStreamingThreadToStop(streamFetcher),false);
-        when(streamFetcher.isThreadActive()).thenReturn(false);
+        semaphore.release();
         assertEquals(manager.waitForStreamingThreadToStop(streamFetcher),true);
 
     }
@@ -207,7 +209,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
         StreamFetcher streamFetcher = mock(StreamFetcher.class);
-        doReturn(false).when(streamFetcher).isThreadActive();
+        Semaphore semaphore = new Semaphore(0);
+        semaphore.release();
+        doReturn(semaphore).when(streamFetcher).getIsThreadStopedSemaphore();
         doReturn(streamFetcher).when(manager).getStreamFetcher(streamId);
 
 		app.getDataStore().save(playlist);

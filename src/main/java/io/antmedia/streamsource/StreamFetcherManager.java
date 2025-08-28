@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
@@ -281,27 +283,22 @@ public class StreamFetcherManager {
 	}
 
 	public boolean waitForStreamingThreadToStop(StreamFetcher streamFetcher) {
+        int streamThreadStopTimeout = 10;
+        if(streamFetcher == null){
+            return true;
+        }
+        try {
+            Semaphore semaphore = streamFetcher.getIsThreadStopedSemaphore();
+            if(semaphore.availablePermits() > 0 || semaphore.tryAcquire(streamThreadStopTimeout, TimeUnit.SECONDS)) {
+                return true;
+            }
+        }
+        catch (Exception e){
+            logger.error(ExceptionUtils.getStackTrace(e));
+        }
+        logger.warn("thread did not stop for Stream fetcher cannot play next item", streamFetcher.getStreamId() , streamThreadStopTimeout);
 
-		int i = 0;
-		int waitPeriod = 250;
-
-		while (streamFetcher!=null && streamFetcher.isThreadActive()) {
-			try {
-				i++;
-				logger.info("Waiting for stop Playlist Thread to stop : {} Total wait time: {}ms", streamFetcher.getStreamId() , i*waitPeriod);
-
-				Thread.sleep(waitPeriod);
-
-				if(i > 20) {
-					logger.warn("thread did not stop for Stream fetcher cannot play next item", streamFetcher.getStreamId() , i*waitPeriod);
-                    return false;
-				}
-			} catch (InterruptedException e) {
-				logger.error(e.getMessage());
-				Thread.currentThread().interrupt();
-			}
-		}
-		return true;
+		return false;
 	}
 
 
@@ -338,8 +335,9 @@ public class StreamFetcherManager {
 			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess())
 			{
                 boolean nextStarted = false;
-                if(waitForStreamingThreadToStop(oldStreamFetcher))
+                if(waitForStreamingThreadToStop(oldStreamFetcher)) {
                     nextStarted = createAndStartNextPlaylistItem(playlist, listener, currentStreamIndex).isSuccess();
+                }
                 result.setSuccess(nextStarted);
 
 			}
