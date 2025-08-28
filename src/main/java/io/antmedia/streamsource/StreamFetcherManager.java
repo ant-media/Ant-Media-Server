@@ -291,8 +291,11 @@ public class StreamFetcherManager {
         }
         catch (Exception e){
             logger.error(ExceptionUtils.getStackTrace(e));
+            logger.error("Thread was interrupted while waiting for playlist to stop", e);
         }
-        logger.warn("thread did not stop for Stream fetcher cannot play next item", streamFetcher.getStreamId() , streamThreadStopTimeout);
+
+        logger.warn("Thread did not stop for Stream fetcher. Cannot play next item. StreamId={} Timeout={}",
+                streamFetcher.getStreamId(), streamThreadStopTimeout);
 
 		return false;
 	}
