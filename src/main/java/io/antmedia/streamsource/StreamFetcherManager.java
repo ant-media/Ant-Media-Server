@@ -324,6 +324,9 @@ public class StreamFetcherManager {
 
 		//Check playlist is not stopped and there is an item to play
 
+        if(!waitForStreamingThreadToStop(oldStreamFetcher)) {
+            return result;
+        }
 		if(!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
 				&& skipNextPlaylistQueue(playlist, index) != null)
 		{
@@ -334,12 +337,7 @@ public class StreamFetcherManager {
 			// If stream URL is not valid, it's trying next broadcast and trying.
 			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess())
 			{
-                boolean nextStarted = false;
-                if(waitForStreamingThreadToStop(oldStreamFetcher)) {
-                    nextStarted = createAndStartNextPlaylistItem(playlist, listener, currentStreamIndex).isSuccess();
-                }
-                result.setSuccess(nextStarted);
-
+                return createAndStartNextPlaylistItem(playlist, listener, currentStreamIndex);
 			}
 			else
 			{
