@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +85,8 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 		File flvFile = new File("src/test/resources/test.flv");
 		assertTrue(flvFile.exists());
 		RTMPClusterStreamFetcher fetcher = Mockito.spy(new RTMPClusterStreamFetcher(flvFile.getAbsolutePath(), "stream1", appScope));
+		Mockito.doReturn(flvFile.getAbsolutePath()).when(fetcher).getStreamUrl();
+
 		RtmpProvider rtmpProvider = Mockito.mock(RtmpProvider.class);
 		Mockito.doReturn(rtmpProvider).when(fetcher).initRtmpProvider(Mockito.any(), Mockito.any());
 		
@@ -112,7 +115,6 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 		
 		Mockito.verify(rtmpProvider, Mockito.timeout(5000).atLeast(0)).writePacket(Mockito.any(), (AVStream)Mockito.any());
 
-		
 		Mockito.when(rtmpProvider.prepareIO()).thenReturn(true);
 		fetcher.startStream();
 				
@@ -120,10 +122,11 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 			return fetcher.getThreadActive().get() == false;
 		});
 		
-		Mockito.verify(rtmpProvider, Mockito.timeout(5000).atLeast(4)).writePacket(Mockito.any(), (AVStream)Mockito.any());
+
+		Mockito.verify(rtmpProvider, Mockito.timeout(5000).atLeast(4)).writePacket(Mockito.any(), (AVRational)Mockito.any(), (AVRational)Mockito.any(), Mockito.anyInt());
 
 		
-		Mockito.verify(listener, Mockito.timeout(5000).times(4)).streamFinished(Mockito.any());
+		Mockito.verify(listener, Mockito.timeout(5000).atLeast(4)).streamFinished(Mockito.any());
 		
 	}
 

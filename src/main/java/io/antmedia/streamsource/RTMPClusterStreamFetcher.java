@@ -20,6 +20,7 @@ import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
+import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.messaging.IConsumer;
 import org.slf4j.Logger;
@@ -177,7 +178,6 @@ public class RTMPClusterStreamFetcher {
 			if(readResult >= 0) {
 				AVStream stream = inputFormatContext.streams(pkt.stream_index());
 			
-				
 				rtmpProvider.writePacket(pkt, stream.time_base(), videoTimeBase, stream.codecpar().codec_type());
 				
 				unReferencePacket(pkt);
@@ -191,16 +191,19 @@ public class RTMPClusterStreamFetcher {
 			checkNumberOfViewers++;
 			if (checkNumberOfViewers % 500  == 0) 
 			{
-				List<IConsumer> consumers = rtmpProvider.getBroadcastScope().getConsumers();
-				logger.info("Checking the number of viewers for stream: {} and viewers: {}", rtmpUrl, consumers);
-				checkNumberOfViewers = 0;
-				if (consumers == null || consumers.isEmpty()) 
+				IBroadcastScope broadcastScope = rtmpProvider.getBroadcastScope();
+				if (broadcastScope != null) 
 				{
-					logger.info("No viewers, stopping the stream fetcher for stream: {}", rtmpUrl);
-					readTheNextFrame = false;
-					finishing.set(true);
+					List<IConsumer> consumers = broadcastScope.getConsumers();
+					logger.info("Checking the number of viewers for stream: {} and viewers: {}", rtmpUrl, consumers);
+					checkNumberOfViewers = 0;
+					if (consumers == null || consumers.isEmpty()) 
+					{
+						logger.info("No viewers, stopping the stream fetcher for stream: {}", rtmpUrl);
+						readTheNextFrame = false;
+						finishing.set(true);
+					}
 				}
-				
 			}
 			
 
