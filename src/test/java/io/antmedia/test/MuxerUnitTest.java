@@ -186,6 +186,7 @@ import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.eRTMP.HEVCDecoderConfigurationParserTest;
@@ -6280,6 +6281,29 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(dataStore, times(1)).updateBroadcastFields(eq(streamId), argument.capture());
 		assertEquals("{\"key1\":\"val1\",\"key2\":\"val2\"}", argument.getValue().getMetaData());
 		
+	}
+
+	@Test
+	public void testMp4MuxerInitUsesOverrideFileName() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		io.antmedia.muxer.Mp4Muxer mp4Muxer = Mockito.spy(new io.antmedia.muxer.Mp4Muxer(Mockito.mock(io.antmedia.storage.StorageClient.class), Vertx.vertx(), "streams"));
+		AppSettings appSettingsLocal = new AppSettings();
+		appSettingsLocal.setFileNameFormat("");
+		Mockito.doReturn(appSettingsLocal).when(mp4Muxer).getAppSettings();
+		mp4Muxer.setInitialResourceNameOverride("custom_file_name");
+		mp4Muxer.init(appScope, "ignoredStreamId", 0, null, 0);
+		assertEquals("custom_file_name.mp4", mp4Muxer.getFileName());
+	}
+
+	@Test
+	public void testSanitizeAndStripExtension() throws Exception {
+		RestServiceBase rest = new RestServiceBase() {};
+		// access protected method via reflection
+		java.lang.reflect.Method m = RestServiceBase.class.getDeclaredMethod("sanitizeAndStripExtension", String.class, RecordType.class);
+		m.setAccessible(true);
+		assertEquals("my_vod", (String)m.invoke(rest, "my_vod.mp4", RecordType.MP4));
+		assertEquals("clean_name", (String)m.invoke(rest, "cl/ea\\n_na\tme.webm", RecordType.WEBM));
+		assertEquals("noext", (String)m.invoke(rest, "noext", RecordType.MP4));
 	}
 
 }

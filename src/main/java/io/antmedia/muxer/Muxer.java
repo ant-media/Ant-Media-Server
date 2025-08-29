@@ -153,6 +153,13 @@ public abstract class Muxer {
 	 */
 	protected String initialResourceNameWithoutExtension;
 
+	/**
+	 * Optional override for the initial resource name without extension.
+	 * If provided, it will be used directly for file naming instead of
+	 * building a name via {@link #getExtendedName}.
+	 */
+	protected String initialResourceNameOverride;
+
 	protected AVPacket tmpPacket;
 
 	protected long firstAudioDts = 0;
@@ -659,7 +666,12 @@ public abstract class Muxer {
 			//Refactor: Getting AppSettings smells here
 			AppSettings appSettings = getAppSettings();
 
-			initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate, appSettings.getFileNameFormat());
+			if (initialResourceNameOverride != null && !initialResourceNameOverride.isEmpty()) {
+				initialResourceNameWithoutExtension = initialResourceNameOverride;
+			}
+			else {
+				initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate, appSettings.getFileNameFormat());
+			}
 
 			setSubfolder(subFolder);
 			file = getResourceFile(scope, initialResourceNameWithoutExtension, extension, this.subFolder);
@@ -696,6 +708,10 @@ public abstract class Muxer {
 			av_init_packet(tmpPacket);
 
 		}
+	}
+
+	public void setInitialResourceNameOverride(String baseName) {
+		this.initialResourceNameOverride = baseName;
 	}
 
 	public void setSubfolder(String subFolder) {

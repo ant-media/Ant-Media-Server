@@ -1342,13 +1342,14 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result enableRecording(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@Parameter(description = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
 			@Parameter(description = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType,
-			@Parameter(description = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight
+			@Parameter(description = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight,
+			@Parameter(description = "Optional base filename (without extension) for the output VOD.", required = false) @QueryParam("fileName") String fileName
 			) {
 		if (logger.isInfoEnabled()) {
-			logger.info("Recording method is called for {} to make it {} and record Type: {} resolution:{}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null, resolutionHeight);
+			logger.info("Recording method is called for {} to make it {} and record Type: {} resolution:{} fileName:{}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null, resolutionHeight, fileName);
 		}
 		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;  // It means, if recordType is null, function using Mp4 Record by default
-		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight);
+		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight, fileName);
 	}
 
 	@Operation(summary = "Get IP Camera Error after connection failure",
