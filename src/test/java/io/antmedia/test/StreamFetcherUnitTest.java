@@ -245,6 +245,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		Mockito.reset(manager);
 		broadcastItem1.setStreamUrl("test");
 		playlist.getPlayListItemList().set(playlist.getCurrentPlayIndex(),broadcastItem1);
+        doReturn(new Result(true)).when(manager).startPlaylist(playlist);
 		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
 		verify(manager,times(1)).stopStreaming(streamId);
 		verify(manager).skipNextPlaylistQueue(playlist,1);
