@@ -1354,7 +1354,8 @@ public class BroadcastRestService extends RestServiceBase{
 
 	// Backward-compatible overload for existing test callers
 	public Result enableRecording(String streamId, boolean enableRecording, String recordType, int resolutionHeight) {
-		return enableRecording(streamId, enableRecording, recordType, resolutionHeight, null);
+		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;
+		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight);
 	}
 
 	@Operation(summary = "Get IP Camera Error after connection failure",
