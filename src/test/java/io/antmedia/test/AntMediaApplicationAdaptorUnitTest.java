@@ -74,6 +74,8 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.messaging.IConsumer;
+import org.red5.server.scope.BroadcastScope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 
@@ -88,6 +90,7 @@ import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.SendResponse;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AntMediaApplicationAdapter.RTMPClusterStreamFetcherListener;
 import io.antmedia.AppSettings;
 import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.cluster.ClusterNode;
@@ -116,6 +119,7 @@ import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.track.ISubtrackPoller;
@@ -3353,6 +3357,63 @@ public class AntMediaApplicationAdaptorUnitTest {
 			eq("meta from params"), eq(subscriberId), eq(parameters)
 		);
 
+	}
+	
+	@Test
+	public void testRTMPClusterStreamFetcherListener() throws Exception {
+		
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		
+		spyAdapter.setDataStore(new InMemoryDataStore("test"));
+		
+		RTMPClusterStreamFetcher rtmpClusterStreamFetcher = Mockito.mock(RTMPClusterStreamFetcher.class);
+		String rtmpUrl = "rtmp://localhost/live/stream";
+		String streamId = "streamId";
+		RTMPClusterStreamFetcherListener listener = spyAdapter.new RTMPClusterStreamFetcherListener(rtmpClusterStreamFetcher, rtmpUrl, streamId);
+		
+		RtmpProvider rtmpProvider = Mockito.mock(RtmpProvider.class);
+		when(rtmpClusterStreamFetcher.getRtmpProvider()).thenReturn(rtmpProvider);
+		listener.streamFinished(listener);
+		
+		Mockito.verify(rtmpProvider, times(1)).detachRtmpPublisher(streamId);
+		
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(streamId);
+		
+		spyAdapter.getDataStore().save(broadcast);
+		
+		listener.streamFinished(listener);
+		//it detaches because stream is not broadcasting
+		Mockito.verify(rtmpProvider, times(2)).detachRtmpPublisher(streamId);
+		
+		//update time and status
+		broadcast.setUpdateTime(System.currentTimeMillis());
+		broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		
+		Mockito.doReturn(true).when(spyAdapter).isBroadcastOnThisServer(Mockito.any());
+		
+		listener.streamFinished(listener);
+		//it enters another if statement
+		Mockito.verify(rtmpProvider, times(3)).detachRtmpPublisher(streamId);
+		
+		
+		Mockito.doReturn(false).when(spyAdapter).isBroadcastOnThisServer(Mockito.any());
+		
+		listener.streamFinished(listener);
+		//it enters another if statement
+		Mockito.verify(rtmpProvider, times(4)).detachRtmpPublisher(streamId);
+		
+		BroadcastScope broadcastScope = Mockito.mock(BroadcastScope.class);
+		when(rtmpProvider.getBroadcastScope()).thenReturn(broadcastScope);
+		when(broadcastScope.getConsumers()).thenReturn(Arrays.asList(Mockito.mock(IConsumer.class)));
+		listener.streamFinished(listener);
+		//verify does not increase
+		Mockito.verify(rtmpProvider, times(4)).detachRtmpPublisher(streamId);
+		
+		
+		Mockito.verify(rtmpClusterStreamFetcher, timeout(6000)).startStream();
+		
 	}
 
    

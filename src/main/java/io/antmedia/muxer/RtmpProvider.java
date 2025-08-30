@@ -154,11 +154,6 @@ public class RtmpProvider extends Muxer implements IProvider {
                     // remember first ts so we can normalise later if needed
                 }
                 
-               // if((packet.flags() & AV_PKT_FLAG_KEY)==1 && videoExtradata!=null){
-               //   	super.addExtradataIfRequired(packet,true);
-               //     packet = tmpPacket;
-               // }
-
                 ByteBuffer nioBuf = packet.data().limit(packet.size()).asByteBuffer();
                 IoBuffer flvPayload = IoBuffer.allocate(5 + nioBuf.remaining());
                 flvPayload.setAutoExpand(false);

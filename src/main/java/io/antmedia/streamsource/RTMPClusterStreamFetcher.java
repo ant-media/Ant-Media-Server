@@ -50,7 +50,6 @@ public class RTMPClusterStreamFetcher {
 	private AtomicBoolean finishing = new AtomicBoolean(false);
 
 	
-	
 	public class RtmpFetcherThread extends Thread {
 
 		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
@@ -188,31 +187,13 @@ public class RTMPClusterStreamFetcher {
 				readTheNextFrame = false;
 			}
 			
-			checkNumberOfViewers++;
-			if (checkNumberOfViewers % 500  == 0) 
-			{
-				IBroadcastScope broadcastScope = rtmpProvider.getBroadcastScope();
-				if (broadcastScope != null) 
-				{
-					List<IConsumer> consumers = broadcastScope.getConsumers();
-					logger.info("Checking the number of viewers for stream: {} and viewers: {}", rtmpUrl, consumers);
-					checkNumberOfViewers = 0;
-					if (consumers == null || consumers.isEmpty()) 
-					{
-						logger.info("No viewers, stopping the stream fetcher for stream: {}", rtmpUrl);
-						readTheNextFrame = false;
-						finishing.set(true);
-					}
-				}
-			}
+			readTheNextFrame = !stopIfNoViewer(); //inverse the result because stop is true if there is no viewer
 			
 
 			return readTheNextFrame;
 		}
 
-		
-		
-
+	
 		public int readNextPacket(AVPacket pkt) {
 			return av_read_frame(inputFormatContext, pkt);
 		}
@@ -364,6 +345,36 @@ public class RTMPClusterStreamFetcher {
 	
 	public RtmpProvider getRtmpProvider() {
 		return rtmpProvider;
+	}
+	
+	public void setRtmpProvider(RtmpProvider rtmpProvider) {
+		this.rtmpProvider = rtmpProvider;
+	}
+	public void setCheckNumberOfViewers(int checkNumberOfViewers) {
+		this.checkNumberOfViewers = checkNumberOfViewers;
+	}
+	
+	public boolean stopIfNoViewer() 
+	{
+		boolean stop = false;
+		checkNumberOfViewers++;
+		if (checkNumberOfViewers % 500 == 0) 
+		{
+			IBroadcastScope broadcastScope = rtmpProvider.getBroadcastScope();
+			if (broadcastScope != null) 
+			{
+				List<IConsumer> consumers = broadcastScope.getConsumers();
+				logger.info("Checking the number of viewers for stream: {} and viewers: {}", rtmpUrl, consumers);
+				checkNumberOfViewers = 0;
+				if (consumers == null || consumers.isEmpty()) 
+				{
+					logger.info("No viewers, stopping the stream fetcher for stream: {}", rtmpUrl);
+					stop = true;
+					finishing.set(true);
+				}
+			}
+		}
+		return stop;
 	}
 
 }

@@ -1,9 +1,11 @@
 package io.antmedia.test;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -13,6 +15,8 @@ import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.red5.server.messaging.IConsumer;
+import org.red5.server.scope.BroadcastScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +79,50 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 
 
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
+
+	}
+	
+	@Test
+	public void testStopIfNoViewer() {
+		File flvFile = new File("src/test/resources/test.flv");
+
+		RTMPClusterStreamFetcher fetcher = Mockito.spy(new RTMPClusterStreamFetcher(flvFile.getAbsolutePath(), "stream1", appScope));
+		
+		
+		for (int i=0; i<499; i++) {
+			boolean stopIfNoViewer = fetcher.stopIfNoViewer();
+			assertFalse(stopIfNoViewer);
+		}
+		
+		RtmpProvider rtmpProvider = Mockito.mock(RtmpProvider.class);
+		fetcher.setRtmpProvider(rtmpProvider);
+		
+		boolean stopIfNoViewer = fetcher.stopIfNoViewer();
+		assertFalse(stopIfNoViewer);
+		
+		BroadcastScope bs = Mockito.mock(BroadcastScope.class);
+		Mockito.when(rtmpProvider.getBroadcastScope()).thenReturn(bs);
+		
+		fetcher.setCheckNumberOfViewers(499);
+		stopIfNoViewer = fetcher.stopIfNoViewer();
+		//because there is no viewer, it should return true
+		assertTrue(stopIfNoViewer);
+		
+		
+		fetcher.setCheckNumberOfViewers(499);
+		Mockito.when(bs.getConsumers()).thenReturn(Arrays.asList());
+		stopIfNoViewer = fetcher.stopIfNoViewer();
+		//because there is no viewer, it should return true
+		assertTrue(stopIfNoViewer);
+		
+		
+		fetcher.setCheckNumberOfViewers(499);
+		Mockito.when(bs.getConsumers()).thenReturn(Arrays.asList(Mockito.mock(IConsumer.class)));
+		stopIfNoViewer = fetcher.stopIfNoViewer();
+		//because there is one viewer, it should return true
+		assertFalse(stopIfNoViewer);
+		
+		
 
 	}
 	
