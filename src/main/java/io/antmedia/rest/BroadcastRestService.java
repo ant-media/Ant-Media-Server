@@ -1352,6 +1352,11 @@ public class BroadcastRestService extends RestServiceBase{
 		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight, fileName);
 	}
 
+	// Backward-compatible overload for existing test callers
+	public Result enableRecording(String streamId, boolean enableRecording, String recordType, int resolutionHeight) {
+		return enableRecording(streamId, enableRecording, recordType, resolutionHeight, null);
+	}
+
 	@Operation(summary = "Get IP Camera Error after connection failure",
 			description = "Checks for an error after a connection failure with an IP camera. Returning true indicates an error; false indicates no error.",
 			responses = {

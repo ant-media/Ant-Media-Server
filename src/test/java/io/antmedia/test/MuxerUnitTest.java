@@ -6302,7 +6302,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		java.lang.reflect.Method m = RestServiceBase.class.getDeclaredMethod("sanitizeAndStripExtension", String.class, RecordType.class);
 		m.setAccessible(true);
 		assertEquals("my_vod", (String)m.invoke(rest, "my_vod.mp4", RecordType.MP4));
-		assertEquals("clean_name", (String)m.invoke(rest, "cl/ea\\n_na\tme.webm", RecordType.WEBM));
+		assertEquals("cl_ea_n_na_me", (String)m.invoke(rest, "cl/ea\\n_na\tme.webm", RecordType.WEBM));
 		assertEquals("noext", (String)m.invoke(rest, "noext", RecordType.MP4));
 	}
 

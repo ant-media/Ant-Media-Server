@@ -2394,7 +2394,7 @@ public abstract class RestServiceBase {
             return null;
         }
         String safe = replaceCharsForSecurity(fileName);
-        safe = safe.replaceAll("[\\/]+", "_");
+        safe = safe.replaceAll("[\\\\/]+", "_");
         safe = safe.replaceAll("\r|\n|\t", "_");
         // remove extension if present
         if (recordType == RecordType.MP4 && safe.toLowerCase().endsWith(".mp4")) {
