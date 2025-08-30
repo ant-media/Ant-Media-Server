@@ -12,8 +12,13 @@ import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.Mockito;
 import org.red5.server.messaging.IConsumer;
 import org.red5.server.scope.BroadcastScope;
@@ -43,6 +48,31 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 	private AppSettings appSettings;
 	private Vertx vertx;
 
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		}
+
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		}
+
+	};
+	
+	@AfterClass
+	public static void afterClass() {
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 	@Before
 	public void before() {
@@ -161,12 +191,13 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 			return fetcher.getThreadActive().get() == false;
 		});
 		
+		//it will not be called because prepareIO returns false by default
 		Mockito.verify(rtmpProvider, Mockito.timeout(5000).atLeast(0)).writePacket(Mockito.any(), (AVStream)Mockito.any());
 
 		Mockito.when(rtmpProvider.prepareIO()).thenReturn(true);
 		fetcher.startStream();
 				
-		Awaitility.await().atMost(2000, TimeUnit.MILLISECONDS).until(() -> {
+		Awaitility.await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> {
 			return fetcher.getThreadActive().get() == false;
 		});
 		

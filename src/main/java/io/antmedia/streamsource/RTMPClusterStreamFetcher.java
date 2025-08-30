@@ -187,8 +187,10 @@ public class RTMPClusterStreamFetcher {
 				readTheNextFrame = false;
 			}
 			
-			readTheNextFrame = !stopIfNoViewer(); //inverse the result because stop is true if there is no viewer
-			
+			if (readTheNextFrame) { //if it is already false, do not check again
+				
+				readTheNextFrame = !stopIfNoViewer(); //inverse the result because stop is true if there is no viewer
+			}
 
 			return readTheNextFrame;
 		}
