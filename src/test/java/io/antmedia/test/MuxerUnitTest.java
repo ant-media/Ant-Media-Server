@@ -6286,7 +6286,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testMp4MuxerInitUsesOverrideFileName() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		io.antmedia.muxer.Mp4Muxer mp4Muxer = Mockito.spy(new io.antmedia.muxer.Mp4Muxer(Mockito.mock(io.antmedia.storage.StorageClient.class), Vertx.vertx(), "streams"));
+		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams"));
 		AppSettings appSettingsLocal = new AppSettings();
 		appSettingsLocal.setFileNameFormat("");
 		Mockito.doReturn(appSettingsLocal).when(mp4Muxer).getAppSettings();
@@ -6298,7 +6298,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testWebMMuxerInitUsesOverrideFileName() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		io.antmedia.muxer.WebMMuxer webmMuxer = Mockito.spy(new io.antmedia.muxer.WebMMuxer(Mockito.mock(io.antmedia.storage.StorageClient.class), Vertx.vertx(), "streams"));
+		WebMMuxer webmMuxer = Mockito.spy(new WebMMuxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams"));
 		AppSettings appSettingsLocal = new AppSettings();
 		appSettingsLocal.setFileNameFormat("");
 		Mockito.doReturn(appSettingsLocal).when(webmMuxer).getAppSettings();
@@ -6329,7 +6329,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		class TestMuxAdaptor extends MuxAdaptor {
 			public TestMuxAdaptor() { super(Mockito.mock(ClientBroadcastStream.class)); }
 			@Override public boolean addMuxer(Muxer muxer, int resolutionHeight) { return true; }
-			@Override public Mp4Muxer createMp4Muxer() { return Mockito.spy(new io.antmedia.muxer.Mp4Muxer(Mockito.mock(io.antmedia.storage.StorageClient.class), Vertx.vertx(), "streams")); }
+			@Override public Mp4Muxer createMp4Muxer() { return Mockito.spy(new Mp4Muxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams")); }
 			@Override public boolean isAlreadyRecording(RecordType recordType, int resolutionHeight) { return false; }
 		}
 		TestMuxAdaptor adaptor = new TestMuxAdaptor();
