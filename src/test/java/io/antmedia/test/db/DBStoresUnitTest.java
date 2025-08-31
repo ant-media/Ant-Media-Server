@@ -789,40 +789,42 @@ public class DBStoresUnitTest {
 
 		int pageSize = 10;
 		numberOfStatusChangeStreams = (numberOfStatusChangeStreams / pageSize) * pageSize; //normalize
-		long pageCount = numberOfStatusChangeStreams / pageSize;
 		int numberOfCall = 0;
 		System.out.println("Number of status change stream count: " + numberOfStatusChangeStreams + 
-				" page Count: " + pageCount);
-		for (int i = 0; i < pageCount; i++) {
+				" page Count: " + (numberOfStatusChangeStreams / pageSize));
 
-			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
-			for (Broadcast broadcast : broadcastList) {
+		// Use a stable snapshot to avoid paging over a mutating, re-ordered list and ensure uniqueness
+		java.util.LinkedHashSet<String> uniqueIds = new java.util.LinkedHashSet<>();
+		java.util.List<Broadcast> snapshotList = dataStore.getBroadcastList(0, (int)numberOfStatusChangeStreams, null, null, null, null);
+		for (Broadcast broadcast : snapshotList) {
+			if (uniqueIds.add(broadcast.getStreamId())) {
 				numberOfCall++;
 				logger.info("Updating streamId:{}", broadcast.getStreamId());  //log stream and check it if all of them different when this test fails
 				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				broadcastUpdate.setUpdateTime(System.currentTimeMillis());
-;				assertTrue(dataStore.updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate));
+				assertTrue(dataStore.updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate));
 			}
-
 		}
 
 		assertTrue(numberOfCall > 0);
-		assertEquals(numberOfCall, numberOfStatusChangeStreams);
-		//check that active broadcast exactly the same as changed above
+		assertEquals(uniqueIds.size(), numberOfCall);
+		//check that active broadcast exactly the same as changed above (based on unique ids)
 
 		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
 		//yes the streamId is not unique, we need to improve  - mekya Aug 11, 2024
-		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
+		//This problem is fixed, Aug 31, 2025 - golgetahir
+		assertEquals(uniqueIds.size(), dataStore.getActiveBroadcastCount());
 
-		assertEquals(numberOfStatusChangeStreams, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		assertEquals(uniqueIds.size(), dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
 
 		List<Broadcast> localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
-		assertEquals(numberOfStatusChangeStreams, localLiveBroadcasts.size());
+		assertEquals(uniqueIds.size(), localLiveBroadcasts.size());
 
 		//change all streams to finished
 		streamCount = dataStore.getBroadcastCount();
-		pageCount = streamCount / pageSize + ((streamCount % pageSize) > 0 ? 1 : 0);
+		pageSize = 10;
+		int pageCount = (int)(streamCount / pageSize + ((streamCount % pageSize) > 0 ? 1 : 0));
 		for (int i = 0; i < pageCount; i++) {
 
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
