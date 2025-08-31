@@ -301,7 +301,12 @@ public abstract class Muxer {
 		return new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
 				"previews/" + name + extension));
 	}
-	public static File getRecordFile(IScope scope, String name, String extension, String subFolder) 
+
+	public byte[] getVideoExtradata() {
+		return videoExtradata;
+	}
+
+	public static File getRecordFile(IScope scope, String name, String extension, String subFolder)
 	{
 		// get stream filename generator
 		IStreamFilenameGenerator generator = (IStreamFilenameGenerator) ScopeUtils.getScopeService(scope,
@@ -698,16 +703,18 @@ public abstract class Muxer {
 				}
 			}
 
-			audioPkt = avcodec.av_packet_alloc();
-			av_init_packet(audioPkt);
-
-			videoPkt = avcodec.av_packet_alloc();
-			av_init_packet(videoPkt);
-
-			tmpPacket = avcodec.av_packet_alloc();
-			av_init_packet(tmpPacket);
-
+			allocateAVPacket();
 		}
+	}
+	public void allocateAVPacket(){
+		audioPkt = avcodec.av_packet_alloc();
+		av_init_packet(audioPkt);
+
+		videoPkt = avcodec.av_packet_alloc();
+		av_init_packet(videoPkt);
+
+		tmpPacket = avcodec.av_packet_alloc();
+		av_init_packet(tmpPacket);
 	}
 
 	public void setInitialResourceNameOverride(String baseName) {
@@ -1046,7 +1053,7 @@ public abstract class Muxer {
 		 * in case of initiation and preparation takes long.
 		 * because native objects like videoPkt can not be initiated yet
 		 */
-		if (!isRunning.get()) {
+		if (!isRunning.get() || videoPkt == null) {
 			logPacketIssue("Not writing VideoBuffer for {} because Is running:{}", streamId, isRunning.get());
 			return;
 		}
@@ -1186,7 +1193,7 @@ public abstract class Muxer {
 	 * @param outputTimebase
 	 * output time base is required to calculate the correct dts and pts values for the container
 	 */
-	protected synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
+	public synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 		AVFormatContext context = getOutputFormatContext();
 
@@ -1247,12 +1254,9 @@ public abstract class Muxer {
 
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
 			// until the first key frame
-			boolean isKeyFrame = false;
-			if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
-				isKeyFrame = true;
-			}
+			boolean isKeyFrame = (pkt.flags() & AV_PKT_FLAG_KEY) == 1;
 
-			int ret = av_packet_ref(tmpPacket , pkt);
+            int ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
 				logger.error("Cannot copy video packet for {}", streamId);
 				return;

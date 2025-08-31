@@ -18,14 +18,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -225,6 +218,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 		return false;
+	}
+
+	public void setScope(IScope scope) {
+		this.scope = scope;
 	}
 
 	public boolean addSEIData(String data) {
@@ -520,7 +517,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (hlsMuxingEnabled) {
 			addHLSMuxer();
 		}
-
+		
 		getDashMuxer();
 		if (dashMuxer != null) {
 			addMuxer(dashMuxer);
@@ -872,7 +869,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (enableVideo && (width == 0 || height == 0)) {
 			logger.info("Width or height is zero so returning for stream: {}", streamId);
-			return false;
 		}
 
 		isRecording.set(true); 

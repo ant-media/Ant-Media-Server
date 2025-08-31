@@ -1,7 +1,7 @@
 package io.antmedia;
 
 import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,17 +14,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -53,13 +44,9 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IBroadcastStream;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IPlayItem;
-import org.red5.server.api.stream.IStreamCapableConnection;
-import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.red5.server.api.stream.ISubscriberStream;
+import org.red5.server.api.stream.*;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +70,7 @@ import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.RtmpProvider;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
@@ -105,6 +93,7 @@ import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.track.ISubtrackPoller;
@@ -122,6 +111,69 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
+
+	public final class RTMPClusterStreamFetcherListener implements StreamFetcher.IStreamFetcherListener {
+		private final RTMPClusterStreamFetcher rtmpClusterStreamFetcher;
+		private final String rtmpUrl;
+		private final String streamId;
+
+		public RTMPClusterStreamFetcherListener(RTMPClusterStreamFetcher rtmpClusterStreamFetcher, String rtmpUrl,
+				String streamId) {
+			this.rtmpClusterStreamFetcher = rtmpClusterStreamFetcher;
+			this.rtmpUrl = rtmpUrl;
+			this.streamId = streamId;
+		}
+
+		@Override
+		public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
+				
+			RtmpProvider rtmpProvider = rtmpClusterStreamFetcher.getRtmpProvider();
+			Broadcast broadcast = getDataStore().get(streamId);
+			if(broadcast == null) {
+				rtmpProvider.detachRtmpPublisher(streamId);
+				//use the rtmpUrl from the outer scope because broadcast is null
+				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
+				return;
+			}
+			
+			
+			if (!isStreaming(broadcast.getStatus()) ) {
+				logger.warn("broadcast is not streaming(status:{}) no need to fetch the streamId:{}", broadcast.getStatus(), broadcast.getStreamId());
+				rtmpProvider.detachRtmpPublisher(streamId);
+				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
+				return;
+			}
+				
+			if (isBroadcastOnThisServer(broadcast)) {
+				logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
+				rtmpProvider.detachRtmpPublisher(streamId);
+				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
+				return ;
+			}
+			
+			
+			IBroadcastScope broadcastScope = rtmpProvider.getBroadcastScope();
+			
+			if (broadcastScope == null || broadcastScope.getConsumers().isEmpty()) {
+				logger.warn("No RTMP viewer for the streamId:{}. It will not restart the RTMPCLusterStreamFetcher", streamId);
+				rtmpProvider.detachRtmpPublisher(streamId);
+				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
+				return;
+			}
+			
+			
+			vertx.setTimer(5000, h -> {
+				rtmpClusterStreamFetcher.startStream();
+			});
+			
+
+		}
+
+		@Override
+		public void streamStarted(StreamFetcher.IStreamFetcherListener listener) {
+			//no need to implement
+		}
+	}
 
 	/**
 	 * Timeout value that stream is considered as finished or stuck
@@ -202,6 +254,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
+	private List<IStreamPlaybackSecurity> streamPlaySecurityList;
 	private Map<String, OnvifCamera> onvifCameraList = new ConcurrentHashMap<>();
 	protected StreamFetcherManager streamFetcherManager;
 	protected Map<String, MuxAdaptor> muxAdaptors = new ConcurrentHashMap<>();
@@ -247,11 +300,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private Set<IAppSettingsUpdateListener> settingsUpdateListenerSet = new ConcurrentHashSet<IAppSettingsUpdateListener>();
 
+	private Map<String, RTMPClusterStreamFetcher> rtmpClusterStreamFetcherMap = new ConcurrentHashMap<>();
+
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 			registerStreamPublishSecurity(streamPublishSecurity);
+		}
+		
+		//make it bacward compatible because old apps does not have stream playback security
+		if (getStreamPlaySecurityList() != null) 
+		{
+			for (IStreamPlaybackSecurity streamPlaybackSecurity : getStreamPlaySecurityList()) {
+				registerStreamPlaybackSecurity(streamPlaybackSecurity);
+			}
 		}
 		//init vertx
 		getVertx();
@@ -1026,9 +1089,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		LoggerUtils.logAnalyticsFromServer(event);
 	}
 
-	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) 
+	{
 		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		
 	}
+	public boolean isBroadcastOnThisServer(Broadcast broadcast)
+	{
+        return Strings.CS.equals(broadcast.getOriginAdress(), getServerSettings().getHostAddress());
+    }
+
 
 	/**
 	 * 
@@ -1049,7 +1119,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else 
 		{
-			if (broadcastUpdate == null) 
+			if (broadcastUpdate == null)
 			{
 				broadcastUpdate = getFreshBroadcastUpdateForStatus(publishType, status);
 			}
@@ -1597,6 +1667,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.streamPublishSecurityList = streamPublishSecurityList;
 	}
 
+	public void setStreamPlaySecurityList(List<IStreamPlaybackSecurity> streamPlaySecurityList) {
+		this.streamPlaySecurityList = streamPlaySecurityList;
+	}
+
+	public List<IStreamPlaybackSecurity> getStreamPlaySecurityList() {
+		return streamPlaySecurityList;
+	}
+
 	@Override
 	public AppSettings getAppSettings() {
 		return appSettings;
@@ -1974,6 +2052,47 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.vertx = vertx;
 	}
 
+	public boolean fetchRtmpFromOriginIfExist(String streamId){
+		Broadcast broadcast = getDataStore().get(streamId);
+		if(broadcast == null) {
+			logger.warn("Broadcast not found for streamId: {} to play with RTMP", streamId);
+			return false;
+		}
+		
+		
+		if (!isStreaming(broadcast.getStatus())) {
+			logger.warn("Broadcast:{} is not streaming(status:{}) no need to fetch", streamId, broadcast.getStatus());
+			return false;
+		}
+		
+		if (isBroadcastOnThisServer(broadcast)) {
+			logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
+			return false;
+		}
+		
+		logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());
+
+		RTMPClusterStreamFetcher rtmpClusterStreamFetcherTmp = null;
+		synchronized(rtmpClusterStreamFetcherMap) {
+			RTMPClusterStreamFetcher streamFetcher = rtmpClusterStreamFetcherMap.get(broadcast.getRtmpURL());
+			if (streamFetcher != null && !streamFetcher.isFinishing()) {
+				logger.warn("There is already RTMP ClusterStreamFetcher for the same url: {}. No need to create a new one", broadcast.getRtmpURL());
+				return false;
+			}
+			rtmpClusterStreamFetcherTmp = new RTMPClusterStreamFetcher(broadcast.getRtmpURL(), streamId, getScope());
+			rtmpClusterStreamFetcherMap.put(broadcast.getRtmpURL(), rtmpClusterStreamFetcherTmp);
+		}
+		
+		RTMPClusterStreamFetcher rtmpClusterStreamFetcher = rtmpClusterStreamFetcherTmp;
+		
+		rtmpClusterStreamFetcher.startStream();
+		
+		String rtmpUrl = broadcast.getRtmpURL();
+
+		rtmpClusterStreamFetcher.setStreamFetcherListener(new RTMPClusterStreamFetcherListener(rtmpClusterStreamFetcher, rtmpUrl, streamId));
+		return true;
+	}
+
 	public void closeRTMPStreams()
 	{
 		Collection<MuxAdaptor> adaptors = getMuxAdaptors();
@@ -2051,8 +2170,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.warn("Following streams status set to finished explicitly because they're not stopped properly: {}", String.join(",", streamIdList));
 			}
 		}
-
-
 	}
 
 
