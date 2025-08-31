@@ -6319,6 +6319,54 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String res2 = (String)m.invoke(rest, withPath, RecordType.MP4);
 		assertFalse(res2.contains("/"));
 		assertFalse(res2.contains("\\"));
+		// explicitly cover WEBM extension strip path
+		String webm = (String)m.invoke(rest, "clip.webm", RecordType.WEBM);
+		assertEquals("clip", webm);
+	}
+
+	@Test
+	public void testMuxAdaptorStartRecordingOverloadPassesBaseName() {
+		class TestMuxAdaptor extends MuxAdaptor {
+			public TestMuxAdaptor() { super(Mockito.mock(ClientBroadcastStream.class)); }
+			@Override public boolean addMuxer(Muxer muxer, int resolutionHeight) { return true; }
+			@Override public Mp4Muxer createMp4Muxer() { return Mockito.spy(new io.antmedia.muxer.Mp4Muxer(Mockito.mock(io.antmedia.storage.StorageClient.class), Vertx.vertx(), "streams")); }
+			@Override public boolean isAlreadyRecording(RecordType recordType, int resolutionHeight) { return false; }
+		}
+		TestMuxAdaptor adaptor = new TestMuxAdaptor();
+		adaptor.setIsRecording(true);
+		RecordMuxer result = adaptor.startRecording(RecordType.MP4, 0, "base_name");
+		// verify override applied on created muxer
+		Mp4Muxer created = (Mp4Muxer) result;
+		Mockito.verify(created, Mockito.times(1)).setInitialResourceNameOverride("base_name");
+	}
+
+	@Test
+	public void testEnableRecordMuxingWithFileNameUsesOverride() throws Exception {
+		final String streamId = "s1";
+		// mock datastore and broadcast in broadcasting state
+		DataStore store = Mockito.mock(DataStore.class);
+		Broadcast b = new Broadcast();
+		b.setStreamId(streamId);
+		b.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		b.setOriginAdress("127.0.0.1");
+		Mockito.when(store.get(streamId)).thenReturn(b);
+		Mockito.when(store.setMp4Muxing(Mockito.eq(streamId), Mockito.anyInt())).thenReturn(true);
+
+		RecordMuxer rm = Mockito.mock(RecordMuxer.class);
+		Mockito.when(rm.getCurrentVoDTimeStamp()).thenReturn(0L);
+		RestServiceBase rest = new RestServiceBase() {
+			@Override
+			public DataStore getDataStore() { return store; }
+			@Override
+			public boolean isInSameNodeInCluster(String originAddress) { return true; }
+			@Override
+			protected RecordMuxer startRecord(String sid, RecordType rt, int res, String baseFileName) { return rm; }
+			@Override
+			protected RecordMuxer startRecord(String sid, RecordType rt, int res) { return null; }
+		};
+
+		Result res = rest.enableRecordMuxing(streamId, true, "mp4", 0, "name.mp4");
+		assertTrue(res.isSuccess());
 	}
 
 	@Test
