@@ -639,7 +639,7 @@ public abstract class RestServiceBase {
 		String endpointServiceId = endpoint.getEndpointServiceId();
 		if (endpointServiceId == null || endpointServiceId.isEmpty()) {
 			//generate custom endpoint invidual ID
-			endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);
+			endpointServiceId = "custom"+RandomStringUtils.insecure().nextAlphanumeric(6);
 		}
 		endpoint.setEndpointServiceId(endpointServiceId);
 
@@ -1286,7 +1286,7 @@ public abstract class RestServiceBase {
 					if (!streamsDirectory.exists()) {
 						streamsDirectory.mkdirs();
 					}
-					String vodId = RandomStringUtils.randomNumeric(24);
+					String vodId = org.apache.commons.lang3.RandomStringUtils.randomNumeric(24);
 
 
 					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
@@ -2228,7 +2228,7 @@ public abstract class RestServiceBase {
                                         startRecord(streamId, recordType, resolutionHeight, sanitizedBaseName) :
                                         startRecord(streamId, recordType, resolutionHeight);
                                 if (muxer != null) {
-                                    vodId = RandomStringUtils.randomAlphanumeric(24);
+                                    vodId = org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric(24);
                                     muxer.setVodId(vodId);
                                     message = Long.toString(muxer.getCurrentVoDTimeStamp());
                                     logger.warn("{} recording is {} for stream: {}", type,status,streamId);

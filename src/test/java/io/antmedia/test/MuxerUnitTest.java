@@ -6296,6 +6296,32 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
+	public void testWebMMuxerInitUsesOverrideFileName() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		io.antmedia.muxer.WebMMuxer webmMuxer = Mockito.spy(new io.antmedia.muxer.WebMMuxer(Mockito.mock(io.antmedia.storage.StorageClient.class), Vertx.vertx(), "streams"));
+		AppSettings appSettingsLocal = new AppSettings();
+		appSettingsLocal.setFileNameFormat("");
+		Mockito.doReturn(appSettingsLocal).when(webmMuxer).getAppSettings();
+		webmMuxer.setInitialResourceNameOverride("custom_file_name_webm");
+		webmMuxer.init(appScope, "ignoredStreamId", 0, null, 0);
+		assertEquals("custom_file_name_webm.webm", webmMuxer.getFileName());
+	}
+
+	@Test
+	public void testSanitizeAndStripExtension_LengthAndChars() throws Exception {
+		RestServiceBase rest = new RestServiceBase() {};
+		java.lang.reflect.Method m = RestServiceBase.class.getDeclaredMethod("sanitizeAndStripExtension", String.class, RecordType.class);
+		m.setAccessible(true);
+		String veryLong = new String(new char[150]).replace('\0', 'a') + ".mp4";
+		String res = (String)m.invoke(rest, veryLong, RecordType.MP4);
+		assertTrue(res.length() <= 120);
+		String withPath = "..//..\\bad/name\\file.mp4";
+		String res2 = (String)m.invoke(rest, withPath, RecordType.MP4);
+		assertFalse(res2.contains("/"));
+		assertFalse(res2.contains("\\"));
+	}
+
+	@Test
 	public void testSanitizeAndStripExtension() throws Exception {
 		RestServiceBase rest = new RestServiceBase() {};
 		// access protected method via reflection
