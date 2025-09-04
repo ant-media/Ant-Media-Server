@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -64,7 +65,8 @@ public class StreamFetcher {
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
-	private IScope scope;
+    private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
+    private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
@@ -331,6 +333,7 @@ public class StreamFetcher {
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
+                isThreadStopedSemaphore.drainPermits();
 
 				inputFormatContext = new AVFormatContext(null);
 				pkt = avcodec.av_packet_alloc();
@@ -366,9 +369,11 @@ public class StreamFetcher {
 			}
 			finally {
 
+                setThreadActive(false);
+                isThreadStopedSemaphore.release();
 				close(pkt);
 
-				setThreadActive(false);
+
 			}
 
 		}
@@ -704,7 +709,7 @@ public class StreamFetcher {
 					stopRequestReceived = true;
 					restartStream = false;
 					logger.info("Calling streamFinished listener for streamId:{} and it will not restart the stream automatically because callback is getting the responsbility", streamId);
-					streamFetcherListener.streamFinished(streamFetcherListener);
+                    streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
 				if(!stopRequestReceived && restartStream) {
@@ -1127,6 +1132,10 @@ public class StreamFetcher {
 	public Result getCameraError() {
 		return cameraError;
 	}
+
+    public Semaphore getIsThreadStopedSemaphore(){
+        return isThreadStopedSemaphore;
+    }
 
 	public void setCameraError(Result cameraError) {
 		this.cameraError = cameraError;
