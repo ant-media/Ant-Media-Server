@@ -13,10 +13,8 @@ import org.red5.server.api.IContext;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.service.IStreamSecurityService;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IClientStream;
-import org.red5.server.api.stream.IStreamCapableConnection;
-import org.red5.server.api.stream.IStreamPublishSecurity;
+import org.red5.server.api.stream.*;
+import org.red5.server.scope.Scope;
 import org.red5.server.util.ScopeUtils;
 import org.springframework.context.ApplicationContext;
 
@@ -192,7 +190,7 @@ public class StreamServiceTest {
 	}
 
 	@Test
-	public void testStreamSecurityServiceHandlers() {
+	public void testStreamPublishSecurityServiceHandlers() {
 		StreamService streamService = Mockito.spy(new StreamService());
 		String streamId = "testStream";
 		String token = "test_token";
@@ -240,5 +238,56 @@ public class StreamServiceTest {
 
 		}
 	}
+	@Test
+	public void testStreamPlaySecurityServiceHandlers(){
+		StreamService streamService = Mockito.spy(new StreamService());
+		Scope scope = Mockito.mock(Scope.class);
+		String streamId = "testStream";
+		String token = "test_token";
+		String subscriberId = "test_subscriber_id";
+		String subscriberCode = "test_subscriber_code";
 
+		String name = streamId +"/"+token+"/"+subscriberId+"/"+subscriberCode;
+
+		IStreamCapableConnection conn = mock(IStreamCapableConnection.class);
+		Map<String, Object> mockMap = mock(Map.class);
+		doReturn(scope).when(conn).getScope();
+		Object customObject = new Object() {
+			@Override
+			public String toString() {
+				return "LiveApp/"+streamId;
+			}
+		};
+		Mockito.doReturn(customObject).when(mockMap).get("path");
+		Mockito.doReturn(mockMap).when(conn).getConnectParams();
+		Mockito.doReturn(1).when(conn).getStreamId();
+		Red5.setConnectionLocal(conn);
+
+		IStreamSecurityService mockSecurityService = mock(IStreamSecurityService.class);
+		IStreamPlaybackSecurity mockHandler = mock(IStreamPlaybackSecurity.class);
+
+		Set<IStreamPlaybackSecurity> mockHandlers = new HashSet<>();
+		mockHandlers.add(mockHandler);
+
+		when(mockSecurityService.getStreamPlaybackSecurity()).thenReturn(mockHandlers);
+
+		try (MockedStatic<ScopeUtils> mockedStatic = mockStatic(ScopeUtils.class)) {
+			mockedStatic.when(() -> ScopeUtils.getScopeService(any(), any()))
+					.thenReturn(mockSecurityService);
+
+			doReturn(false).when(mockHandler).isPlayAllowed(any(), any(), any(),any() , any(), anyString(), anyString(), anyString());
+			doNothing().when(streamService).sendNSFailed(any(),anyString(),anyString(),anyString(),any());
+
+			Map<String, String> params = new HashMap<>();
+			params.put("subscriberId", "test_subscriber_id");
+			params.put("subscriberCode", "test_subscriber_code");
+			params.put("streamName", "testStream");
+			params.put("token", "test_token");
+
+			streamService.play(name,133);
+
+			verify(mockHandler).isPlayAllowed(scope, streamId, "",params , null, token, subscriberId, subscriberCode);
+
+		}
+	}
 }
