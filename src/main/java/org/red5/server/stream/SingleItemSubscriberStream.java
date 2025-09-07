@@ -19,7 +19,9 @@
 package org.red5.server.stream;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.red5.logging.Red5LoggerFactory;
@@ -77,6 +79,10 @@ public class SingleItemSubscriberStream extends AbstractClientStream implements 
     protected long creationTime = System.currentTimeMillis();
 
     private volatile IPlayItem item;
+    
+    
+    //query parameters provided in rtmp play call
+    private Map<String, String> params = new HashMap<>();
 
     /**
      * Plays items back
@@ -477,5 +483,16 @@ public class SingleItemSubscriberStream extends AbstractClientStream implements 
         }
 
     }
+    
+    
+    @Override
+    public void setParams(Map<String, String> params) {
+    	this.params = params;    	
+    }
+    
+    @Override
+	public Map<String, String> getParams() {
+		return this.params;
+	}
 
 }

@@ -397,6 +397,14 @@ public class StreamService implements IStreamService {
                             log.trace("Created stream: {} for stream id: {}", stream, streamId);
                         }
                         stream.setBroadcastStreamPublishName(name);
+                        if (stream instanceof ISubscriberStream) {
+                        	ISubscriberStream subscriberStream = (ISubscriberStream) stream;
+                        	
+                        	subscriberStream.setParams(params);
+                        }
+                        
+                        
+                        
                         stream.start();
                         created = true;
                     } else {
