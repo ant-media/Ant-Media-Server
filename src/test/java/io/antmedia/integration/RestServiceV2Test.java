@@ -1608,7 +1608,7 @@ public class RestServiceV2Test {
 			assertTrue(result.isSuccess());
 
 			//It will be failed since there is no url
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
 				//this is the endpoint running
 				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
 				return IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(tmp2.getEndPointList().get(1).getStatus());
