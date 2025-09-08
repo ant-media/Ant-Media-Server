@@ -20,6 +20,8 @@ package org.red5.server.api.stream;
 
 import org.red5.server.api.scope.IScope;
 
+import java.util.Map;
+
 /**
  * Interface for handlers that control access to stream playback.
  * 
@@ -52,5 +54,8 @@ public interface IStreamPlaybackSecurity {
      * </pre>
      */
     public boolean isPlaybackAllowed(IScope scope, String name, int start, int length, boolean flushPlaylist);
+
+    public boolean isPlayAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode);
+
 
 }
