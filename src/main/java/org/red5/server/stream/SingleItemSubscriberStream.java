@@ -484,15 +484,16 @@ public class SingleItemSubscriberStream extends AbstractClientStream implements 
 
     }
     
-    
-    @Override
-    public void setParams(Map<String, String> params) {
-    	this.params = params;    	
-    }
+  
     
     @Override
 	public Map<String, String> getParams() {
 		return this.params;
 	}
+    
+    @Override
+    public void setParams(Map<String, String> params) {
+    	this.params = params;    	
+    }
 
 }

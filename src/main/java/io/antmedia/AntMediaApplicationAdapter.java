@@ -1403,7 +1403,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters)  
 	{
 		Broadcast broadcast = getDataStore().get(id);
-		String metaDataLocal = StringUtils.isNotBlank(metadata) ? metadata : broadcast.getMetaData();
+		String metaDataLocal = StringUtils.isNotBlank(metadata) ? metadata : (broadcast != null ? broadcast.getMetaData() : null);
 		
 		String listenerHookURL = getListenerHookURL(broadcast);	
 		if (StringUtils.isNotBlank(listenerHookURL)) 
