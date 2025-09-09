@@ -321,6 +321,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		//initalize to access the data store directly in the code
 		getDataStore();
+		
+		//init server settings
+		getServerSettings();
 
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
@@ -3040,9 +3043,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		
 		//if the subscriber is not registered to the current node, I mean it's created above then, 
 		//subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress() will not equal
-		if (!Strings.CS.equals(subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress())) 
+		
+		if (!Strings.CS.equals(subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress()))  //use getServerSettings to avoid null pointer exception
 		{
-			subscriber.setRegisteredNodeIp(serverSettings.getHostAddress());
+			subscriber.setRegisteredNodeIp(serverSettings.getHostAddress()); //use getServerSettings to avoid null pointer exception
 		}
 		getDataStore().addSubscriber(streamId, subscriber);
 		
