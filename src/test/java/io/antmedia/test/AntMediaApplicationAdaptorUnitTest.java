@@ -81,6 +81,7 @@ import org.red5.server.scope.BroadcastScope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.PlaylistSubscriberStream;
 import org.red5.server.stream.SingleItemSubscriberStream;
+import org.slf4j.Logger;
 import org.springframework.context.ApplicationContext;
 
 import com.google.auth.oauth2.GoogleCredentials;
@@ -140,6 +141,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 	String streamsFolderPath = "webapps/test/streams";
 
 	Vertx vertx = Vertx.vertx();
+	
+	Logger logger = org.slf4j.LoggerFactory.getLogger(AntMediaApplicationAdaptorUnitTest.class);
 
 	@Rule
 	public TestRule watcher = new TestWatcher() {
@@ -3436,7 +3439,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(playItem.getName()).thenReturn("streamId");
 		ISubscriberStream stream = mock(ISubscriberStream.class);
 
-
+		logger.info("First streamPlayItemPlay");
 		spyAdapter.streamPlayItemPlay(stream, playItem, true);
 
 		Mockito.verify(spyAdapter, timeout(5000)).sendWebHook(Mockito.eq("streamId"), Mockito.any(), Mockito.eq(AntMediaApplicationAdapter.HOOK_ACTION_PLAY_STARTED), Mockito.any(), Mockito.any(), 
@@ -3446,7 +3449,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Map<String, String> params = new HashMap<>();
 		params.put(WebSocketConstants.SUBSCRIBER_ID, "subid");
+		stream = mock(ISubscriberStream.class);
 		when(stream.getParams()).thenReturn(params);
+		
+		logger.info("Second streamPlayItemPlay");
 		spyAdapter.streamPlayItemPlay(stream, playItem, true);
 
 		Mockito.verify(spyAdapter, timeout(5000).times(2)).sendWebHook(Mockito.eq("streamId"), Mockito.any(), Mockito.eq(AntMediaApplicationAdapter.HOOK_ACTION_PLAY_STARTED), Mockito.any(), Mockito.any(), 
