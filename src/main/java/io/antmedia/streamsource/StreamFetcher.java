@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -364,9 +365,9 @@ public class StreamFetcher {
 			}
 			finally {
 
-                setThreadActive(false);
-                isThreadStopedSemaphore.release();
-				close(pkt);
+            setThreadActive(false);
+            close(pkt);
+            isThreadStopedSemaphore.release();
 
 
 			}
@@ -1059,10 +1060,28 @@ public class StreamFetcher {
 		return thread.isInterrupted();
 	}
 
-	public void stopStream()
+	public boolean stopStream(boolean StopBlocking)
 	{
-		logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
-		stopRequestReceived = true;
+        stopRequestReceived = true;
+        logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
+        if(StopBlocking){
+            int streamThreadStopTimeout = 10;
+            try {
+                if(!isThreadActive() || (isThreadStopedSemaphore.availablePermits() > 0 || isThreadStopedSemaphore.tryAcquire(streamThreadStopTimeout, TimeUnit.SECONDS))) {
+                    return true;
+                }
+            }
+            catch (Exception e){
+                logger.error(ExceptionUtils.getStackTrace(e));
+                logger.error("Thread was interrupted while waiting for playlist to stop", e);
+                Thread.currentThread().interrupt();
+            }
+
+            logger.warn("Thread did not stop for Stream fetcher. Cannot play next item. StreamId={} Timeout={}",
+                    getStreamId(), streamThreadStopTimeout);
+            return false;
+        }
+        return true;
 	}
 
 	public void seekTime(long seekTimeInMilliseconds) {
@@ -1083,7 +1102,7 @@ public class StreamFetcher {
 	}
 
 	public void restart() {
-		stopStream();
+		stopStream(false);
 		new Thread() {
 			@Override
 			public void run() {

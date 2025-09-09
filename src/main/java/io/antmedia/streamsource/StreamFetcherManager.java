@@ -199,7 +199,7 @@ public class StreamFetcherManager {
 		return result;
 	}
 
-	public Result stopStreaming(String streamId) 
+	public Result stopStreaming(String streamId, boolean StopBlocking)
 	{
 		logger.warn("inside of stopStreaming for {}", streamId);
 		Result result = new Result(false);
@@ -208,8 +208,9 @@ public class StreamFetcherManager {
 		{
 			StreamFetcher scheduler = streamFetcherList.remove(streamId);
 			if (scheduler != null) {
-				scheduler.stopStream();
-				result.setSuccess(true);
+				result.setSuccess(scheduler.stopStream(StopBlocking));
+                result.setMessage(result.isSuccess() ? "Stream stopped" : "Failed to stop the stream with Blocking :"+streamId);
+                return result;
 			}
 		}
 
@@ -278,30 +279,6 @@ public class StreamFetcherManager {
 		return startStreamScheduler(newStreamScheduler);
 	}
 
-	public boolean waitForStreamingThreadToStop(StreamFetcher streamFetcher) {
-        int streamThreadStopTimeout = 10;
-        if(streamFetcher == null){
-            return true;
-        }
-        try {
-            Semaphore semaphore = streamFetcher.getIsThreadStopedSemaphore();
-            if(semaphore.availablePermits() > 0 || semaphore.tryAcquire(streamThreadStopTimeout, TimeUnit.SECONDS)) {
-                return true;
-            }
-        }
-        catch (Exception e){
-            logger.error(ExceptionUtils.getStackTrace(e));
-            logger.error("Thread was interrupted while waiting for playlist to stop", e);
-            Thread.currentThread().interrupt();
-        }
-
-        logger.warn("Thread did not stop for Stream fetcher. Cannot play next item. StreamId={} Timeout={}",
-                streamFetcher.getStreamId(), streamThreadStopTimeout);
-
-		return false;
-	}
-
-
 
 	/**
 	 * 
@@ -313,10 +290,9 @@ public class StreamFetcherManager {
 	{
 		Result result = new Result(false);
 
-		final StreamFetcher oldStreamFetcher = getStreamFetcher(playlist.getStreamId());
-		stopStreaming(playlist.getStreamId());
+		stopStreaming(playlist.getStreamId(), true);
 
-		if (serverShuttingDown) {
+        if (serverShuttingDown) {
 			logger.info("Playlist will not try to play the next item because server is shutting down");
 			result.setMessage("Playlist will not try to play the next item because server is shutting down");
 			return result;
@@ -324,9 +300,6 @@ public class StreamFetcherManager {
 
 		//Check playlist is not stopped and there is an item to play
 
-        if(!waitForStreamingThreadToStop(oldStreamFetcher)) {
-            return result;
-        }
 		if(!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
 				&& skipNextPlaylistQueue(playlist, index) != null)
 		{
@@ -570,7 +543,7 @@ public class StreamFetcherManager {
 				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
 						streamScheduler.getStreamId(), restart, broadcast == null, autoStop);
 				
-				stopStreaming(streamScheduler.getStreamId());
+				stopStreaming(streamScheduler.getStreamId(), false);
 				
 			}
 			else {
@@ -583,7 +556,7 @@ public class StreamFetcherManager {
 						broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
 					// if it's not blocked and it's not alive, stop the stream 
 					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
-					stopStreaming(streamScheduler.getStreamId());
+					stopStreaming(streamScheduler.getStreamId(), false);
 					//turn restart to true because we restart the stream to reconnect
 					restart = true;
 				}
@@ -667,7 +640,7 @@ public class StreamFetcherManager {
 	{
 		logger.info("Stopping playlist for stream: {}", streamId);
 
-		Result result = stopStreaming(streamId);
+		Result result = stopStreaming(streamId, false);
 		if (result.isSuccess()) 
 		{
 			result = new Result(false);

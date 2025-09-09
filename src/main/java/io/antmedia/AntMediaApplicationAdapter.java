@@ -1308,6 +1308,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters)  
 	{
 		Broadcast broadcast = getDataStore().get(id);
+        if(broadcast == null)
+            return;
 		String metaDataLocal = StringUtils.isNotBlank(metadata) ? metadata : broadcast.getMetaData();
 		
 		String listenerHookURL = getListenerHookURL(broadcast);	
@@ -1732,7 +1734,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD))
 		{
-			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
+			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST))
 		{
@@ -1996,7 +1998,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (streamFetcherManager != null) {
 			Map<String, StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
 			for (StreamFetcher streamFetcher : fetchers.values()) {
-				streamFetcher.stopStream();
+				streamFetcher.stopStream(false);
 				//it may be also play list so stop it if it's 
 				getStreamFetcherManager().stopPlayList(streamFetcher.getStreamId());
 			}
