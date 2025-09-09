@@ -1662,7 +1662,7 @@ public class RestServiceV2Test {
 			assertTrue(result.isSuccess());
 			
 			//add non existin rtmp url bugfix test - issue #3032
-			String rtmpUrl2 = "rtmp://nonexisting.com/abcdef";
+			String rtmpUrl2 = "rtmp://example.com/abcdef";
 			Endpoint endpoint2 = new Endpoint();
 			endpoint2.setRtmpUrl(rtmpUrl2);
 			// add generic endpoint
