@@ -412,7 +412,9 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		result = restService.callDeleteBroadcast(rtmpPullStreamId);
 		assertTrue(result.isSuccess());
 
-		getAppSettings().resetDefaults();
+		appSettings.resetDefaults();
+		result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+		assertTrue(result.isSuccess());
 
 	}
 

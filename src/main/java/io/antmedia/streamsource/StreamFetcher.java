@@ -108,6 +108,8 @@ public class StreamFetcher {
 
 		void streamFinished(IStreamFetcherListener listener);
 
+		void streamStarted(IStreamFetcherListener listener);
+
 	}
 
 	IStreamFetcherListener streamFetcherListener;
@@ -233,7 +235,8 @@ public class StreamFetcher {
 
 
 		public Result prepareInput(AVFormatContext inputFormatContext) {
-			int timeout = appSettings.getRtspTimeoutDurationMs();
+			int timeout = appSettings.getRtspTimeoutDurationMs(); 
+			streamUrl = getStreamUrl();
 			setConnectionTimeout(timeout);
 
 			Result result = new Result(false);
@@ -325,7 +328,6 @@ public class StreamFetcher {
 				}
 				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
-
 					return;
 				}
 
@@ -338,6 +340,9 @@ public class StreamFetcher {
 				pkt = avcodec.av_packet_alloc();
 				if(prepareInputContext(broadcast))
 				{
+					if(streamFetcherListener != null){
+						streamFetcherListener.streamStarted(streamFetcherListener);
+					}
 
 					boolean readTheNextFrame = true;
 					//In some odd cases stopRequest is received immediately and status of the stream changed to finished
@@ -693,6 +698,7 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
+					
 					getInstance().closeBroadcast(streamId, null, null);
 					streamPublished=false;
 					closeCalled = true;
@@ -1096,6 +1102,9 @@ public class StreamFetcher {
 	public WorkerThread getThread() {
 		return thread;
 	}
+	public  Broadcast getBroadcast(){
+		return dataStore.get(streamId);
+	}
 
 	public void setThread(WorkerThread thread) {
 		this.thread = thread;
@@ -1189,13 +1198,13 @@ public class StreamFetcher {
 		this.bufferTime = bufferTime;
 	}
 
-	private AppSettings getAppSettings() {
+	protected AppSettings getAppSettings() {
 		if (appSettings == null) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
 	}
-
+	
 	/**
 	 * This is for test purposes
 	 * @param stopRequest
