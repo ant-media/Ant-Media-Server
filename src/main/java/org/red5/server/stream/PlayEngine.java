@@ -98,7 +98,7 @@ import io.antmedia.datastore.db.types.Broadcast;
  * @author Tiago Daniel Jacobs (tiago@imdt.com.br)
  * @author Vladimir Hmelyoff (vlhm@splitmedialabs.com)
  */
-public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnectionListener {
+public class PlayEngine implements IFilter, IPushableConsumer, IPipeConnectionListener {
 
 	private static final Logger log = Red5LoggerFactory.getLogger(PlayEngine.class);
 
@@ -2042,5 +2042,9 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 	 */
 	public void setMaxSequentialPendingVideoFrames(int maxSequentialPendingVideoFrames) {
 		this.maxSequentialPendingVideoFrames = maxSequentialPendingVideoFrames;
+	}
+	
+	public ISubscriberStream getSubscriberStream() {
+		return subscriberStream;
 	}
 }
