@@ -1118,6 +1118,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
         frame.quality(audio_c.global_quality());
         frame.sample_rate(audio_c.sample_rate());
         frame.ch_layout(audio_c.ch_layout());
+        frame.key_frame(1);
         
         writeFrame(frame);
     }
