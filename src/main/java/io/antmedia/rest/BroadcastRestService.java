@@ -103,7 +103,7 @@ public class BroadcastRestService extends RestServiceBase{
 	private static final String CONTINUOUS_MOVE = "continuous";
 	
 	private static final int MIN_TOTP_EXPIRATION_TIME = 10;
-    private static final int MAX_TOTP_EXPIRATION_TIME = 1000;
+    private static final int MAX_TOTP_EXPIRATION_TIME = Integer.MAX_VALUE;
     
 
 	@Schema(description="Simple generic statistics class to return single values")
