@@ -4092,7 +4092,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = restServiceReal.addSubscriber(streamId, subscriber2);
 		assertFalse("Should fail with TOTP expiry period below minimum", result.isSuccess());
 		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10 and 1000"));
+			result.getMessage().contains("must be between 10"));
 
 		// Test 3: Custom TOTP expiry period above maximum (should fail)
 		Subscriber subscriber3 = new Subscriber();
@@ -4109,9 +4109,8 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		result = restServiceReal.addSubscriber(streamId, subscriber3);
-		assertFalse("Should fail with TOTP expiry period above maximum", result.isSuccess());
-		assertTrue("Error message should mention maximum value", 
-			result.getMessage().contains("must be between 10 and 1000"));
+		assertTrue("Should pass because TOTP expiry period  is integer max", result.isSuccess());
+		
 
 		// Test 4: No custom TOTP expiry period (should succeed - uses default)
 		Subscriber subscriber4 = new Subscriber();
@@ -4174,7 +4173,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = restServiceReal.addSubscriber(streamId, subscriber7);
 		assertFalse("Should fail with zero TOTP expiry period", result.isSuccess());
 		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10 and 1000"));
+			result.getMessage().contains("must be between 10"));
 
 		// Test 8: Negative value (should fail)
 		Subscriber subscriber8 = new Subscriber();
@@ -4193,7 +4192,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = restServiceReal.addSubscriber(streamId, subscriber8);
 		assertFalse("Should fail with negative TOTP expiry period", result.isSuccess());
 		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10 and 1000"));
+			result.getMessage().contains("must be between 10"));
 	}
 
 }
