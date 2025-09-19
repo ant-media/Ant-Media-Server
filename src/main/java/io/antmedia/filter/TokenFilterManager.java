@@ -102,10 +102,16 @@ public class TokenFilterManager extends AbstractFilter   {
 				
 				boolean checkJwtToken = false;
 				if (streamId != null) {
-					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+					String streamIdToCheck = streamId;
+					if (streamId.startsWith("drm/")) {
+						// In case we are using DRM, we need to remove 'drm/' before checking streamID
+						streamIdToCheck = streamId.substring(4);
+					}
+
+					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamIdToCheck, Token.PLAY_TOKEN);
 				}
-				if (!checkJwtToken) 
-				{
+
+				if (!checkJwtToken) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);
 					logger.warn("Cluster communication token is not valid for streamId:{}" , streamId);
 					return; 	
@@ -209,6 +215,12 @@ public class TokenFilterManager extends AbstractFilter   {
 		//if request is adaptive file (ending with _adaptive.m3u8)
 		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
 		if (endIndex != -1) {
+			int llhlsIndex = requestURI.lastIndexOf("/ll-hls/");
+			if (llhlsIndex != -1) {
+				// Fix to get proper ID when using ll-hls
+				return requestURI.substring(llhlsIndex + 8, requestURI.lastIndexOf("/"));
+			}
+
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
 		//let's have the rule for streamId.
