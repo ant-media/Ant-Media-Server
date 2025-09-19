@@ -622,6 +622,7 @@ public class ConsoleAppRestServiceTest{
 				return false;
 			}
 		});
+		
 
 		Applications applications = getApplications();
 		int appCount = applications.applications.length;
@@ -633,7 +634,16 @@ public class ConsoleAppRestServiceTest{
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
-			return tmpApplications.applications.length == appCount + 1;
+			
+			for (String app: tmpApplications.applications) {
+				if (app.equals(appName)) {
+					log.info("app:{} is found in the application list", appName);
+					//return true if app is found
+					return true;
+				}
+			}
+			//return false if app is not found
+			return false;
 		});
 
 		//check that if the app is configured to use redis
@@ -650,8 +660,17 @@ public class ConsoleAppRestServiceTest{
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
+			//check that there is no app with appName
 			Applications tmpApplications = getApplications();
-			return tmpApplications.applications.length == appCount;
+			for (String app: tmpApplications.applications) {
+				if (app.equals(appName)) {
+					log.info("app:{} is found in the application list.", appName);
+					//return false if app is found
+					return false;
+				}
+			}
+			//return true if app is not found
+			return true;
 		});
 
 		//switch back to use mapdb
