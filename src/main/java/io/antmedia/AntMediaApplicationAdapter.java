@@ -322,6 +322,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		//initalize to access the data store directly in the code
 		getDataStore();
+		
+		//init server settings
+		getServerSettings();
 
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
@@ -977,16 +980,41 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
-		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), true));
+		vertx.setTimer(100, l -> {
+			getDataStore().updateRtmpViewerCount(item.getName(), true);
+			
+			logger.debug("Stream play item started for stream: {}", item.getName());
+			sendWebHook(item.getName(), null, AntMediaApplicationAdapter.HOOK_ACTION_PLAY_STARTED, null, null, null, null, null, null, stream.getParams());
+			
+			Map<String,String> params = stream.getParams();
+			String subscriberId = params != null ? params.get(WebSocketConstants.SUBSCRIBER_ID) : null;
+			String subscriberName = params != null ? params.get(WebSocketConstants.SUBSCRIBER_NAME) : null;
+			if (StringUtils.isNotBlank(subscriberId)) 
+			{
+				registerSubscriberToNode(item.getName(), subscriberId, subscriberName);
+			}
+			
+		});
 	}
 	@Override
 	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
-		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), false));
+		vertx.setTimer(100, l -> {
+			getDataStore().updateRtmpViewerCount(item.getName(), false);
+			logger.debug("Stream play item stopped for stream: {}", item.getName());
+
+			sendWebHook(item.getName(), null, AntMediaApplicationAdapter.HOOK_ACTION_PLAY_STOPPED, null, null, null, null, null, null, stream.getParams());
+
+		});
 	}
 
 	@Override
 	public void streamSubscriberClose(ISubscriberStream stream) {
-		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
+		vertx.setTimer(100, l -> { 
+			logger.debug("Stream subscriber closed for stream: {}", stream.getBroadcastStreamPublishName());
+			getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false);
+			sendWebHook(stream.getBroadcastStreamPublishName(), null, AntMediaApplicationAdapter.HOOK_ACTION_PLAY_STOPPED, null, null, null, null, null, null, stream.getParams());
+
+		});
 	}
 
 	/**
@@ -1379,7 +1407,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters)  
 	{
 		Broadcast broadcast = getDataStore().get(id);
-		String metaDataLocal = StringUtils.isNotBlank(metadata) ? metadata : broadcast.getMetaData();
+		String metaDataLocal = StringUtils.isNotBlank(metadata) ? metadata : (broadcast != null ? broadcast.getMetaData() : null);
 		
 		String listenerHookURL = getListenerHookURL(broadcast);	
 		if (StringUtils.isNotBlank(listenerHookURL)) 
@@ -3021,6 +3049,30 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public IDataChannelRouter getDataChannelRouter() {
 		//implemented in the enterprise edition
 		return null;
+	}
+	
+	public void registerSubscriberToNode(String streamId, String subscriberId, String subscriberName) {
+		Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
+
+		if (subscriber == null) {
+			subscriber = new Subscriber();
+			subscriber.setStreamId(streamId);
+			subscriber.setSubscriberId(subscriberId);
+			subscriber.setSubscriberName(subscriberName);
+		}
+		
+		subscriber.setConnected(true);
+
+		
+		//if the subscriber is not registered to the current node, I mean it's created above then, 
+		//subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress() will not equal
+		
+		if (!Strings.CS.equals(subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress()))  //use getServerSettings to avoid null pointer exception
+		{
+			subscriber.setRegisteredNodeIp(serverSettings.getHostAddress()); //use getServerSettings to avoid null pointer exception
+		}
+		getDataStore().addSubscriber(streamId, subscriber);
+		
 	}
 
 

@@ -368,17 +368,7 @@ public class StreamService implements IStreamService {
             if(!verifySecurity(scope, streamConn, name, streamId, params, "", StreamAction.PLAY))
                 return;
 
-            IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
-            if (security != null) {
-                Set<IStreamPlaybackSecurity> handlers = security.getStreamPlaybackSecurity();
-                for (IStreamPlaybackSecurity handler : handlers) {
-                    if (!handler.isPlaybackAllowed(scope, name, start, length, flushPlaylist)) {
-                        log.warn("You are not allowed to play stream {}", name);
-                        sendNSFailed(streamConn, StatusCodes.NS_FAILED, "You are not allowed to play the stream.", name, streamId);
-                        return;
-                    }
-                }
-            }
+     
             boolean created = false;
             IClientStream stream = streamConn.getStreamById(streamId);
             if (stream == null) {
@@ -397,6 +387,14 @@ public class StreamService implements IStreamService {
                             log.trace("Created stream: {} for stream id: {}", stream, streamId);
                         }
                         stream.setBroadcastStreamPublishName(name);
+                        if (stream instanceof ISubscriberStream) {
+                        	ISubscriberStream subscriberStream = (ISubscriberStream) stream;
+                        	
+                        	subscriberStream.setParams(params);
+                        }
+                        
+                        
+                        
                         stream.start();
                         created = true;
                     } else {
@@ -721,8 +719,8 @@ public class StreamService implements IStreamService {
         else if(action.equals(StreamAction.PLAY)){
             for (IStreamPlaybackSecurity handler : playbackSecurityHandlers) {
                 if (!handler.isPlayAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
-                    sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to play the stream.", name, streamId);
-                    log.error("You are not allowed to play the stream {}", name);
+                    sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to play the stream due to security.", name, streamId);
+                    log.error("You are not allowed to play the stream {} due to security", name);
                     return false;
                 }
             }
