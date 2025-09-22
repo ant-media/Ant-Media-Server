@@ -553,15 +553,21 @@ public class TokenFilterTest {
 
 
 			// Test DRM case - streamId with "drm/" prefix should be stripped before JWT validation
-			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/drm/" + streamId + ".m3u8");
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/drm/" + streamId + "/master.mpd");
 			when(tokenService.isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString())).thenReturn(true);
 
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
-
-			// Verify that isJwtTokenValid was called with the stripped streamId (without "drm/" prefix)
 			verify(tokenService, atLeast(1)).isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString());
 			verify(mockChain, times(2)).doFilter(mockRequest, mockResponse);
 
+
+			// Test the other DRM case
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/drm/" + streamId + "/master.m3u8");
+			when(tokenService.isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString())).thenReturn(true);
+
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			verify(tokenService, atLeast(1)).isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString());
+			verify(mockChain, atLeast(1)).doFilter(mockRequest, mockResponse);
 
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();
