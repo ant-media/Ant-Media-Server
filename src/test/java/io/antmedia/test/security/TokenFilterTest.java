@@ -8,6 +8,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -549,6 +551,16 @@ public class TokenFilterTest {
 			//isJwtTokenValid should not be called because streamId is not valid - it's same number of call with the previous one
 			verify(tokenService, times(2)).isJwtTokenValid(anyString(), anyString(), anyString(), anyString());
 
+
+			// Test DRM case - streamId with "drm/" prefix should be stripped before JWT validation
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/drm/" + streamId + ".m3u8");
+			when(tokenService.isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString())).thenReturn(true);
+
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+
+			// Verify that isJwtTokenValid was called with the stripped streamId (without "drm/" prefix)
+			verify(tokenService, atLeast(1)).isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString());
+			verify(mockChain, times(2)).doFilter(mockRequest, mockResponse);
 
 
 		} catch (ServletException|IOException e) {
