@@ -699,6 +699,62 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testGetAppJwtToken() {
+		InMemoryDataStore datastore = mock(InMemoryDataStore.class);
+		restServiceReal.setDataStore(datastore);
+
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getJwtStreamSecretKey()).thenReturn("testtesttesttesttesttesttesttest");
+		restServiceReal.setAppSettings(settings);
+
+		ApplicationContext appContext = mock(ApplicationContext.class);
+
+		// appContext null
+		Object tokenReturn = restServiceReal.getAppJwtTokenV2(123432, Token.PLAY_TOKEN).getEntity();
+		assertTrue(tokenReturn instanceof Result);
+		Result result = (Result) tokenReturn;
+		assertFalse(result.isSuccess());
+
+		// appContext present but no token service
+		restServiceReal.setAppCtx(appContext);
+		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(false);
+		tokenReturn = restServiceReal.getAppJwtTokenV2(123432, Token.PLAY_TOKEN).getEntity();
+		assertTrue(tokenReturn instanceof Result);
+		result = (Result) tokenReturn;
+		assertFalse(result.isSuccess());
+
+		// token service returns null
+		ITokenService tokenService = mock(ITokenService.class);
+		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(true);
+		when(appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(tokenService);
+		when(tokenService.createAppJwtToken(123432, Token.PLAY_TOKEN)).thenReturn(null);
+		tokenReturn = restServiceReal.getAppJwtTokenV2(123432, Token.PLAY_TOKEN).getEntity();
+		assertTrue(tokenReturn instanceof Result);
+		result = (Result) tokenReturn;
+		assertFalse(result.isSuccess());
+
+		// success case
+		Token token = new Token();
+		token.setStreamId(null);
+		token.setExpireDate(123432);
+		token.setTokenId(RandomStringUtils.randomAlphabetic(8));
+		token.setType(Token.PLAY_TOKEN);
+		when(tokenService.createAppJwtToken(123432, Token.PLAY_TOKEN)).thenReturn(token);
+		tokenReturn = restServiceReal.getAppJwtTokenV2(123432, Token.PLAY_TOKEN).getEntity();
+		assertTrue(tokenReturn instanceof Token);
+		assertEquals(((Token)tokenReturn).getTokenId(), token.getTokenId());
+
+		// invalid inputs
+		tokenReturn = restServiceReal.getAppJwtTokenV2(0, Token.PLAY_TOKEN).getEntity();
+		assertTrue(tokenReturn instanceof Result);
+		assertFalse(((Result)tokenReturn).isSuccess());
+
+		tokenReturn = restServiceReal.getAppJwtTokenV2(123432, null).getEntity();
+		assertTrue(tokenReturn instanceof Result);
+		assertFalse(((Result)tokenReturn).isSuccess());
+	}
+
+	@Test
 	public void testSettingsListenerHookURL() {
 		AppSettings settings = mock(AppSettings.class);
 		String hookURL = "http://url_hook";
