@@ -321,10 +321,12 @@ public class StreamFetcher {
 				if (broadcast == null) {
 					//if broadcast null, it means it's deleted
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
+					stopRequestReceived = true; //set stop request to finish the thread
 					return;
 				}
 				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
+					stopRequestReceived = true; //set stop request to finish the thread
 					return;
 				}
 

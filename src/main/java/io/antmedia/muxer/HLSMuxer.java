@@ -61,7 +61,7 @@ public class HLSMuxer extends Muxer  {
 	private boolean deleteFileOnExit = true;
 	private String hlsFlags;
 
-	private String segmentInitFilename;;
+	private String segmentInitFilename;
 
 	private String hlsEncryptionKeyInfoFile = null;
 

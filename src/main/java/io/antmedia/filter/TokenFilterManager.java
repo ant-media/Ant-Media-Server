@@ -102,13 +102,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				
 				boolean checkJwtToken = false;
 				if (streamId != null) {
-					String streamIdToCheck = streamId;
-					if (streamId.startsWith("drm/")) {
-						// In case we are using DRM, we need to remove 'drm/' before checking streamID
-						streamIdToCheck = streamId.substring(4);
-					}
-
-					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamIdToCheck, Token.PLAY_TOKEN);
+					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
 				}
 
 				if (!checkJwtToken) {
@@ -192,6 +186,10 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		if(requestURI.contains("streams")) {
 			requestURI = requestURI.split("streams")[1];
+			if (requestURI.startsWith("/drm/")) {
+				requestURI = requestURI.substring(5);
+				return requestURI.substring(0, requestURI.indexOf("/"));
+			}
 		}
 
 		if(requestURI.contains("m4s") || requestURI.contains("mpd")) {
