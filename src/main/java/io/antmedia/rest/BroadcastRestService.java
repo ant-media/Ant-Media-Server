@@ -806,6 +806,35 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 
+	@Operation(description = "Generates application-scoped JWT token for the current application (independent of streamId). It's generally recommended to generate JWT on client side.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Returns token",
+					content = @Content(
+							mediaType = "application/json", 
+							schema = @Schema(implementation = Token.class)
+							)),
+			@ApiResponse(responseCode = "400", description = "When there is an error in creating token",
+			content = @Content(
+					mediaType = "application/json", 
+					schema = @Schema(implementation = Result.class)
+					))
+	})
+	@GET
+	@Path("/app-jwt-token")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getAppJwtTokenV2 (
+			@Parameter(description = "The expire time of the token. It's in unix timestamp seconds.", required = true) @QueryParam("expireDate") long expireDate,
+			@Parameter(description = "Type of the JWT token. It may be play or publish ", required = true) @QueryParam("type") String type) 
+	{
+		Object result = super.getAppJwtToken(expireDate, type);
+		if (result instanceof Token) {
+			return Response.status(Status.OK).entity(result).build();
+		}
+		else {
+			return Response.status(Status.BAD_REQUEST).entity(result).build();
+		}
+	}
+
 	@Operation(summary = "Perform validation of token for requested stream",
 			description = "If validated, success field is true, not validated success field is false",
 			responses = {
