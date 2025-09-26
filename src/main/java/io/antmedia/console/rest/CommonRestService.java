@@ -387,10 +387,9 @@ public class CommonRestService {
 		boolean result = false;
 		if (tryToAuthenticate) 
 		{
-			
-			String md5Password = getMD5Hash(user.getPassword());
-			result = getDataStore().doesUserExist(user.getEmail(), md5Password) || 
-					getDataStore().doesUserExist(user.getEmail(), getMD5Hash(md5Password));
+			String suppliedPassword = user.getPassword();
+			result = getDataStore().doesUserExist(user.getEmail(), suppliedPassword) ||
+					getDataStore().doesUserExist(user.getEmail(), getMD5Hash(suppliedPassword));
 
 			if (result) 
 			{
