@@ -308,6 +308,11 @@ public class StreamServiceTest {
 		Mockito.doReturn(mockMap).when(conn).getConnectParams();
 		Mockito.doReturn(1).when(conn).getStreamId();
 		Red5.setConnectionLocal(conn);
+		
+		when(scope.getContext()).thenReturn(mock(IContext.class));
+		AntMediaApplicationAdapter adaptor = mock(AntMediaApplicationAdapter.class);
+		when(scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
+		when(adaptor.getDataStore()).thenReturn(new InMemoryDataStore("junit"));
 
 		IStreamSecurityService mockSecurityService = mock(IStreamSecurityService.class);
 		IStreamPlaybackSecurity mockHandler = mock(IStreamPlaybackSecurity.class);
