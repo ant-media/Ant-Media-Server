@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.print.PrintException;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import io.antmedia.console.rest.CommonRestService;
@@ -620,6 +622,7 @@ public class ConsoleAppRestServiceTest{
 				return false;
 			}
 		});
+		
 
 		Applications applications = getApplications();
 		int appCount = applications.applications.length;
@@ -631,7 +634,16 @@ public class ConsoleAppRestServiceTest{
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
-			return tmpApplications.applications.length == appCount + 1;
+			
+			for (String app: tmpApplications.applications) {
+				if (app.equals(appName)) {
+					log.info("app:{} is found in the application list", appName);
+					//return true if app is found
+					return true;
+				}
+			}
+			//return false if app is not found
+			return false;
 		});
 
 		//check that if the app is configured to use redis
@@ -648,8 +660,17 @@ public class ConsoleAppRestServiceTest{
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
+			//check that there is no app with appName
 			Applications tmpApplications = getApplications();
-			return tmpApplications.applications.length == appCount;
+			for (String app: tmpApplications.applications) {
+				if (app.equals(appName)) {
+					log.info("app:{} is found in the application list.", appName);
+					//return false if app is found
+					return false;
+				}
+			}
+			//return true if app is not found
+			return true;
 		});
 
 		//switch back to use mapdb
@@ -2513,6 +2534,28 @@ public class ConsoleAppRestServiceTest{
 		
 	}
 
+  @Test
+  public void testRtspAllowedMediaTypes() throws Exception {
+    StreamFetcherUnitTest.startCameraEmulator();
+
+    Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio",
+    AntMediaApplicationAdapter.STREAM_SOURCE);
+
+    String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
+    Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
+
+
+    Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+      Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+
+      assertEquals(0, broadcastTmp.getHeight());
+      assertEquals(0, broadcastTmp.getWidth());
+
+      return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+
+    });
+
+  }
 	/**
 	 * This is a bug fix test
 	 * https://github.com/ant-media/Ant-Media-Server/issues/6212

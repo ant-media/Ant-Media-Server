@@ -838,8 +838,27 @@ public abstract class MapBasedDataStore extends DataStore
 	}
 
 	@Override
+	public long getConnectedSubscriberCount(String streamId) {
+		int subscriberCount = 0;
+		synchronized (this) {
+			for (String subscriberJson : subscriberMap.values()) {
+				Subscriber subscriber = gson.fromJson(subscriberJson, Subscriber.class);
+				if(subscriber.getStreamId().equals(streamId) && subscriber.isConnected()) {
+					subscriberCount++;
+				}
+			}
+		}
+		return subscriberCount;
+	}
+	
+	@Override
+	public List<Subscriber> getConnectedSubscribers(String streamId, int offset, int size) {
+		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson, true);
+	}
+
+	@Override
 	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
-		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson);
+		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson, false);
 	}
 
 	@Override

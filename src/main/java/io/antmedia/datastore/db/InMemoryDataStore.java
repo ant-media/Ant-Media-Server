@@ -700,7 +700,29 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
+	public long getConnectedSubscriberCount(String streamId) {
+		int subscriberCount = 0;
+		synchronized (this) {
+			for (Subscriber subscriber : subscriberMap.values()) {
+				if(subscriber.getStreamId().equals(streamId) && subscriber.isConnected()) {
+					subscriberCount++;
+				}
+			}
+		}
+		return subscriberCount;
+	}
+	
+	@Override
+	public List<Subscriber> getConnectedSubscribers(String streamId, int offset, int size) {
+		return listSubscribers(streamId, offset, size, true);
+	}
+	
+	@Override
 	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
+		return listSubscribers(streamId, offset, size, false);
+	}
+
+	private List<Subscriber> listSubscribers(String streamId, int offset, int size, boolean connectedOnly) {
 		List<Subscriber> list = new ArrayList<>();
 		List<Subscriber> returnList = new ArrayList<>();
 
@@ -716,7 +738,8 @@ public class InMemoryDataStore extends DataStore {
 
 
 		for(Subscriber subscriber: values) {
-			if (subscriber.getStreamId().equals(streamId)) {
+			if (subscriber.getStreamId().equals(streamId) &&
+				    (!connectedOnly || subscriber.isConnected())) {
 				list.add(subscriber);
 			}
 		}
