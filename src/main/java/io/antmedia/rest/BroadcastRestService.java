@@ -1142,9 +1142,14 @@ public class BroadcastRestService extends RestServiceBase{
 		//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
 		result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
 
+		message = "";
 		AntMediaApplicationAdapter application = getApplication();
 		if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
-			application.stopPlayingBySubscriberId(subscriberId, streamId);
+			boolean playerStopped = application.stopPlayingBySubscriberId(subscriberId, streamId);
+			if (!playerStopped) {
+				logger.warn("Playback cannot be stopped for streamId:{} and subscriberId:{} likely there is no active subscriber", streamId, subscriberId);			
+			}
+				
 		}
 
 		if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
