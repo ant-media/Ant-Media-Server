@@ -51,7 +51,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 
 		String method = httpRequest.getMethod();
-		if (HttpMethod.GET.equals(method) && httpRequest.getRequestURI().endsWith("m3u8")) {
+		if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) && httpRequest.getRequestURI().endsWith("m3u8")) {
 
 			//start date is in seconds since epoch
 			String startDate = request.getParameter(START);
@@ -116,6 +116,11 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 						redirectLocation = redirectLocation.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 					    logger.info("HLS manifest file will be downloaded from redirect location:{}", redirectLocation);
 				    	
+					    if (HttpMethod.HEAD.equals(method)) {
+					    	httpResponse.sendRedirect(redirectLocation);
+					    	return; // return immediately after redirect
+					    }
+					    
 				        // Make a new HTTP request to the redirect URL
 				        URL url = createRedirectURL(redirectLocation);
 				        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
