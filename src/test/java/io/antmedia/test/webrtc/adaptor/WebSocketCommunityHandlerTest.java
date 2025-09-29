@@ -680,8 +680,28 @@ public class WebSocketCommunityHandlerTest {
 	}
     @Test
     public void testSdpMediaTypeValid(){
-        // valid all payload type available
         String sdp = "v=0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 \n"
+                + "a=rtpmap:111 opus/48000/2\n";
+
+        assertTrue(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        sdp = "v=0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 110\n"
+                + "a=rtpmap:111 opus/4800/2\n" //opus should not be 48000
+                + "a=rtpmap:107 rtx/90000\n";
+
+        assertFalse(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        sdp = "v=0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 110\n"
+                + "a=rtpmap:111 opus/48000/1\n" //opus should not be 1
+                + "a=rtpmap:107 rtx/90000\n";
+
+        assertFalse(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        // valid all payload type available
+        sdp = "v=0\n"
                 + "o=- 7847717452155503175 2 IN IP4 127.0.0.1\n"
                 + "s=-\n"
                 + "t=0 0\n"

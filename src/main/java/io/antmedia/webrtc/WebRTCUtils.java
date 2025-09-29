@@ -16,11 +16,14 @@ public class WebRTCUtils {
         String currentMedia = null;
         for (String line : lines) {
             line = line.trim();
+            if(line.contains("opus") && !line.contains("opus/48000/2")){
+                System.out.println("Invalid SDP: opus should be opus/48000/2 ");
+                return false;
+            }
 
-            // Match media line
             Matcher m = mLinePattern.matcher(line);
             if (m.find()) {
-                currentMedia = m.group(1); // audio, video, application
+                currentMedia = m.group(1); 
                 String payloads = m.group(2).trim();
                 Set<Integer> pts = new HashSet<>();
                 for (String pt : payloads.split("\\s+")) {
@@ -31,8 +34,6 @@ public class WebRTCUtils {
                 mediaPayloads.put(currentMedia, pts);
                 continue;
             }
-
-            // Match rtpmap line
             Matcher rtp = rtpmapPattern.matcher(line);
             if (rtp.find()) {
                 int pt = Integer.parseInt(rtp.group(1));
