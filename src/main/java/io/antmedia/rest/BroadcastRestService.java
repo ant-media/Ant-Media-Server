@@ -103,7 +103,7 @@ public class BroadcastRestService extends RestServiceBase{
 	private static final String CONTINUOUS_MOVE = "continuous";
 	
 	private static final int MIN_TOTP_EXPIRATION_TIME = 10;
-    private static final int MAX_TOTP_EXPIRATION_TIME = 1000;
+    private static final int MAX_TOTP_EXPIRATION_TIME = Integer.MAX_VALUE;
     
 
 	@Schema(description="Simple generic statistics class to return single values")
@@ -1142,9 +1142,14 @@ public class BroadcastRestService extends RestServiceBase{
 		//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
 		result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
 
+		message = "";
 		AntMediaApplicationAdapter application = getApplication();
 		if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
-			application.stopPlayingBySubscriberId(subscriberId, streamId);
+			boolean playerStopped = application.stopPlayingBySubscriberId(subscriberId, streamId);
+			if (!playerStopped) {
+				logger.warn("Playback cannot be stopped for streamId:{} and subscriberId:{} likely there is no active subscriber", streamId, subscriberId);			
+			}
+				
 		}
 
 		if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {

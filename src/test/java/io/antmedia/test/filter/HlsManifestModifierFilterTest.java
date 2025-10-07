@@ -708,6 +708,51 @@ public class HlsManifestModifierFilterTest {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	
+	@Test
+	public void testFilterWithRedirectionWithHeadRequest() {
+		try {
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+			
+			ServletOutputStream outputStream = mock(ServletOutputStream.class);
+			when(mockResponse.getOutputStream()).thenReturn(outputStream);
+			when(mockResponse.getStatus()).thenReturn(200);
+			when(mockResponse.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
+			FilterChain myChain = new FilterChain() {
+				@Override
+				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
+					((ContentCachingResponseWrapper)servletResponse).setStatus(200);
+					((ContentCachingResponseWrapper)servletResponse).getOutputStream().write(testM3u8.getBytes());
+				}
+			};
+
+			//blank start end params
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			when(mockRequest.getMethod()).thenReturn("HEAD");
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/test.m3u8");
+			when(mockRequest.getParameter(HlsManifestModifierFilter.START)).thenReturn("1709926082");
+			when(mockRequest.getParameter(HlsManifestModifierFilter.END)).thenReturn("1709926087");
+
+			AppSettings appSettings = new AppSettings();
+			appSettings.setHttpForwardingBaseURL("forward_url");
+			
+			doReturn(appSettings).when(hlsManifestModifierFilter).getAppSettings();
+	
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
+			
+			verify(mockResponse).sendRedirect("forward_url/streams/test.m3u8");
+
+			
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (ServletException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 	@Test
 	public void testNoDoubleAmps(){
 
