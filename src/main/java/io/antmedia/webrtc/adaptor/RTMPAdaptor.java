@@ -155,8 +155,8 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 
-	public static FFmpegFrameRecorder initRecorder(String outputURL, int width, int height, String format) {
-		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, width, height, 1);
+	public static FFmpegFrameRecorder initRecorder(String outputURL, int width, int height, String format, int audioChannels) {
+		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, width, height, audioChannels);
 		recorder.setFormat(format);
 		recorder.setSampleRate(44100);
 		// Set in the surface changed method
@@ -164,7 +164,7 @@ public class RTMPAdaptor extends Adaptor {
 		recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
 		recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
 		recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
-		recorder.setAudioChannels(2);
+		recorder.setAudioChannels(audioChannels);
 		recorder.setGopSize(40);
 		recorder.setVideoQuality(29);
 		recorder.setMaxBFrames(0);
@@ -173,8 +173,12 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height, String format) {
+        int audioChannels = 1;
 
-		FFmpegFrameRecorder recorderLocal = initRecorder(outputURL, width, height, format);
+        if(this.webRtcAudioTrack != null){
+            audioChannels = webRtcAudioTrack.getChannels();
+        }
+        FFmpegFrameRecorder recorderLocal = initRecorder(outputURL, width, height, format, audioChannels);
 
 		try {
 			recorderLocal.start();
