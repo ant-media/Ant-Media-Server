@@ -1801,6 +1801,52 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testEnableMp4MuxingWithBaseFileName() throws Exception 
+	{
+		final String scopeValue = "scope";
+
+		BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		restServiceSpy.setAppSettings(settings);
+
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceSpy.setServerSettings(serverSettings);
+
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn(scopeValue);
+		restServiceSpy.setScope(scope);
+
+		DataStore store = new InMemoryDataStore("testdbBaseName");
+		restServiceSpy.setDataStore(store);
+
+		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
+		MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
+
+		doReturn(true).when(restServiceSpy).isInSameNodeInCluster(Mockito.any());
+		doReturn(application).when(restServiceSpy).getApplication();
+
+		Response response = restServiceSpy.createBroadcast(new Broadcast("baseNameTest"), false);
+		Broadcast testBroadcast = (Broadcast) response.getEntity();
+		when(application.getMuxAdaptor(testBroadcast.getStreamId())).thenReturn(mockMuxAdaptor);
+		doReturn(mockMuxAdaptor).when(restServiceSpy).getMuxAdaptor(testBroadcast.getStreamId());
+
+		// make the broadcast active
+		testBroadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		testBroadcast.setUpdateTime(System.currentTimeMillis());
+
+		// expect startRecording with sanitized base file name (extension stripped)
+		when(mockMuxAdaptor.startRecording(RecordType.MP4, 0, "My Clip Name"))
+				.thenReturn(Mockito.mock(Mp4Muxer.class));
+
+		Result result = restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), true, "mp4", 0, "My Clip Name.mp4");
+		assertTrue(result.isSuccess());
+
+		verify(mockMuxAdaptor, times(1)).startRecording(RecordType.MP4, 0, "My Clip Name");
+		assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, store.get(testBroadcast.getStreamId()).getMp4Enabled());
+	}
+
+	@Test
 	public void testEnableWebMMuxing() throws Exception 
 	{
 		final String scopeValue = "scope";
@@ -4092,7 +4138,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = restServiceReal.addSubscriber(streamId, subscriber2);
 		assertFalse("Should fail with TOTP expiry period below minimum", result.isSuccess());
 		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10 and 1000"));
+			result.getMessage().contains("must be between 10"));
 
 		// Test 3: Custom TOTP expiry period above maximum (should fail)
 		Subscriber subscriber3 = new Subscriber();
@@ -4109,9 +4155,8 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		result = restServiceReal.addSubscriber(streamId, subscriber3);
-		assertFalse("Should fail with TOTP expiry period above maximum", result.isSuccess());
-		assertTrue("Error message should mention maximum value", 
-			result.getMessage().contains("must be between 10 and 1000"));
+		assertTrue("Should pass because TOTP expiry period  is integer max", result.isSuccess());
+		
 
 		// Test 4: No custom TOTP expiry period (should succeed - uses default)
 		Subscriber subscriber4 = new Subscriber();
@@ -4174,7 +4219,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = restServiceReal.addSubscriber(streamId, subscriber7);
 		assertFalse("Should fail with zero TOTP expiry period", result.isSuccess());
 		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10 and 1000"));
+			result.getMessage().contains("must be between 10"));
 
 		// Test 8: Negative value (should fail)
 		Subscriber subscriber8 = new Subscriber();
@@ -4193,7 +4238,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = restServiceReal.addSubscriber(streamId, subscriber8);
 		assertFalse("Should fail with negative TOTP expiry period", result.isSuccess());
 		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10 and 1000"));
+			result.getMessage().contains("must be between 10"));
 	}
 
 }
