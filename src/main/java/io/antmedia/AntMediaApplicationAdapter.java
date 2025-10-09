@@ -2144,7 +2144,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (streamFetcherManager != null) {
 			Map<String, StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
 			for (StreamFetcher streamFetcher : fetchers.values()) {
-				streamFetcher.stopStream(false);
+				streamFetcher.stopStream();
 				//it may be also play list so stop it if it's 
 				getStreamFetcherManager().stopPlayList(streamFetcher.getStreamId());
 			}

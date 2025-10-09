@@ -6,8 +6,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
@@ -199,7 +197,7 @@ public class StreamFetcherManager {
 		return result;
 	}
 
-	public Result stopStreaming(String streamId, boolean StopBlocking)
+	public Result stopStreaming(String streamId, boolean stopBlocking)
 	{
 		logger.warn("inside of stopStreaming for {}", streamId);
 		Result result = new Result(false);
@@ -208,7 +206,13 @@ public class StreamFetcherManager {
 		{
 			StreamFetcher scheduler = streamFetcherList.remove(streamId);
 			if (scheduler != null) {
-				result.setSuccess(scheduler.stopStream(StopBlocking));
+                if(stopBlocking){
+                    result.setSuccess(scheduler.stopStreamBlocking());
+                }
+                else{
+                    scheduler.stopStream();
+                    result.setSuccess(true);
+                }
                 result.setMessage(result.isSuccess() ? "Stream stopped" : "Failed to stop the stream with Blocking :"+streamId);
                 return result;
 			}

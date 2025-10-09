@@ -180,7 +180,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
         // thread already stoped
         assertTrue(manager.stopStreaming("test",true).isSuccess());
-        verify(streamFetcher).stopStream(true);
+        verify(streamFetcher).stopStreamBlocking();
 
         reset(streamFetcher);
 
@@ -189,7 +189,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
         streamFetcher.setThreadActive(true);
         streamFetcher.getIsThreadStopedSemaphore().release();
         assertTrue(manager.stopStreaming("test",true).isSuccess());
-        verify(streamFetcher).stopStream(true);
+        verify(streamFetcher).stopStreamBlocking();
 
 
         reset(streamFetcher);
@@ -199,7 +199,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
         streamFetcher.setThreadActive(true);
         streamFetcher.getIsThreadStopedSemaphore().drainPermits();
         assertFalse(manager.stopStreaming("test",true).isSuccess());
-        verify(streamFetcher).stopStream(true);
+        verify(streamFetcher).stopStreamBlocking();
 
         // without waiting stop
         manager.getStreamFetcherList().put(streamid,streamFetcher);
@@ -401,7 +401,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//wait 10-12 seconds
 			//check that stream fetcher stop and start stream is called 2 times
-			verify(streamFetcher, timeout(5000).times(2)).stopStream(false);
+			verify(streamFetcher, timeout(5000).times(2)).stopStream();
 			//it is +1 because it is called at first start
 			verify(streamFetcher, timeout(500).times(3)).startStream();
 
@@ -413,7 +413,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//check that stream fetcher stop and start stream is not called
 			//wait 3 seconds
-			verify(streamFetcher, timeout(2000).times(2)).stopStream(false);
+			verify(streamFetcher, timeout(2000).times(2)).stopStream();
 			verify(streamFetcher, timeout(500).times(3)).startStream();
 
 			//set restart period to 5 seconds
@@ -422,7 +422,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait 10-12 seconds
 
 			//check that stream fetcher stop and start stream is not called
-			verify(streamFetcher, timeout(3000).atLeast(3)).stopStream(false);
+			verify(streamFetcher, timeout(3000).atLeast(3)).stopStream();
 			verify(streamFetcher, timeout(500).atLeast(4)).startStream();
 
 			appSettings.setRestartStreamFetcherPeriod(0);
@@ -483,7 +483,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		//stop thread
-		fetcher.stopStream(false);
+		fetcher.stopStream();
 
 		Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 		Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> !fetcher.isStreamAlive());
@@ -512,7 +512,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> fetcher.isThreadActive());
 
 
-		fetcher.stopStream(false);
+		fetcher.stopStream();
 
 		Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS).until(() -> !fetcher.isStreamAlive());
 		Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
@@ -616,7 +616,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(fetcher.getCameraError().getMessage().contains("timed out"));
 
-		fetcher.stopStream(false);
+		fetcher.stopStream();
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return !fetcher.isThreadActive();
@@ -654,7 +654,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(fetcher2.getCameraError().getMessage().contains("Connection refused"));
 
-		fetcher2.stopStream(false);
+		fetcher2.stopStream();
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return !fetcher2.isThreadActive();
@@ -796,7 +796,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			});
 
 			//wait for packaging files
-			fetcher.stopStream(false);
+			fetcher.stopStream();
 
 			Awaitility.await().atMost(15,  TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 			assertFalse(fetcher.isThreadActive());
@@ -879,7 +879,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				return fetcher3.isStreamAlive();
 			});
 
-			fetcher3.stopStream(false);
+			fetcher3.stopStream();
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return 0 == getInstance().getMuxAdaptors().size();
@@ -967,7 +967,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Awaitility.await().atMost(5000, TimeUnit.SECONDS).pollDelay(4, TimeUnit.SECONDS).until(()-> {
 				//wait for packaging files
-				fetcher.stopStream(false);
+				fetcher.stopStream();
 				return true;
 			});
 			
@@ -1203,7 +1203,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			//wait for packaging files
-			fetcher.stopStream(false);
+			fetcher.stopStream();
 
 
 			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
@@ -1272,7 +1272,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Awaitility.await().pollDelay(3, TimeUnit.SECONDS).atMost(6, TimeUnit.SECONDS).until(() -> !fetcher.isStreamAlive());
 
-		fetcher.stopStream(false);
+		fetcher.stopStream();
 
 		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 
@@ -1322,7 +1322,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			//wait for packaging files
-			fetcher.stopStream(false);
+			fetcher.stopStream();
 
 			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
 
@@ -1349,7 +1349,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				});
 
 				//wait for packaging files
-				fetcher.stopStream(false);
+				fetcher.stopStream();
 
 				String mp4File2 = "webapps/junit/streams/"+newCam.getStreamId() +"_1.mp4";
 
@@ -1483,7 +1483,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Thread.sleep(5000);
 			assertTrue(camScheduler.getMuxAdaptor().stopRecording(RecordType.MP4, 0) != null);
 			Thread.sleep(2000);
-			camScheduler.stopStream(false);
+			camScheduler.stopStream();
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
 			apps.setMp4MuxingEnabled(mp4Recording);
 

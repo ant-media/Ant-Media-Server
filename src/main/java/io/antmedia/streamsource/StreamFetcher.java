@@ -1068,28 +1068,30 @@ public class StreamFetcher {
 		return thread.isInterrupted();
 	}
 
-	public boolean stopStream(boolean StopBlocking)
+    public void stopStream()
+    {
+        logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
+        stopRequestReceived = true;
+    }
+    public boolean stopStreamBlocking()
 	{
         stopRequestReceived = true;
         logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
-        if(StopBlocking){
-            int streamThreadStopTimeout = 10;
-            try {
-                if(!isThreadActive() || (isThreadStopedSemaphore.availablePermits() > 0 || isThreadStopedSemaphore.tryAcquire(streamThreadStopTimeout, TimeUnit.SECONDS))) {
-                    return true;
-                }
+        int streamThreadStopTimeout = 10;
+        try {
+            if(!isThreadActive() || (isThreadStopedSemaphore.availablePermits() > 0 || isThreadStopedSemaphore.tryAcquire(streamThreadStopTimeout, TimeUnit.SECONDS))) {
+                return true;
             }
-            catch (Exception e){
-                logger.error(ExceptionUtils.getStackTrace(e));
-                logger.error("Thread was interrupted while waiting for playlist to stop", e);
-                Thread.currentThread().interrupt();
-            }
-
-            logger.warn("Thread did not stop for Stream fetcher. Cannot play next item. StreamId={} Timeout={}",
-                    getStreamId(), streamThreadStopTimeout);
-            return false;
         }
-        return true;
+        catch (Exception e){
+            logger.error(ExceptionUtils.getStackTrace(e));
+            logger.error("Thread was interrupted while waiting for playlist to stop", e);
+            Thread.currentThread().interrupt();
+        }
+
+        logger.warn("Thread did not stop for Stream fetcher. Cannot play next item. StreamId={} Timeout={}",
+                getStreamId(), streamThreadStopTimeout);
+        return false;
 	}
 
 	public void seekTime(long seekTimeInMilliseconds) {
@@ -1113,7 +1115,7 @@ public class StreamFetcher {
 	}
 
 	public void restart() {
-		stopStream(false);
+		stopStream();
 		new Thread() {
 			@Override
 			public void run() {

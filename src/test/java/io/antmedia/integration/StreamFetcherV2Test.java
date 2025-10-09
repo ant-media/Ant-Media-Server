@@ -321,7 +321,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		assertTrue(streamFetcher.isThreadActive());
 		
 		//stop stream fetcher
-		streamFetcher.stopStream(false);
+		streamFetcher.stopStream();
 
 		rtmpSendingProcess.destroy();
 		//delete stream on the server
