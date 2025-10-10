@@ -35,6 +35,11 @@ public class MockTokenService implements  IStreamPublishSecurity , IStreamPlayba
 	}
 
 	@Override
+	public Token createAppJwtToken(long exprireDate, String type) {
+		return null;
+	}
+
+	@Override
 	public Map<String, String> getAuthenticatedMap() {
 		return authenticatedMap;
 	}
