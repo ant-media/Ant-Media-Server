@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -64,7 +66,8 @@ public class StreamFetcher {
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
-	private IScope scope;
+    private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
+    private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
@@ -333,6 +336,7 @@ public class StreamFetcher {
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
+                isThreadStopedSemaphore.drainPermits();
 
 				inputFormatContext = new AVFormatContext(null);
 				pkt = avcodec.av_packet_alloc();
@@ -368,9 +372,11 @@ public class StreamFetcher {
 			}
 			finally {
 
-				close(pkt);
+            setThreadActive(false);
+            close(pkt);
+            isThreadStopedSemaphore.release();
 
-				setThreadActive(false);
+
 			}
 
 		}
@@ -706,7 +712,7 @@ public class StreamFetcher {
 					stopRequestReceived = true;
 					restartStream = false;
 					logger.info("Calling streamFinished listener for streamId:{} and it will not restart the stream automatically because callback is getting the responsbility", streamId);
-					streamFetcherListener.streamFinished(streamFetcherListener);
+                    streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
 				if(!stopRequestReceived && restartStream) {
@@ -1062,10 +1068,30 @@ public class StreamFetcher {
 		return thread.isInterrupted();
 	}
 
-	public void stopStream()
+    public void stopStream()
+    {
+        logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
+        stopRequestReceived = true;
+    }
+    public boolean stopStreamBlocking()
 	{
-		logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
-		stopRequestReceived = true;
+        stopRequestReceived = true;
+        logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
+        int streamThreadStopTimeout = 10;
+        try {
+            if(!isThreadActive() || (isThreadStopedSemaphore.availablePermits() > 0 || isThreadStopedSemaphore.tryAcquire(streamThreadStopTimeout, TimeUnit.SECONDS))) {
+                return true;
+            }
+        }
+        catch (Exception e){
+            logger.error(ExceptionUtils.getStackTrace(e));
+            logger.error("Thread was interrupted while waiting for playlist to stop", e);
+            Thread.currentThread().interrupt();
+        }
+
+        logger.warn("Thread did not stop for Stream fetcher. Cannot play next item. StreamId={} Timeout={}",
+                getStreamId(), streamThreadStopTimeout);
+        return false;
 	}
 
 	public void seekTime(long seekTimeInMilliseconds) {
@@ -1129,6 +1155,10 @@ public class StreamFetcher {
 	public Result getCameraError() {
 		return cameraError;
 	}
+
+    public Semaphore getIsThreadStopedSemaphore(){
+        return isThreadStopedSemaphore;
+    }
 
 	public void setCameraError(Result cameraError) {
 		this.cameraError = cameraError;
