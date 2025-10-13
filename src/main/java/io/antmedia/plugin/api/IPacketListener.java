@@ -22,6 +22,14 @@ public interface IPacketListener {
 	 * @returns AVPacket this should be same with the input
 	 */
 	AVPacket onAudioPacket(String streamId, AVPacket packet);
+
+	/*
+	 * AMS feeds the plugins with encoded data packets with this method.
+	 * @param streamId is the id of the stream
+	 * @param packet is AVPacket type defined in javacpp ffmpeg wrapper
+	 * @returns AVPacket this should be same with the input
+	 */
+	AVPacket onDataPacket(String streamId, AVPacket packet);
 	
 	/*
 	 * AMS calls this method when the listening stream finishes
