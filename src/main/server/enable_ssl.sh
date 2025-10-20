@@ -107,7 +107,7 @@ get_password() {
 # Check if port 80 is in use for Let's Encrypt validation
 check_port_80() {
     if lsof -i :80 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        echo "Port 80 is currently in use. Please stop the service using port 80 to proceed with Let's Encrypt (Free SSL)."
+        echo -e "Port 80 is currently in use by \e[31m$(lsof -i :80 -sTCP:LISTEN | awk 'NR>1 {print $1}')\e[0m. Please stop the service to proceed with Let's Encrypt (Free SSL)."
         exit 1
     fi
 }
