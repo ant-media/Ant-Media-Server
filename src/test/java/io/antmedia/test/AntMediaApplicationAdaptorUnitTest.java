@@ -3532,6 +3532,96 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 
 	}
+	
+	
+	long t1Start = 0;
+    long t1End = 0;
+    long t2Start = 0;
+    long t2End = 0;
+    long t3Start = 0;
+    long t3End = 0;
+	@Test
+	public void testPerKeyLockingBehavior() throws Exception {
+        AntMediaApplicationAdapter adaptor = new AntMediaApplicationAdapter();
+        
+        DataStore inMemoryDatastore = new InMemoryDataStore("") {
+        	public Broadcast get(String id) {
+        		Broadcast b = super.get(id);
+        		try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+        		return b;
+        	};
+        };
+        
+		adaptor.setDataStore(inMemoryDatastore );
+		
+		adaptor.setAppSettings(new AppSettings());
+
+        Broadcast b1 = new Broadcast(); 
+        b1.setMainTrackStreamId("main1");
+        Broadcast b2 = new Broadcast(); 
+        b2.setMainTrackStreamId("main1");
+        Broadcast b3 = new Broadcast(); 
+        b3.setMainTrackStreamId("main2");
+        
+        Broadcast m1 = new Broadcast(); 
+        m1.setStreamId("main1");
+        
+        Broadcast m2 = new Broadcast(); 
+        m2.setStreamId("main2");
+
+        
+        inMemoryDatastore.save(b1);
+        inMemoryDatastore.save(b2);
+        inMemoryDatastore.save(b3);
+        inMemoryDatastore.save(m1);
+        inMemoryDatastore.save(m2);
+
+        Thread th1 = new Thread(() -> {
+            t1Start = System.currentTimeMillis();
+            adaptor.updateMainTrackWithRecentlyFinishedBroadcast(b1);
+            t1End = System.currentTimeMillis();
+        }, "T1-main");
+
+        Thread th2 = new Thread(() -> {
+            t2Start = System.currentTimeMillis();
+            adaptor.updateMainTrackWithRecentlyFinishedBroadcast(b2);
+            t2End = System.currentTimeMillis();
+        }, "T2-main");
+
+        Thread th3 = new Thread(() -> {
+            t3Start = System.currentTimeMillis();
+            adaptor.updateMainTrackWithRecentlyFinishedBroadcast(b3);
+            t3End = System.currentTimeMillis();
+        }, "T3-main2");
+
+        // Start all threads
+        th1.start();
+        Thread.sleep(10);
+        th2.start();
+        Thread.sleep(10);
+        th3.start();
+
+        // Wait for all threads to finish
+        th1.join();
+        th2.join();
+        th3.join();
+
+        long dt1 = (t1End - t1Start);
+        long dt2 = (t2End - t2Start);
+        long dt3 = (t3End - t3Start);
+
+        System.out.println("Delta t1:" + dt1);
+        System.out.println("Delta t2:" + dt2);
+        System.out.println("Delta t3:" + dt3);
+        
+        assertTrue(100 > Math.abs(dt1*2 - dt2));
+        assertTrue(100 > Math.abs(dt1 - dt3));
+
+    }
 
 
 }
