@@ -26,12 +26,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.amazonaws.util.Base32;
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import com.amazonaws.util.Base32;
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
 import org.awaitility.Awaitility;
@@ -54,10 +53,8 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.RtmpMuxer;
+import io.antmedia.muxer.EndpointMuxer;
 import io.antmedia.rest.model.Result;
 
 public class MuxingTest {
@@ -341,19 +338,19 @@ public class MuxingTest {
 
 		AVPacket pkt = avcodec.av_packet_alloc();
 
-		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://test-rtmptest-usea.channel.media.azure.net:1935/live/e0c44eb42c2747869c67227f183fad59/test", null);
+		EndpointMuxer endpointMuxer = new EndpointMuxer("rtmp://test-rtmptest-usea.channel.media.azure.net:1935/live/e0c44eb42c2747869c67227f183fad59/test", null);
 
 		//rtmpMuxer.prepare(inputFormatContext);
-		rtmpMuxer.addVideoStream(1280, 720, null, avcodec.AV_CODEC_ID_H264, 0, false, null);
+		endpointMuxer.addVideoStream(1280, 720, null, avcodec.AV_CODEC_ID_H264, 0, false, null);
 
-		assertTrue(rtmpMuxer.prepareIO());
+		assertTrue(endpointMuxer.prepareIO());
 
 		while((ret = av_read_frame(inputFormatContext, pkt)) >= 0) 
 		{
 			AVStream stream = inputFormatContext.streams(pkt.stream_index());
 			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
-				rtmpMuxer.writePacket(pkt, stream);
+				endpointMuxer.writePacket(pkt, stream);
 			}
 		}
 		System.out.println("leaving from loop");

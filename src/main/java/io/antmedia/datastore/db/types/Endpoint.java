@@ -24,8 +24,18 @@ public class Endpoint {
     private String type;
 
     /**
-     * RTMP URL of the endpoint
+     * RTMP Or SRT URL of the endpoint
      */
+    @Schema(description = "RTMP or SRT URL of the endpoint")
+    private String endpointUrl;
+
+    /**
+     * RTMP URL of the endpoint
+     *
+     * @deprecated use {@link #endpointUrl}
+     *
+     */
+    @Deprecated(since = "3.0" , forRemoval = true)
     @Schema(description = "The RTMP URL of the endpoint")
     private String rtmpUrl;
 
@@ -46,21 +56,27 @@ public class Endpoint {
     public Endpoint(String rtmpUrl, String type, String endpointServiceId, String status) {
         this();
         this.status = status;
-        this.rtmpUrl = rtmpUrl;
+        this.endpointUrl = rtmpUrl;
         this.type = type;
         this.endpointServiceId = endpointServiceId;
     }
 
-    public String getRtmpUrl() {
-        return rtmpUrl;
+    public String getEndpointUrl() {
+        if(endpointUrl==null)
+            return rtmpUrl;
+        return endpointUrl;
     }
 
-    public void setRtmpUrl(String rtmpUrl) {
-        this.rtmpUrl = rtmpUrl;
+    public void setEndpointUrl(String endpointUrl) {
+        this.endpointUrl = endpointUrl;
+        this.rtmpUrl = endpointUrl;
     }
 
     public String getEndpointServiceId() {
         return endpointServiceId;
+    }
+    public void setRtmpUrl(String rtmpUrl){
+        this.rtmpUrl = rtmpUrl;
     }
 
     public void setEndpointServiceId(String endpointServiceId) {

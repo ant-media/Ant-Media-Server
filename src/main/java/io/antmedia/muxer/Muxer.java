@@ -187,6 +187,10 @@ public abstract class Muxer {
 		avRationalTimeBase.den(1);
 	}
 
+	public void setFormat(String format) {
+		this.format = format;
+	}
+
 	protected String subFolder = null;
 
 	/**
@@ -235,7 +239,7 @@ public abstract class Muxer {
 		public void setKeyFrame(boolean isKeyFrame) {
 			this.keyFrame = isKeyFrame;
 		}
-		
+
 		public ByteBuffer getEncodedVideoFrame() {
 			return encodedVideoFrame;
 		}
@@ -294,6 +298,10 @@ public abstract class Muxer {
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
 		logger = LoggerFactory.getLogger(this.getClass());
+	}
+
+	public List<AVBSFContext> getBsfFilterContextList() {
+		return bsfFilterContextList;
 	}
 
 	public static File getPreviewFile(IScope scope, String name, String extension) {
