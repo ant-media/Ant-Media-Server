@@ -523,8 +523,7 @@ public abstract class RestServiceBase {
 			}
 
 			String rtspURL = connectionRes.getMessage();
-			String authparam = updatedBroadcast.getUsername() + ":" + updatedBroadcast.getPassword() + "@";
-			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
+			String rtspURLWithAuth = buildRtspUrlWithAuthPreservingPublicHost(updatedBroadcast.getIpAddr(), updatedBroadcast.getUsername(), updatedBroadcast.getPassword(), rtspURL);
 			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
 			updatedBroadcast.setStreamUrl(rtspURLWithAuth);
 
@@ -923,8 +922,7 @@ public abstract class RestServiceBase {
 
 			if (connResult.isSuccess()) {
 
-				String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
-				String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
+				String rtspURLWithAuth = buildRtspUrlWithAuthPreservingPublicHost(stream.getIpAddr(), stream.getUsername(), stream.getPassword(), connResult.getMessage());
 				logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 				stream.setStreamUrl(rtspURLWithAuth);
 				Date currentDate = new Date();
@@ -998,6 +996,124 @@ public abstract class RestServiceBase {
 
 		return result;
 
+	}
+
+	/**
+	 * Build RTSP URL with credentials, preserving the public host/port entered by the user
+	 * when ONVIF returns a private/local address. Backward compatible: if returned host is
+	 * public or not clearly private, keep it as-is.
+	 */
+	protected String buildRtspUrlWithAuthPreservingPublicHost(String inputAddress, String username, String password, String returnedRtsp) {
+		String authparam = username + ":" + password + "@";
+		if (returnedRtsp == null || !returnedRtsp.startsWith(RTSP)) {
+			return RTSP + authparam + (returnedRtsp != null ? returnedRtsp : "");
+		}
+		String afterScheme = returnedRtsp.substring(RTSP.length());
+		String authority = afterScheme;
+		String pathAndQuery = "";
+		int slashIdx = afterScheme.indexOf('/');
+		if (slashIdx >= 0) {
+			authority = afterScheme.substring(0, slashIdx);
+			pathAndQuery = afterScheme.substring(slashIdx);
+		}
+		// strip possible creds in returned authority
+		int atIdx = authority.lastIndexOf('@');
+		if (atIdx >= 0) {
+			authority = authority.substring(atIdx + 1);
+		}
+		String returnedHost = authority;
+		int returnedPort = -1;
+		int colonIdx = authority.lastIndexOf(':');
+		if (colonIdx > -1) {
+			returnedHost = authority.substring(0, colonIdx);
+			try {
+				returnedPort = Integer.parseInt(authority.substring(colonIdx + 1));
+			}
+			catch (Exception e) {
+				returnedPort = -1;
+			}
+		}
+
+		String inputHost = null;
+		int inputPort = -1;
+		boolean inputIsRtsp = false;
+		if (inputAddress != null) {
+			inputIsRtsp = inputAddress.startsWith(RTSP) || inputAddress.startsWith("rtsps://");
+			String tmp = inputAddress;
+			int schemeIdx = tmp.indexOf("//");
+			if (schemeIdx >= 0) {
+				tmp = tmp.substring(schemeIdx + 2);
+			}
+			int at = tmp.lastIndexOf('@');
+			if (at >= 0) {
+				tmp = tmp.substring(at + 1);
+			}
+			int slash = tmp.indexOf('/');
+			if (slash >= 0) {
+				tmp = tmp.substring(0, slash);
+			}
+			int col = tmp.lastIndexOf(':');
+			if (col > -1) {
+				inputHost = tmp.substring(0, col);
+				try {
+					inputPort = Integer.parseInt(tmp.substring(col + 1));
+				}
+				catch (Exception e) {
+					inputPort = -1;
+				}
+			}
+			else {
+				inputHost = tmp;
+			}
+		}
+
+		boolean shouldRewrite = isPrivateOrLocalHost(returnedHost);
+
+		String targetHost = returnedHost;
+		int targetPort = returnedPort;
+		if (shouldRewrite && inputHost != null && !inputHost.isEmpty()) {
+			targetHost = inputHost;
+			if (inputIsRtsp && inputPort > -1) {
+				targetPort = inputPort;
+			}
+		}
+
+		StringBuilder sb = new StringBuilder(RTSP);
+		sb.append(authparam);
+		sb.append(targetHost);
+		if (targetPort > -1) {
+			sb.append(':').append(targetPort);
+		}
+		sb.append(pathAndQuery);
+		return sb.toString();
+	}
+
+	private static boolean isPrivateOrLocalHost(String host) {
+		if (host == null) {
+			return false;
+		}
+		String h = host.trim().toLowerCase();
+		if ("localhost".equals(h) || h.startsWith("127.")) {
+			return true;
+		}
+		// link-local and RFC1918 ranges
+		if (h.startsWith("10.")) return true;
+		if (h.startsWith("192.168.")) return true;
+		if (h.startsWith("169.254.")) return true;
+		if (h.startsWith("172.")) {
+			// 172.16.0.0 – 172.31.255.255
+			try {
+				String[] parts = h.split("\\.");
+				if (parts.length > 1) {
+					int second = Integer.parseInt(parts[1]);
+					return second >= 16 && second <= 31;
+				}
+			}
+			catch (Exception e) {
+				return false;
+			}
+		}
+		return false;
 	}
 
 
@@ -1585,8 +1701,7 @@ public abstract class RestServiceBase {
 
 				if (result.isSuccess())
 				{
-					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + result.getMessage().substring(RTSP.length());
+					String rtspURLWithAuth = buildRtspUrlWithAuthPreservingPublicHost(broadcast.getIpAddr(), broadcast.getUsername(), broadcast.getPassword(), result.getMessage());
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
 
