@@ -832,8 +832,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				for (IStreamListener listener : streamListeners) {
 					//keep backward compatibility
-					listener.streamFinished(broadcast.getStreamId());
-					listener.streamFinished(broadcast);
+					try {
+						listener.streamFinished(broadcast.getStreamId());
+						listener.streamFinished(broadcast);
+					} catch (Throwable t) {
+						logger.error("Error invoking streamFinished method on stream listener {} for stream: {}", listener.getClass().getName(), streamId, t);
+					}
 				}
 
 				notifyPublishStopped(streamId, role, mainTrackId);
@@ -1073,8 +1077,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 
 				for (IStreamListener listener : streamListeners) {
-					listener.streamStarted(broadcast.getStreamId());
-					listener.streamStarted(broadcast);
+					try {
+						listener.streamStarted(broadcast.getStreamId());
+						listener.streamStarted(broadcast);
+					} catch (Throwable t) { // going for Throwable to catch classpath problems too
+						logger.error("Error invoking streamStarted method on stream listener {} for stream: {}", listener.getClass().getName(), streamId, t);
+					}
 				}
 
 
