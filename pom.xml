@@ -54,28 +54,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 		      <enabled>true</enabled>
 		    </snapshots>
 		</repository>
-		<repository>
-		  <id>sonatype-snapshots</id>
-		  <name>Sonatype Snapshots (HTTPS)</name>
-		  <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
-		  <releases>
-		    <enabled>false</enabled>
-		  </releases>
-		  <snapshots>
-		    <enabled>true</enabled>
-		  </snapshots>
-		</repository>
-		<repository>
-		  <id>sonatype-releases</id>
-		  <name>Sonatype Releases (HTTPS)</name>
-		  <url>https://s01.oss.sonatype.org/content/repositories/releases/</url>
-		  <releases>
-		    <enabled>true</enabled>
-		  </releases>
-		  <snapshots>
-		    <enabled>false</enabled>
-		  </snapshots>
-		</repository>
     </repositories>
    
     <properties>
