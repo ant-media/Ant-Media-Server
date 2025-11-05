@@ -336,7 +336,6 @@ public class StreamFetcher {
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
-                isThreadStopedSemaphore.drainPermits();
 
 				inputFormatContext = new AVFormatContext(null);
 				pkt = avcodec.av_packet_alloc();
@@ -374,7 +373,10 @@ public class StreamFetcher {
 
             setThreadActive(false);
             close(pkt);
-            isThreadStopedSemaphore.release();
+            
+            if (isThreadStopedSemaphore.hasQueuedThreads()) {
+            	isThreadStopedSemaphore.release();
+            }
 
 
 			}
@@ -1073,6 +1075,16 @@ public class StreamFetcher {
         logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
         stopRequestReceived = true;
     }
+    
+    
+    /*
+     * @stopStream method above works asynchronously.
+     * @stopRequestReceived flag is set and stop operations are done in read loop.
+     * 
+     * This @stopstopStreamBlocking method is blocking one and works synchronously.
+     * It blocks the thread until stop operations are done.
+     * 
+     */
     public boolean stopStreamBlocking()
 	{
         stopRequestReceived = true;
