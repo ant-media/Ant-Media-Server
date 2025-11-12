@@ -770,8 +770,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					final String mainTrackId = broadcast.getMainTrackStreamId();
           String streamId = broadcast.getStreamId();
 					logger.info("call live stream ended hook for stream:{}",streamId );
-					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
-							null, null, metaData, subscriberId);
+					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category,null, null, metaData, subscriberId, null);
 				}
   }
 
