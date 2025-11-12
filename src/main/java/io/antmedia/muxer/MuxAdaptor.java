@@ -395,8 +395,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			return;
 		}
 
-		RtmpProvider rtmpPublisher = new RtmpProvider(this.scope, vertx, streamId, getVideoTimeBase(), getAudioTimeBase());
-    addMuxer(rtmpPublisher);
+		RtmpProvider rtmpPublisher = new RtmpProvider(this.scope, vertx, streamId, videoTimeBase, audioTimeBase);
+        addMuxer(rtmpPublisher);
   }
 
 	public boolean addMuxer(Muxer muxer, int resolutionHeight)
