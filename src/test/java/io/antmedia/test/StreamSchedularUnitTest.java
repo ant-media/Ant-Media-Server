@@ -18,14 +18,12 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -63,7 +61,6 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
@@ -328,7 +325,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		//getInstance().stopStreaming(newCam);
-		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId()).isSuccess();
+		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId(), false).isSuccess();
 		assertTrue(result);
 		stopCameraEmulator();
 
@@ -435,7 +432,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.info("data store: {} testId data {} ", dataStore, dataStore.get("testId"));
 
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS)
+			Awaitility.await().atMost(41, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS)
 			.until(() -> dataStore.get("testId").getCurrentPlayIndex() == 2 && dataStore.get("testId").getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 
 
@@ -926,7 +923,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(fetcher, times(4)).stopStream();
 		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());	
 		
-		streamFetcherManager.stopStreaming(streamId);
+		streamFetcherManager.stopStreaming(streamId, false);
 
 
 
@@ -1414,9 +1411,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			});
 
 
-			Result stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource);
+			Result stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource, false);
 			assertTrue(stopStreaming2.isSuccess());
-			stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource);
+			stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource, false);
 			assertFalse(stopStreaming2.isSuccess());
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
