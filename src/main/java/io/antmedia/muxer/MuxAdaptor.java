@@ -386,6 +386,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return addMuxer(muxer, 0);
 	}
 
+  public void addRtmpPlayMuxer(){
+		if(!appSettings.isRtmpPlaybackEnabled() || getBroadcastStream() != null) {
+			//if rtmp playback is not enabled in settings or 
+			//broadcast stream is not null, do not init rtmp play muxer 
+				//because if it is not null, it is rtmp ingest and we have already rtmp playback
+			logger.info("RTMP playback is {} in settings, broadcastStream is {} for stream: {}, not initializing rtmp play muxer", appSettings.isRtmpPlaybackEnabled(), getBroadcastStream(), streamId);
+			return;
+		}
+
+		RtmpProvider rtmpPublisher = new RtmpProvider(this.scope, vertx, streamId, getVideoTimeBase(), getAudioTimeBase());
+    addMuxer(rtmpPublisher);
+  }
+
 	public boolean addMuxer(Muxer muxer, int resolutionHeight)
 	{
 		boolean result = false;
@@ -522,6 +535,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (dashMuxer != null) {
 			addMuxer(dashMuxer);
 		}
+		addRtmpPlayMuxer();
 
 		for (Muxer muxer : muxerList) {
 			muxer.init(scope, streamId, 0, getSubfolder(getBroadcast(), getAppSettings()), 0);
