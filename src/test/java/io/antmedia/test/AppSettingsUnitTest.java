@@ -244,7 +244,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(appSettings.isMp4MuxingEnabled());
 		assertFalse(appSettings.isAddDateTimeToMp4FileName());
 		assertTrue(appSettings.isHlsMuxingEnabled());
-		assertFalse(appSettings.isWebRTCEnabled());
+		assertTrue(appSettings.isWebRTCEnabled());
 		assertTrue(appSettings.isDeleteHLSFilesOnEnded());
 		assertFalse(appSettings.isMp4MuxingEnabled());
 		assertNull(appSettings.getHlsListSize());
@@ -686,13 +686,16 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(120, appSettings.getAudioLevelThreshold());
 		appSettings.setAudioLevelThreshold(100);
 		assertEquals(100, appSettings.getAudioLevelThreshold());
+		assertEquals("", appSettings.getStreamStartedScript());
+		assertEquals("", appSettings.getStreamEndedScript());
+		assertEquals("", appSettings.getStreamIdleTimeoutScript());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				201, numberOfFields);
+				204, numberOfFields);
 	}
 
 

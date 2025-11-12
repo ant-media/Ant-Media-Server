@@ -26,10 +26,11 @@ domain=""
 password=
 renew_flag='false'
 freedomain=""
+restart_service='true' #if this is true, it restarts the service at the end of the script otherwise it does not
 
 helpRequest='false'
 
-while getopts i:d:v:p:e:f:rhc: option
+while getopts i:d:v:p:e:f:rshc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
@@ -41,6 +42,7 @@ do
     r) renew_flag='true';;
     e) email=${OPTARG};;
     h) helpRequest='true';;
+    s) restart_service=${OPTARG};;
    esac
 done
 
@@ -104,8 +106,24 @@ get_password() {
 
 install_pkgs() {
     if [ -f /etc/debian_version ]; then
-        $SUDO apt update -qq
-        $SUDO apt install -y jq dnsutils iptables
+       
+        REQUIRED_PKG=("jq" "dnsutils" "iptables")
+		MISSING_PKG=()
+		
+		for pkg in "${REQUIRED_PKG[@]}"; do
+		    if ! dpkg -s "$pkg" &> /dev/null; then
+		        MISSING_PKG+=("$pkg")
+		    fi
+		done
+		
+		if [ ${#MISSING_PKG[@]} -ne 0 ]; then
+		    echo "Missing packages: ${MISSING_PKG[*]}"
+		    $SUDO apt update -qq
+		    $SUDO apt install -y "${MISSING_PKG[@]}"
+		else
+		    echo "All required packages are already installed."
+		fi
+
     elif [ -f /etc/redhat-release ]; then
         OS_VERSION=$(rpm -E %rhel)
         pkgs="jq bind-utils iptables"
@@ -248,11 +266,24 @@ get_new_certificate(){
       distro
       if [[ "$ID" == "ubuntu" || "$ID" == "debian" ]]; then
 
-        $SUDO apt-get update -qq -y
-        output
-
-        $SUDO apt-get install cron certbot python3-certbot-dns-route53 -qq -y
-        output
+        
+        REQUIRED_PKG=("cron" "certbot" "python3-certbot-dns-route53")
+		MISSING_PKG=()
+		
+		for pkg in "${REQUIRED_PKG[@]}"; do
+		    if ! dpkg -s "$pkg" &> /dev/null; then
+		        MISSING_PKG+=("$pkg")
+		    fi
+		done
+		
+		if [ ${#MISSING_PKG[@]} -ne 0 ]; then
+		    echo "Missing packages: ${MISSING_PKG[*]}"
+		    $SUDO apt update -qq
+		    $SUDO apt install -y "${MISSING_PKG[@]}"
+		else
+		    echo "All required packages are already installed."
+		fi
+		
 
       elif [ "$ID" == "centos" ] || [ "$ID" == "rocky" ] || [ "$ID" == "almalinux" ] || [ "$ID" == "rhel" ]; then
         $SUDO yum -y install epel-release
@@ -505,9 +536,13 @@ ipt_restore
 echo ""
 
 if is_docker_container; then
+    echo "You are running Ant Media Server in a Docker container. Please restart the container to apply the changes."
     kill -HUP 1
-else
+elif [ "$restart_service" == "true" ]; then 
+    echo "Restarting Ant Media Server..."
     $SUDO service antmedia restart
+else
+    echo "Ant Media Server is not restarted because script is called just to install the ssl. Please restart it manually to apply the changes."
 fi
 
 output

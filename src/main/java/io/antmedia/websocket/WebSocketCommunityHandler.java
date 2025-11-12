@@ -15,6 +15,8 @@ import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import com.nimbusds.oauth2.sdk.util.StringUtils;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.StreamIdValidator;
@@ -244,6 +246,17 @@ public class WebSocketCommunityHandler {
 		sendMessage(jsonObj, session);
 	}
 	
+	@SuppressWarnings("unchecked")
+	public  void sendStreamingStartedMessage(String streamId, Session session) {
+
+		JSONObject jsonObj = new JSONObject();
+		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
+		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.STREAMING_STARTED);
+		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
+
+		sendMessage(jsonObj, session);
+	}
+	
 	public void sendStreamIdInUse(String streamId, Session session) {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
@@ -469,11 +482,27 @@ public class WebSocketCommunityHandler {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void sendNotFoundJSON(String streamId, Session session) {
+	public void sendNotFoundJSON(String streamId, String reason, Session session) {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
+		if (StringUtils.isNotBlank(reason)) {
+			jsonResponse.put(WebSocketConstants.INFORMATION, reason);
+		}
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+		sendMessage(jsonResponse, session);
+	}
+	
+	public void sendNotFoundJSON(String streamId, Session session) {
+		sendNotFoundJSON(streamId, null, session);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void sendStreamingStartsSoonMessage(String streamId, Session session) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.STREAMING_STARTS_SOON_DEFINITION);
 		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
 		sendMessage(jsonResponse, session);
 	}

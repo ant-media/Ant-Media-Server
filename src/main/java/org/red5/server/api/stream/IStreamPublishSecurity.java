@@ -55,4 +55,5 @@ public interface IStreamPublishSecurity {
      */
     public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode);
 
+
 }

@@ -10,7 +10,6 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HCA;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HEVC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_NONE;
-
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
@@ -25,12 +24,49 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
+import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
+import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -44,10 +80,12 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.antmedia.*;
-import io.grpc.Context;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.buffer.SimpleBufferAllocator;
 import org.awaitility.Awaitility;
@@ -115,10 +153,17 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.gson.JsonObject;
+
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
+import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
@@ -141,11 +186,13 @@ import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.eRTMP.HEVCDecoderConfigurationParserTest;
 import io.antmedia.test.utils.VideoInfo;
 import io.antmedia.test.utils.VideoProber;
+import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 
 
@@ -871,7 +918,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testHLSMuxerGetOutputURLAndSegmentFilename() {
+	public void testHLSMuxerGetOutputURLAndSegmentFilename() throws IOException {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -919,18 +966,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 
 			File[] file = new File[1];
-			file[0] = Mockito.mock(File.class);
-			Mockito.when(file[0].exists()).thenReturn(true);
-			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			file[0] = new File("./webapps/junit/streams/subfolder/streamId.m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
+			file[0].getParentFile().mkdirs(); // Ensure the directory exists
+			file[0].createNewFile(); // Create the file
+			file[0].deleteOnExit();
+	    
 
+			 // Code under test that uses the stubbed method
+			   
+			
 			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
-
 
 			hlsMuxer.writeTrailer();
 
 			Mockito.verify(storageClient, Mockito.timeout(2000)).save("streams/subfolder/" + streamId + ".m3u8", file[0], true);
+
+			
 
 		}
 
@@ -945,13 +997,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String subFolder = "subfolder";
 
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
-
 			File[] file = new File[1];
-			file[0] = Mockito.mock(File.class);
-			Mockito.when(file[0].exists()).thenReturn(true);
-			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			file[0] = new File("./webapps/junit/streams/subfolder/streamId.m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
+			file[0].getParentFile().mkdirs(); // Ensure the directory exists
+			file[0].createNewFile(); // Create the file
+			file[0].deleteOnExit();
+	    
+			
+
 
 			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
 
@@ -973,14 +1027,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 
 			File[] file = new File[1];
-			file[0] = Mockito.mock(File.class);
-			Mockito.when(file[0].exists()).thenReturn(true);
-			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			file[0] = new File("./webapps/junit/streams/streamId.m3u8");
 
-			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
-
+			file[0].getParentFile().mkdirs(); // Ensure the directory exists
+			file[0].createNewFile(); // Create the file
+			file[0].deleteOnExit();
+	    
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
-
 
 			hlsMuxer.writeTrailer();
 
@@ -2063,12 +2116,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setIngestingStreamLimit(2);
 
 
-		appAdaptor.startPublish(streamId, 0, null, null);
+		appAdaptor.startPublish(streamId, 0, null, null, null);
 
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null, null);
+		appAdaptor.startPublish(streamId, 0, null, null, null);
 
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -2077,14 +2130,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		if (activeBroadcastCount == 1) {
-			Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any(), Mockito.any());
+			Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any(), Mockito.any(), Mockito.any());
 		}
 
 		streamId = "stream " + (int) (Math.random() * 10000);
 
-		appAdaptor.startPublish(streamId, 0, null, null);
+		appAdaptor.startPublish(streamId, 0, null, null, null);
 
-		Mockito.verify(appAdaptor, timeout(1000).times((int) activeBroadcastCount + 1)).stopStreaming(Mockito.any(), Mockito.anyBoolean());
+		Mockito.verify(appAdaptor, timeout(1000).times((int) activeBroadcastCount + 1)).stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any());
 
 	}
 
@@ -2106,7 +2159,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		long absoluteTimeMS = System.currentTimeMillis();
 		
-		spyAdaptor.startPublish(streamId, absoluteTimeMS, null, null);
+		spyAdaptor.startPublish(streamId, absoluteTimeMS, null, null, null);
 
 		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
 
@@ -2131,7 +2184,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Application app = (Application) applicationContext.getBean("web.handler");
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(app);
 
-		Mockito.doNothing().when(appAdaptor).notifyHook(anyString(), anyString(), any(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+		Mockito.doNothing().when(appAdaptor).notifyHook(anyString(), anyString(), any(), anyString(), anyString(), anyString(), anyString(), 
+					anyString(), anyString(), anyString(), anyMap());
 		assertNotNull(appAdaptor);
 
 		//just check below value that it is not null, this is not related to this case but it should be tested
@@ -6065,6 +6119,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public static class  StorageClientMock extends StorageClient{
 		static  Boolean saveCalledWithCorrectParams = false;
 
+    @Override
+
+    public void deleteMultipleFiles(String key, String regex){
+		logger.info("test delete method");
+    }
 		@Override
 		public void delete(String key) {
 
@@ -6093,6 +6152,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		public void reset() {
 
 		}
+	}
+	
+	@Test
+	public void testReplaceMultipleSlashes() {
+		String replaceDoubleSlashesWithSingleSlash = RecordMuxer.replaceDoubleSlashesWithSingleSlash("WebRTCAppEE/streams///stream1.mp4");
+		assertEquals("WebRTCAppEE/streams/stream1.mp4", replaceDoubleSlashesWithSingleSlash);
 	}
 
 	@Test
@@ -6144,4 +6209,175 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
 
 	}
+
+
+	@Test
+	public void testNotifyStreamFinish() throws IOException {
+
+		HLSMuxer muxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, "test", false));
+
+		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
+		doReturn(appAdaptor).when(muxer).getAppAdaptor();
+
+		//if client is null
+		CloseableHttpClient client = mock(CloseableHttpClient.class);
+		doReturn(null).when(appAdaptor).getHttpClient();
+		verify(client,times(0)).execute(any());
+		doReturn(client).when(appAdaptor).getHttpClient();
+
+		ArgumentCaptor<HttpPost> captor = ArgumentCaptor.forClass(HttpPost.class);
+		String streamId = "test";
+		String path = "stream/test";
+		muxer.notifyStreamFinish(streamId,path);
+
+		verify(client).execute(captor.capture());
+		HttpPost capturedValue = captor.getValue();
+
+		HttpEntity entity = capturedValue.getEntity();
+		String content = EntityUtils.toString(entity, "UTF-8");
+
+		JsonObject streamFinished = new JsonObject();
+
+		streamFinished.addProperty("streamId", streamId);
+		streamFinished.addProperty("filePath", path);
+		streamFinished.addProperty("command", WebSocketConstants.PUBLISH_FINISHED);
+
+		assert(content.equals(streamFinished.toString()));
+
+		//test write trailer
+
+		muxer.setIsRunning(new AtomicBoolean(true));
+		AppSettings settings = new AppSettings();
+		settings.setS3StreamsFolderPath("streams");
+		doReturn(appSettings).when(muxer).getAppSettings();
+
+		muxer.writeTrailer();
+		verify(muxer).notifyStreamFinish(streamId,path);
+	}
+	
+	
+	@Test
+	public void testRTMPStreamMedaData(){
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		logger.info("Application / web scope: {}", appScope);
+		assertEquals(1, appScope.getDepth());
+		
+		
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), null, false, appScope));
+		String streamId = "stream " + (int) (Math.random() * 10000);
+		muxAdaptor.setStreamId(streamId);
+		
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		doReturn(dataStore).when(muxAdaptor).getDataStore();		
+		
+		Map<String, String> parameters = new HashMap<String, String>();
+		parameters.put("key1", "val1");
+		parameters.put("key2", "val2");
+		
+		muxAdaptor.setBroadcastMetaData(parameters);
+		
+		ArgumentCaptor<BroadcastUpdate> argument = ArgumentCaptor.forClass(BroadcastUpdate.class);
+		verify(dataStore, times(1)).updateBroadcastFields(eq(streamId), argument.capture());
+		assertEquals("{\"key1\":\"val1\",\"key2\":\"val2\"}", argument.getValue().getMetaData());
+		
+	}
+
+	@Test
+	public void testMp4MuxerInitUsesOverrideFileName() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams"));
+		AppSettings appSettingsLocal = new AppSettings();
+		appSettingsLocal.setFileNameFormat("");
+		Mockito.doReturn(appSettingsLocal).when(mp4Muxer).getAppSettings();
+		mp4Muxer.setInitialResourceNameOverride("custom_file_name");
+		mp4Muxer.init(appScope, "ignoredStreamId", 0, null, 0);
+		assertEquals("custom_file_name.mp4", mp4Muxer.getFileName());
+	}
+
+	@Test
+	public void testWebMMuxerInitUsesOverrideFileName() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		WebMMuxer webmMuxer = Mockito.spy(new WebMMuxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams"));
+		AppSettings appSettingsLocal = new AppSettings();
+		appSettingsLocal.setFileNameFormat("");
+		Mockito.doReturn(appSettingsLocal).when(webmMuxer).getAppSettings();
+		webmMuxer.setInitialResourceNameOverride("custom_file_name_webm");
+		webmMuxer.init(appScope, "ignoredStreamId", 0, null, 0);
+		assertEquals("custom_file_name_webm.webm", webmMuxer.getFileName());
+	}
+
+	@Test
+	public void testSanitizeAndStripExtension_LengthAndChars() throws Exception {
+		RestServiceBase rest = new RestServiceBase() {};
+		java.lang.reflect.Method m = RestServiceBase.class.getDeclaredMethod("sanitizeAndStripExtension", String.class, RecordType.class);
+		m.setAccessible(true);
+		String veryLong = new String(new char[150]).replace('\0', 'a') + ".mp4";
+		String res = (String)m.invoke(rest, veryLong, RecordType.MP4);
+		assertTrue(res.length() <= 120);
+		String withPath = "..//..\\bad/name\\file.mp4";
+		String res2 = (String)m.invoke(rest, withPath, RecordType.MP4);
+		assertFalse(res2.contains("/"));
+		assertFalse(res2.contains("\\"));
+		// explicitly cover WEBM extension strip path
+		String webm = (String)m.invoke(rest, "clip.webm", RecordType.WEBM);
+		assertEquals("clip", webm);
+	}
+
+	@Test
+	public void testMuxAdaptorStartRecordingOverloadPassesBaseName() {
+		class TestMuxAdaptor extends MuxAdaptor {
+			public TestMuxAdaptor() { super(Mockito.mock(ClientBroadcastStream.class)); }
+			@Override public boolean addMuxer(Muxer muxer, int resolutionHeight) { return true; }
+			@Override public Mp4Muxer createMp4Muxer() { return Mockito.spy(new Mp4Muxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams")); }
+			@Override public boolean isAlreadyRecording(RecordType recordType, int resolutionHeight) { return false; }
+		}
+		TestMuxAdaptor adaptor = new TestMuxAdaptor();
+		adaptor.setIsRecording(true);
+		RecordMuxer result = adaptor.startRecording(RecordType.MP4, 0, "base_name");
+		// verify override applied on created muxer
+		Mp4Muxer created = (Mp4Muxer) result;
+		Mockito.verify(created, Mockito.times(1)).setInitialResourceNameOverride("base_name");
+	}
+
+	@Test
+	public void testEnableRecordMuxingWithFileNameUsesOverride() throws Exception {
+		final String streamId = "s1";
+		// mock datastore and broadcast in broadcasting state
+		DataStore store = Mockito.mock(DataStore.class);
+		Broadcast b = new Broadcast();
+		b.setStreamId(streamId);
+		b.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		b.setOriginAdress("127.0.0.1");
+		Mockito.when(store.get(streamId)).thenReturn(b);
+		Mockito.when(store.setMp4Muxing(Mockito.eq(streamId), Mockito.anyInt())).thenReturn(true);
+
+		RecordMuxer rm = Mockito.mock(RecordMuxer.class);
+		Mockito.when(rm.getCurrentVoDTimeStamp()).thenReturn(0L);
+		RestServiceBase rest = new RestServiceBase() {
+			@Override
+			public DataStore getDataStore() { return store; }
+			@Override
+			public boolean isInSameNodeInCluster(String originAddress) { return true; }
+			@Override
+			protected RecordMuxer startRecord(String sid, RecordType rt, int res, String baseFileName) { return rm; }
+			@Override
+			protected RecordMuxer startRecord(String sid, RecordType rt, int res) { return null; }
+		};
+
+		Result res = rest.enableRecordMuxing(streamId, true, "mp4", 0, "name.mp4");
+		assertTrue(res.isSuccess());
+	}
+
+	@Test
+	public void testSanitizeAndStripExtension() throws Exception {
+		RestServiceBase rest = new RestServiceBase() {};
+		// access protected method via reflection
+		java.lang.reflect.Method m = RestServiceBase.class.getDeclaredMethod("sanitizeAndStripExtension", String.class, RecordType.class);
+		m.setAccessible(true);
+		assertEquals("my_vod", (String)m.invoke(rest, "my_vod.mp4", RecordType.MP4));
+		assertEquals("cl_ea_n_na_me", (String)m.invoke(rest, "cl/ea\\n_na\tme.webm", RecordType.WEBM));
+		assertEquals("noext", (String)m.invoke(rest, "noext", RecordType.MP4));
+	}
+
 }

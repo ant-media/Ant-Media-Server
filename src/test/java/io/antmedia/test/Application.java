@@ -3,6 +3,7 @@ package io.antmedia.test;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -54,7 +55,7 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	@Override
 	public void notifyHook(String url, String id, String mainTrackId, String action, String streamName, String category,
-                           String vodName, String vodId, String metadata, String subscriberId) {
+                           String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters) {
 		logger.info("notify hook action: {}", action);
 		notifyHookAction.add(action);
 		notitfyURL.add(url);

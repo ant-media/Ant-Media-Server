@@ -199,7 +199,8 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithStatus(dataStore);
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
-
+		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 		dataStore.close(false);
 
@@ -296,6 +297,8 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithStatus(dataStore);
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
+		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 
 		dataStore.close(false);
@@ -379,6 +382,8 @@ public class DBStoresUnitTest {
 		
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
+		testConnectedSubscribers(dataStore);
+		testCustomTotpExpiry(dataStore);
 
 		dataStore.close(true);
 
@@ -2477,6 +2482,7 @@ public class DBStoresUnitTest {
 		subscriberPub.setSubscriberId("subscriber2");
 		subscriberPub.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 		subscriberPub.setType(Subscriber.PUBLISH_TYPE);
+		subscriberPub.setSubscriberName("subscriber2Name");
 		assertTrue(store.addSubscriber(subscriberPub.getStreamId(), subscriberPub));
 
 		//get subscribers of stream
@@ -2506,6 +2512,9 @@ public class DBStoresUnitTest {
 		assertNotNull(written);
 		assertEquals(subscriberPub.getSubscriberId(), written.getSubscriberId());
 		assertEquals(subscriberPub.getType(), written.getType());
+		assertEquals(subscriberPub.getSubscriberName(), written.getSubscriberName());
+		assertEquals("subscriber2Name", written.getSubscriberName());
+
 
 		ConnectionEvent connected = new ConnectionEvent();
 		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
@@ -3980,6 +3989,7 @@ public class DBStoresUnitTest {
 		String subscriberId1 = "subscriberId1";
 		subscriber1.setSubscriberId(subscriberId1);
 		subscriber1.setStreamId(streamId);
+		subscriber1.setSubscriberName("subscriberName1");
 
 		dataStore.addSubscriber(streamId, subscriber1); //executedQueryCount+1
 
@@ -4124,5 +4134,84 @@ public class DBStoresUnitTest {
 		
 	}
 	
+	
+	public void testConnectedSubscribers(DataStore dataStore) {
+		String streamId = "stream"+RandomStringUtils.randomNumeric(6);
+		
+		int connectedSubscriberCount = (int) (Math.random()*100);
+		
+		for (int i = 0; i < connectedSubscriberCount; i++) {
+			Subscriber subscriber = new Subscriber();
+			subscriber.setStreamId(streamId);
+			subscriber.setConnected(true);
+			subscriber.setSubscriberId("conn"+i);
+			dataStore.addSubscriber(streamId, subscriber);
+		}
+		
+		int inconnectedSubscriberCount = (int) (Math.random()*100);
+		
+		for (int i = 0; i < inconnectedSubscriberCount; i++) {
+			Subscriber subscriber = new Subscriber();
+			subscriber.setStreamId(streamId);
+			subscriber.setConnected(false);
+			subscriber.setSubscriberId("inconn"+i);
+			dataStore.addSubscriber(streamId, subscriber);
+		}
+		
+		int someOtherSubscribersCount = (int) (Math.random()*100);
+		for (int i = 0; i < inconnectedSubscriberCount; i++) {
+			Subscriber subscriber = new Subscriber();
+			subscriber.setStreamId("something"+RandomStringUtils.randomNumeric(6));
+			subscriber.setConnected(inconnectedSubscriberCount%2 == 0);
+			subscriber.setSubscriberId("oth"+i);
+			dataStore.addSubscriber(streamId, subscriber);
+		}
+		
+		assertEquals(connectedSubscriberCount, dataStore.getConnectedSubscriberCount(streamId));
+		
+		List<Subscriber> connectedSubscribers = dataStore.getConnectedSubscribers(streamId, 0, 200);
+		assertEquals(connectedSubscriberCount, connectedSubscribers.size());
+		
+		for (Subscriber subscriber : connectedSubscribers) {
+			assertTrue(subscriber.isConnected());
+			assertEquals(streamId, subscriber.getStreamId());
+
+		}
+
+		
+		
+	}
+	
+
+	/**
+	 * Test custom TOTP expiry periods per subscriber
+	 */
+	public void testCustomTotpExpiry(DataStore dataStore) {
+		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+		
+		// Test 1: Subscriber with custom expiry time
+		Subscriber subscriber1 = new Subscriber();
+		subscriber1.setSubscriberId("subscriber1");
+		subscriber1.setStreamId(streamId);
+		subscriber1.setTotpExpiryPeriodSeconds(60); // Custom 1-minute expiry
+		
+		assertTrue(dataStore.addSubscriber(streamId, subscriber1));
+		
+		Subscriber retrievedSubscriber1 = dataStore.getSubscriber(streamId, "subscriber1");
+		assertNotNull(retrievedSubscriber1);
+		assertEquals(Integer.valueOf(60), retrievedSubscriber1.getTotpExpiryPeriodSeconds());
+		
+		// Test 2: Subscriber without custom expiry (should be null)
+		Subscriber subscriber2 = new Subscriber();
+		subscriber2.setSubscriberId("subscriber2");
+		subscriber2.setStreamId(streamId);
+		// Not setting totpExpiryPeriodSeconds - should remain null
+		
+		assertTrue(dataStore.addSubscriber(streamId, subscriber2));
+		
+		Subscriber retrievedSubscriber2 = dataStore.getSubscriber(streamId, "subscriber2");
+		assertNotNull(retrievedSubscriber2);
+		assertNull(retrievedSubscriber2.getTotpExpiryPeriodSeconds());
+	}
 
 }

@@ -13,6 +13,8 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -21,6 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -41,6 +45,7 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public class StreamFetcher {
 
@@ -100,6 +105,8 @@ public class StreamFetcher {
 
 		void streamFinished(IStreamFetcherListener listener);
 
+		void streamStarted(IStreamFetcherListener listener);
+
 	}
 
 	IStreamFetcherListener streamFetcherListener;
@@ -113,6 +120,8 @@ public class StreamFetcher {
 	private AtomicBoolean seekTimeRequestReceived = new AtomicBoolean(false);
 
 	private AtomicLong seekTimeInMs = new AtomicLong(0);
+
+	private static final String RTSP_ALLOWED_MEDIA_TYPES = "allowed_media_types";
 
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
@@ -152,6 +161,32 @@ public class StreamFetcher {
 		}
 
 
+	}
+
+	public void parseRtspUrlParams(AVDictionary optionsDictionary){
+		try {
+		  URI uri = new URI(streamUrl);
+		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
+
+		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+
+		  for (NameValuePair param : params) {
+			String key = param.getName();
+			String value = param.getValue();
+
+			if(key == null && value == null)
+			  continue;
+
+			if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
+			  av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
+			  uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
+			}
+		  }
+
+		  streamUrl = uriBuilder.build().toString();
+		} catch (Exception URISyntaxException) {
+		  logger.warn("cannot parse URL parameters incorrect URL format");
+		}
 	}
 
 	public class WorkerThread extends Thread {
@@ -195,8 +230,10 @@ public class StreamFetcher {
 
 		}
 
+
 		public Result prepareInput(AVFormatContext inputFormatContext) {
-			int timeout = appSettings.getRtspTimeoutDurationMs();
+			int timeout = appSettings.getRtspTimeoutDurationMs(); 
+			streamUrl = getStreamUrl();
 			setConnectionTimeout(timeout);
 
 			Result result = new Result(false);
@@ -223,7 +260,8 @@ public class StreamFetcher {
 				String timeoutStr = String.valueOf(StreamFetcher.this.timeoutMicroSeconds);
 				av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 
-
+				// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
+				parseRtspUrlParams(optionsDictionary);
 
 			}
 
@@ -283,11 +321,12 @@ public class StreamFetcher {
 				if (broadcast == null) {
 					//if broadcast null, it means it's deleted
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
+					stopRequestReceived = true; //set stop request to finish the thread
 					return;
 				}
 				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
-
+					stopRequestReceived = true; //set stop request to finish the thread
 					return;
 				}
 
@@ -299,6 +338,9 @@ public class StreamFetcher {
 				pkt = avcodec.av_packet_alloc();
 				if(prepareInputContext(broadcast))
 				{
+					if(streamFetcherListener != null){
+						streamFetcherListener.streamStarted(streamFetcherListener);
+					}
 
 					boolean readTheNextFrame = true;
 					//In some odd cases stopRequest is received immediately and status of the stream changed to finished
@@ -476,7 +518,7 @@ public class StreamFetcher {
 				long currentTime = System.currentTimeMillis();
 				muxAdaptor.setStartTime(currentTime);
 
-				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, null);
+				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, null, null);
 
 				if (bufferTime > 0) {
 
@@ -652,7 +694,8 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					getInstance().closeBroadcast(streamId, null);
+					
+					getInstance().closeBroadcast(streamId, null, null);
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -689,7 +732,7 @@ public class StreamFetcher {
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
-						getInstance().closeBroadcast(streamId, null);
+						getInstance().closeBroadcast(streamId, null, null);
 					}
 				}
 
@@ -1037,6 +1080,9 @@ public class StreamFetcher {
 	public WorkerThread getThread() {
 		return thread;
 	}
+	public  Broadcast getBroadcast(){
+		return dataStore.get(streamId);
+	}
 
 	public void setThread(WorkerThread thread) {
 		this.thread = thread;
@@ -1126,13 +1172,13 @@ public class StreamFetcher {
 		this.bufferTime = bufferTime;
 	}
 
-	private AppSettings getAppSettings() {
+	protected AppSettings getAppSettings() {
 		if (appSettings == null) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
 	}
-
+	
 	/**
 	 * This is for test purposes
 	 * @param stopRequest

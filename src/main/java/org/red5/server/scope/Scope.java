@@ -948,7 +948,7 @@ public class Scope extends BasicScope implements IScope, IScopeStatistics, Scope
      * @param scope Child scope to remove
      */
     public void removeChildScope(IBasicScope scope) {
-        log.debug("removeChildScope: {}", scope);
+        log.info("removeChildScope: {}", scope);
         if (children.containsKey(scope)) {
             // remove from parent
             children.remove(scope);
