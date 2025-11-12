@@ -18,11 +18,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-<<<<<<< HEAD
-=======
 import java.io.IOException;
 import java.net.InetAddress;
->>>>>>> origin/master
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
@@ -3946,7 +3943,6 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 	}
-<<<<<<< HEAD
 	@Test
 	public void testNotifyLiveStreamEndedDelete() throws Exception {
 		// if broadcast is streaming and the broadcast object is deleted from the server we should notify liveStreamEnded Webhook
@@ -3963,7 +3959,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		restServiceReal.createBroadcast(broadcast,false);
 		assertNotNull(restServiceReal.getBroadcast(streamId));
-		when(restServiceReal.getApplication().stopStreaming(any(),anyBoolean())).thenReturn(new Result(true));
+		when(restServiceReal.getApplication().stopStreaming(any(),anyBoolean(),anyString())).thenReturn(new Result(true));
 
 		restServiceReal.deleteBroadcast(streamId,false);
 		verify(restServiceReal.getApplication(),Mockito.times(0)).notifyLiveStreamEnded(broadcast,null);
@@ -3976,7 +3972,6 @@ public class BroadcastRestServiceV2UnitTest {
 		verify(restServiceReal.getApplication()).notifyLiveStreamEnded(broadcast,null);
 
 	}
-=======
 	
 	@Test
 	public void testDeleteLocalHLSFiles() throws IOException {
@@ -4027,7 +4022,6 @@ public class BroadcastRestServiceV2UnitTest {
 		listener.progressChanged(progressEvent);
 		
 		verify(storageClient, times(1)).deleteMultipleFiles(any(), any());
->>>>>>> origin/master
 
 		
 	}
