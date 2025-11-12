@@ -3959,7 +3959,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		restServiceReal.createBroadcast(broadcast,false);
 		assertNotNull(restServiceReal.getBroadcast(streamId));
-		when(restServiceReal.getApplication().stopStreaming(any(),anyBoolean(),anyString())).thenReturn(new Result(true));
+		when(restServiceReal.getApplication().stopStreaming(any(),anyBoolean(),any())).thenReturn(new Result(true));
 
 		restServiceReal.deleteBroadcast(streamId,false);
 		verify(restServiceReal.getApplication(),Mockito.times(0)).notifyLiveStreamEnded(broadcast,null);
