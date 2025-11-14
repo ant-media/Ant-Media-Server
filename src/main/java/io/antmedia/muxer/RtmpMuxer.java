@@ -53,6 +53,7 @@ public class RtmpMuxer extends Muxer {
 	boolean keyFrameReceived = false;
 
 	private AtomicBoolean preparedIO = new AtomicBoolean(false);
+	private AtomicBoolean cancelOpenIO = new AtomicBoolean(false);
 
 	public RtmpMuxer(String url, Vertx vertx) {
 		super(vertx);
@@ -141,17 +142,40 @@ public class RtmpMuxer extends Muxer {
 			return false;
 		}
 		preparedIO.set(true);
+		cancelOpenIO.set(false);
 		boolean result = false;
 		//if there is a stream in the output format context, try to push
 		if (getOutputFormatContext().nb_streams() > 0) 
 		{
 			this.vertx.executeBlocking(() -> {
-	
+
+				if (cancelOpenIO.get())
+				{
+					// stop requested before socket open starts
+					handleCancelledOpen();
+					return null;
+				}
+
 				if (openIO())
 				{
+					if (cancelOpenIO.get())
+					{
+						// cancelled while blocking in openIO; close immediately
+						handleCancelledOpen();
+						return null;
+					}
+
 					if (bsfFilterContextList.isEmpty())
 					{
-						writeHeader();
+						if (!cancelOpenIO.get())
+						{
+							writeHeader();
+						}
+						else
+						{
+							// cancellation raced right before header write
+							handleCancelledOpen();
+						}
 						return null;
 					}
 					isRunning.set(true);
@@ -163,10 +187,8 @@ public class RtmpMuxer extends Muxer {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 					logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
 				}
-				
+
 				return null;
-				
-				
 			}, false);
 			
 			result = true;
@@ -210,12 +232,14 @@ public class RtmpMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
+		cancelOpenIO.set(true);
 		if(headerWritten){
 			super.writeTrailer();
 			trailerWritten = true;
 		}
 		else{
 			logger.info("Not writing trailer because header is not written yet");
+			clearResource();
 		}
 		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 	}
@@ -223,6 +247,9 @@ public class RtmpMuxer extends Muxer {
 	@Override
 	public synchronized void clearResource() {
 		super.clearResource();
+		if (!headerWritten) {
+			preparedIO.set(false);
+		}
 		/**
 		 *  Don't free the allocatedExtraDataPointer because it's internally deallocated
 		 *
@@ -233,6 +260,11 @@ public class RtmpMuxer extends Muxer {
 		 */
 
 		//allocatedExtraDataPointer is freed when the context is closing
+	}
+
+	private void handleCancelledOpen() {
+		logger.info("RTMP muxer openIO cancelled for {}", url);
+		clearResource();
 	}
 
 	/**
