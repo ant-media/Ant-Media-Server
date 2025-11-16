@@ -149,32 +149,22 @@ public class RtmpMuxer extends Muxer {
 		{
 			this.vertx.executeBlocking(() -> {
 
-				if (cancelOpenIO.get())
+				if (exitIfCancelled())
 				{
-					// stop requested before socket open starts
-					handleCancelledOpen();
 					return null;
 				}
 
 				if (openIO())
 				{
-					if (cancelOpenIO.get())
-					{
-						// cancelled while blocking in openIO; close immediately
-						handleCancelledOpen();
-						return null;
-					}
-
 					if (bsfFilterContextList.isEmpty())
 					{
-						if (!cancelOpenIO.get())
+						if (!exitIfCancelled())
 						{
 							writeHeader();
 						}
 						else
 						{
-							// cancellation raced right before header write
-							handleCancelledOpen();
+							return null;
 						}
 						return null;
 					}
@@ -262,9 +252,13 @@ public class RtmpMuxer extends Muxer {
 		//allocatedExtraDataPointer is freed when the context is closing
 	}
 
-	private void handleCancelledOpen() {
+	private boolean exitIfCancelled() {
+		if (!cancelOpenIO.get()) {
+			return false;
+		}
 		logger.info("RTMP muxer openIO cancelled for {}", url);
 		clearResource();
+		return true;
 	}
 
 	/**
