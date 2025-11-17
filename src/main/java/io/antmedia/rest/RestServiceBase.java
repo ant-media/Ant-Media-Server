@@ -2174,137 +2174,137 @@ public abstract class RestServiceBase {
 	}
 
 
-  public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName)
-  {
-      return enableRecordMuxingInternal(streamId, enableRecording, type, resolutionHeight, fileName);
-  }
+    public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName)
+    {
+        return enableRecordMuxingInternal(streamId, enableRecording, type, resolutionHeight, fileName);
+    }
 
-  private Result enableRecordMuxingInternal(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName) {
-      boolean result = false;
-      String message = null;
-      String status = (enableRecording)?"started":"stopped";
-      String vodId = null;
+    private Result enableRecordMuxingInternal(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName) {
+        boolean result = false;
+        String message = null;
+        String status = (enableRecording)?"started":"stopped";
+        String vodId = null;
 
-      RecordType recordType = null;
-      if (type.equals(RecordType.MP4.toString()))
-      {
-          recordType = RecordType.MP4;
-      }
-      else if (type.equals(RecordType.WEBM.toString()))
-      {
-          recordType = RecordType.WEBM;
-      }
+        RecordType recordType = null;
+        if (type.equals(RecordType.MP4.toString()))
+        {
+            recordType = RecordType.MP4;
+        }
+        else if (type.equals(RecordType.WEBM.toString()))
+        {
+            recordType = RecordType.WEBM;
+        }
 
-      if (streamId != null && recordType != null)
-      {
-          Broadcast broadcast = getDataStore().get(streamId);
-          if (broadcast != null)
-          {
-              if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-              {
-                  if(recordType == RecordType.MP4) {
-                      broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-                  }
-                  else {
-                      broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-                  }
-                  result = true;
-              }
-              else {
-                  boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
-                  if (enableRecording != isAlreadyRecording)
-                  {
-                      result = true;
-                      RecordMuxer muxer = null;
+        if (streamId != null && recordType != null)
+        {
+            Broadcast broadcast = getDataStore().get(streamId);
+            if (broadcast != null)
+            {
+                if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+                {
+                    if(recordType == RecordType.MP4) {
+                        broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+                    }
+                    else {
+                        broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+                    }
+                    result = true;
+                }
+                else {
+                    boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
+                    if (enableRecording != isAlreadyRecording)
+                    {
+                        result = true;
+                        RecordMuxer muxer = null;
 
-                      if (isInSameNodeInCluster(broadcast.getOriginAdress()))
-                      {
-                          if (enableRecording)
-                          {
-                              String sanitizedBaseName = sanitizeAndStripExtension(fileName, recordType);
-                              muxer = (sanitizedBaseName != null) ?
-                                      startRecord(streamId, recordType, resolutionHeight, sanitizedBaseName) :
-                                      startRecord(streamId, recordType, resolutionHeight);
-                              if (muxer != null) {
-                                  vodId = RandomStringUtils.secure().nextAlphanumeric(24);
-                                  muxer.setVodId(vodId);
-                                  message = Long.toString(muxer.getCurrentVoDTimeStamp());
-                                  logger.warn("{} recording is {} for stream: {}", type,status,streamId);
-                              }
+                        if (isInSameNodeInCluster(broadcast.getOriginAdress()))
+                        {
+                            if (enableRecording)
+                            {
+                                String sanitizedBaseName = sanitizeAndStripExtension(fileName, recordType);
+                                muxer = (sanitizedBaseName != null) ?
+                                        startRecord(streamId, recordType, resolutionHeight, sanitizedBaseName) :
+                                        startRecord(streamId, recordType, resolutionHeight);
+                                if (muxer != null) {
+                                    vodId = RandomStringUtils.secure().nextAlphanumeric(24);
+                                    muxer.setVodId(vodId);
+                                    message = Long.toString(muxer.getCurrentVoDTimeStamp());
+                                    logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+                                }
 
-                          }
-                          else
-                          {
-                              muxer = stopRecord(streamId, recordType, resolutionHeight);
-                              if (muxer != null) {
-                                  vodId = muxer.getVodId();
-                                  message = Long.toString(muxer.getCurrentVoDTimeStamp());
-                              }
-                          }
+                            }
+                            else
+                            {
+                                muxer = stopRecord(streamId, recordType, resolutionHeight);
+                                if (muxer != null) {
+                                    vodId = muxer.getVodId();
+                                    message = Long.toString(muxer.getCurrentVoDTimeStamp());
+                                }
+                            }
 
-                          if (muxer == null)
-                          {
-                              result = false;
-                              logFailedOperation(enableRecording, streamId, recordType);
-                              message= recordType +" recording couldn't be " + status;
-                          }
-                      }
-                      else
-                      {
-                          message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
-                          result = false;
-                      }
-                  }
-                  else {
-                      if(enableRecording) {
-                          message = type+" recording couldn't be started";
-                      }
-                      else {
-                          message = type+" recording couldn't be stopped";
-                      }
-                      result = false;
-                  }
+                            if (muxer == null)
+                            {
+                                result = false;
+                                logFailedOperation(enableRecording, streamId, recordType);
+                                message= recordType +" recording couldn't be " + status;
+                            }
+                        }
+                        else
+                        {
+                            message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
+                            result = false;
+                        }
+                    }
+                    else {
+                        if(enableRecording) {
+                            message = type+" recording couldn't be started";
+                        }
+                        else {
+                            message = type+" recording couldn't be stopped";
+                        }
+                        result = false;
+                    }
 
-              }
-              if (result)
-              {
-                  if (recordType == RecordType.WEBM)
-                  {
-                      result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-                  }
-                  else if (recordType == RecordType.MP4)
-                  {
-                      result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-                  }
-              }
-          }
-      }
-      else
-      {
-          message = "No stream for this id: " + streamId + " or unexpected record type. Record type is "+ recordType;
-      }
+                }
+                if (result)
+                {
+                    if (recordType == RecordType.WEBM)
+                    {
+                        result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+                    }
+                    else if (recordType == RecordType.MP4)
+                    {
+                        result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+                    }
+                }
+            }
+        }
+        else
+        {
+            message = "No stream for this id: " + streamId + " or unexpected record type. Record type is "+ recordType;
+        }
 
-      return new Result(result, vodId, message);
-  }
+        return new Result(result, vodId, message);
+    }
 
-  protected String sanitizeAndStripExtension(String fileName, RecordType recordType) {
-      if (fileName == null) {
-          return null;
-      }
-      String safe = replaceCharsForSecurity(fileName);
-      safe = safe.replaceAll("[\\\\/]+", "_");
-      safe = safe.replaceAll("\r|\n|\t", "_");
-      // remove extension if present
-      if (recordType == RecordType.MP4 && safe.toLowerCase().endsWith(".mp4")) {
-          safe = safe.substring(0, safe.length() - 4);
-      }
-      else if (recordType == RecordType.WEBM && safe.toLowerCase().endsWith(".webm")) {
-          safe = safe.substring(0, safe.length() - 5);
-      }
-      // length cap
-      if (safe.length() > 120) {
-          safe = safe.substring(0, 120);
-      }
-      return safe;
-  }
+    protected String sanitizeAndStripExtension(String fileName, RecordType recordType) {
+        if (fileName == null) {
+            return null;
+        }
+        String safe = replaceCharsForSecurity(fileName);
+        safe = safe.replaceAll("[\\\\/]+", "_");
+        safe = safe.replaceAll("\r|\n|\t", "_");
+        // remove extension if present
+        if (recordType == RecordType.MP4 && safe.toLowerCase().endsWith(".mp4")) {
+            safe = safe.substring(0, safe.length() - 4);
+        }
+        else if (recordType == RecordType.WEBM && safe.toLowerCase().endsWith(".webm")) {
+            safe = safe.substring(0, safe.length() - 5);
+        }
+        // length cap
+        if (safe.length() > 120) {
+            safe = safe.substring(0, 120);
+        }
+        return safe;
+    }
 }
