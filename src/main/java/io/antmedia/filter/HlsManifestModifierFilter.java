@@ -157,35 +157,42 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 					} 
 					
 					if(original != null) {
-						MediaPlaylistParser parser = new MediaPlaylistParser();
-						MediaPlaylist playList = parser.readPlaylist(original);
-	
-						List<MediaSegment> segments = new ArrayList<>();
-						for (MediaSegment segment : playList.mediaSegments()) 
-						{
-							segment.programDateTime().ifPresent(dateTime -> 
-							{
-								long time = dateTime.toEpochSecond();
-								if (time >= start && time <= end) 
-								{
-									segments.add(MediaSegment.builder()
-											.duration(segment.duration())
-											.uri(segment.uri())
-											.build());
-								}
-							});
+						String newData = "";
+						if(StringUtils.isNullOrEmpty(startDate) || StringUtils.isNullOrEmpty(endDate)) {
+							//I have added this to handle all and partial m3u8 in redirection case
+							newData = original;
 						}
-	
-						MediaPlaylist newPlayList = MediaPlaylist.builder()
-								.version(playList.version())
-								.targetDuration(playList.targetDuration())
-								.ongoing(false)
-								.addAllMediaSegments(segments)
-								.build();
-	
-						String newData = new MediaPlaylistParser().writePlaylistAsString(newPlayList);
-						if (parameterExists) {
-							newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
+						else {
+							MediaPlaylistParser parser = new MediaPlaylistParser();
+							MediaPlaylist playList = parser.readPlaylist(original);
+		
+							List<MediaSegment> segments = new ArrayList<>();
+							for (MediaSegment segment : playList.mediaSegments()) 
+							{
+								segment.programDateTime().ifPresent(dateTime -> 
+								{
+									long time = dateTime.toEpochSecond();
+									if (time >= start && time <= end) 
+									{
+										segments.add(MediaSegment.builder()
+												.duration(segment.duration())
+												.uri(segment.uri())
+												.build());
+									}
+								});
+							}
+		
+							MediaPlaylist newPlayList = MediaPlaylist.builder()
+									.version(playList.version())
+									.targetDuration(playList.targetDuration())
+									.ongoing(false)
+									.addAllMediaSegments(segments)
+									.build();
+		
+							newData = new MediaPlaylistParser().writePlaylistAsString(newPlayList);
+							if (parameterExists) {
+								newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
+							}
 						}
 	
 						// Write final modified data to response
