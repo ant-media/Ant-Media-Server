@@ -101,6 +101,10 @@ public class BroadcastRestService extends RestServiceBase{
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
 	private static final String CONTINUOUS_MOVE = "continuous";
+	
+	private static final int MIN_TOTP_EXPIRATION_TIME = 10;
+    private static final int MAX_TOTP_EXPIRATION_TIME = Integer.MAX_VALUE;
+    
 
 	@Schema(description="Simple generic statistics class to return single values")
 	public static class SimpleStat {
@@ -987,7 +991,22 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 
 			if (secretCodeLengthCorrect) {
-				result = getDataStore().addSubscriber(streamId, subscriber);
+				Integer totpExpiryPeriodSeconds = subscriber.getTotpExpiryPeriodSeconds();
+				if (totpExpiryPeriodSeconds == null) {
+					logger.info("Custom TOTP expiry period is set from AppSetings:{}", getAppSettings().getTimeTokenPeriod());
+					totpExpiryPeriodSeconds = getAppSettings().getTimeTokenPeriod();
+					subscriber.setTotpExpiryPeriodSeconds(totpExpiryPeriodSeconds);
+				}
+				
+				if(totpExpiryPeriodSeconds >= MIN_TOTP_EXPIRATION_TIME 
+						&& totpExpiryPeriodSeconds <= MAX_TOTP_EXPIRATION_TIME) {
+					result = getDataStore().addSubscriber(streamId, subscriber);					
+				}
+				else {
+					logger.info("Custom TOTP expiry period {} is out of range ({},{})",
+							totpExpiryPeriodSeconds, MIN_TOTP_EXPIRATION_TIME, MAX_TOTP_EXPIRATION_TIME);
+					message = "Custom TOTP expiry period must be between " + MIN_TOTP_EXPIRATION_TIME + " and " + MAX_TOTP_EXPIRATION_TIME;
+				}
 			}
 			else {
 				message = "Secret code is not multiple of 8 bytes length. Use b32Secret which is a string and its lenght is multiple of 8 bytes and allowed characters A-Z, 2-7";
@@ -999,7 +1018,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result, message);
 	}
-
+	
 	@Operation(description="Return TOTP for the subscriberId, streamId, type. This is a helper method. You can generate TOTP on your end."
 			+ "If subscriberId is not in the database, it generates TOTP from the secret in the AppSettings. Secret code is for the subscriberId not in the database"
 
@@ -1024,7 +1043,12 @@ public class BroadcastRestService extends RestServiceBase{
 			if (subscriber != null && StringUtils.isNotBlank(subscriber.getB32Secret())) 
 			{
 				byte[] decodedSubscriberSecret = Base32.decode(subscriber.getB32Secret().getBytes());
-				totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, getAppSettings().getTimeTokenPeriod(),  6, ITokenService.HMAC_SHA1);
+
+				// Use custom expiry period for this subscriber if it is set; otherwise fall back to global setting
+				int period = subscriber.getTotpExpiryPeriodSeconds() != null ?
+						subscriber.getTotpExpiryPeriodSeconds() : getAppSettings().getTimeTokenPeriod();
+
+				totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, period,  6, ITokenService.HMAC_SHA1);
 			}
 			else 
 			{	
@@ -1118,9 +1142,14 @@ public class BroadcastRestService extends RestServiceBase{
 		//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
 		result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
 
+		message = "";
 		AntMediaApplicationAdapter application = getApplication();
 		if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
-			application.stopPlayingBySubscriberId(subscriberId, streamId);
+			boolean playerStopped = application.stopPlayingBySubscriberId(subscriberId, streamId);
+			if (!playerStopped) {
+				logger.warn("Playback cannot be stopped for streamId:{} and subscriberId:{} likely there is no active subscriber", streamId, subscriberId);			
+			}
+				
 		}
 
 		if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
@@ -1318,12 +1347,16 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result enableRecording(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@Parameter(description = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
 			@Parameter(description = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType,
-			@Parameter(description = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight
+			@Parameter(description = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight,
+			@Parameter(description = "Optional base filename (without extension) for the output VOD.", required = false) @QueryParam("fileName") String fileName
 			) {
-		if (logger.isInfoEnabled()) {
-			logger.info("Recording method is called for {} to make it {} and record Type: {} resolution:{}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null, resolutionHeight);
-		}
 		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;  // It means, if recordType is null, function using Mp4 Record by default
+		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight, fileName);
+	}
+
+	// Backward-compatible overload for existing test callers
+	public Result enableRecording(String streamId, boolean enableRecording, String recordType, int resolutionHeight) {
+		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;
 		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight);
 	}
 

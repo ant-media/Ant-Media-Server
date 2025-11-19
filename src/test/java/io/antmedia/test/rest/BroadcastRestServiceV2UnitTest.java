@@ -1801,6 +1801,52 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testEnableMp4MuxingWithBaseFileName() throws Exception 
+	{
+		final String scopeValue = "scope";
+
+		BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		restServiceSpy.setAppSettings(settings);
+
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceSpy.setServerSettings(serverSettings);
+
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn(scopeValue);
+		restServiceSpy.setScope(scope);
+
+		DataStore store = new InMemoryDataStore("testdbBaseName");
+		restServiceSpy.setDataStore(store);
+
+		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
+		MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
+
+		doReturn(true).when(restServiceSpy).isInSameNodeInCluster(Mockito.any());
+		doReturn(application).when(restServiceSpy).getApplication();
+
+		Response response = restServiceSpy.createBroadcast(new Broadcast("baseNameTest"), false);
+		Broadcast testBroadcast = (Broadcast) response.getEntity();
+		when(application.getMuxAdaptor(testBroadcast.getStreamId())).thenReturn(mockMuxAdaptor);
+		doReturn(mockMuxAdaptor).when(restServiceSpy).getMuxAdaptor(testBroadcast.getStreamId());
+
+		// make the broadcast active
+		testBroadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		testBroadcast.setUpdateTime(System.currentTimeMillis());
+
+		// expect startRecording with sanitized base file name (extension stripped)
+		when(mockMuxAdaptor.startRecording(RecordType.MP4, 0, "My Clip Name"))
+				.thenReturn(Mockito.mock(Mp4Muxer.class));
+
+		Result result = restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), true, "mp4", 0, "My Clip Name.mp4");
+		assertTrue(result.isSuccess());
+
+		verify(mockMuxAdaptor, times(1)).startRecording(RecordType.MP4, 0, "My Clip Name");
+		assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, store.get(testBroadcast.getStreamId()).getMp4Enabled());
+	}
+
+	@Test
 	public void testEnableWebMMuxing() throws Exception 
 	{
 		final String scopeValue = "scope";
@@ -1962,6 +2008,8 @@ public class BroadcastRestServiceV2UnitTest {
 		store.setAppSettings(appSettings);
 
 		restServiceReal.setDataStore(store);
+		
+		restServiceReal.setAppSettings(appSettings);
 
 
 		//create subscribers
@@ -4045,5 +4093,152 @@ public class BroadcastRestServiceV2UnitTest {
 		
 	}
 
+	@Test
+	public void testAddSubscriberTotpExpiryValidation() {
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		
+		AppSettings appSettings = new AppSettings();
+		restServiceReal.setAppSettings(appSettings);
+
+		String streamId = "stream1";
+		String subscriberId = "subscriber1";
+
+		// Test 1: Valid custom TOTP expiry period within bounds
+		Subscriber subscriber1 = new Subscriber();
+		subscriber1.setSubscriberId(subscriberId + "_valid");
+		subscriber1.setStreamId(streamId);
+		subscriber1.setType(Subscriber.PLAY_TYPE);
+		// Use reflection to set the value directly to bypass validation in setter
+		try {
+			java.lang.reflect.Field field = Subscriber.class.getDeclaredField("totpExpiryPeriodSeconds");
+			field.setAccessible(true);
+			field.set(subscriber1, 60); // Valid value between 10 and 1000
+		} catch (Exception e) {
+			fail("Failed to set TOTP expiry period via reflection: " + e.getMessage());
+		}
+
+		Result result = restServiceReal.addSubscriber(streamId, subscriber1);
+		assertTrue("Should succeed with valid TOTP expiry period", result.isSuccess());
+
+		// Test 2: Custom TOTP expiry period below minimum (should fail)
+		Subscriber subscriber2 = new Subscriber();
+		subscriber2.setSubscriberId(subscriberId + "_below_min");
+		subscriber2.setStreamId(streamId);
+		subscriber2.setType(Subscriber.PLAY_TYPE);
+		// Use reflection to set invalid value
+		try {
+			java.lang.reflect.Field field = Subscriber.class.getDeclaredField("totpExpiryPeriodSeconds");
+			field.setAccessible(true);
+			field.set(subscriber2, 5); // Below minimum of 10
+		} catch (Exception e) {
+			fail("Failed to set TOTP expiry period via reflection: " + e.getMessage());
+		}
+
+		result = restServiceReal.addSubscriber(streamId, subscriber2);
+		assertFalse("Should fail with TOTP expiry period below minimum", result.isSuccess());
+		assertTrue("Error message should mention minimum value", 
+			result.getMessage().contains("must be between 10"));
+
+		// Test 3: Custom TOTP expiry period above maximum (should fail)
+		Subscriber subscriber3 = new Subscriber();
+		subscriber3.setSubscriberId(subscriberId + "_above_max");
+		subscriber3.setStreamId(streamId);
+		subscriber3.setType(Subscriber.PLAY_TYPE);
+		// Use reflection to set invalid value
+		try {
+			java.lang.reflect.Field field = Subscriber.class.getDeclaredField("totpExpiryPeriodSeconds");
+			field.setAccessible(true);
+			field.set(subscriber3, 1500); // Above maximum of 1000
+		} catch (Exception e) {
+			fail("Failed to set TOTP expiry period via reflection: " + e.getMessage());
+		}
+
+		result = restServiceReal.addSubscriber(streamId, subscriber3);
+		assertTrue("Should pass because TOTP expiry period  is integer max", result.isSuccess());
+		
+
+		// Test 4: No custom TOTP expiry period (should succeed - uses default)
+		Subscriber subscriber4 = new Subscriber();
+		subscriber4.setSubscriberId(subscriberId + "_no_custom");
+		subscriber4.setStreamId(streamId);
+		subscriber4.setType(Subscriber.PLAY_TYPE);
+		// No custom expiry period set (null) - this is the default
+
+		result = restServiceReal.addSubscriber(streamId, subscriber4);
+		assertTrue("Should succeed without custom TOTP expiry period", result.isSuccess());
+
+		// Test 5: Edge case - exactly at minimum boundary
+		Subscriber subscriber5 = new Subscriber();
+		subscriber5.setSubscriberId(subscriberId + "_min_boundary");
+		subscriber5.setStreamId(streamId);
+		subscriber5.setType(Subscriber.PLAY_TYPE);
+		// Use reflection to set boundary value
+		try {
+			java.lang.reflect.Field field = Subscriber.class.getDeclaredField("totpExpiryPeriodSeconds");
+			field.setAccessible(true);
+			field.set(subscriber5, 10); // Exactly at minimum
+		} catch (Exception e) {
+			fail("Failed to set TOTP expiry period via reflection: " + e.getMessage());
+		}
+
+		result = restServiceReal.addSubscriber(streamId, subscriber5);
+		assertTrue("Should succeed with TOTP expiry period at minimum boundary", result.isSuccess());
+
+		// Test 6: Edge case - exactly at maximum boundary
+		Subscriber subscriber6 = new Subscriber();
+		subscriber6.setSubscriberId(subscriberId + "_max_boundary");
+		subscriber6.setStreamId(streamId);
+		subscriber6.setType(Subscriber.PLAY_TYPE);
+		// Use reflection to set boundary value
+		try {
+			java.lang.reflect.Field field = Subscriber.class.getDeclaredField("totpExpiryPeriodSeconds");
+			field.setAccessible(true);
+			field.set(subscriber6, 1000); // Exactly at maximum
+		} catch (Exception e) {
+			fail("Failed to set TOTP expiry period via reflection: " + e.getMessage());
+		}
+
+		result = restServiceReal.addSubscriber(streamId, subscriber6);
+		assertTrue("Should succeed with TOTP expiry period at maximum boundary", result.isSuccess());
+
+		// Test 7: Zero value (should fail)
+		Subscriber subscriber7 = new Subscriber();
+		subscriber7.setSubscriberId(subscriberId + "_zero");
+		subscriber7.setStreamId(streamId);
+		subscriber7.setType(Subscriber.PLAY_TYPE);
+		// Use reflection to set invalid value
+		try {
+			java.lang.reflect.Field field = Subscriber.class.getDeclaredField("totpExpiryPeriodSeconds");
+			field.setAccessible(true);
+			field.set(subscriber7, 0); // Zero value
+		} catch (Exception e) {
+			fail("Failed to set TOTP expiry period via reflection: " + e.getMessage());
+		}
+
+		result = restServiceReal.addSubscriber(streamId, subscriber7);
+		assertFalse("Should fail with zero TOTP expiry period", result.isSuccess());
+		assertTrue("Error message should mention minimum value", 
+			result.getMessage().contains("must be between 10"));
+
+		// Test 8: Negative value (should fail)
+		Subscriber subscriber8 = new Subscriber();
+		subscriber8.setSubscriberId(subscriberId + "_negative");
+		subscriber8.setStreamId(streamId);
+		subscriber8.setType(Subscriber.PLAY_TYPE);
+		// Use reflection to set invalid value
+		try {
+			java.lang.reflect.Field field = Subscriber.class.getDeclaredField("totpExpiryPeriodSeconds");
+			field.setAccessible(true);
+			field.set(subscriber8, -5); // Negative value
+		} catch (Exception e) {
+			fail("Failed to set TOTP expiry period via reflection: " + e.getMessage());
+		}
+
+		result = restServiceReal.addSubscriber(streamId, subscriber8);
+		assertFalse("Should fail with negative TOTP expiry period", result.isSuccess());
+		assertTrue("Error message should mention minimum value", 
+			result.getMessage().contains("must be between 10"));
+	}
 
 }
