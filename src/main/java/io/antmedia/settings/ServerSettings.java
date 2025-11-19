@@ -709,4 +709,8 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	public String getLocalLicenceServerIps() {
 		return localLicenceServerIps;
 	}
+
+	public void setLocalLicenceServerIps(String localLicenceServerIps) {
+		this.localLicenceServerIps = localLicenceServerIps;
+	}
 }
