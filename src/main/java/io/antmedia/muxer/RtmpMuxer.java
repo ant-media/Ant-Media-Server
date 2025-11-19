@@ -148,28 +148,19 @@ public class RtmpMuxer extends Muxer {
 		if (getOutputFormatContext().nb_streams() > 0) 
 		{
 			this.vertx.executeBlocking(() -> {
-
-				if (exitIfCancelled())
-				{
-					return null;
-				}
-
 				if (openIO())
 				{
 					if (bsfFilterContextList.isEmpty())
 					{
-						if (!exitIfCancelled())
-						{
-							writeHeader();
-						}
-						else
-						{
-							return null;
-						}
+						writeHeader();
 						return null;
 					}
-					isRunning.set(true);
-					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+					if (!exitIfCancelled())
+					{
+						isRunning.set(true);
+						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+					}
+
 				}
 				else
 				{
