@@ -5148,7 +5148,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		packetFeeder.writeAudioBuffer(audioFrame, 1, 50);
 		verify(listener, Mockito.times(1)).onAudioPacket(eq(streamId), any());
 
+		packetFeeder.writePacket(new AVPacket(), AVMEDIA_TYPE_DATA);
+		verify(listener, Mockito.times(1)).onDataPacket(eq(streamId), any());
 
+		packetFeeder.writeTrailer();
+		verify(listener, Mockito.times(1)).writeTrailer(eq(streamId));
 	}
 
 	@Test
