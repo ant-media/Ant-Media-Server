@@ -1427,6 +1427,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	{
 		Broadcast broadcast = getDataStore().get(id);
 		String metaDataLocal = StringUtils.isNotBlank(metadata) ? metadata : (broadcast != null ? broadcast.getMetaData() : null);
+
 		
 		String listenerHookURL = getListenerHookURL(broadcast);	
 		if (StringUtils.isNotBlank(listenerHookURL)) 
@@ -1858,7 +1859,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD))
 		{
-			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
+			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST))
 		{

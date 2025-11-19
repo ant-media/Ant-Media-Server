@@ -2017,7 +2017,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		StreamFetcher streamFetcher = spyAdapter.getStreamFetcherManager().getStreamFetcher(broadcast.getStreamId());
 		await().atMost(5, TimeUnit.SECONDS).until(() -> streamFetcher.isThreadActive());
 
-		spyAdapter.getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
+		spyAdapter.getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		await().atMost(5, TimeUnit.SECONDS).until(() -> !streamFetcher.isThreadActive());
 
 
