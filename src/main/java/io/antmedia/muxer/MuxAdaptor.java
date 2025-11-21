@@ -375,7 +375,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				appSettings.isWebRTCEnabled() 
 				||  appSettings.isForceDecoding();
 	}
-
+    public static boolean isAbrEnabled(Broadcast broadcast,
+                                                        AppSettings appSettings) {
+        return  ((broadcast != null && broadcast.getEncoderSettingsList() != null && !broadcast.getEncoderSettingsList().isEmpty()) ||
+                (appSettings.getEncoderSettings() != null && !appSettings.getEncoderSettings().isEmpty()));
+    }
 
 	protected MuxAdaptor(ClientBroadcastStream clientBroadcastStream) {
 
@@ -387,10 +391,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
   public void addRtmpPlayMuxer(){
+        boolean tryEncoder = isAbrEnabled(broadcast, appSettings);
+
+        if(tryEncoder)
+            return;
+
 		if(!appSettings.isRtmpPlaybackEnabled() || getBroadcastStream() != null) {
 			//if rtmp playback is not enabled in settings or 
 			//broadcast stream is not null, do not init rtmp play muxer 
-				//because if it is not null, it is rtmp ingest and we have already rtmp playback
+            //because if it is not null, it is rtmp ingest and we have already rtmp playback
 			logger.info("RTMP playback is {} in settings, broadcastStream is {} for stream: {}, not initializing rtmp play muxer", appSettings.isRtmpPlaybackEnabled(), getBroadcastStream(), streamId);
 			return;
 		}
