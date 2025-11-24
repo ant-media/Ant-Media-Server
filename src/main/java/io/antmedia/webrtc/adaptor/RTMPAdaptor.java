@@ -81,6 +81,7 @@ public class RTMPAdaptor extends Adaptor {
 	public static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
 	private String stunServerUri ="stun:stun1.l.google.com:19302";
+	private List<String> stunServerUriList = new ArrayList<>();
 	private int portRangeMin = 0; 
 	private int portRangeMax = 0;
 	private boolean tcpCandidatesEnabled = true;
@@ -268,22 +269,7 @@ public class RTMPAdaptor extends Adaptor {
 	public boolean initPeerConnection(PeerConnectionFactory pcf) {
 		peerConnectionFactory = createPeerConnectionFactory();
 
-		List<IceServer> iceServers = new ArrayList<>();
-		iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
-
-		Builder iceServerBuilder = IceServer.builder(stunServerUri);
-
-		if (turnServerUsername != null && !turnServerUsername.isEmpty())
-		{
-			iceServerBuilder.setUsername(turnServerUsername);
-		}
-
-		if (turnServerCredential != null && !turnServerCredential.isEmpty()) 
-		{
-			iceServerBuilder.setPassword(turnServerCredential);
-		}
-
-		iceServers.add(iceServerBuilder.createIceServer());
+		List<IceServer> iceServers = buildIceServers();
 
 
 		PeerConnection.RTCConfiguration rtcConfig =
@@ -303,6 +289,35 @@ public class RTMPAdaptor extends Adaptor {
 		Logging.enableLogToDebugOutput(Severity.LS_ERROR);
 		
 		return true;
+	}
+
+	private List<IceServer> buildIceServers() {
+		List<IceServer> iceServers = new ArrayList<>();
+		if (stunServerUriList != null && !stunServerUriList.isEmpty()) {
+			for (String uri : stunServerUriList) {
+				addIceServer(iceServers, uri);
+			}
+		} else {
+			addIceServer(iceServers, stunServerUri);
+		}
+		return iceServers;
+	}
+
+	private void addIceServer(List<IceServer> target, String uri) {
+		if (uri == null || uri.isEmpty()) {
+			return;
+		}
+
+		Builder builder = IceServer.builder(uri);
+		if (uri.startsWith("turn:")) {
+			if (turnServerUsername != null && !turnServerUsername.isEmpty()) {
+				builder.setUsername(turnServerUsername);
+			}
+			if (turnServerCredential != null && !turnServerCredential.isEmpty()) {
+				builder.setPassword(turnServerCredential);
+			}
+		}
+		target.add(builder.createIceServer());
 	}
 
 	@Override
@@ -630,7 +645,24 @@ public class RTMPAdaptor extends Adaptor {
 	public void setStunServerUri(String stunServerUri, String username, String credential) {
 		this.stunServerUri = stunServerUri;
 		this.turnServerUsername = username;
-		this.turnServerCredential = credential;	
+		this.turnServerCredential = credential;
+		this.stunServerUriList = new ArrayList<>();
+		if (stunServerUri != null && !stunServerUri.isEmpty()) {
+			this.stunServerUriList.add(stunServerUri);
+		}
+	}
+
+	public void setStunServerUris(List<String> stunServerUris, String username, String credential) {
+		this.turnServerUsername = username;
+		this.turnServerCredential = credential;
+		if (stunServerUris != null) {
+			this.stunServerUriList = new ArrayList<>(stunServerUris);
+		} else {
+			this.stunServerUriList = new ArrayList<>();
+		}
+		if (!this.stunServerUriList.isEmpty()) {
+			this.stunServerUri = this.stunServerUriList.get(0);
+		}
 	}
 
 	public void setPortRange(int webRTCPortRangeMin, int webRTCPortRangeMax) {

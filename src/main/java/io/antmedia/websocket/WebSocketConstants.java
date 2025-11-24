@@ -95,6 +95,8 @@ public class WebSocketConstants {
 
 	public static final String TURN_SERVER_CREDENTIAL = "turnServerCredential";
 
+	public static final String ICE_SERVERS = "iceServers";
+
 	/**
 	 * Please use {@link #MAIN_TRACK} instead
 	 */

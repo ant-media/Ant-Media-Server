@@ -2,12 +2,14 @@ package io.antmedia;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
@@ -2955,6 +2957,20 @@ public class AppSettings implements Serializable{
 
 	public String getStunServerURI() {
 		return stunServerURI;
+	}
+
+	/**
+	 * Returns the STUN/TURN server URIs parsed from {@link #stunServerURI}.
+	 * Multiple URIs can be provided as a comma-separated list in priority order.
+	 */
+	public List<String> getStunServerURIList() {
+		if (stunServerURI == null || stunServerURI.trim().isEmpty()) {
+			return Collections.emptyList();
+		}
+		return Arrays.stream(stunServerURI.split(","))
+				.map(String::trim)
+				.filter(s -> !s.isEmpty())
+				.collect(Collectors.toList());
 	}
 
 	public void setStunServerURI(String stunServerURI) {
