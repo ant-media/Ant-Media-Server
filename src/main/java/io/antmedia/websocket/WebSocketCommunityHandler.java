@@ -180,7 +180,7 @@ public class WebSocketCommunityHandler {
 		connectionContext.setSession(session);
 		connectionContext.setStreamId(streamId);
 		connectionContext.setPortRange(appSettings.getWebRTCPortRangeMin(), appSettings.getWebRTCPortRangeMax());
-		connectionContext.setStunServerUri(appSettings.getStunServerURI(), appSettings.getTurnServerUsername(), appSettings.getTurnServerCredential());
+		connectionContext.setStunServerUris(appSettings.getStunServerURIList(), appSettings.getTurnServerUsername(), appSettings.getTurnServerCredential());
 		connectionContext.setTcpCandidatesEnabled(appSettings.isWebRTCTcpCandidatesEnabled());
 		connectionContext.setEnableVideo(enableVideo);	
 		connectionContext.start();
