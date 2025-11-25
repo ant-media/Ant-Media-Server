@@ -126,6 +126,10 @@ public class StreamFetcher {
 
 	private static final String RTSP_ALLOWED_MEDIA_TYPES = "allowed_media_types";
 
+	AVRational videoTb = null;
+
+	AVRational audioTb = null;
+
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
 	}
@@ -299,6 +303,15 @@ public class StreamFetcher {
 				result.setMessage("Could not find stream information\n");
 				logger.error(result.getMessage());
 				return result;
+			}
+			for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
+				AVStream stream = inputFormatContext.streams(i);
+				if(stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO && videoTb == null){
+					videoTb = stream.time_base(); 
+				}
+				else if(stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO && audioTb == null){
+					audioTb = stream.time_base(); 
+				}
 			}
 
 			initDTSArrays(inputFormatContext.nb_streams());
@@ -501,7 +514,8 @@ public class StreamFetcher {
 				muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
 
 				MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
-
+				muxAdaptor.setVideoTimeBase(videoTb);
+				muxAdaptor.setAudioTimeBase(audioTb);
 				muxAdaptor.init(scope, streamId, false);
 
 				logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
@@ -783,6 +797,9 @@ public class StreamFetcher {
 
 			long pktDts = pkt.dts();
 
+			if(packetIndex != muxAdaptor.getVideoStreamIndex() && packetIndex != muxAdaptor.getAudioStreamIndex()){
+				return;
+			}
 			//if last sent DTS is bigger than incoming dts, it may be corrupt packet (due to network, etc) or stream is restarted
 
 			if (lastSentDTS[packetIndex] >= pkt.dts())
