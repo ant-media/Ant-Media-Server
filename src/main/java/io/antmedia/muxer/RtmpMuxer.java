@@ -1,6 +1,5 @@
 package io.antmedia.muxer;
 
-
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_INPUT_BUFFER_PADDING_SIZE;
@@ -8,10 +7,13 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_DATA_NEW_EXTRADATA;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_send_packet;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_clone;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.ffmpeg.global.avformat.av_interleaved_write_frame;
+import static org.bytedeco.ffmpeg.global.avformat.av_write_frame; // CHANGE: Raw write
+import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
@@ -21,15 +23,17 @@ import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
@@ -50,9 +54,17 @@ public class RtmpMuxer extends Muxer {
 
 	private String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
 
-	boolean keyFrameReceived = false;
+	private volatile boolean keyFrameReceived = false;
 
 	private AtomicBoolean preparedIO = new AtomicBoolean(false);
+
+	// --- ASYNC & DROPPING FIELDS ---
+	// Capacity 200 packets (approx 3-5 sec).
+	private LinkedBlockingQueue<Object> packetQueue = new LinkedBlockingQueue<>(200);
+	private Thread workerThread;
+	private volatile boolean isWorkerRunning = false;
+	private boolean droppingPframes = false;
+	private static final Object POISON_PILL = new Object();
 
 	public RtmpMuxer(String url, Vertx vertx) {
 		super(vertx);
@@ -60,18 +72,32 @@ public class RtmpMuxer extends Muxer {
 		this.url = url;
 
 		parseRtmpURL(this.url);
+
+		// Prevents FFmpeg from writing duration and file size metadata in the FLV header.
+		setOption("flvflags", "no_duration_filesize");
+
+		// Tells ffmpeg we are working with live streams
+		setOption("rtmp_live", "live");
+
+		// Disable internal buffering so that we hit network immediately
+		setOption("rtmp_buffer", "0");
+
+		// Disable Nagle's algorithm - critical for low latency
+		setOption("tcp_nodelay", "1");
+
+		// Maximize chunk size (64KB) to reduce CPU overhead and header bloat
+		setOption("rtmp_maxchunk", "65536");
 	}
+
 	void parseRtmpURL(String url){
 		if(url == null)
 			return;
-		 // check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
 		String regex = "rtmp(s)?://[a-zA-Z0-9\\.-]+(:[0-9]+)?/([^/]+)/.*";
 
 		Pattern rtmpAppName = Pattern.compile(regex);
 		Matcher checkAppName = rtmpAppName.matcher(url);
 
 		if (!checkAppName.matches()) {
-			//this is the fix to send stream for urls without app
 			setOption("rtmp_app","");
 		}
 	}
@@ -79,20 +105,14 @@ public class RtmpMuxer extends Muxer {
 	public String getOutputURL() {
 		return url;
 	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
+
 	@Override
 	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex) {
-
 		boolean result = super.addStream(codec, codecContext, streamIndex);
-		
 		setStatus(result ? IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING : IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-		
 		return result;
-
 	}
+
 	public void setStatusListener(IEndpointStatusListener listener){
 		this.statusListener = listener;
 	}
@@ -111,9 +131,9 @@ public class RtmpMuxer extends Muxer {
 		}
 		return outputFormatContext;
 	}
+
 	public void setStatus(String status)
 	{
-
 		if (!this.status.equals(status) && this.statusListener != null)
 		{
 			this.statusListener.endpointStatusUpdated(this.url, status);
@@ -143,38 +163,27 @@ public class RtmpMuxer extends Muxer {
 		preparedIO.set(true);
 		boolean result = false;
 		//if there is a stream in the output format context, try to push
-		if (getOutputFormatContext().nb_streams() > 0) 
-		{
+		if (getOutputFormatContext().nb_streams() > 0) {
 			this.vertx.executeBlocking(() -> {
-	
-				if (openIO())
-				{
-					if (bsfFilterContextList.isEmpty())
-					{
+				if (openIO()) {
+					if (bsfFilterContextList.isEmpty()) {
 						writeHeader();
 						return null;
 					}
 					isRunning.set(true);
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-				}
-				else
-				{
+				} else {
 					clearResource();
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 					logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
 				}
-				
 				return null;
-				
-				
 			}, false);
-			
+
 			result = true;
-		}
-		else {
+		} else {
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 		}
-		
 		return result;
 	}
 
@@ -186,58 +195,64 @@ public class RtmpMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized boolean writeHeader() {
-		if(!trailerWritten) 
-		{
-			long startTime = System.currentTimeMillis();
-			super.writeHeader();
-			long diff = System.currentTimeMillis() - startTime;
-			logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), getBitStreamFilter());
-			
-			headerWritten = true;
-			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-
-			return true;
-		}
-		else{
+		if (trailerWritten) {
 			logger.warn("Trying to write header after writing trailer");
 			return false;
 		}
+
+		long startTime = System.currentTimeMillis();
+		super.writeHeader();
+		long diff = System.currentTimeMillis() - startTime;
+		logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), getBitStreamFilter());
+
+		headerWritten = true;
+
+		// --- START WORKER THREAD ---
+		isWorkerRunning = true;
+		workerThread = new Thread(this::processQueue, "RtmpMuxerWorker-" + System.currentTimeMillis());
+		workerThread.start();
+		logger.info("RtmpMuxer worker thread started for: {}", url);
+
+		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		return true;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * Look at the comments {@code writeHeader}
-	 */
 	@Override
 	public synchronized void writeTrailer() {
-		if(headerWritten){
-			super.writeTrailer();
-			trailerWritten = true;
-		}
-		else{
+		if (!headerWritten) {
 			logger.info("Not writing trailer because header is not written yet");
+			return;
 		}
+
+		if (isWorkerRunning) {
+			// Queue the Poison Pill. The worker will call the native trailer write.
+			packetQueue.offer(POISON_PILL);
+		} else {
+			super.writeTrailer();
+		}
+
+		trailerWritten = true;
 		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 	}
 
 	@Override
 	public synchronized void clearResource() {
-		super.clearResource();
-		/**
-		 *  Don't free the allocatedExtraDataPointer because it's internally deallocated
-		 *
-		 * if (allocatedExtraDataPointer != null) {
-		 *	avutil.av_free(allocatedExtraDataPointer);
-		 *	allocatedExtraDataPointer = null;
-		 * }
-		 */
+		isWorkerRunning = false;
+		packetQueue.offer(POISON_PILL);
 
-		//allocatedExtraDataPointer is freed when the context is closing
+		try {
+			if (workerThread != null) {
+				// Wait for worker to finish writing buffer/trailer.
+				workerThread.join(2000);
+			}
+		} catch (InterruptedException e) {
+			logger.warn("RtmpMuxer interrupted waiting for close: {}", url);
+			Thread.currentThread().interrupt();
+		}
+
+		super.clearResource();
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public synchronized boolean addVideoStream(int width, int height, AVRational timebase, int codecId, int streamIndex, boolean isAVC, AVCodecParameters codecpar) {
 		
@@ -266,16 +281,19 @@ public class RtmpMuxer extends Muxer {
 	{
 		AVFormatContext context = getOutputFormatContext();
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
-			//Opening the RTMP muxer may take some time and don't make audio queue increase
 			logger.info("Not writing audio packet to muxer because header is not written yet for {}", url);
 			return;
 		}
 		writeFrameInternal(pkt, inputTimebase, outputTimebase, context, codecType);
 	}
 
+	/**
+	 * This method runs on the MAIN VERT.X THREAD.
+	 * Handles timestamps and BSF. Must not block on I/O.
+	 */
 	private synchronized void writeFrameInternal(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
-			AVFormatContext context, int codecType) 
-	{
+												 AVFormatContext context, int codecType) {
+
 		long pts = pkt.pts();
 		long dts = pkt.dts();
 		long duration = pkt.duration();
@@ -292,7 +310,7 @@ public class RtmpMuxer extends Muxer {
 			ret = av_packet_ref(getTmpPacket() , pkt);
 			if (ret < 0) {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logger.error("Cannot copy packet for {}", file.getName());
+				logger.error("Cannot copy packet for {}", url);
 				return;
 			}
 			if (!bsfFilterContextList.isEmpty() && bsfFilterContextList.get(0) != null)
@@ -324,76 +342,187 @@ public class RtmpMuxer extends Muxer {
 						}
 					}
 
-					if (headerWritten)
-					{
-						
-						avWriteFrame(pkt, context);
-					}
-					else {
+					if (headerWritten) {
+						enqueuePacket(getTmpPacket(), context);
+					} else {
 						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-						logger.warn("Header is not written yet for writing video packet for stream: {}", file.getName());
+						logger.warn("Header is not written yet for writing video packet for stream: {}", url);
 					}
 				}
-			}
-			else
-			{
-				avWriteFrame(pkt, context);
+			} else {
+				enqueuePacket(pkt, context);
 			}
 			av_packet_unref(getTmpPacket());
-		}
-		else if (codecType == AVMEDIA_TYPE_AUDIO && headerWritten)
-		{
+		} else if (codecType == AVMEDIA_TYPE_AUDIO && headerWritten) {
 			av_packet_ref(getTmpPacket() , pkt);
-			ret = av_interleaved_write_frame(context, getTmpPacket());
-			if (ret < 0 && logger.isInfoEnabled())
-			{
-				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logPacketIssue("Cannot write audio packet for stream:{} and url:{}. Packet pts:{} dts:{} and Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
-			}
-			else {
-				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-				logPacketIssue("Write audio packet for stream:{} and url:{}. Packet pts:{} dts:{}", streamId, getOutputURL(), pkt.pts(), pkt.dts());
-
-			}
+			enqueuePacket(getTmpPacket(), context);
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 			av_packet_unref(getTmpPacket());
 		}
 
+		// Restore timestamps for caller
 		pkt.pts(pts);
 		pkt.dts(dts);
 		pkt.duration(duration);
 		pkt.pos(pos);
 	}
 
-	public void avWriteFrame(AVPacket pkt, AVFormatContext context) {
-		int ret = 0;
-		boolean isKeyFrame = false;
-		if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
-			isKeyFrame = true;
-		}
-		addExtradataIfRequired(pkt, isKeyFrame);
-		
-		ret = av_interleaved_write_frame(context, getTmpPacket());
-		if (ret < 0 && logger.isInfoEnabled()) 
-		{
-			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-			logPacketIssue("Cannot write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
-			
-		}
-		else {
-			logPacketIssue("Write video packet for stream:{} and url:{}. Packet pts:{}, dts:{}", streamId, getOutputURL(), pkt.pts(), pkt.dts());
 
-			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+	/**
+	 * Logic Flow:
+	 * 1. Atomic GOP Recovery: If we previously dropped a P-frame due to congestion, we reject ALL
+	 * subsequent P-frames until a new Keyframe arrives. This prevents visual artifacts ("glitching").
+	 * <p>
+	 * 2. Normal Operation: Try to add packet to queue. If successful, return.
+	 * <p>
+	 * 3. Congestion Handling (Queue Full For a longer time, when destination constantly can't keep up):
+	 * - Case A (P-Frame): Drop the new packet (Tail Drop). Set 'droppingPframes' flag.
+	 * - Case B (Keyframe/Audio): We must insert this VIP packet. We make room by dropping from Head.
+	 * - If Head is a Keyframe: Dropping it corrupts the buffered GOP. We "Smart Seek" by draining
+	 * packets from the Head until we reach the *next* Keyframe, performing a clean time-skip.
+	 * - If Head is P-Frame/Audio: Simple Head Drop.
+	 */
+	private void enqueuePacket(AVPacket pkt, AVFormatContext context) {
+		if (!isWorkerRunning) return;
+
+		boolean isVideo = (context.streams(pkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO);
+		boolean isKeyFrame = (pkt.flags() & AV_PKT_FLAG_KEY) != 0;
+
+		// 1. ATOMIC GOP RECOVERY Check
+		if (isVideo && droppingPframes) {
+			if (isKeyFrame) {
+				droppingPframes = false; // Found a restart point
+				logger.info("RtmpMuxer: Keyframe received. Recovering stream for {}", url);
+			} else {
+				// Drop P-frame to avoid glitches
+				return;
+			}
+		}
+
+		AVPacket clone = av_packet_clone(pkt);
+		if (clone == null) return;
+
+		// 2. TRY NORMAL INSERT
+		if (packetQueue.offer(clone)) {
+			return; // Success
+		}
+
+		// 3. QUEUE FULL LOGIC
+
+		// Case A: Tail Drop (P-Frames)
+		if (isVideo && !isKeyFrame) {
+			av_packet_free(clone);
+			droppingPframes = true; // Start dropping P-frames until next Keyframe
+			return;
+		}
+
+		// Case B: Force Insert (Audio or Video Keyframe)
+		// We need to make room at the HEAD.
+
+		Object head = packetQueue.peek();
+		boolean headIsVideoKeyFrame = false;
+
+		if (head instanceof AVPacket) {
+			AVPacket headPkt = (AVPacket) head;
+			if (context.streams(headPkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+				if ((headPkt.flags() & AV_PKT_FLAG_KEY) != 0) {
+					headIsVideoKeyFrame = true;
+				}
+			}
+		}
+
+		if (headIsVideoKeyFrame) {
+			// SMART SEEK: Drop Head Keyframe AND all subsequent packets until next Keyframe
+			logger.warn("RtmpMuxer: Queue Full. Smart Seeking to next Keyframe.");
+
+			// Drop the head keyframe
+			Object dropped = packetQueue.poll();
+			if (dropped instanceof AVPacket) av_packet_free((AVPacket)dropped);
+
+			// Drain until next Keyframe
+			while (true) {
+				Object next = packetQueue.peek();
+				if (next == null) break; // Queue emptied
+
+				boolean nextIsKey = false;
+				if (next instanceof AVPacket) {
+					AVPacket nextPkt = (AVPacket) next;
+					if (context.streams(nextPkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+						if ((nextPkt.flags() & AV_PKT_FLAG_KEY) != 0) {
+							nextIsKey = true;
+						}
+					}
+				}
+
+				if (nextIsKey) {
+					break; // Found valid restart point
+				}
+
+				// Drop intermediate packet (Audio or P-frame)
+				Object removed = packetQueue.poll();
+				if (removed instanceof AVPacket) av_packet_free((AVPacket)removed);
+			}
+		} else {
+			// SIMPLE HEAD DROP: Head is Audio or P-frame. Safe to drop.
+			Object dropped = packetQueue.poll();
+			if (dropped instanceof AVPacket) av_packet_free((AVPacket)dropped);
+		}
+
+		// Insert VIP packet
+		if (!packetQueue.offer(clone)) {
+			av_packet_free(clone);
+			logger.error("RtmpMuxer: Failed to force insert VIP packet.");
 		}
 	}
 
+	// --- WORKER THREAD (UNSYNCHRONIZED) ---
+	private void processQueue() {
+		while (isWorkerRunning) {
+			try {
+				Object item = packetQueue.poll(50, TimeUnit.MILLISECONDS);
+				if (item == null) continue;
+
+				if (item == POISON_PILL) {
+					finishStream();
+					break;
+				}
+
+				if (!(item instanceof AVPacket)) {
+					continue;
+				}
+
+				AVPacket pkt = (AVPacket) item;
+				if (outputFormatContext != null && outputFormatContext.pb() != null) {
+					// CHANGE: Use raw write to bypass internal buffers
+					int ret = av_write_frame(outputFormatContext, pkt);
+					if (ret < 0 && logger.isDebugEnabled()) {
+						logger.debug("Error writing frame to RTMP: {}", ret);
+					}
+				}
+
+				av_packet_free(pkt);
+			} catch (Exception e) {
+				logger.error("RtmpMuxer worker error", e);
+			}
+		}
+	}
+
+	private void finishStream() {
+		try {
+			if (outputFormatContext != null && outputFormatContext.pb() != null) {
+				av_write_trailer(outputFormatContext);
+			}
+		} catch (Exception e) {
+			logger.error("Error writing trailer", e);
+		}
+	}
 
 	@Override
 	public synchronized void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
-			boolean isKeyFrame,long firstFrameTimeStamp, long pts)
+											  boolean isKeyFrame,long firstFrameTimeStamp, long pts)
 	{
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(streamIndex)) {
-			logPacketIssue("Not writing to RTMP muxer because it's not started for {}", url);
 			return;
 		}
 
@@ -411,6 +540,4 @@ public class RtmpMuxer extends Muxer {
 	public boolean isCodecSupported(int codecId) {
 		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC);
 	}
-	
-
 }
