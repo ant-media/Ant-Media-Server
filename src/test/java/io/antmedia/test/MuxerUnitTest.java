@@ -2,28 +2,8 @@ package io.antmedia.test;
 
 import static io.antmedia.muxer.MuxAdaptor.getExtendedSubfolder;
 import static io.antmedia.muxer.MuxAdaptor.getSubfolder;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AC3;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HCA;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HEVC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_NONE;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_alloc;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
-import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
-import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
-import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
@@ -49,17 +29,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -1275,28 +1245,53 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testAVWriteFrame() {
+	public void testRtmpMuxerExtraDataAndHeader() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 		RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer(null, vertx));
+		// Prevent native crash in checking extradata
+		Mockito.doNothing().when(rtmpMuxer).addExtradataIfRequired(Mockito.any(), Mockito.anyBoolean());
 
 		AVFormatContext context = new AVFormatContext();
-		int ret = avformat_alloc_output_context2(context, null, "flv", "test.flv");
+		avformat_alloc_output_context2(context, null, "flv", "test.flv");
 
-		//rtmpMuxer.set
+		// Add stream with MINIMUM required fields to avoid "Video codec unknown" crash
+		AVStream stream = avformat_new_stream(context, null);
+		stream.codecpar().codec_type(AVMEDIA_TYPE_VIDEO);
+		stream.codecpar().codec_id(AV_CODEC_ID_H264); // Mandatory for FLV header
+		stream.index(0);
+
+		Mockito.doReturn(context).when(rtmpMuxer).getOutputFormatContext();
+
 		AVPacket pkt = av_packet_alloc();
+		av_new_packet(pkt, 1); // Allocate 1 byte. Empty packets crash the async cloner.
+		pkt.stream_index(0);
+		pkt.flags(AV_PKT_FLAG_KEY);
 
-		appScope = (WebScope) applicationContext.getBean("web.scope");
+		rtmpMuxer.init(appScope, "test", 0, "", 0);
+		rtmpMuxer.startWorkerThread();
 
-		rtmpMuxer.init(appScope, "", 0, "", 0);
+		// Use the public API since avWriteFrame is gone
+		AVRational tb = new AVRational();
+		tb.num(1); tb.den(1);
+		rtmpMuxer.writePacket(pkt, tb, tb, AVMEDIA_TYPE_VIDEO);
 
-		rtmpMuxer.avWriteFrame(pkt, context);
+		Mockito.verify(rtmpMuxer).addExtradataIfRequired(pkt, true);
 
-		Mockito.verify(rtmpMuxer).addExtradataIfRequired(pkt, false);
-
+		rtmpMuxer.clearResource();
 		av_packet_free(pkt);
 		avformat_free_context(context);
+
+
+		// Test 'writeHeader'
+		rtmpMuxer = Mockito.spy(new RtmpMuxer(null, vertx));
+		rtmpMuxer.init(appScope, "test", 0, "", 0);
+		Mockito.doNothing().when(rtmpMuxer).startWorkerThread();
+		rtmpMuxer.writeHeader();
+
+		Mockito.verify(rtmpMuxer).startWorkerThread();
+		rtmpMuxer.clearResource();
 	}
 
 	@Test

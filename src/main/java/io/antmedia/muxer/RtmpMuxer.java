@@ -208,10 +208,7 @@ public class RtmpMuxer extends Muxer {
 		headerWritten = true;
 
 		// --- START WORKER THREAD ---
-		isWorkerRunning = true;
-		workerThread = new Thread(this::processQueue, "RtmpMuxerWorker-" + System.currentTimeMillis());
-		workerThread.start();
-		logger.info("RtmpMuxer worker thread started for: {}", url);
+		this.startWorkerThread();
 
 		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		return true;
@@ -285,6 +282,13 @@ public class RtmpMuxer extends Muxer {
 			return;
 		}
 		writeFrameInternal(pkt, inputTimebase, outputTimebase, context, codecType);
+	}
+
+	public void startWorkerThread() {
+		isWorkerRunning = true;
+		workerThread = new Thread(this::processQueue, "RtmpMuxerWorker-" + System.currentTimeMillis());
+		workerThread.start();
+		logger.info("RtmpMuxer worker thread started for: {}", url);
 	}
 
 	/**
@@ -387,6 +391,10 @@ public class RtmpMuxer extends Muxer {
 
 		boolean isVideo = (context.streams(pkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO);
 		boolean isKeyFrame = (pkt.flags() & AV_PKT_FLAG_KEY) != 0;
+
+		if (isVideo) {
+			addExtradataIfRequired(pkt, isKeyFrame);
+		}
 
 		// 1. ATOMIC GOP RECOVERY Check
 		if (isVideo && droppingPframes) {
