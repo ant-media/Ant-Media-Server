@@ -12,8 +12,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.ffmpeg.global.avformat.av_write_frame; // CHANGE: Raw write
-import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
+import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
@@ -52,7 +51,7 @@ public class RtmpMuxer extends Muxer {
 
 	private BytePointer allocatedExtraDataPointer = null;
 
-	private String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
+	private volatile String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
 
 	private volatile boolean keyFrameReceived = false;
 
@@ -132,7 +131,7 @@ public class RtmpMuxer extends Muxer {
 		return outputFormatContext;
 	}
 
-	public void setStatus(String status)
+	public synchronized void setStatus(String status)
 	{
 		if (!this.status.equals(status) && this.statusListener != null)
 		{
@@ -224,23 +223,28 @@ public class RtmpMuxer extends Muxer {
 		if (isWorkerRunning) {
 			// Queue the Poison Pill. The worker will call the native trailer write.
 			packetQueue.offer(POISON_PILL);
-		} else {
+			isWorkerRunning = false;
+
+			// REMAINDER: This writeTrailer method will be called once again, after thread has completed, and enter '!trailerWritten' condition.
+		} else if (!trailerWritten) {
 			super.writeTrailer();
+			trailerWritten = true;
 		}
 
-		trailerWritten = true;
 		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 	}
 
 	@Override
 	public synchronized void clearResource() {
-		isWorkerRunning = false;
-		packetQueue.offer(POISON_PILL);
+		if (isWorkerRunning) {
+			isWorkerRunning = false;
+			packetQueue.offer(POISON_PILL);
+		}
 
 		try {
 			if (workerThread != null) {
 				// Wait for worker to finish writing buffer/trailer.
-				workerThread.join(2000);
+				workerThread.join(1000);
 			}
 		} catch (InterruptedException e) {
 			logger.warn("RtmpMuxer interrupted waiting for close: {}", url);
@@ -490,8 +494,8 @@ public class RtmpMuxer extends Muxer {
 				Object item = packetQueue.poll(50, TimeUnit.MILLISECONDS);
 				if (item == null) continue;
 
-				if (item == POISON_PILL) {
-					finishStream();
+				if (item == POISON_PILL || !isWorkerRunning) {
+					this.writeTrailer();
 					break;
 				}
 
@@ -503,8 +507,14 @@ public class RtmpMuxer extends Muxer {
 				if (outputFormatContext != null && outputFormatContext.pb() != null) {
 					// CHANGE: Use raw write to bypass internal buffers
 					int ret = av_write_frame(outputFormatContext, pkt);
-					if (ret < 0 && logger.isDebugEnabled()) {
-						logger.debug("Error writing frame to RTMP: {}", ret);
+					if (ret < 0) {
+						if (logger.isDebugEnabled()) {
+							logPacketIssue("Cannot write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
+						}
+
+						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+					} else if (!IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(this.status)) {
+						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 					}
 				}
 
@@ -513,15 +523,9 @@ public class RtmpMuxer extends Muxer {
 				logger.error("RtmpMuxer worker error", e);
 			}
 		}
-	}
 
-	private void finishStream() {
-		try {
-			if (outputFormatContext != null && outputFormatContext.pb() != null) {
-				av_write_trailer(outputFormatContext);
-			}
-		} catch (Exception e) {
-			logger.error("Error writing trailer", e);
+		if (!trailerWritten) {
+			this.writeTrailer();
 		}
 	}
 
