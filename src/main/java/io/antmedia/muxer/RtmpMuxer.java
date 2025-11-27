@@ -44,6 +44,8 @@ import org.bytedeco.javacpp.SizeTPointer;
 import io.vertx.core.Vertx;
 
 public class RtmpMuxer extends Muxer {
+	protected static final int QUEUE_CAPACITY = 200;
+
 
 	private String url;
 	private volatile boolean trailerWritten = false;
@@ -59,10 +61,10 @@ public class RtmpMuxer extends Muxer {
 
 	// --- ASYNC & DROPPING FIELDS ---
 	// Capacity 200 packets (approx 3-5 sec).
-	private LinkedBlockingQueue<Object> packetQueue = new LinkedBlockingQueue<>(200);
+	protected LinkedBlockingQueue<Object> packetQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
 	private Thread workerThread;
-	private volatile boolean isWorkerRunning = false;
-	private boolean droppingPframes = false;
+	protected volatile boolean isWorkerRunning = false;
+	protected boolean droppingPframes = false;
 	private static final Object POISON_PILL = new Object();
 
 	public RtmpMuxer(String url, Vertx vertx) {
