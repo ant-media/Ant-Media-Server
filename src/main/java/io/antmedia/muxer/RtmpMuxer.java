@@ -121,7 +121,7 @@ public class RtmpMuxer extends Muxer {
 		if (outputFormatContext == null) {
 			logger.info("Creating outputFormatContext");
 			outputFormatContext= new AVFormatContext(null);
-			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, null);
+			int ret = this.avFormatAllocOutputContext2Wrapper();
 			if (ret < 0) {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 				logger.info("Could not create output context for url {}", url);
@@ -162,7 +162,7 @@ public class RtmpMuxer extends Muxer {
 		preparedIO.set(true);
 		boolean result = false;
 		//if there is a stream in the output format context, try to push
-		if (getOutputFormatContext().nb_streams() > 0) {
+		if (getStreamCount() > 0) {
 			this.vertx.executeBlocking(() -> {
 				if (openIO()) {
 					if (bsfFilterContextList.isEmpty()) {
@@ -200,7 +200,7 @@ public class RtmpMuxer extends Muxer {
 		}
 
 		long startTime = System.currentTimeMillis();
-		super.writeHeader();
+		writeSuperHeader();
 		long diff = System.currentTimeMillis() - startTime;
 		logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), getBitStreamFilter());
 
@@ -227,7 +227,7 @@ public class RtmpMuxer extends Muxer {
 
 			// REMAINDER: This writeTrailer method will be called once again, after thread has completed, and enter '!trailerWritten' condition.
 		} else if (!trailerWritten) {
-			super.writeTrailer();
+			superWriteTrailer();
 			trailerWritten = true;
 		}
 
@@ -551,5 +551,24 @@ public class RtmpMuxer extends Muxer {
 	@Override
 	public boolean isCodecSupported(int codecId) {
 		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC);
+	}
+
+	public int avFormatAllocOutputContext2Wrapper() {
+		// We need this ugly wrapper, for testing purposes
+		return avformat_alloc_output_context2(outputFormatContext, null, format, null);
+	}
+
+	public int getStreamCount() {
+		// A one more ugly wrapper for native method, for testing purposes, since those can't be mocked :(
+		return getOutputFormatContext().nb_streams();
+	}
+
+	public boolean writeSuperHeader() {
+		// Also ugly wrapper for testing only
+		return super.writeHeader();
+	}
+
+	public void superWriteTrailer() {
+		super.writeTrailer();
 	}
 }
