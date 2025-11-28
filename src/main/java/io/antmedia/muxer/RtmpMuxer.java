@@ -48,7 +48,7 @@ public class RtmpMuxer extends Muxer {
 
 
 	private String url;
-	private volatile boolean trailerWritten = false;
+	protected volatile boolean trailerWritten = false;
 	private IEndpointStatusListener statusListener;
 
 	private BytePointer allocatedExtraDataPointer = null;

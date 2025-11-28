@@ -141,6 +141,59 @@ public class RtmpMuxerFlowTest {
         av_packet_free(keyFrame);
     }
 
+    @Test
+    public void testSmartSeek_DropGop_WhenHeadIsKeyframe() {
+        muxer.writeHeader();
+
+        // 1. Setup Queue Structure: [Keyframe A (PTS 0), P-Frame B (PTS 10), Keyframe C (PTS 20), ...Audio...]
+        
+        // Packet A: Keyframe (Head)
+        AVPacket pktA = createPacket(0, true);
+        pktA.pts(0);
+        muxer.writePacket(pktA, muxer.getTimeBase(0), muxer.getTimeBase(0), avutil.AVMEDIA_TYPE_VIDEO);
+
+        // Packet B: P-Frame (Should be dropped along with Head)
+        AVPacket pktB = createPacket(0, false);
+        pktB.pts(10);
+        muxer.writePacket(pktB, muxer.getTimeBase(0), muxer.getTimeBase(0), avutil.AVMEDIA_TYPE_VIDEO);
+
+        // Packet C: Next Keyframe (Should become the NEW Head)
+        AVPacket pktC = createPacket(0, true);
+        pktC.pts(20);
+        muxer.writePacket(pktC, muxer.getTimeBase(0), muxer.getTimeBase(0), avutil.AVMEDIA_TYPE_VIDEO);
+
+        // Fill remainder with Audio to reach capacity
+        int filledCount = 3;
+        for (int i = filledCount; i < RtmpMuxer.QUEUE_CAPACITY; i++) {
+            AVPacket pad = createPacket(1, false);
+            muxer.writePacket(pad, muxer.getTimeBase(1), muxer.getTimeBase(1), avutil.AVMEDIA_TYPE_AUDIO);
+            av_packet_free(pad);
+        }
+        
+        assertEquals("Setup: Queue must be full", RtmpMuxer.QUEUE_CAPACITY, muxer.getQueueSize());
+
+        // 2. Trigger Smart Seek by inserting a new VIP Keyframe
+        AVPacket newKey = createPacket(0, true);
+        newKey.pts(5000);
+        muxer.writePacket(newKey, muxer.getTimeBase(0), muxer.getTimeBase(0), avutil.AVMEDIA_TYPE_VIDEO);
+
+        // 3. Verify Logic
+        // Queue size logic: We dropped 2 packets (A & B), and added 1 (newKey).
+        // Expected Size = Capacity - 1
+        assertEquals("Queue size check", RtmpMuxer.QUEUE_CAPACITY - 1, muxer.getQueueSize());
+
+        // The most important check: Did we stop dropping at Keyframe C?
+        AVPacket newHead = muxer.peekPacket();
+        assertTrue("Queue should not be empty", newHead != null);
+        assertEquals("Head should be Keyframe C (PTS 20)", 20, newHead.pts());
+        
+        // Cleanup
+        av_packet_free(pktA);
+        av_packet_free(pktB);
+        av_packet_free(pktC);
+        av_packet_free(newKey);
+    }
+
     // Helper
     private AVPacket createPacket(int streamIndex, boolean isKeyFrame) {
         // Use Native Allocator to ensure compatibility with av_packet_ref
@@ -220,6 +273,12 @@ public class RtmpMuxerFlowTest {
         
         public AVRational getTimeBase(int streamIndex) {
             return this.inputTimeBaseMap.get(streamIndex);
+        }
+
+        public AVPacket peekPacket() {
+            Object o = this.packetQueue.peek();
+            if (o instanceof AVPacket) return (AVPacket) o;
+            return null;
         }
         
         @Override

@@ -2,6 +2,7 @@ package io.antmedia.test.rtmp;
 
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.IEndpointStatusListener;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RtmpMuxer;
 import io.vertx.core.Vertx;
 import org.awaitility.Awaitility;
@@ -93,6 +94,16 @@ public class RtmpMuxerUnitTests {
 	}
 
 	@Test
+	public void testWriteHeaderAfterTrailer() {
+		Vertx vertx = mock(Vertx.class);
+		TestableRtmpMuxer muxer = new TestableRtmpMuxer("rtmp://test-link/test-app/streamId", vertx);
+
+		muxer.setTrailerWritten(true);
+		boolean result = muxer.writeHeader();
+		assertFalse(result);
+	}
+
+	@Test
 	public void testWriteTrailer() {
 		Vertx vertx = mock(Vertx.class);
 		TestableRtmpMuxer muxer = new TestableRtmpMuxer("rtmp://test-link/test-app/streamId", vertx);
@@ -115,6 +126,39 @@ public class RtmpMuxerUnitTests {
 		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, muxer.getStatus());
 	}
 
+	@Test
+	public void testWriteVideoBuffer() {
+		Vertx vertx = mock(Vertx.class);
+		TestableRtmpMuxer muxer = spy(new TestableRtmpMuxer("rtmp://test-link/test-app/streamId", vertx));
+		
+		// Prevent calling the base class method that might do complex logic or native calls
+		// We only want to verify that RtmpMuxer logic passes control to it.
+		doNothing().when(muxer).writeVideoBuffer(any(Muxer.VideoBuffer.class));
+
+		int streamIndex = 0;
+		// Case 1: Muxer not running - should return early
+		muxer.setIsRunning(false);
+		muxer.writeVideoBuffer(null, 0, 0, streamIndex, true, 0, 0);
+		verify(muxer, never()).writeVideoBuffer(any(Muxer.VideoBuffer.class));
+
+		// Case 2: Stream not registered - should return early
+		muxer.setIsRunning(true);
+		// registeredStreamIndexList is empty by default
+		muxer.writeVideoBuffer(null, 0, 0, streamIndex, true, 0, 0);
+		verify(muxer, never()).writeVideoBuffer(any(Muxer.VideoBuffer.class));
+
+		// Register stream
+		muxer.getRegisteredStreamIndexList().add(streamIndex);
+
+		// Case 3: Keyframe not yet received, incoming frame is NOT keyframe - should return early (keyFrameReceived flag logic)
+		// keyFrameReceived is false by default
+		muxer.writeVideoBuffer(null, 0, 0, streamIndex, false, 0, 0);
+		verify(muxer, never()).writeVideoBuffer(any(Muxer.VideoBuffer.class));
+
+		// Case 4: Keyframe not yet received, incoming frame IS keyframe - should set flag and call super
+		muxer.writeVideoBuffer(null, 0, 0, streamIndex, true, 0, 0);
+	}
+
 	static class TestableRtmpMuxer extends RtmpMuxer {
 		public TestableRtmpMuxer(String url, Vertx vertx) {
 			super(url, vertx);
@@ -124,6 +168,14 @@ public class RtmpMuxerUnitTests {
 			this.headerWritten = v;
 		}
 		
+		public void setIsRunning(boolean v) {
+			this.isRunning.set(v);
+		}
+
+		public void setTrailerWritten(boolean v) {
+			this.trailerWritten = v;
+		}
+
 		@Override
 		public boolean writeSuperHeader() {
 			// Override to prevent native calls
