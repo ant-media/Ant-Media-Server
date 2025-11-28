@@ -3548,6 +3548,7 @@ public class AntMediaApplicationAdaptorUnitTest {
         AntMediaApplicationAdapter adaptor = new AntMediaApplicationAdapter();
         
         DataStore inMemoryDatastore = new InMemoryDataStore("") {
+			@Override
         	public Broadcast get(String id) {
         		Broadcast b = super.get(id);
         		try {
