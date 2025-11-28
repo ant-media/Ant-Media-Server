@@ -224,7 +224,10 @@ public class RtmpMuxer extends Muxer {
 
 		if (isWorkerRunning) {
 			// Queue the Poison Pill. The worker will call the native trailer write.
-			packetQueue.offer(POISON_PILL);
+			if (!packetQueue.offer(POISON_PILL)) {
+				logger.warn("writeTrailer could not offer POISON_PILL");
+			}
+
 			isWorkerRunning = false;
 
 			// REMAINDER: This writeTrailer method will be called once again, after thread has completed, and enter '!trailerWritten' condition.
@@ -240,7 +243,9 @@ public class RtmpMuxer extends Muxer {
 	public synchronized void clearResource() {
 		if (isWorkerRunning) {
 			isWorkerRunning = false;
-			packetQueue.offer(POISON_PILL);
+			if (!packetQueue.offer(POISON_PILL)) {
+				logger.warn("clearResource could not offer POISON_PILL");
+			}
 		}
 
 		try {
