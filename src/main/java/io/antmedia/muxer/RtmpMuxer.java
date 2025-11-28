@@ -142,7 +142,7 @@ public class RtmpMuxer extends Muxer {
 		this.status = status;
 	}
 	
-	public String getStatus(){
+	public synchronized String getStatus(){
 		return this.status;
 	}
 
