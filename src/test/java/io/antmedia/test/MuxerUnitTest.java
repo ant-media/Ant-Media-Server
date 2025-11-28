@@ -64,6 +64,7 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
@@ -1245,7 +1246,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testRtmpMuxerExtraDataAndHeader() {
+	public void testRtmpMuxerClasicQueueAndWrite() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
@@ -1278,6 +1279,67 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		rtmpMuxer.writePacket(pkt, tb, tb, AVMEDIA_TYPE_VIDEO);
 
 		Mockito.verify(rtmpMuxer).addExtradataIfRequired(pkt, true);
+
+		rtmpMuxer.clearResource();
+		av_packet_free(pkt);
+		avformat_free_context(context);
+
+
+		// Test 'writeHeader'
+		rtmpMuxer = Mockito.spy(new RtmpMuxer(null, vertx));
+		rtmpMuxer.init(appScope, "test", 0, "", 0);
+		Mockito.doNothing().when(rtmpMuxer).startWorkerThread();
+		rtmpMuxer.writeHeader();
+
+		Mockito.verify(rtmpMuxer).startWorkerThread();
+		rtmpMuxer.clearResource();
+	}
+
+	@Test
+	public void testRtmpMuxerExtraDataAndHeader() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer(null, vertx));
+		// Prevent native crash in checking extradata
+		Mockito.doNothing().when(rtmpMuxer).addExtradataIfRequired(Mockito.any(), Mockito.anyBoolean());
+
+		AVFormatContext context = new AVFormatContext();
+		avformat_alloc_output_context2(context, null, "flv", "test.flv");
+
+		AVIOContext pb = new AVIOContext(null);
+		if (avio_open(pb, "test.flv", AVIO_FLAG_WRITE) < 0) {
+			fail("Could not open test.flv");
+		}
+		context.pb(pb);
+		
+		Mockito.doReturn(context).when(rtmpMuxer).getOutputFormatContext();
+
+		AVPacket pkt = av_packet_alloc();
+		av_new_packet(pkt, 1); // Allocate 1 byte. Empty packets crash the async cloner.
+		pkt.stream_index(0);
+		pkt.flags(AV_PKT_FLAG_KEY);
+
+		int sideDataSize = sps_pps_avc.length;
+		BytePointer sideData = avcodec.av_packet_new_side_data(pkt, avcodec.AV_PKT_DATA_NEW_EXTRADATA, sideDataSize);
+		if (sideData != null) {
+			sideData.put(sps_pps_avc);
+		}
+
+		rtmpMuxer.init(appScope, "test", 0, "", 0);
+		rtmpMuxer.addVideoStream(1280, 720, null, avcodec.AV_CODEC_ID_H264, 0, false, null);
+		rtmpMuxer.startWorkerThread();
+
+		// Use the public API since avWriteFrame is gone
+		AVRational tb = new AVRational();
+		tb.num(1); tb.den(1);
+
+		rtmpMuxer.writePacket(pkt, tb, tb, AVMEDIA_TYPE_VIDEO);
+
+		AVPacket tmpPacket = rtmpMuxer.getTmpPacket();
+		Mockito.verify(rtmpMuxer).addExtradataIfRequired(tmpPacket, true);
+		
+		avio_closep(context.pb());
 
 		rtmpMuxer.clearResource();
 		av_packet_free(pkt);

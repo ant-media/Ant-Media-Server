@@ -436,12 +436,11 @@ public class RtmpMuxer extends Muxer {
 		Object head = packetQueue.peek();
 		boolean headIsVideoKeyFrame = false;
 
-		if (head instanceof AVPacket) {
-			AVPacket headPkt = (AVPacket) head;
-			if (context.streams(headPkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-				if ((headPkt.flags() & AV_PKT_FLAG_KEY) != 0) {
-					headIsVideoKeyFrame = true;
-				}
+		if (head instanceof AVPacket headPkt) {
+			if (context.streams(headPkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO &&
+				(headPkt.flags() & AV_PKT_FLAG_KEY) != 0
+			) {
+				headIsVideoKeyFrame = true;
 			}
 		}
 
