@@ -522,7 +522,11 @@ public class RtmpMuxer extends Muxer {
 
 				av_packet_free(pkt);
 			} catch (Exception e) {
-				logger.error("RtmpMuxer worker error", e);
+				if (!isWorkerRunning && e instanceof InterruptedException) {
+					break;
+				}
+
+				logger.error("RtmpMuxer worker error", e.toString());
 			}
 		}
 
