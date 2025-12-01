@@ -430,6 +430,10 @@ public abstract class Muxer {
 			}
 
 		}	
+		
+		if (optionsDictionary == null) {
+			optionsDictionary = new AVDictionary();
+		}	
 			
 
 		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
