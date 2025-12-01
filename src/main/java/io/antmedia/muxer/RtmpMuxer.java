@@ -498,16 +498,7 @@ public class RtmpMuxer extends Muxer {
 	private void processQueue() {
 		while (isWorkerRunning) {
 			try {
-				Object item;
-				try {
-					item = packetQueue.poll(50, TimeUnit.MILLISECONDS);
-				} catch (InterruptedException ignored) {
-					logger.info("RTMP Muxer thread interrupted!");
-					this.isWorkerRunning = false;
-					this.writeTrailer();
-					return;
-				}
-
+				Object item = packetQueue.poll(50, TimeUnit.MILLISECONDS);
 				if (item == null) continue;
 
 				if (item == POISON_PILL || !isWorkerRunning) {
@@ -538,6 +529,13 @@ public class RtmpMuxer extends Muxer {
 					av_packet_free(pkt);
 				}
 			} catch (Exception e) {
+				if (e instanceof InterruptedException) {
+					logger.info("RTMP Muxer thread interrupted!");
+					this.isWorkerRunning = false;
+					Thread.currentThread().interrupt();
+					break;
+				}
+
 				logger.error("RtmpMuxer worker error: {}", e.toString());
 			}
 		}
