@@ -503,8 +503,9 @@ public class RtmpMuxer extends Muxer {
 					item = packetQueue.poll(50, TimeUnit.MILLISECONDS);
 				} catch (InterruptedException ignored) {
 					logger.info("RTMP Muxer thread interrupted!");
-					isWorkerRunning = false;
-					break;
+					this.isWorkerRunning = false;
+					this.writeTrailer();
+					return;
 				}
 
 				if (item == null) continue;
@@ -519,21 +520,23 @@ public class RtmpMuxer extends Muxer {
 				}
 
 				AVPacket pkt = (AVPacket) item;
-				if (outputFormatContext != null && outputFormatContext.pb() != null) {
-					// CHANGE: Use raw write to bypass internal buffers
-					int ret = av_write_frame(outputFormatContext, pkt);
-					if (ret < 0) {
-						if (logger.isDebugEnabled()) {
-							logPacketIssue("Cannot write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
+				try {
+					if (outputFormatContext != null && outputFormatContext.pb() != null) {
+						// CHANGE: Use raw write to bypass internal buffers
+						int ret = av_write_frame(outputFormatContext, pkt);
+						if (ret < 0) {
+							if (logger.isDebugEnabled()) {
+								logPacketIssue("Cannot write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
+							}
+	
+							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+						} else if (!IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(this.status)) {
+							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 						}
-
-						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					} else if (!IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(this.status)) {
-						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 					}
+				} finally {
+					av_packet_free(pkt);
 				}
-
-				av_packet_free(pkt);
 			} catch (Exception e) {
 				logger.error("RtmpMuxer worker error: {}", e.toString());
 			}
