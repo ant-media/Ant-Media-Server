@@ -3,12 +3,9 @@ package io.antmedia.streamsource;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
@@ -200,7 +197,7 @@ public class StreamFetcherManager {
 		return result;
 	}
 
-	public Result stopStreaming(String streamId) 
+	public Result stopStreaming(String streamId, boolean stopBlocking)
 	{
 		logger.warn("inside of stopStreaming for {}", streamId);
 		Result result = new Result(false);
@@ -209,8 +206,15 @@ public class StreamFetcherManager {
 		{
 			StreamFetcher scheduler = streamFetcherList.remove(streamId);
 			if (scheduler != null) {
-				scheduler.stopStream();
-				result.setSuccess(true);
+                if(stopBlocking){
+                    result.setSuccess(scheduler.stopStreamBlocking());
+                }
+                else{
+                    scheduler.stopStream();
+                    result.setSuccess(true);
+                }
+                result.setMessage(result.isSuccess() ? "Stream stopped" : "Failed to stop the stream with Blocking :"+streamId);
+                return result;
 			}
 		}
 
@@ -263,6 +267,22 @@ public class StreamFetcherManager {
 		}
 	}
 
+	public Result createAndStartNextPlaylistItem(Broadcast playlistBroadcast, IStreamFetcherListener listener,int currentStreamIndex){
+		PlayListItem fetchedBroadcast = playlistBroadcast.getPlayListItemList().get(currentStreamIndex);
+
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setPlayListStatus(playlistBroadcast.getPlayListStatus());
+		broadcastUpdate.setCurrentPlayIndex(playlistBroadcast.getCurrentPlayIndex());
+
+		datastore.updateBroadcastFields(playlistBroadcast.getStreamId(), broadcastUpdate);
+
+		StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), playlistBroadcast.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
+		newStreamScheduler.setRestartStream(false);
+		newStreamScheduler.setStreamFetcherListener(listener);
+
+		return startStreamScheduler(newStreamScheduler);
+	}
+
 
 	/**
 	 * 
@@ -272,16 +292,15 @@ public class StreamFetcherManager {
 	 */
 	public Result playItemInList(Broadcast playlist, IStreamFetcherListener listener, int index) 
 	{
-		// It's necessary for skip new Stream Fetcher
-		stopStreaming(playlist.getStreamId());
 		Result result = new Result(false);
-		
-		if (serverShuttingDown) {
+
+		stopStreaming(playlist.getStreamId(), true);
+
+        if (serverShuttingDown) {
 			logger.info("Playlist will not try to play the next item because server is shutting down");
 			result.setMessage("Playlist will not try to play the next item because server is shutting down");
 			return result;
 		}
-		
 
 		//Check playlist is not stopped and there is an item to play
 
@@ -293,27 +312,16 @@ public class StreamFetcherManager {
 			int currentStreamIndex = playlist.getCurrentPlayIndex();
 			// Check Stream URL is valid.
 			// If stream URL is not valid, it's trying next broadcast and trying.
-			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess()) 
+			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess())
 			{
-				//update broadcast informations
-				PlayListItem fetchedBroadcast = playlist.getPlayListItemList().get(currentStreamIndex);
-				
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setPlayListStatus(playlist.getPlayListStatus());
-				broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
-				
-				datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
-
-				StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), playlist.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
-				newStreamScheduler.setStreamFetcherListener(listener);
-				newStreamScheduler.setRestartStream(false);
-				result = startStreamScheduler(newStreamScheduler);
+                return createAndStartNextPlaylistItem(playlist, listener, currentStreamIndex);
 			}
-			else 
+			else
 			{
 				logger.info("Current Playlist Stream URL -> {} is invalid", playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl());
 				playlist = skipNextPlaylistQueue(playlist, -1);
 				result = startPlaylist(playlist);
+				return result;
 			}
 		}
 		else {
@@ -322,7 +330,6 @@ public class StreamFetcherManager {
 
 
 		return result;
-
 	}
 
 
@@ -548,7 +555,7 @@ public class StreamFetcherManager {
 				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
 						streamScheduler.getStreamId(), restart, broadcast == null, autoStop);
 				
-				stopStreaming(streamScheduler.getStreamId());
+				stopStreaming(streamScheduler.getStreamId(), false);
 				
 			}
 			else {
@@ -561,7 +568,7 @@ public class StreamFetcherManager {
 						broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
 					// if it's not blocked and it's not alive, stop the stream 
 					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
-					stopStreaming(streamScheduler.getStreamId());
+					stopStreaming(streamScheduler.getStreamId(), false);
 					//turn restart to true because we restart the stream to reconnect
 					restart = true;
 				}
@@ -652,7 +659,7 @@ public class StreamFetcherManager {
 	{
 		logger.info("Stopping playlist for stream: {}", streamId);
 
-		Result result = stopStreaming(streamId);
+		Result result = stopStreaming(streamId, false);
 		if (result.isSuccess()) 
 		{
 			result = new Result(false);

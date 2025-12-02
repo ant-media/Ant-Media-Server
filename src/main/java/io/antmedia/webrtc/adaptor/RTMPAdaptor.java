@@ -15,6 +15,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.webrtc.WebRTCUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -393,6 +394,10 @@ public class RTMPAdaptor extends Adaptor {
 		return signallingExecutor;
 	}
 
+    public void setSignallingExecutor(ScheduledExecutorService signallingExecutor) {
+        this.signallingExecutor = signallingExecutor;
+    }
+
 	public void initAudioTrackExecutor() {
 		audioDataSchedulerFuture = signallingExecutor.scheduleAtFixedRate(() -> {
 
@@ -573,7 +578,10 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public void setRemoteDescription(final SessionDescription sdp) {
-		signallingExecutor.execute(() -> 
+        if(!WebRTCUtils.validateSdpMediaPayloads(sdp.description)){
+            return;
+        }
+		signallingExecutor.execute(() ->
 			peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp)
 				);
 
