@@ -1723,7 +1723,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamFetcher streamFetcher = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio", "testRtspUrlParam", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions = new AVDictionary();
-		streamFetcher.parseRtspUrlParams(testOptions);
+		streamFetcher.parseUrlParam(testOptions);
     		assertEquals(streamFetcher.getStreamUrl(),"rtsp://127.0.0.1:6554/test.flv");
 
 		AVDictionaryEntry entry = avutil.av_dict_get(testOptions, "allowed_media_types", null, 0);
@@ -1739,14 +1739,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamFetcher streamFetcher1 = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?testParam=testParam", "testRtspUrlParam1", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions1 = new AVDictionary();
-		streamFetcher1.parseRtspUrlParams(testOptions1);
+		streamFetcher1.parseUrlParam(testOptions1);
     		assertEquals("rtsp://127.0.0.1:6554/test.flv?testParam=testParam",streamFetcher1.getStreamUrl());
 
 		//incorrect url format
 		StreamFetcher streamFetcher2 = new StreamFetcher("rtsp://127.0.0.1:  space  6554/test.flv?allowed_media_types=video", "testRtspUrlParam2", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions2 = new AVDictionary();
-		streamFetcher2.parseRtspUrlParams(testOptions2);
+		streamFetcher2.parseUrlParam(testOptions2);
 
 		entry = avutil.av_dict_get(testOptions2, "allowed_media_types", null, 0);
     		assertTrue(entry == null);
@@ -1756,7 +1756,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		streamFetcher1 = new StreamFetcher("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1&allowed_media_types=video", "testRtspUrlParam1", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		testOptions1 = new AVDictionary();
-		streamFetcher1.parseRtspUrlParams(testOptions1);
+		streamFetcher1.parseUrlParam(testOptions1);
 		assertEquals("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1",streamFetcher1.getStreamUrl());
 	}
 	@Test

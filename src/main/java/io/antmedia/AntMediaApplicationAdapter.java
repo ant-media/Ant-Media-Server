@@ -1145,7 +1145,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean isBroadcastOnThisServer(Broadcast broadcast)
 	{
         return Strings.CS.equals(broadcast.getOriginAdress(), getServerSettings().getHostAddress());
-    }
+	}
 
 
 	/**

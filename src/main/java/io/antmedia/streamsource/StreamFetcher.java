@@ -13,9 +13,11 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
+import java.lang.reflect.Array;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -23,6 +25,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.NameValuePair;
@@ -66,12 +69,13 @@ public class StreamFetcher {
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
-    private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
-    private IScope scope;
+	private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
+	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
 	private MuxAdaptor muxAdaptor = null;
+	ArrayList<Integer> selectedStream = null; 
 
 	/**
 	 * If it is true, it restarts fetching everytime it disconnects
@@ -126,6 +130,8 @@ public class StreamFetcher {
 
 	private static final String RTSP_ALLOWED_MEDIA_TYPES = "allowed_media_types";
 
+	private static final String SELECTED_STREAMS = "selected_streams";
+
 	AVRational videoTb = null;
 
 	AVRational audioTb = null;
@@ -159,6 +165,8 @@ public class StreamFetcher {
 
 	public void initDTSArrays(int nbStreams)
 	{
+		//increasing here by 2 for safety because some time stream is not found in analyze duration but the packets are received
+		nbStreams += 2;
 		lastSentDTS = new long[nbStreams];
 		lastReceivedDTS = new long[nbStreams];
 
@@ -170,7 +178,7 @@ public class StreamFetcher {
 
 	}
 
-	public void parseRtspUrlParams(AVDictionary optionsDictionary){
+	public void parseUrlParam(AVDictionary optionsDictionary){
 		try {
 		  URI uri = new URI(streamUrl);
 		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
@@ -178,16 +186,22 @@ public class StreamFetcher {
 		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
 
 		  for (NameValuePair param : params) {
-			String key = param.getName();
-			String value = param.getValue();
+				String key = param.getName();
+				String value = param.getValue();
 
-			if(key == null && value == null)
-			  continue;
+				if(key == null && value == null)
+					continue;
 
-			if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
-			  av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
-			  uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
-			}
+				if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
+					av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
+					uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
+				}
+				if(key.equals(SELECTED_STREAMS)){
+					selectedStream = Arrays.stream(value.split(","))
+									.map(String::trim)
+									.map(Integer::parseInt)
+									.collect(Collectors.toCollection(ArrayList::new));
+				}
 		  }
 
 		  streamUrl = uriBuilder.build().toString();
@@ -267,10 +281,8 @@ public class StreamFetcher {
 				String timeoutStr = String.valueOf(StreamFetcher.this.timeoutMicroSeconds);
 				av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 
-				// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
-				parseRtspUrlParams(optionsDictionary);
-
 			}
+			parseUrlParam(optionsDictionary);
 
 			//analyze duration is a generic parameter
 			int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
@@ -304,12 +316,20 @@ public class StreamFetcher {
 				logger.error(result.getMessage());
 				return result;
 			}
+
+			if(selectedStream != null){
+				for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
+					if(!selectedStream.contains(i))
+						inputFormatContext.streams(i).codecpar().codec_type(-1);
+				}
+			}
+
 			for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
 				AVStream stream = inputFormatContext.streams(i);
-				if(stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO && videoTb == null){
+				if(stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO){
 					videoTb = stream.time_base(); 
 				}
-				else if(stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO && audioTb == null){
+				else if(stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO){
 					audioTb = stream.time_base(); 
 				}
 			}
@@ -793,13 +813,13 @@ public class StreamFetcher {
 		}
 
 		public void writePacket(AVStream stream, AVPacket pkt) {
+			if(stream.codecpar().codec_type() == -1)
+				return;
+
 			int packetIndex = pkt.stream_index();
 
 			long pktDts = pkt.dts();
 
-			if(packetIndex != muxAdaptor.getVideoStreamIndex() && packetIndex != muxAdaptor.getAudioStreamIndex()){
-				return;
-			}
 			//if last sent DTS is bigger than incoming dts, it may be corrupt packet (due to network, etc) or stream is restarted
 
 			if (lastSentDTS[packetIndex] >= pkt.dts())
