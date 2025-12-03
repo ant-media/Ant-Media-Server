@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -813,7 +814,8 @@ public class StreamFetcher {
 		}
 
 		public void writePacket(AVStream stream, AVPacket pkt) {
-			if(stream.codecpar().codec_type() == -1)
+            AVCodecParameters params = stream.codecpar();
+			if(params != null && params.codec_type() == -1)
 				return;
 
 			int packetIndex = pkt.stream_index();
