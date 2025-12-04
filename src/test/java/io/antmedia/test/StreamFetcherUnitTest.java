@@ -1785,7 +1785,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1",streamFetcher1.getStreamUrl());
 
 
-		streamFetcher1 = new StreamFetcher("srt://localhost:5000/test?selected_streams=1,2", "testRtspUrlParam1", "test", appScope, Vertx.vertx(), 0);
+		streamFetcher1 = new StreamFetcher("srt://localhost:5000/test?v=1,2&a=1,2,3", "testRtspUrlParam1", "test", appScope, Vertx.vertx(), 0);
 
 		testOptions1 = new AVDictionary();
 		streamFetcher1.parseUrlParam(testOptions1);
@@ -1794,7 +1794,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		expected.add(1);
 		expected.add(2);
 		
-		assertEquals(streamFetcher1.getSelectedStream(),expected);
+		assertEquals(streamFetcher1.getSelecteVideoStreams(),expected);
+        expected.add(3);
+        assertEquals(streamFetcher1.getSelectedAudioStreams(),expected);
+
 	}
 	@Test
 	public void testInternalStreamFetcher(){

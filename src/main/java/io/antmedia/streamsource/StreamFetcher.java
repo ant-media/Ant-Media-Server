@@ -76,7 +76,8 @@ public class StreamFetcher {
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
 	private MuxAdaptor muxAdaptor = null;
-	ArrayList<Integer> selectedStream = null; 
+	List<Integer> selectedVideoStreams = null; 
+	List<Integer> selectedAudioStreams = null; 
 
 	/**
 	 * If it is true, it restarts fetching everytime it disconnects
@@ -131,14 +132,15 @@ public class StreamFetcher {
 
 	private static final String RTSP_ALLOWED_MEDIA_TYPES = "allowed_media_types";
 
-	private static final String SELECTED_STREAMS = "selected_streams";
-
 	AVRational videoTb = null;
 
 	AVRational audioTb = null;
 
-	public ArrayList<Integer> getSelectedStream() {
-	    return selectedStream;
+	public List<Integer> getSelecteVideoStreams() {
+	    return selectedVideoStreams;
+	}
+	public List<Integer> getSelectedAudioStreams() {
+	    return selectedAudioStreams;
 	}
 
 	public IStreamFetcherListener getStreamFetcherListener() {
@@ -165,21 +167,45 @@ public class StreamFetcher {
 
 		this.bufferTime = getAppSettings().getStreamFetcherBufferTime();
 	}
+	private static List<Integer> parseList(String value) {
+	    if (value == null || value.isEmpty()) {
+		return new ArrayList<>();
+	    }
 
+	    return Arrays.stream(value.split(","))
+		    .map(String::trim)
+		    .filter(s -> !s.isEmpty()) 
+		    .map(Integer::parseInt)
+		    .collect(Collectors.toList());
+	}
 
-    public void setSelectedStream(ArrayList<Integer> selectedStream) {
-        this.selectedStream = selectedStream;
-    }
+	public void initOnlySelectedStreams(AVFormatContext inputFormatContext){
+		int nbStreams = inputFormatContext.nb_streams();
 
-    public void initOnlySelectedStreams(AVFormatContext inputFormatContext){
-        if(selectedStream != null){
-            for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
-                if(!selectedStream.contains(i))
-                    inputFormatContext.streams(i).codecpar().codec_type(-1);
-            }
-        }
-    }
+		int videoOrder = 0;
+		int audioOrder = 0;
 
+		for (int s = 0; s < nbStreams; s++) {
+			AVStream stream = inputFormatContext.streams(s);
+			AVCodecParameters codecpar = stream.codecpar();
+
+			switch (codecpar.codec_type()) {
+				case AVMEDIA_TYPE_VIDEO:
+					if (selectedVideoStreams != null && !selectedVideoStreams.contains(videoOrder)) {
+						codecpar.codec_type(-1);
+					}
+					videoOrder++;
+					break;
+
+				case AVMEDIA_TYPE_AUDIO:
+					if (selectedAudioStreams != null && !selectedAudioStreams.contains(audioOrder)) {
+						codecpar.codec_type(-1);
+					}
+					audioOrder++;
+					break;
+			}
+		}
+	}
 	public void initDTSArrays(int nbStreams)
 	{
 		lastSentDTS = new long[nbStreams];
@@ -193,39 +219,42 @@ public class StreamFetcher {
 
 	}
 
-	public void parseUrlParam(AVDictionary optionsDictionary){
+	public void parseUrlParam(AVDictionary optionsDictionary) {
 		try {
-		  URI uri = new URI(streamUrl);
-		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
+		    URI uri = new URI(streamUrl);
+		    UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
 
-		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+		    List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
 
-		  for (NameValuePair param : params) {
-				String key = param.getName();
-				String value = param.getValue();
+		    for (NameValuePair param : params) {
+			String key = param.getName();
+			String value = param.getValue();
 
-				if(key == null && value == null)
-					continue;
+			if (key == null || value == null)
+			    continue;
 
-				if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
-					av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
-					uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
-				}
-				if(key.equals(SELECTED_STREAMS)){
-					selectedStream = Arrays.stream(value.split(","))
-									.map(String::trim)
-									.map(Integer::parseInt)
-									.collect(Collectors.toCollection(ArrayList::new));
-					uriBuilder.replaceQueryParam(SELECTED_STREAMS, (Object[]) null);
-				}
-		  }
+			if (key.equals(RTSP_ALLOWED_MEDIA_TYPES)) {
+			    av_dict_set(optionsDictionary, RTSP_ALLOWED_MEDIA_TYPES, value, 0);
+			    uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
+			}
 
-		  streamUrl = uriBuilder.build().toString();
+			if (key.equals("v")) {
+			    selectedVideoStreams = parseList(value);
+			    uriBuilder.replaceQueryParam("v", (Object[]) null);
+			}
+
+			if (key.equals("a")) {
+			    selectedAudioStreams = parseList(value);
+			    uriBuilder.replaceQueryParam("a", (Object[]) null);
+			}
+		    }
+
+		    streamUrl = uriBuilder.build().toString();
+
 		} catch (Exception URISyntaxException) {
-		  logger.warn("cannot parse URL parameters incorrect URL format");
+		    logger.warn("cannot parse URL parameters incorrect URL format");
 		}
 	}
-
 	public class WorkerThread extends Thread {
 
 		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
@@ -332,17 +361,17 @@ public class StreamFetcher {
 				logger.error(result.getMessage());
 				return result;
 			}
-            initOnlySelectedStreams(inputFormatContext);
+			initOnlySelectedStreams(inputFormatContext);
 
-            for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
-                AVStream stream = inputFormatContext.streams(i);
-                if(stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO){
-                    videoTb = stream.time_base();
-                }
-                else if(stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO){
-                    audioTb = stream.time_base();
-                }
-            }
+			for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
+				AVStream stream = inputFormatContext.streams(i);
+				if(stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO){
+				    videoTb = stream.time_base();
+				}
+				else if(stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO){
+				    audioTb = stream.time_base();
+				}
+			}
 
 			initDTSArrays(inputFormatContext.nb_streams());
 
