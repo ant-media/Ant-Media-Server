@@ -166,8 +166,6 @@ public class StreamFetcher {
 
 	public void initDTSArrays(int nbStreams)
 	{
-		//increasing here by 2 for safety because some time stream is not found in analyze duration but the packets are received
-		nbStreams += 2;
 		lastSentDTS = new long[nbStreams];
 		lastReceivedDTS = new long[nbStreams];
 
@@ -814,7 +812,7 @@ public class StreamFetcher {
 		}
 
 		public void writePacket(AVStream stream, AVPacket pkt) {
-            AVCodecParameters params = stream.codecpar();
+			AVCodecParameters params = stream.codecpar();
 			if(params != null && params.codec_type() == -1)
 				return;
 
@@ -824,26 +822,33 @@ public class StreamFetcher {
 
 			//if last sent DTS is bigger than incoming dts, it may be corrupt packet (due to network, etc) or stream is restarted
 
-			if (lastSentDTS[packetIndex] >= pkt.dts())
-			{
-				//it may be corrupt packet
-				if (pkt.dts() > lastReceivedDTS[packetIndex]) {
-					//it may be seeked or restarted
-					pktDts = lastSentDTS[packetIndex] + pkt.dts() - lastReceivedDTS[packetIndex];
-					//if stream is restarted, audio/video sync may be accumulated and we need to check the audio/video synch
-					checkAndFixSynch();
+			try{
+				if (lastSentDTS[packetIndex] >= pkt.dts())
+				{
+					//it may be corrupt packet
+					if (pkt.dts() > lastReceivedDTS[packetIndex]) {
+						//it may be seeked or restarted
+						pktDts = lastSentDTS[packetIndex] + pkt.dts() - lastReceivedDTS[packetIndex];
+						//if stream is restarted, audio/video sync may be accumulated and we need to check the audio/video synch
+						checkAndFixSynch();
+					}
+					else {
+						logger.info("Last dts:{} is bigger than incoming dts: {} for stream index:{} and streamId:{}-"
+								+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
+								lastSentDTS[packetIndex], pkt.dts(), packetIndex, streamId);
+						pktDts = lastSentDTS[packetIndex] + 1;
+					}
 				}
-				else {
-					logger.info("Last dts:{} is bigger than incoming dts: {} for stream index:{} and streamId:{}-"
-							+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
-							lastSentDTS[packetIndex], pkt.dts(), packetIndex, streamId);
-					pktDts = lastSentDTS[packetIndex] + 1;
-				}
-			}
 
 			lastReceivedDTS[packetIndex] = pkt.dts();
 			pkt.dts(pktDts);
 			lastSentDTS[packetIndex] = pkt.dts();
+
+			}
+			catch(ArrayIndexOutOfBoundsException e){
+				//some time during stream info gathring process the nb_streams may not be correct so resize if required 
+				initDTSArrays(packetIndex);
+			}
 
 
 			if (pkt.dts() > pkt.pts())
