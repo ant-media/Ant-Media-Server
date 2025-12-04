@@ -1718,7 +1718,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testRTSPAllowedMediaTypes(){
+	public void testStreamFetcherUrlParam(){
   		// allowed_media_types should be remove from url params ( because what if rtsp server does not support url param eg. happytime rtsp server )
 		StreamFetcher streamFetcher = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio", "testRtspUrlParam", "rtsp_source", appScope, Vertx.vertx(), 0);
 
@@ -1758,6 +1758,18 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testOptions1 = new AVDictionary();
 		streamFetcher1.parseUrlParam(testOptions1);
 		assertEquals("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1",streamFetcher1.getStreamUrl());
+
+
+		streamFetcher1 = new StreamFetcher("srt://localhost:5000/test?selected_streams=1,2", "testRtspUrlParam1", "test", appScope, Vertx.vertx(), 0);
+
+		testOptions1 = new AVDictionary();
+		streamFetcher1.parseUrlParam(testOptions1);
+		assertEquals("srt://localhost:5000/test",streamFetcher1.getStreamUrl());
+		ArrayList<Integer> expected = new ArrayList<Integer>();
+		expected.add(1);
+		expected.add(2);
+		
+		assertEquals(streamFetcher1.getSelectedStream(),expected);
 	}
 	@Test
 	public void testInternalStreamFetcher(){

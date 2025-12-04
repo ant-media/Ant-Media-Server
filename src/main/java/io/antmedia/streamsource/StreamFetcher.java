@@ -137,6 +137,10 @@ public class StreamFetcher {
 
 	AVRational audioTb = null;
 
+	public ArrayList<Integer> getSelectedStream() {
+	    return selectedStream;
+	}
+
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
 	}
@@ -200,6 +204,7 @@ public class StreamFetcher {
 									.map(String::trim)
 									.map(Integer::parseInt)
 									.collect(Collectors.toCollection(ArrayList::new));
+					uriBuilder.replaceQueryParam(SELECTED_STREAMS, (Object[]) null);
 				}
 		  }
 
