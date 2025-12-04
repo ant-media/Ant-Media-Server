@@ -48,7 +48,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -84,7 +83,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -5474,6 +5472,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
     @Test
+    public void testGetOutputUrl(){
+        HLSMuxer hlsMuxer = new HLSMuxer(Mockito.mock(Vertx.class), Mockito.mock(StorageClient.class), "streams", 7, null, false);
+        hlsMuxer.getOutputURL();
+    }
+    @Test
     public void addRtmpMuxerProviderTest(){
         if (appScope == null) {
             appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -5502,7 +5505,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
             mockedStatic.when(() -> MuxAdaptor.isAbrEnabled(any(),any()))
                     .thenReturn(true);
 
-            muxAdaptor.addRtmpPlayMuxer();
+            muxAdaptor.addRtmpProviderMuxer();
             verify(muxAdaptor,times(0)).addMuxer(any());
 
 
@@ -5511,13 +5514,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
                     .thenReturn(false);
 
             //abr disabled rtmp disabled
-            muxAdaptor.addRtmpPlayMuxer();
+            muxAdaptor.addRtmpProviderMuxer();
             verify(muxAdaptor, times(0)).addMuxer(any());
 
 
             appSettings.setRtmpPlaybackEnabled(true);
             //abr disabled rtmp enabled
-            muxAdaptor.addRtmpPlayMuxer();
+            muxAdaptor.addRtmpProviderMuxer();
             verify(muxAdaptor, times(1)).addMuxer(any());
 
         }

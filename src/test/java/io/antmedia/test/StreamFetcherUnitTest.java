@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.EncoderSettings;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
@@ -1669,8 +1670,32 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			
 		}
 
-	}
-	
+    }
+    @Test
+    public void testWritePacketNonSelectedStream(){
+
+        StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx, 0);
+        MuxAdaptor muxAdaptor = spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
+        fetcher.setMuxAdaptor(muxAdaptor);
+
+        WorkerThread workerThread = fetcher.new WorkerThread();
+        //test write packet non selected stream
+        {
+            AVPacket pkt = avcodec.av_packet_alloc();
+            pkt.pts(1);
+            pkt.dts(1);
+            pkt.stream_index(-1);
+
+            AVStream stream = new AVStream();
+            stream.codecpar(new AVCodecParameters().codec_type(-1));
+            workerThread.writePacket(stream, pkt);
+
+            avcodec.av_packet_free(pkt);
+
+            verify(muxAdaptor,times(0)).writePacket(any(),any());
+        }
+    }
+
 	@Test
 	public void testCheckAndFixSynch() {
 		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx, 0);

@@ -167,6 +167,18 @@ public class StreamFetcher {
 	}
 
 
+    public void setSelectedStream(ArrayList<Integer> selectedStream) {
+        this.selectedStream = selectedStream;
+    }
+
+    public void initOnlySelectedStreams(AVFormatContext inputFormatContext){
+        if(selectedStream != null){
+            for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
+                if(!selectedStream.contains(i))
+                    inputFormatContext.streams(i).codecpar().codec_type(-1);
+            }
+        }
+    }
 
 	public void initDTSArrays(int nbStreams)
 	{
@@ -320,23 +332,17 @@ public class StreamFetcher {
 				logger.error(result.getMessage());
 				return result;
 			}
+            initOnlySelectedStreams(inputFormatContext);
 
-			if(selectedStream != null){
-				for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
-					if(!selectedStream.contains(i))
-						inputFormatContext.streams(i).codecpar().codec_type(-1);
-				}
-			}
-
-			for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
-				AVStream stream = inputFormatContext.streams(i);
-				if(stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO){
-					videoTb = stream.time_base(); 
-				}
-				else if(stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO){
-					audioTb = stream.time_base(); 
-				}
-			}
+            for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
+                AVStream stream = inputFormatContext.streams(i);
+                if(stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO){
+                    videoTb = stream.time_base();
+                }
+                else if(stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO){
+                    audioTb = stream.time_base();
+                }
+            }
 
 			initDTSArrays(inputFormatContext.nb_streams());
 

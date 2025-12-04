@@ -526,7 +526,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (dashMuxer != null) {
 			addMuxer(dashMuxer);
 		}
-		addRtmpPlayMuxer();
+		addRtmpProviderMuxer();
 
 		for (Muxer muxer : muxerList) {
 			muxer.init(scope, streamId, 0, getSubfolder(getBroadcast(), getAppSettings()), 0);
@@ -534,7 +534,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
 	}
-    public void addRtmpPlayMuxer(){
+    public void addRtmpProviderMuxer(){
         boolean tryEncoder = isAbrEnabled(broadcast, appSettings);
 
         if(tryEncoder)
