@@ -8,14 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.*;
-
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -3951,6 +3944,10 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal = spy(restServiceReal);
 		Broadcast broadcast = spy(new Broadcast());
 		broadcast.setStreamId(streamId);
+		broadcast.setName("name");
+		broadcast.setCategory("category");
+		broadcast.setMetaData("meta");
+		broadcast.setMainTrackStreamId("track");
 		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED).when(broadcast).getStatus();
 		DataStore dataStore = mock(DataStore.class);
 		doReturn(broadcast).when(dataStore).get(streamId);
@@ -3970,6 +3967,14 @@ public class BroadcastRestServiceV2UnitTest {
 
 		restServiceReal.deleteBroadcast(streamId,false);
 		verify(restServiceReal.getApplication()).notifyLiveStreamEnded(broadcast,null);
+
+		AntMediaApplicationAdapter adapter = spy(new AntMediaApplicationAdapter());
+		doReturn("test").when(adapter).getListenerHookURL(any());
+		doNothing().when(adapter).notifyHook(anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),any(),any());
+
+		adapter.setVertx(vertx);
+		adapter.notifyLiveStreamEnded(broadcast,"test");
+		verify(adapter).notifyHook(anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),any(),any(),anyString(),any(),any());
 
 	}
 	
