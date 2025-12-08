@@ -81,7 +81,6 @@ public class RTMPAdaptor extends Adaptor {
 	public static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
 	private String stunServerUri ="stun:stun1.l.google.com:19302";
-	private List<String> stunServerUriList = new ArrayList<>();
 	private int portRangeMin = 0; 
 	private int portRangeMax = 0;
 	private boolean tcpCandidatesEnabled = true;
@@ -293,23 +292,12 @@ public class RTMPAdaptor extends Adaptor {
 
 	private List<IceServer> buildIceServers() {
 		List<IceServer> iceServers = new ArrayList<>();
-		if (stunServerUriList != null && !stunServerUriList.isEmpty()) {
-			for (String uri : stunServerUriList) {
-				addIceServer(iceServers, uri);
-			}
-		} else {
-			addIceServer(iceServers, stunServerUri);
-		}
-		return iceServers;
-	}
-
-	private void addIceServer(List<IceServer> target, String uri) {
-		if (uri == null || uri.isEmpty()) {
-			return;
+		if (stunServerUri == null || stunServerUri.isEmpty()) {
+			return iceServers;
 		}
 
-		Builder builder = IceServer.builder(uri);
-		if (uri.startsWith("turn:")) {
+		Builder builder = IceServer.builder(stunServerUri);
+		if (stunServerUri.startsWith("turn:")) {
 			if (turnServerUsername != null && !turnServerUsername.isEmpty()) {
 				builder.setUsername(turnServerUsername);
 			}
@@ -317,7 +305,8 @@ public class RTMPAdaptor extends Adaptor {
 				builder.setPassword(turnServerCredential);
 			}
 		}
-		target.add(builder.createIceServer());
+		iceServers.add(builder.createIceServer());
+		return iceServers;
 	}
 
 	@Override
@@ -645,23 +634,12 @@ public class RTMPAdaptor extends Adaptor {
 	public void setStunServerUri(String stunServerUri, String username, String credential) {
 		this.stunServerUri = stunServerUri;
 		this.turnServerUsername = username;
-		this.turnServerCredential = credential;
-		this.stunServerUriList = new ArrayList<>();
-		if (stunServerUri != null && !stunServerUri.isEmpty()) {
-			this.stunServerUriList.add(stunServerUri);
-		}
+		this.turnServerCredential = credential;	
 	}
 
 	public void setStunServerUris(List<String> stunServerUris, String username, String credential) {
-		this.turnServerUsername = username;
-		this.turnServerCredential = credential;
-		if (stunServerUris != null) {
-			this.stunServerUriList = new ArrayList<>(stunServerUris);
-		} else {
-			this.stunServerUriList = new ArrayList<>();
-		}
-		if (!this.stunServerUriList.isEmpty()) {
-			this.stunServerUri = this.stunServerUriList.get(0);
+		if (stunServerUris != null && !stunServerUris.isEmpty()) {
+			setStunServerUri(stunServerUris.get(0), username, credential);
 		}
 	}
 
