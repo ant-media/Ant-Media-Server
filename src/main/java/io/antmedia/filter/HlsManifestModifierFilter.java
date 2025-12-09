@@ -157,42 +157,35 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 					} 
 					
 					if(original != null) {
-						String newData = "";
-						if(StringUtils.isNullOrEmpty(startDate) || StringUtils.isNullOrEmpty(endDate)) {
-							//I have added this to handle all and partial m3u8 in redirection case
-							newData = original;
-						}
-						else {
-							MediaPlaylistParser parser = new MediaPlaylistParser();
-							MediaPlaylist playList = parser.readPlaylist(original);
-		
-							List<MediaSegment> segments = new ArrayList<>();
-							for (MediaSegment segment : playList.mediaSegments()) 
+						MediaPlaylistParser parser = new MediaPlaylistParser();
+						MediaPlaylist playList = parser.readPlaylist(original);
+	
+						List<MediaSegment> segments = new ArrayList<>();
+						for (MediaSegment segment : playList.mediaSegments()) 
+						{
+							segment.programDateTime().ifPresent(dateTime -> 
 							{
-								segment.programDateTime().ifPresent(dateTime -> 
+								long time = dateTime.toEpochSecond();
+								if (time >= start && time <= end) 
 								{
-									long time = dateTime.toEpochSecond();
-									if (time >= start && time <= end) 
-									{
-										segments.add(MediaSegment.builder()
-												.duration(segment.duration())
-												.uri(segment.uri())
-												.build());
-									}
-								});
-							}
-		
-							MediaPlaylist newPlayList = MediaPlaylist.builder()
-									.version(playList.version())
-									.targetDuration(playList.targetDuration())
-									.ongoing(false)
-									.addAllMediaSegments(segments)
-									.build();
-		
-							newData = new MediaPlaylistParser().writePlaylistAsString(newPlayList);
-							if (parameterExists) {
-								newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
-							}
+									segments.add(MediaSegment.builder()
+											.duration(segment.duration())
+											.uri(segment.uri())
+											.build());
+								}
+							});
+						}
+	
+						MediaPlaylist newPlayList = MediaPlaylist.builder()
+								.version(playList.version())
+								.targetDuration(playList.targetDuration())
+								.ongoing(false)
+								.addAllMediaSegments(segments)
+								.build();
+	
+						String newData = new MediaPlaylistParser().writePlaylistAsString(newPlayList);
+						if (parameterExists) {
+							newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
 						}
 	
 						// Write final modified data to response
@@ -252,44 +245,52 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 	}
 
-  public String addParamSeparator(String current) {
-    if (current.contains("?")) {
-      String lastChar = current.substring(current.length() - 1);
-      if (lastChar.equals("&")){
-        return "";
-      }
-      return "&";
-    }
-    return "?";
-  }
+	public String addParamSeparator(String current) {
+		if (current.contains("?")) {
+			String lastChar = current.substring(current.length() - 1);
+			if (lastChar.equals("&")){
+				return "";
+			}
+			return "&";
+		}
+		return "?";
+	}
 
-  public String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode,
-                                          String regex) {
-    Pattern pattern = Pattern.compile(regex);
-    Matcher matcher = pattern.matcher(original);
+	public String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode,
+			String regex) {
+		Pattern pattern = Pattern.compile(regex);
+		Matcher matcher = pattern.matcher(original);
 
-    StringBuilder result = new StringBuilder();
+		StringBuilder result = new StringBuilder();
 
-    while (matcher.find()) {
-      String replacementString = matcher.group();
+		while (matcher.find()) {
+			String replacementString = matcher.group();
 
-      if (!StringUtils.isNullOrEmpty(subscriberCode)) {
-        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode);
-      }
+			if (!StringUtils.isNullOrEmpty(subscriberCode)) {
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode);
+			}
 
-      if (!StringUtils.isNullOrEmpty(subscriberId)) {
-        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_ID + "="
-                + subscriberId);
-      }
+			if (!StringUtils.isNullOrEmpty(subscriberId)) {
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_ID + "="
+						+ subscriberId);
+			}
 
-      if (!StringUtils.isNullOrEmpty(token)) {
-        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.TOKEN + "=" + token);
-      }
+			if (!StringUtils.isNullOrEmpty(token)) {
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.TOKEN + "=" + token);
+			}
 
-      matcher.appendReplacement(result, replacementString);
-    }
-    matcher.appendTail(result);
+			matcher.appendReplacement(result, replacementString);
+		}
+		matcher.appendTail(result);
 
-    return result.toString();
-  }
+		return result.toString();
+	}
+	
+	public static boolean isHLSIntervalQuery(HttpServletRequest request) {
+		String startDate = request.getParameter(START);
+		String endDate = request.getParameter(END);
+		return request.getRequestURI().endsWith("m3u8") 
+				&& !StringUtils.isNullOrEmpty(startDate)
+				&& !StringUtils.isNullOrEmpty(endDate);
+	}
 }
