@@ -155,6 +155,38 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 
 
 	@Test
+	public void testForceStartStream() throws Exception {
+		DataStore dataStore = app.getDataStore();
+
+		// use a local test media to avoid network dependency
+		String streamUrl = "src/test/resources/test_video_360p.flv";
+		Broadcast streamSource = new Broadcast("forceStartStream", null, null, null, streamUrl, AntMediaApplicationAdapter.STREAM_SOURCE);
+		String streamId = dataStore.save(streamSource);
+		assertNotNull(streamId);
+
+		// emulate PREPARING lock set by MapBasedDataStore.getExternalStreamsList()
+		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		streamSource = dataStore.get(streamId);
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING, streamSource.getStatus());
+
+		// force start via overload
+		Result result = app.getStreamFetcherManager().startStreaming(streamSource, true);
+		assertTrue(result.isSuccess());
+
+		// verify it transitions to BROADCASTING
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast b = dataStore.get(streamId);
+					return b != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(b.getStatus());
+				});
+
+		// clean up
+		app.getStreamFetcherManager().stopStreaming(streamId, false);
+		dataStore.delete(streamId);
+	}
+
+
+	@Test
 	public void testUpdateStreamSource() {
 		RestServiceV2Test restService = new RestServiceV2Test();
 		String name = "test";
