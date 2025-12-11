@@ -104,6 +104,7 @@ public abstract class MapBasedDataStore extends DataStore
 				Broadcast broadcast = getBroadcastFromMap(id);
 				if (broadcast != null) {
 					broadcast.setStatus(status);
+					broadcast.setUpdateTime(System.currentTimeMillis());
 					if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
 					} else if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
