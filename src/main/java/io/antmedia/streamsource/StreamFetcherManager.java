@@ -540,7 +540,6 @@ public class StreamFetcherManager {
 
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
-			logger.info("----------------------------------adadadadad---------------- ANANIN AMI status:{}", broadcast != null ? broadcast.getStatus() : null);
 			
 			if  (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
 				//if it's playlist, continue
