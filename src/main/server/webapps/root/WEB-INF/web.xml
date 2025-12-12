@@ -43,8 +43,28 @@
 		<servlet-name>jersey-serlvet</servlet-name>
 		<url-pattern>/rest/*</url-pattern>
 	</servlet-mapping>
-	
-
+<!-- strict-transport-security -->
+	<filter>
+		<filter-name>httpHeaderSecurity</filter-name>
+		<filter-class>org.apache.catalina.filters.HttpHeaderSecurityFilter</filter-class>
+		<init-param>
+			<param-name>hstsEnabled</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		<init-param>
+			<param-name>hstsMaxAgeSeconds</param-name>
+			<param-value>31536000</param-value>
+		</init-param>
+		<init-param>
+			<param-name>hstsIncludeSubDomains</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>httpHeaderSecurity</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>	
+<!-- strict-transport-security -->
 	<filter>
 		<filter-name>CorsFilter</filter-name>
 		<filter-class>io.antmedia.filter.CorsHeaderFilter</filter-class>
