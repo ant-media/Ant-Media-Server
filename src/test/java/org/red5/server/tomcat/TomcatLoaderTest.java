@@ -12,6 +12,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class TomcatLoaderTest {
@@ -64,6 +65,15 @@ public class TomcatLoaderTest {
         
         
         assertEquals(clusterNotifier, tomcatLoader.getClusterNotifier());
+    	
+    }
+    
+    @Test
+    public void testGetValves() {
+    	
+        TomcatLoader tomcatLoader = spy(new TomcatLoader());
+
+        assertTrue(tomcatLoader.getValves().isEmpty());
     	
     }
 }

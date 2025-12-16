@@ -825,6 +825,10 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		this.valves.addAll(valves);
 	}
 
+	public List<Valve> getValves() {
+		return valves;
+	}
+
 	/**
 	 * Returns a semi-unique id for this host based on its host values
 	 * 
