@@ -674,6 +674,10 @@ public class TokenFilterTest {
 		streamId = "f6867e64-c9a1-a7dd-1d14-6b4312c8c8ee";
 		requestURI = "/LiveApp/streams/"+streamId + "-1741579422.ts"; 
 		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%s"));
+
+		streamId = "f6867e64-c9a1-a7dd-1d14-6b4312c8c999";
+		requestURI = "/LiveApp/streams/ll-hls/"+streamId+"/"+streamId+"__master.m3u8";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%s"));
 	}
 	
 
