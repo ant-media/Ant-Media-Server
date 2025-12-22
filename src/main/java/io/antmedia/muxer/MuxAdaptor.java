@@ -534,23 +534,24 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
 	}
-    public void addRtmpProviderMuxer(){
-        boolean tryEncoder = isAbrEnabled(broadcast, appSettings);
 
-        if(tryEncoder)
-            return;
+	public void addRtmpProviderMuxer(){
+			boolean tryEncoder = isAbrEnabled(broadcast, appSettings);
 
-        if(!appSettings.isRtmpPlaybackEnabled() || getBroadcastStream() != null) {
-            //if rtmp playback is not enabled in settings or
-            //broadcast stream is not null, do not init rtmp play muxer
-            //because if it is not null, it is rtmp ingest and we have already rtmp playback
-            logger.info("RTMP playback is {} in settings, broadcastStream is {} for stream: {}, not initializing rtmp play muxer", appSettings.isRtmpPlaybackEnabled(), getBroadcastStream(), streamId);
-            return;
-        }
+			if(tryEncoder)
+					return;
 
-        RtmpProvider rtmpPublisher = new RtmpProvider(this.scope, vertx, streamId, videoTimeBase, audioTimeBase);
-        addMuxer(rtmpPublisher);
-    }
+			if(!appSettings.isRtmpPlaybackEnabled() || getBroadcastStream() != null) {
+					//if rtmp playback is not enabled in settings or
+					//broadcast stream is not null, do not init rtmp play muxer
+					//because if it is not null, it is rtmp ingest and we have already rtmp playback
+					logger.info("RTMP playback is {} in settings, broadcastStream is {} for stream: {}, not initializing rtmp play muxer", appSettings.isRtmpPlaybackEnabled(), getBroadcastStream(), streamId);
+					return;
+			}
+
+			RtmpProvider rtmpPublisher = new RtmpProvider(this.scope, vertx, streamId, videoTimeBase, audioTimeBase);
+			addMuxer(rtmpPublisher);
+	}
 
 	public HLSMuxer addHLSMuxer() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
