@@ -144,6 +144,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
