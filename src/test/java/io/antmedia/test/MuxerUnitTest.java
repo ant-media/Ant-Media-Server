@@ -6332,5 +6332,35 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("cl_ea_n_na_me", (String)m.invoke(rest, "cl/ea\\n_na\tme.webm", RecordType.WEBM));
 		assertEquals("noext", (String)m.invoke(rest, "noext", RecordType.MP4));
 	}
+	
+	@Test
+	public void testPrepareFromInputFormatContextForData() throws Exception {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		logger.info("Application / web scope: {}", appScope);
+		assertEquals(1, appScope.getDepth());
+		
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), null, false, appScope));
+		String streamId = "stream " + (int) (Math.random() * 10000);
+		muxAdaptor.setStreamId(streamId);
+		
+		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
+
+		int ret;
+		if (inputFormatContext == null) {
+			System.out.println("cannot allocate input context");
+		}
+
+		if ((ret = avformat_open_input(inputFormatContext, "src/test/resources/test_with_scte35.ts", null, (AVDictionary) null)) < 0) {
+			System.out.println("cannot open input context: test_with_scte35.ts");
+		}
+		muxAdaptor.prepareFromInputFormatContext(inputFormatContext);
+		
+		assertEquals(0, muxAdaptor.getDataStreamIndex());
+		assertEquals(1, muxAdaptor.getVideoStreamIndex());
+		assertEquals(2, muxAdaptor.getAudioStreamIndex());
+	}
+	
+	
+	
 
 }
