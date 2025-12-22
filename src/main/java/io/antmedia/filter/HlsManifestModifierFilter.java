@@ -245,44 +245,52 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 	}
 
-  public String addParamSeparator(String current) {
-    if (current.contains("?")) {
-      String lastChar = current.substring(current.length() - 1);
-      if (lastChar.equals("&")){
-        return "";
-      }
-      return "&";
-    }
-    return "?";
-  }
+	public String addParamSeparator(String current) {
+		if (current.contains("?")) {
+			String lastChar = current.substring(current.length() - 1);
+			if (lastChar.equals("&")){
+				return "";
+			}
+			return "&";
+		}
+		return "?";
+	}
 
-  public String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode,
-                                          String regex) {
-    Pattern pattern = Pattern.compile(regex);
-    Matcher matcher = pattern.matcher(original);
+	public String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode,
+			String regex) {
+		Pattern pattern = Pattern.compile(regex);
+		Matcher matcher = pattern.matcher(original);
 
-    StringBuilder result = new StringBuilder();
+		StringBuilder result = new StringBuilder();
 
-    while (matcher.find()) {
-      String replacementString = matcher.group();
+		while (matcher.find()) {
+			String replacementString = matcher.group();
 
-      if (!StringUtils.isNullOrEmpty(subscriberCode)) {
-        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode);
-      }
+			if (!StringUtils.isNullOrEmpty(subscriberCode)) {
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode);
+			}
 
-      if (!StringUtils.isNullOrEmpty(subscriberId)) {
-        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_ID + "="
-                + subscriberId);
-      }
+			if (!StringUtils.isNullOrEmpty(subscriberId)) {
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_ID + "="
+						+ subscriberId);
+			}
 
-      if (!StringUtils.isNullOrEmpty(token)) {
-        replacementString += (addParamSeparator(replacementString) + WebSocketConstants.TOKEN + "=" + token);
-      }
+			if (!StringUtils.isNullOrEmpty(token)) {
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.TOKEN + "=" + token);
+			}
 
-      matcher.appendReplacement(result, replacementString);
-    }
-    matcher.appendTail(result);
+			matcher.appendReplacement(result, replacementString);
+		}
+		matcher.appendTail(result);
 
-    return result.toString();
-  }
+		return result.toString();
+	}
+	
+	public static boolean isHLSIntervalQuery(HttpServletRequest request) {
+		String startDate = request.getParameter(START);
+		String endDate = request.getParameter(END);
+		return request.getRequestURI().endsWith("m3u8") 
+				&& !StringUtils.isNullOrEmpty(startDate)
+				&& !StringUtils.isNullOrEmpty(endDate);
+	}
 }
