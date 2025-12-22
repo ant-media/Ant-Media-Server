@@ -67,6 +67,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <!-- keep it blank -->
 		<enterprise.profile></enterprise.profile>
 		<argLine></argLine> <!-- Empty default value -->
+	    <sonar.exclusions>
+	        **/.github/**,
+	        **/*.yml,
+	        **/*.yaml
+	    </sonar.exclusions>
     </properties>
 
     <build>
