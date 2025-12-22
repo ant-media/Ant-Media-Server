@@ -331,6 +331,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private long lastWebhookStreamStatusUpdateTime = 0;
 
+	private boolean directMuxingSupported = true;
+
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
 
 
@@ -1877,6 +1879,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
+	public void setDirectMuxingSupported(boolean directMuxingSupported) {
+		this.directMuxingSupported = directMuxingSupported;
+	}
+
 	/**
 	 * This method means that if the MuxAdaptor writes 
 	 * incoming packets to muxers({@link MuxAdaptor#muxerList}) directly without any StreamAdaptor/Encoders
@@ -1890,7 +1896,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean directMuxingSupported() {
 		//REFACTOR: I think it may be good idea to proxy every packet through StreamAdaptor even for RTMP Ingest
 		//It'll likely provide better compatibility for codecs and formats
-		return true;
+		return this.directMuxingSupported;
 	}
 
 
