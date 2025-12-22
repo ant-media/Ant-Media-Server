@@ -79,6 +79,39 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.gson.JsonObject;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
+import io.antmedia.RecordType;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
+import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
+import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
+import io.antmedia.integration.AppFunctionalV2Test;
+import io.antmedia.integration.MuxingTest;
+import io.antmedia.muxer.*;
+import io.antmedia.muxer.parser.AACConfigParser;
+import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
+import io.antmedia.muxer.parser.SPSParser;
+import io.antmedia.muxer.parser.codec.AACAudio;
+import io.antmedia.plugin.PacketFeeder;
+import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.plugin.api.StreamParametersInfo;
+import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.model.Result;
+import io.antmedia.storage.AmazonS3StorageClient;
+import io.antmedia.storage.StorageClient;
+import io.antmedia.test.eRTMP.HEVCDecoderConfigurationParserTest;
+import io.antmedia.test.utils.VideoInfo;
+import io.antmedia.test.utils.VideoProber;
+import io.antmedia.websocket.WebSocketConstants;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
@@ -106,16 +139,11 @@ import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.SizeTPointer;
 import org.json.simple.JSONObject;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
@@ -152,47 +180,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.gson.JsonObject;
-
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.EncoderSettings;
-import io.antmedia.RecordType;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.BroadcastUpdate;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
-import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
-import io.antmedia.integration.AppFunctionalV2Test;
-import io.antmedia.integration.MuxingTest;
-import io.antmedia.muxer.HLSMuxer;
-import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.Mp4Muxer;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.Muxer;
-import io.antmedia.muxer.RecordMuxer;
-import io.antmedia.muxer.RtmpMuxer;
-import io.antmedia.muxer.WebMMuxer;
-import io.antmedia.muxer.parser.AACConfigParser;
-import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
-import io.antmedia.muxer.parser.SPSParser;
-import io.antmedia.muxer.parser.codec.AACAudio;
-import io.antmedia.plugin.PacketFeeder;
-import io.antmedia.plugin.api.IPacketListener;
-import io.antmedia.plugin.api.StreamParametersInfo;
-import io.antmedia.rest.model.Result;
-import io.antmedia.rest.RestServiceBase;
-import io.antmedia.storage.AmazonS3StorageClient;
-import io.antmedia.storage.StorageClient;
-import io.antmedia.test.eRTMP.HEVCDecoderConfigurationParserTest;
-import io.antmedia.test.utils.VideoInfo;
-import io.antmedia.test.utils.VideoProber;
-import io.antmedia.websocket.WebSocketConstants;
-import io.vertx.core.Vertx;
+import java.io.*;
+import java.util.*;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avformat.*;
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 
 @ContextConfiguration(locations = {"test.xml"})
@@ -5788,6 +5783,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		}
 
+
+		{
+			muxAdaptorReal.getMuxerList().clear();
+			boolean result = muxAdaptorReal.addSEIData(data);
+			assertFalse(result);
+		}
+
 	}
 
 	@Test
@@ -6387,12 +6389,30 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			@Override public Mp4Muxer createMp4Muxer() { return Mockito.spy(new Mp4Muxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams")); }
 			@Override public boolean isAlreadyRecording(RecordType recordType, int resolutionHeight) { return false; }
 		}
+
 		TestMuxAdaptor adaptor = new TestMuxAdaptor();
 		adaptor.setIsRecording(true);
 		RecordMuxer result = adaptor.startRecording(RecordType.MP4, 0, "base_name");
 		// verify override applied on created muxer
 		Mp4Muxer created = (Mp4Muxer) result;
 		Mockito.verify(created, Mockito.times(1)).setInitialResourceNameOverride("base_name");
+	}
+
+	@Test
+	public void testMuxAdaptorDirectMuxingSupported() {
+		class TestMuxAdaptor extends MuxAdaptor {
+			public TestMuxAdaptor() { super(Mockito.mock(ClientBroadcastStream.class)); }
+			@Override public boolean addMuxer(Muxer muxer, int resolutionHeight) { return true; }
+			@Override public Mp4Muxer createMp4Muxer() { return Mockito.spy(new Mp4Muxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams")); }
+			@Override public boolean isAlreadyRecording(RecordType recordType, int resolutionHeight) { return false; }
+		}
+
+		TestMuxAdaptor adaptor = new TestMuxAdaptor();
+		adaptor.setDirectMuxingSupported(false);
+		assertFalse(adaptor.directMuxingSupported());
+
+		adaptor.setDirectMuxingSupported(true);
+		assertTrue(adaptor.directMuxingSupported());
 	}
 
 	@Test
