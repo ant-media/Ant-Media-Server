@@ -1,8 +1,5 @@
 package io.antmedia.test.license;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +10,8 @@ import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.licence.CommunityLicenceService;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.settings.ServerSettings;
+
+import static org.junit.Assert.*;
 
 public class CommunityLicenseServiceTest {
 
@@ -49,5 +48,15 @@ public class CommunityLicenseServiceTest {
 		
 		assertNotNull(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 	}
-	
+
+	/**
+	 * This test exists for sonar not to complain in CommunityEdition.
+	 * All actual testing is done in enterprise tests, but sonar running on community edition doesn't know that and complains
+	 */
+	@Test
+	public void testLocalLicenceServerSettings() {
+		ServerSettings serverSettings = new ServerSettings();
+		serverSettings.setLocalLicenceServerIps("192.168.1.100:3535");
+		assertEquals(serverSettings.getLocalLicenceServerIps(), "192.168.1.100:3535");
+	}
 }

@@ -101,6 +101,8 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	
 	private static final String RTMPS_ENABLED = "rtmps.enabled";
 
+	private static final String LOCAL_LICENCE_SERVER_IP = "server.localLicenceServerIp";
+
 	/**
 	 * The IP filter that is allowed to access the web panel of Ant Media Server
 	 */
@@ -275,6 +277,13 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	 */
 	@Value("${"+SETTINGS_SERVER_STATUS_WEBHOOK_URL + ":#{null}}")
 	private String serverStatusWebHookURL;
+
+
+	/**
+	 * Customer License Key
+	 */
+	@Value( "${"+LOCAL_LICENCE_SERVER_IP+":#{null}}" )
+	private String localLicenceServerIps;
 
 
 	public String getJwksURL() {
@@ -697,4 +706,11 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		ServerSettings.rtmpsEnabled = rtmpsEnabled;
 	}
 
+	public String getLocalLicenceServerIps() {
+		return localLicenceServerIps;
+	}
+
+	public void setLocalLicenceServerIps(String localLicenceServerIps) {
+		this.localLicenceServerIps = localLicenceServerIps;
+	}
 }
