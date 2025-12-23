@@ -1224,8 +1224,16 @@ public class ConsoleAppRestServiceTest{
 			//check that preview is created
 
 			Awaitility.await()
-			.atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+			.atMost(20, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_temp.png"));
+			
+			Awaitility.await()
+			.atMost(20, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+ "_1" + ".png"));
+			
+			Awaitility.await()
+			.atMost(20, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+ "_2" + ".png"));
 
 			//stop it
 			AppFunctionalV2Test.destroyProcess();

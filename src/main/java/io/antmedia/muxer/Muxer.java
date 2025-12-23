@@ -134,7 +134,7 @@ public abstract class Muxer {
 	private Set<String> bsfAudioNames = new ConcurrentHashSet<>();
 
 
-	protected String streamId = null;
+	protected String streamId;
 
 	protected Map<Integer, AVRational> inputTimeBaseMap = new ConcurrentHashMap<>();
 
