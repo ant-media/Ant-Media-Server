@@ -921,7 +921,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			AppSettings callGetAppSettings = callGetAppSettings("LiveApp");
-			assertTrue(callGetAppSettings.getEncoderSettings().size() > 0);
+			assertTrue(encoderSettings.size() == callGetAppSettings.getEncoderSettings().size());
 
 		} catch (Exception e) {
 			e.printStackTrace();

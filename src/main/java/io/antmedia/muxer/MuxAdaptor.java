@@ -116,6 +116,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private int videoStreamIndex;
 	protected int audioStreamIndex;
+	private int dataStreamIndex;
+
 
 	protected boolean previewOverwrite = false;
 
@@ -888,6 +890,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				audioStreamIndex = streamIndex;
 				audioCodecParameters = codecpar;
+				streamIndex++;
+			}
+			else if (codecpar.codec_type() == AVMEDIA_TYPE_DATA)
+			{
+				logger.info("Data stream detected (e.g., SCTE-35) codec Id: {} for stream: {} source index:{} target index:{}", codecpar.codec_id(), streamId, i, streamIndex);
+				addStream2Muxers(codecpar, stream.time_base(), i);
+				dataStreamIndex = streamIndex;
 				streamIndex++;
 			}
 		}
@@ -2848,6 +2857,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setAudioStreamIndex(int audioStreamIndex) {
 		this.audioStreamIndex = audioStreamIndex;
+	}
+	
+	public int getDataStreamIndex() {
+		return dataStreamIndex;
 	}
 
 	public void addPacketListener(IPacketListener listener) {
