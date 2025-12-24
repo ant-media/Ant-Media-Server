@@ -1267,6 +1267,72 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
+	@Test
+	public void testRTMPMuxerRaceCondition() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://no_server", vertx);
+		rtmpMuxer.init(appScope, "test", 0, null, 0);
+
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		codecParameters.codec_id(AV_CODEC_ID_H264);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		AVRational rat = new AVRational().num(1).den(1000);
+		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
+
+		// 1. Test preparedIO reset in clearResource
+		assertTrue(rtmpMuxer.prepareIO());
+		assertFalse(rtmpMuxer.prepareIO()); // already prepared
+
+		rtmpMuxer.clearResource(); // headerWritten is false, resets preparedIO
+		
+		// Re-add stream because clearResource cleared outputFormatContext
+		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
+		assertTrue(rtmpMuxer.prepareIO()); // can prepare again
+
+		// 2. Test cancelOpenIO race protection
+		RtmpMuxer rtmpMuxer2 = new RtmpMuxer("rtmp://no_server", vertx);
+		rtmpMuxer2.init(appScope, "test", 0, null, 0);
+		assertTrue(rtmpMuxer2.addStream(codecParameters, rat, 50));
+
+		// Start prepareIO which will call openIO in blocking thread
+		rtmpMuxer2.prepareIO();
+		// Immediately cancel it
+		rtmpMuxer2.writeTrailer();
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			String status = rtmpMuxer2.getStatus();
+			return status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+		});
+
+		// isRunning should remain false because it was cancelled
+		assertFalse(rtmpMuxer2.getIsRunning().get());
+	}
+
+	@Test
+	public void testWriteTrailerBeforeHeader() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://no_server", vertx);
+		rtmpMuxer.init(appScope, "test", 0, null, 0);
+
+		// No header written yet
+		rtmpMuxer.writeTrailer();
+
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, rtmpMuxer.getStatus());
+
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		codecParameters.codec_id(AV_CODEC_ID_H264);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		AVRational rat = new AVRational().num(1).den(1000);
+		
+		// It should be able to add stream and prepareIO again because clearResource was called in writeTrailer
+		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
+		assertTrue(rtmpMuxer.prepareIO());
+	}
+
 
 	@Test
 	public void testRTMPHealthCheckProcess() {
