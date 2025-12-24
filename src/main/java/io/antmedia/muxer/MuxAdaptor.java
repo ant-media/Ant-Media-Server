@@ -379,7 +379,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				appSettings.isWebRTCEnabled() 
 				||  appSettings.isForceDecoding();
 	}
-
+	public static boolean isAbrEnabled(Broadcast broadcast,
+							AppSettings appSettings) {
+	return  ((broadcast != null && broadcast.getEncoderSettingsList() != null && !broadcast.getEncoderSettingsList().isEmpty()) ||
+		(appSettings.getEncoderSettings() != null && !appSettings.getEncoderSettings().isEmpty()));
+	}
 
 	protected MuxAdaptor(ClientBroadcastStream clientBroadcastStream) {
 
@@ -526,12 +530,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (dashMuxer != null) {
 			addMuxer(dashMuxer);
 		}
+		addRtmpProviderMuxer();
 
 		for (Muxer muxer : muxerList) {
 			muxer.init(scope, streamId, 0, getSubfolder(getBroadcast(), getAppSettings()), 0);
 		}
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
+	}
+
+	public void addRtmpProviderMuxer(){
+			boolean tryEncoder = isAbrEnabled(broadcast, appSettings);
+
+			if(tryEncoder)
+					return;
+
+			if(!appSettings.isRtmpPlaybackEnabled() || getBroadcastStream() != null) {
+					//if rtmp playback is not enabled in settings or
+					//broadcast stream is not null, do not init rtmp play muxer
+					//because if it is not null, it is rtmp ingest and we have already rtmp playback
+					logger.info("RTMP playback is {} in settings, broadcastStream is {} for stream: {}, not initializing rtmp play muxer", appSettings.isRtmpPlaybackEnabled(), getBroadcastStream(), streamId);
+					return;
+			}
+
+			RtmpProvider rtmpPublisher = new RtmpProvider(this.scope, vertx, streamId, videoTimeBase, audioTimeBase);
+			addMuxer(rtmpPublisher);
 	}
 
 	public HLSMuxer addHLSMuxer() {
@@ -2875,12 +2898,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public void setVideoTimeBase(AVRational videoTimeBase) {
-		this.videoTimeBase = videoTimeBase;
+		if(videoTimeBase != null)
+			this.videoTimeBase = videoTimeBase;
 	}
 
 
 	public void setAudioTimeBase(AVRational audioTimeBase) {
-		this.audioTimeBase = audioTimeBase;
+		if(audioTimeBase != null)
+			this.audioTimeBase = audioTimeBase;
 	}
 
 	public Vertx getVertx() {
