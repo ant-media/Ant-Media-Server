@@ -5,6 +5,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 
 import java.nio.ByteBuffer;
 import java.util.Queue;
@@ -47,6 +48,9 @@ public class PacketFeeder{
 			}
 			else if(type == AVMEDIA_TYPE_AUDIO) {
 				listener.onAudioPacket(streamId, packet);
+			}
+			else if(type == AVMEDIA_TYPE_DATA) {
+				listener.onDataPacket(streamId, packet);
 			}
 		}
 	}
