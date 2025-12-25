@@ -8,6 +8,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -550,6 +552,22 @@ public class TokenFilterTest {
 			verify(tokenService, times(2)).isJwtTokenValid(anyString(), anyString(), anyString(), anyString());
 
 
+			// Test DRM case - streamId with "drm/" prefix should be stripped before JWT validation
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/drm/" + streamId + "/master.mpd");
+			when(tokenService.isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString())).thenReturn(true);
+
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			verify(tokenService, atLeast(1)).isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString());
+			verify(mockChain, times(2)).doFilter(mockRequest, mockResponse);
+
+
+			// Test the other DRM case
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/drm/" + streamId + "/master.m3u8");
+			when(tokenService.isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString())).thenReturn(true);
+
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			verify(tokenService, atLeast(1)).isJwtTokenValid(anyString(), anyString(), eq(streamId), anyString());
+			verify(mockChain, atLeast(1)).doFilter(mockRequest, mockResponse);
 
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();

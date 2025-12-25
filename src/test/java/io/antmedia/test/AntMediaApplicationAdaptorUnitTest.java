@@ -1,6 +1,7 @@
 package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -8,6 +9,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,6 +36,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -42,6 +45,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.statistic.IStatsCollector;
@@ -1944,7 +1948,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
 		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
-		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture());
+		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture(), anyBoolean());
 
 		broadcast = dataStore.get(broadcast.getStreamId());
 		assertNotNull(broadcastListCaptor.getValue());
@@ -2014,7 +2018,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		StreamFetcher streamFetcher = spyAdapter.getStreamFetcherManager().getStreamFetcher(broadcast.getStreamId());
 		await().atMost(5, TimeUnit.SECONDS).until(() -> streamFetcher.isThreadActive());
 
-		spyAdapter.getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
+		spyAdapter.getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		await().atMost(5, TimeUnit.SECONDS).until(() -> !streamFetcher.isThreadActive());
 
 
@@ -3532,6 +3536,160 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 
 	}
+	
+	
+	long t1Start = 0;
+    long t1End = 0;
+    long t2Start = 0;
+    long t2End = 0;
+    long t3Start = 0;
+    long t3End = 0;
+	@Test
+	public void testPerKeyLockingBehavior() throws Exception {
+        AntMediaApplicationAdapter adaptor = new AntMediaApplicationAdapter();
+        
+        DataStore inMemoryDatastore = new InMemoryDataStore("") {
+			@Override
+        	public Broadcast get(String id) {
+        		Broadcast b = super.get(id);
+        		try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+        		return b;
+        	};
+        };
+        
+		adaptor.setDataStore(inMemoryDatastore );
+		
+		adaptor.setAppSettings(new AppSettings());
 
+        Broadcast b1 = new Broadcast(); 
+        b1.setMainTrackStreamId("main1");
+        Broadcast b2 = new Broadcast(); 
+        b2.setMainTrackStreamId("main1");
+        Broadcast b3 = new Broadcast(); 
+        b3.setMainTrackStreamId("main2");
+        
+        Broadcast m1 = new Broadcast(); 
+        m1.setStreamId("main1");
+        
+        Broadcast m2 = new Broadcast(); 
+        m2.setStreamId("main2");
+
+        
+        inMemoryDatastore.save(b1);
+        inMemoryDatastore.save(b2);
+        inMemoryDatastore.save(b3);
+        inMemoryDatastore.save(m1);
+        inMemoryDatastore.save(m2);
+
+        Thread th1 = new Thread(() -> {
+            t1Start = System.currentTimeMillis();
+            adaptor.updateMainTrackWithRecentlyFinishedBroadcast(b1);
+            t1End = System.currentTimeMillis();
+        }, "T1-main");
+
+        Thread th2 = new Thread(() -> {
+            t2Start = System.currentTimeMillis();
+            adaptor.updateMainTrackWithRecentlyFinishedBroadcast(b2);
+            t2End = System.currentTimeMillis();
+        }, "T2-main");
+
+        Thread th3 = new Thread(() -> {
+            t3Start = System.currentTimeMillis();
+            adaptor.updateMainTrackWithRecentlyFinishedBroadcast(b3);
+            t3End = System.currentTimeMillis();
+        }, "T3-main2");
+
+        // Start all threads
+        th1.start();
+        Thread.sleep(10);
+        th2.start();
+        Thread.sleep(10);
+        th3.start();
+
+        // Wait for all threads to finish
+        th1.join();
+        th2.join();
+        th3.join();
+
+        long dt1 = (t1End - t1Start);
+        long dt2 = (t2End - t2Start);
+        long dt3 = (t3End - t3Start);
+
+        System.out.println("Delta t1:" + dt1);
+        System.out.println("Delta t2:" + dt2);
+        System.out.println("Delta t3:" + dt3);
+        
+        assertTrue(100 > Math.abs(dt1*2 - dt2));
+        assertTrue(100 > Math.abs(dt1 - dt3));
+
+    }
+
+	@Test
+	public void testExceptionInStreamListener() throws Exception {
+		AtomicBoolean listener1Invoked = new AtomicBoolean(false);
+		AtomicBoolean listener2Invoked = new AtomicBoolean(false);
+
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		spyAdaptor.setDataStore(new InMemoryDataStore("testStartStopPublishWithSubscriberId"));
+		spyAdaptor.setServerSettings(new ServerSettings());
+		AppSettings appSettings = new AppSettings();
+		spyAdaptor.setAppSettings(appSettings);
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("streamId");
+
+
+		String hookURL = "listener_hook_url";
+		appSettings.setListenerHookURL(hookURL);
+
+		IStreamListener streamListener = Mockito.mock(IStreamListener.class);
+		spyAdaptor.addStreamListener(streamListener);
+
+		String subscriberId = "subscriberId";
+
+		spyAdaptor.addStreamListener(new IStreamListener() {
+			@Override
+			public void joinedTheRoom(String roomId, String streamId) {
+			}
+			@Override
+			public void leftTheRoom(String roomId, String streamId) {
+			}
+
+			@Override
+			public void streamStarted(Broadcast broadcast) {
+				listener1Invoked.set(true);
+				throw new NoClassDefFoundError("Plugin misses a dependency");
+			}
+		});
+
+		spyAdaptor.addStreamListener(new IStreamListener() {
+			@Override
+			public void joinedTheRoom(String roomId, String streamId) {
+			}
+			@Override
+			public void leftTheRoom(String roomId, String streamId) {
+			}
+
+			@Override
+			public void streamStarted(Broadcast broadcast) {
+				listener2Invoked.set(true);
+			}
+		});
+
+		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId, null);
+
+		await("The first listener should have been invoked")
+				.atMost(Duration.ofMillis(200))
+				.untilAtomic(listener1Invoked, is(true));
+
+		await("The second listener should have been invoked even if the first one threw an error")
+				.atMost(Duration.ofMillis(200))
+				.untilAtomic(listener2Invoked, is(true));
+
+	}
 
 }

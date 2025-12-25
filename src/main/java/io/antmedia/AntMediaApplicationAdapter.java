@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -50,6 +51,9 @@ import org.red5.server.api.stream.*;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import io.antmedia.analytic.model.PublishEndedEvent;
 import io.antmedia.analytic.model.PublishStartedEvent;
@@ -116,7 +120,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		private final RTMPClusterStreamFetcher rtmpClusterStreamFetcher;
 		private final String rtmpUrl;
 		private final String streamId;
-
+		
 		public RTMPClusterStreamFetcherListener(RTMPClusterStreamFetcher rtmpClusterStreamFetcher, String rtmpUrl,
 				String streamId) {
 			this.rtmpClusterStreamFetcher = rtmpClusterStreamFetcher;
@@ -301,6 +305,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private Set<IAppSettingsUpdateListener> settingsUpdateListenerSet = new ConcurrentHashSet<IAppSettingsUpdateListener>();
 
 	private Map<String, RTMPClusterStreamFetcher> rtmpClusterStreamFetcherMap = new ConcurrentHashMap<>();
+	
+	private final LoadingCache<String, Object> mainTrackUpdateLocks =
+	        Caffeine.newBuilder()
+	                .expireAfterAccess(10, TimeUnit.MINUTES)
+	                .build(key -> new Object());
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -396,7 +405,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					if (!broadcast.isAutoStartStopEnabled()) {
 						//start streaming is auto/stop is not enabled
-						streamFetcherManager.startStreaming(broadcast);
+						streamFetcherManager.startStreaming(broadcast, true);
 					}
 				}
 			}
@@ -823,8 +832,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				for (IStreamListener listener : streamListeners) {
 					//keep backward compatibility
-					listener.streamFinished(broadcast.getStreamId());
-					listener.streamFinished(broadcast);
+					try {
+						listener.streamFinished(broadcast.getStreamId());
+						listener.streamFinished(broadcast);
+					} catch (Throwable t) {
+						logger.error("Error invoking streamFinished method on stream listener {} for stream: {}", listener.getClass().getName(), streamId, t);
+					}
 				}
 
 				notifyPublishStopped(streamId, role, mainTrackId);
@@ -907,7 +920,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	/**
 	 * If multiple threads enter the method at the same time, the following method does not work correctly.
-	 * So we have made it synchronized
+	 * So we had made it synchronized, then changed it.
+	 * We make it synchronized for the same main track (room) IDs. Otherwise, one room was waiting for the others.
 	 *
 	 * It fixes the bug that sometimes main track(room) is not deleted in the video conferences
 	 *
@@ -915,52 +929,54 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *
 	 * @param finishedBroadcast
 	 */
-	public synchronized void updateMainTrackWithRecentlyFinishedBroadcast(Broadcast finishedBroadcast) 
+	public void updateMainTrackWithRecentlyFinishedBroadcast(Broadcast finishedBroadcast) 
 	{
-		Broadcast mainBroadcast = getDataStore().get(finishedBroadcast.getMainTrackStreamId());
-		logger.info("updating main track:{} status with recently finished broadcast:{}", finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
-
-		if (mainBroadcast != null) {
-
-			mainBroadcast.getSubTrackStreamIds().remove(finishedBroadcast.getStreamId());
-
-			long activeSubtracksCount = getDataStore().getActiveSubtracksCount(mainBroadcast.getStreamId(), null);
-
-			if (activeSubtracksCount == 0) {
-
-				if (mainBroadcast.isZombi()) {
-					logger.info("Deleting main track streamId:{} because it's a zombi stream and there is no activeSubtrack", mainBroadcast.getStreamId());
-					getDataStore().delete(mainBroadcast.getStreamId());
+		
+		synchronized (mainTrackUpdateLocks.get(finishedBroadcast.getMainTrackStreamId())) {
+			Broadcast mainBroadcast = getDataStore().get(finishedBroadcast.getMainTrackStreamId());
+			logger.info("updating main track:{} status with recently finished broadcast:{}", finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
+	
+			if (mainBroadcast != null) {
+	
+				mainBroadcast.getSubTrackStreamIds().remove(finishedBroadcast.getStreamId());
+	
+				long activeSubtracksCount = getDataStore().getActiveSubtracksCount(mainBroadcast.getStreamId(), null);
+	
+				if (activeSubtracksCount == 0) {
+	
+					if (mainBroadcast.isZombi()) {
+						logger.info("Deleting main track streamId:{} because it's a zombi stream and there is no activeSubtrack", mainBroadcast.getStreamId());
+						getDataStore().delete(mainBroadcast.getStreamId());
+					}
+					else {
+						logger.info("Update main track:{} status to finished ", finishedBroadcast.getMainTrackStreamId());
+						BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+						broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+	
+						getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
+					}
+					notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
+					
+					if(mainBroadcast.getMaxIdleTime() > 0) {
+						createIdleCheckTimer(mainBroadcast, true);
+					}
 				}
 				else {
-					logger.info("Update main track:{} status to finished ", finishedBroadcast.getMainTrackStreamId());
+					logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-					broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-
+					broadcastUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
+	
 					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
-				}
-				notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
-				
-				if(mainBroadcast.getMaxIdleTime() > 0) {
-					createIdleCheckTimer(mainBroadcast, true);
 				}
 			}
 			else {
-				logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
-
-				getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
+				logger.warn("Maintrack is null while removing subtrack from maintrack for streamId:{} maintrackId:{}", finishedBroadcast.getStreamId(), finishedBroadcast.getMainTrackStreamId());
 			}
+	
+	
+	
+			leftTheRoom(finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
 		}
-		else {
-			logger.warn("Maintrack is null while removing subtrack from maintrack for streamId:{} maintrackId:{}", finishedBroadcast.getStreamId(), finishedBroadcast.getMainTrackStreamId());
-		}
-
-
-
-		leftTheRoom(finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
-
 	}
 
 	public void resetHLSStats(String streamId) {
@@ -1061,8 +1077,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 
 				for (IStreamListener listener : streamListeners) {
-					listener.streamStarted(broadcast.getStreamId());
-					listener.streamStarted(broadcast);
+					try {
+						listener.streamStarted(broadcast.getStreamId());
+						listener.streamStarted(broadcast);
+					} catch (Throwable t) { // going for Throwable to catch classpath problems too
+						logger.error("Error invoking streamStarted method on stream listener {} for stream: {}", listener.getClass().getName(), streamId, t);
+					}
 				}
 
 
@@ -1407,6 +1427,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	{
 		Broadcast broadcast = getDataStore().get(id);
 		String metaDataLocal = StringUtils.isNotBlank(metadata) ? metadata : (broadcast != null ? broadcast.getMetaData() : null);
+
 		
 		String listenerHookURL = getListenerHookURL(broadcast);	
 		if (StringUtils.isNotBlank(listenerHookURL)) 
@@ -1838,7 +1859,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD))
 		{
-			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
+			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST))
 		{

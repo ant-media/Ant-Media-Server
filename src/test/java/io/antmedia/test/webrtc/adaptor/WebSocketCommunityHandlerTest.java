@@ -1,7 +1,7 @@
 package io.antmedia.test.webrtc.adaptor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -13,11 +13,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.antmedia.webrtc.WebRTCUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -679,6 +678,100 @@ public class WebSocketCommunityHandlerTest {
 			assertEquals("sid"+i, jsonMap.get("mid"+i));
 		}
 	}
+    @Test
+    public void testSdpMediaTypeValid(){
+        String sdp = "v=0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 \n"
+                + "a=rtpmap:111 opus/48000/2\n";
 
+        assertTrue(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        sdp = "v=0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 110\n"
+                + "a=rtpmap:111 opus/4800/2\n" //opus should not be 48000
+                + "a=rtpmap:107 rtx/90000\n";
+
+        assertFalse(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        sdp = "v=0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 110\n"
+                + "a=rtpmap:111 opus/48000/1\n" //opus should not be 1
+                + "a=rtpmap:107 rtx/90000\n";
+
+        assertFalse(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        // valid all payload type available
+        sdp = "v=0\n"
+                + "o=- 7847717452155503175 2 IN IP4 127.0.0.1\n"
+                + "s=-\n"
+                + "t=0 0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 110\n"
+                + "a=rtpmap:111 opus/48000/2\n"
+                + "a=rtpmap:63 red/48000/2\n"
+                + "a=rtpmap:110 telephone-event/48000\n"
+                + "m=video 9 UDP/TLS/RTP/SAVPF 106 107\n"
+                + "a=rtpmap:106 H264/90000\n"
+                + "a=rtpmap:107 rtx/90000\n";
+
+        assertTrue(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        //missing payload type
+        sdp = "v=0\n"
+                + "o=- 7847717452155503175 2 IN IP4 127.0.0.1\n"
+                + "s=-\n"
+                + "t=0 0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63\n"
+                + "a=rtpmap:111 opus/48000/2\n"
+                + "a=rtpmap:110 telephone-event/48000\n"
+                + "m=video 9 UDP/TLS/RTP/SAVPF 106 107\n"
+                + "a=rtpmap:106 H264/90000\n"
+                + "a=rtpmap:107 rtx/90000\n";
+
+        assertFalse(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        // extra payload type for audio
+        sdp = "v=0\n"
+                + "o=- 7847717452155503175 2 IN IP4 127.0.0.1\n"
+                + "s=-\n"
+                + "t=0 0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 110 10\n"
+                + "a=rtpmap:111 opus/48000/2\n"
+                + "a=rtpmap:63 red/48000/2\n"
+                + "a=rtpmap:110 telephone-event/48000\n"
+                + "m=video 9 UDP/TLS/RTP/SAVPF 106 107\n"
+                + "a=rtpmap:106 H264/90000\n"
+                + "a=rtpmap:107 rtx/90000\n";
+
+        assertFalse(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        //extra payload type for video
+        sdp = "v=0\n"
+                + "o=- 7847717452155503175 2 IN IP4 127.0.0.1\n"
+                + "s=-\n"
+                + "t=0 0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 110\n"
+                + "a=rtpmap:111 opus/48000/2\n"
+                + "a=rtpmap:63 red/48000/2\n"
+                + "a=rtpmap:110 telephone-event/48000\n"
+                + "m=video 9 UDP/TLS/RTP/SAVPF 106 107 10\n"
+                + "a=rtpmap:106 H264/90000\n"
+                + "a=rtpmap:107 rtx/90000\n";
+
+        assertFalse(WebRTCUtils.validateSdpMediaPayloads(sdp));
+
+        //missing payload type for video
+        sdp = "v=0\n"
+                + "o=- 7847717452155503175 2 IN IP4 127.0.0.1\n"
+                + "s=-\n"
+                + "t=0 0\n"
+                + "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 110\n"
+                + "a=rtpmap:111 opus/48000/2\n"
+                + "a=rtpmap:63 red/48000/2\n"
+                + "a=rtpmap:110 telephone-event/48000\n"
+                + "m=video 9 UDP/TLS/RTP/SAVPF 106 107\n"
+                + "a=rtpmap:106 H264/90000\n";
+
+        assertFalse(WebRTCUtils.validateSdpMediaPayloads(sdp));
+    }
 
 }
