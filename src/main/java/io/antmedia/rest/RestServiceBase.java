@@ -1848,6 +1848,34 @@ public abstract class RestServiceBase {
 		return new Result(false, message);
 	}
 
+    protected Object getAppJwtToken (long expireDate, String type)
+    {
+        Token token = null;
+        String message = "Define Token Type and Expire Date (unix time)";
+
+        if(type != null && expireDate > 0) {
+
+            ITokenService tokenService = getTokenService();
+
+            if(tokenService != null)
+            {
+                token = tokenService.createAppJwtToken(expireDate, type);
+                if(token != null)
+                {
+                    return token;
+                }
+                else {
+                    message = "Cannot create App JWT token. The problem can be ->  this is community edition or JWT stream key is not set or it's length is less than 32";
+                }
+            }
+            else {
+                message = "No token service in this app";
+            }
+        }
+
+        return new Result(false, message);
+    }
+
 	protected Token validateToken (Token token) {
 		Token validatedToken = null;
 
