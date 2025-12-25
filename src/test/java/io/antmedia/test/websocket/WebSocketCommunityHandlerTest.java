@@ -14,6 +14,8 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.websocket.Session;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -25,6 +27,7 @@ public class WebSocketCommunityHandlerTest {
 
     private WebSocketCommunityHandler webSocketCommunityHandler;
     private Session session;
+    private AppSettings appSettings;
 
     @Before
     public void setup() {
@@ -40,7 +43,8 @@ public class WebSocketCommunityHandlerTest {
 
 
 
-		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(mock(AppSettings.class));
+		appSettings = mock(AppSettings.class);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
         webSocketCommunityHandler = Mockito.spy(new WebSocketCommunityHandler(context, session)); // Spy on the handler
     }
 
@@ -90,6 +94,33 @@ public class WebSocketCommunityHandlerTest {
 
         // Assert - Verify that sendMessage is called with the correct JSON object and session
         verify(webSocketCommunityHandler).sendMessage(eq(jsonObj), eq(session));
+    }
+
+    @Test
+    public void testProcessGetIceServerConfig() {
+        // Arrange
+        when(appSettings.getStunServerURI()).thenReturn("stun:stun1.l.google.com:19302");
+        when(appSettings.getTurnServerUsername()).thenReturn("user");
+        when(appSettings.getTurnServerCredential()).thenReturn("pass");
+        when(appSettings.getIceServers()).thenReturn("[{\"urls\":\"stun:stun2.l.google.com:19302\"}]");
+
+        // Act
+        webSocketCommunityHandler.onMessage(session, "{\"command\":\"getIceServerConfig\"}");
+
+        // Assert
+        org.mockito.ArgumentCaptor<JSONObject> captor = org.mockito.ArgumentCaptor.forClass(JSONObject.class);
+        verify(webSocketCommunityHandler).sendMessage(captor.capture(), eq(session));
+        
+        JSONObject response = captor.getValue();
+        assertEquals(WebSocketConstants.ICE_SERVER_CONFIG_NOTIFICATION, response.get(WebSocketConstants.COMMAND));
+        assertEquals("stun:stun1.l.google.com:19302", response.get(WebSocketConstants.STUN_SERVER_URI));
+        assertEquals("user", response.get(WebSocketConstants.TURN_SERVER_USERNAME));
+        assertEquals("pass", response.get(WebSocketConstants.TURN_SERVER_CREDENTIAL));
+        
+        JSONArray iceServers = (JSONArray) response.get(WebSocketConstants.ICE_SERVERS);
+        assertNotNull(iceServers);
+        assertEquals(1, iceServers.size());
+        assertEquals("stun:stun2.l.google.com:19302", ((JSONObject)iceServers.get(0)).get("urls"));
     }
     
     @Test

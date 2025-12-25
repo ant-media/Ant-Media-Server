@@ -4,7 +4,53 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.webrtc.PeerConnection.IceServer;
+import org.webrtc.PeerConnection.IceServer.Builder;
+
 public class WebRTCUtils {
+
+	private static Logger logger = LoggerFactory.getLogger(WebRTCUtils.class);
+
+	public static void parseIceServers(String iceServersConfig, List<IceServer> iceServers) {
+		JSONArray iceServersArray = getIceServersJSONArray(iceServersConfig);
+		if (iceServersArray != null) {
+			for (Object iceServerObj : iceServersArray) {
+				JSONObject iceServerJson = (JSONObject) iceServerObj;
+				String urls = (String) iceServerJson.get("urls");
+				String username = (String) iceServerJson.get("username");
+				String credential = (String) iceServerJson.get("credential");
+
+				if (urls != null) {
+					Builder builder = IceServer.builder(urls);
+					if (username != null && !username.isEmpty()) {
+						builder.setUsername(username);
+					}
+					if (credential != null && !credential.isEmpty()) {
+						builder.setPassword(credential);
+					}
+					iceServers.add(builder.createIceServer());
+				}
+			}
+		}
+	}
+
+	public static JSONArray getIceServersJSONArray(String iceServersConfig) {
+		if (iceServersConfig != null && !iceServersConfig.isEmpty()) {
+			try {
+				JSONParser parser = new JSONParser();
+				return (JSONArray) parser.parse(iceServersConfig);
+			} catch (Exception e) {
+				logger.error("Error parsing iceServers: {}", iceServersConfig);
+			}
+		}
+		return null;
+	}
+
     public static boolean validateSdpMediaPayloads(String sdp) {
         String[] lines = sdp.split("\\r?\\n");
         Map<String, Set<Integer>> mediaPayloads = new HashMap<>();
