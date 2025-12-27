@@ -45,6 +45,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -206,6 +207,45 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
         streamFetcher.setThreadActive(true);
         assertTrue(manager.stopStreaming("test",false).isSuccess());
     }
+
+	@Test
+	public void testForceStartLogic() throws Exception {
+		Vertx mockedVertx = Mockito.mock(Vertx.class);
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		AntMediaApplicationAdapter appAdapter = Mockito.mock(AntMediaApplicationAdapter.class);
+
+		Broadcast broadcast = Mockito.mock(Broadcast.class);
+		when(broadcast.getStreamId()).thenReturn("streamId");
+		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
+		when(broadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+		StreamFetcher fetcher = Mockito.spy(new StreamFetcher("url", "streamId", AntMediaApplicationAdapter.STREAM_SOURCE, appScope, mockedVertx, 0));
+		fetcher.setDataStore(dataStore);
+		Mockito.doReturn(appAdapter).when(fetcher).getInstance();
+		when(dataStore.get("streamId")).thenReturn(broadcast);
+		Mockito.when(appAdapter.updateBroadcastStatus(Mockito.anyString(), Mockito.anyLong(),
+				Mockito.anyString(), Mockito.any(Broadcast.class), Mockito.isNull(), Mockito.anyString())).thenReturn(broadcast);
+
+		// Case 1: without force flag, should return before preparing input
+		fetcher.setStartStreamForce(false);
+		WorkerThread workerNoForce = Mockito.spy(fetcher.new WorkerThread());
+		Mockito.doReturn(false).when(workerNoForce).prepareInputContext(Mockito.any());
+		workerNoForce.run();
+		Mockito.verify(workerNoForce, Mockito.never()).prepareInputContext(Mockito.any());
+
+		// Case 2: with force flag, should bypass status check and reset flag
+		fetcher.setStartStreamForce(true);
+		WorkerThread workerForce = Mockito.spy(fetcher.new WorkerThread());
+		Mockito.doReturn(false).when(workerForce).prepareInputContext(Mockito.any());
+		workerForce.run();
+		Mockito.verify(workerForce, Mockito.times(1)).prepareInputContext(Mockito.any());
+
+		// Flag consumed; next run without setting force should abort again
+		WorkerThread workerAfter = Mockito.spy(fetcher.new WorkerThread());
+		Mockito.doReturn(false).when(workerAfter).prepareInputContext(Mockito.any());
+		workerAfter.run();
+		Mockito.verify(workerAfter, Mockito.never()).prepareInputContext(Mockito.any());
+	}
 	@Test
 	public void testPlayItemInList() throws Exception {
 
