@@ -25,6 +25,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 
+import io.antmedia.webrtc.WebRTCUtils;
+import org.webrtc.PeerConnection;
+import java.util.ArrayList;
+import java.util.List;
+
 @Tag("fast")
 public class WebSocketCommunityHandlerTest {
 
@@ -364,6 +369,20 @@ public class WebSocketCommunityHandlerTest {
 
         // Assert - Verify that sendMessage is called with the correct JSON object and session
         verify(webSocketCommunityHandler).sendMessage(eq(jsonResponse), eq(session));
+    }
+
+    @Test
+    public void testParseIceServers() {
+        String iceServersConfig = "[{\"urls\":\"stun:stun.l.google.com:19302\"}, {\"urls\":\"turn:turn.antmedia.io\", \"username\":\"user\", \"credential\":\"pass\"}]";
+        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
+
+        WebRTCUtils.parseIceServers(iceServersConfig, iceServers);
+
+        assertEquals(2, iceServers.size());
+        assertEquals("stun:stun.l.google.com:19302", iceServers.get(0).urls.get(0));
+        assertEquals("turn:turn.antmedia.io", iceServers.get(1).urls.get(0));
+        assertEquals("user", iceServers.get(1).username);
+        assertEquals("pass", iceServers.get(1).password);
     }
 
 }
