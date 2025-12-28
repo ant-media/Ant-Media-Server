@@ -19,9 +19,6 @@ import io.antmedia.webrtc.WebRTCUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.BuiltinAudioDecoderFactoryFactory;
@@ -289,31 +286,7 @@ public class RTMPAdaptor extends Adaptor {
 
 		iceServers.add(iceServerBuilder.createIceServer());
 
-		if (iceServersConfig != null && !iceServersConfig.isEmpty()) {
-			try {
-				JSONParser parser = new JSONParser();
-				JSONArray iceServersArray = (JSONArray) parser.parse(iceServersConfig);
-				for (Object iceServerObj : iceServersArray) {
-					JSONObject iceServerJson = (JSONObject) iceServerObj;
-					String urls = (String) iceServerJson.get("urls");
-					String username = (String) iceServerJson.get("username");
-					String credential = (String) iceServerJson.get("credential");
-
-					if (urls != null) {
-						Builder builder = IceServer.builder(urls);
-						if (username != null && !username.isEmpty()) {
-							builder.setUsername(username);
-						}
-						if (credential != null && !credential.isEmpty()) {
-							builder.setPassword(credential);
-						}
-						iceServers.add(builder.createIceServer());
-					}
-				}
-			} catch (Exception e) {
-				logger.error("Error parsing iceServers: {}", iceServersConfig);
-			}
-		}
+		WebRTCUtils.parseIceServers(iceServersConfig, iceServers);
 
 
 		PeerConnection.RTCConfiguration rtcConfig =
