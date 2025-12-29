@@ -122,7 +122,8 @@ public class StreamFetcherManager {
 		{
 			//this stream may be fetching in somewhere in the cluster
 			
-			boolean isStatusStreaming = AntMediaApplicationAdapter.isStreaming(broadcast.getStatus());
+			String status = broadcast.getStatus();
+			boolean isStatusStreaming = AntMediaApplicationAdapter.isStreaming(status);
 			boolean isInstanceRunning = false;
 			if (isStatusStreaming) {
 				isInstanceRunning = AntMediaApplicationAdapter.isInstanceAlive(broadcast.getOriginAdress(), serverSettings.getHostAddress(), serverSettings.getDefaultHttpPort(), scope.getName());
@@ -164,11 +165,15 @@ public class StreamFetcherManager {
 	}
 
 
-	public Result startStreaming(@Nonnull Broadcast broadcast) {	
+	public Result startStreaming(@Nonnull Broadcast broadcast) {
+		return startStreaming(broadcast, false);
+	}
+
+	public Result startStreaming(@Nonnull Broadcast broadcast, boolean forceStart) {	
 
 		//check if broadcast is already being fetching
 		boolean alreadyFetching = isStreamRunning(broadcast);
-		//FYI: Even ff the stream is trying to prepare in any node in the cluster, alreadyFetching returns false to not have any duplication
+		//FYI: Even if the stream is trying to prepare in any node in the cluster, alreadyFetching returns false to not have any duplication
 		
 		
 		StreamFetcher streamScheduler = null;
@@ -181,6 +186,7 @@ public class StreamFetcherManager {
 				streamScheduler = make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 				streamScheduler.setDataStore(getDatastore());
+				streamScheduler.setStartStreamForce(forceStart);
 
 				result = startStreamScheduler(streamScheduler);
 			}

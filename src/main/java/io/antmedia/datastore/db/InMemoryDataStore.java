@@ -103,6 +103,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (broadcast != null) {
 			broadcast.setStatus(status);
+			broadcast.setUpdateTime(System.currentTimeMillis());
 			if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 				broadcast.setStartTime(System.currentTimeMillis());
 			}
