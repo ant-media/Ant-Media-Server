@@ -405,7 +405,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					if (!broadcast.isAutoStartStopEnabled()) {
 						//start streaming is auto/stop is not enabled
-						streamFetcherManager.startStreaming(broadcast);
+						streamFetcherManager.startStreaming(broadcast, true);
 					}
 				}
 			}
