@@ -272,6 +272,10 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
+	private static final String SETTINGS_WEBRTC_ICE_SERVERS = "settings.webrtc.iceServers";
+	/**
+	 * @hidden
+	 */
 	private static final String SETTINGS_WEBRTC_TURN_SERVER_USERNAME = "settings.webrtc.turnServerUsername";
 	/**
 	 * @hidden
@@ -1324,6 +1328,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${stunServerURI:${" + SETTINGS_WEBRTC_STUN_SERVER_URI +":stun:stun1.l.google.com:19302}}")
 	private String stunServerURI = "stun:stun1.l.google.com:19302";
+
+	/**
+	 * List of STUN and TURN servers in JSON array format
+	 */
+	@Value("${iceServers:${" + SETTINGS_WEBRTC_ICE_SERVERS + ":[]}}")
+	private String iceServers = "[]";
 
 	/**
 	 * TURN server username for WebRTC ICE candidates.
@@ -2959,6 +2969,14 @@ public class AppSettings implements Serializable{
 
 	public void setStunServerURI(String stunServerURI) {
 		this.stunServerURI = stunServerURI;
+	}
+
+	public String getIceServers() {
+		return iceServers;
+	}
+
+	public void setIceServers(String iceServers) {
+		this.iceServers = iceServers;
 	}
 
 	public boolean isWebRTCTcpCandidatesEnabled() {

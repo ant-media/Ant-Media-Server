@@ -14,17 +14,25 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.websocket.Session;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import io.antmedia.webrtc.WebRTCUtils;
+import org.mockito.ArgumentCaptor;
+import org.webrtc.PeerConnection;
+import java.util.ArrayList;
+import java.util.List;
 
 public class WebSocketCommunityHandlerTest {
 
     private WebSocketCommunityHandler webSocketCommunityHandler;
     private Session session;
+    private AppSettings appSettings;
 
     @Before
     public void setup() {
@@ -40,7 +48,8 @@ public class WebSocketCommunityHandlerTest {
 
 
 
-		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(mock(AppSettings.class));
+		appSettings = mock(AppSettings.class);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
         webSocketCommunityHandler = Mockito.spy(new WebSocketCommunityHandler(context, session)); // Spy on the handler
     }
 
@@ -90,6 +99,90 @@ public class WebSocketCommunityHandlerTest {
 
         // Assert - Verify that sendMessage is called with the correct JSON object and session
         verify(webSocketCommunityHandler).sendMessage(eq(jsonObj), eq(session));
+    }
+
+    @Test
+    public void testProcessGetIceServerConfig() {
+        // Arrange
+        when(appSettings.getStunServerURI()).thenReturn("stun:stun1.l.google.com:19302");
+        when(appSettings.getTurnServerUsername()).thenReturn("user");
+        when(appSettings.getTurnServerCredential()).thenReturn("pass");
+        when(appSettings.getIceServers()).thenReturn("[{\"urls\":\"stun:stun2.l.google.com:19302\"}]");
+
+        // Act
+        webSocketCommunityHandler.onMessage(session, "{\"command\":\"getIceServerConfig\"}");
+
+        // Assert
+        org.mockito.ArgumentCaptor<JSONObject> captor = org.mockito.ArgumentCaptor.forClass(JSONObject.class);
+        verify(webSocketCommunityHandler).sendMessage(captor.capture(), eq(session));
+        
+        JSONObject response = captor.getValue();
+        assertEquals(WebSocketConstants.ICE_SERVER_CONFIG_NOTIFICATION, response.get(WebSocketConstants.COMMAND));
+        assertEquals("stun:stun1.l.google.com:19302", response.get(WebSocketConstants.STUN_SERVER_URI));
+        assertEquals("user", response.get(WebSocketConstants.TURN_SERVER_USERNAME));
+        assertEquals("pass", response.get(WebSocketConstants.TURN_SERVER_CREDENTIAL));
+        
+        JSONArray iceServers = (JSONArray) response.get(WebSocketConstants.ICE_SERVERS);
+        assertNotNull(iceServers);
+        assertEquals(1, iceServers.size());
+        assertEquals("stun:stun2.l.google.com:19302", ((JSONObject)iceServers.get(0)).get("urls"));
+    }
+    
+    @Test
+    public void testProcessGetIceServerConfigConditionalCoverage() {
+        // 1. Test null stunServerURI
+        when(appSettings.getStunServerURI()).thenReturn(null);
+        webSocketCommunityHandler.onMessage(session, "{\"command\":\"getIceServerConfig\"}");
+        verify(webSocketCommunityHandler, never()).sendMessage(any(JSONObject.class), eq(session));
+        
+        // 2. Test empty stunServerURI
+        when(appSettings.getStunServerURI()).thenReturn("");
+        webSocketCommunityHandler.onMessage(session, "{\"command\":\"getIceServerConfig\"}");
+        verify(webSocketCommunityHandler, never()).sendMessage(any(JSONObject.class), eq(session));
+        
+        // Reset valid stun server URI for subsequent tests
+        when(appSettings.getStunServerURI()).thenReturn("stun:stun1.l.google.com:19302");
+        
+        // 3. Test null/empty turn credentials
+        when(appSettings.getTurnServerUsername()).thenReturn(null);
+        when(appSettings.getTurnServerCredential()).thenReturn(null);
+        
+        // Mocking send message to capture new call
+        reset(webSocketCommunityHandler);
+        
+        webSocketCommunityHandler.onMessage(session, "{\"command\":\"getIceServerConfig\"}");
+        
+        ArgumentCaptor<JSONObject> captor = ArgumentCaptor.forClass(JSONObject.class);
+        verify(webSocketCommunityHandler).sendMessage(captor.capture(), eq(session));
+        
+        JSONObject response = captor.getValue();
+        assertEquals(WebSocketConstants.ICE_SERVER_CONFIG_NOTIFICATION, response.get(WebSocketConstants.COMMAND));
+        assertEquals("stun:stun1.l.google.com:19302", response.get(WebSocketConstants.STUN_SERVER_URI));
+        // Verify turn credentials are not present
+        assertEquals(null, response.get(WebSocketConstants.TURN_SERVER_USERNAME));
+        assertEquals(null, response.get(WebSocketConstants.TURN_SERVER_CREDENTIAL));
+        
+        // 4. Test empty iceServers config
+        when(appSettings.getIceServers()).thenReturn("");
+        
+        reset(webSocketCommunityHandler);
+        webSocketCommunityHandler.onMessage(session, "{\"command\":\"getIceServerConfig\"}");
+        
+        captor = ArgumentCaptor.forClass(JSONObject.class);
+        verify(webSocketCommunityHandler).sendMessage(captor.capture(), eq(session));
+        response = captor.getValue();
+        assertEquals(null, response.get(WebSocketConstants.ICE_SERVERS));
+
+        // 5. Test invalid iceServers config (should log error and not put iceServers)
+        when(appSettings.getIceServers()).thenReturn("invalid_json");
+        
+        reset(webSocketCommunityHandler);
+        webSocketCommunityHandler.onMessage(session, "{\"command\":\"getIceServerConfig\"}");
+        
+        captor = ArgumentCaptor.forClass(JSONObject.class);
+        verify(webSocketCommunityHandler).sendMessage(captor.capture(), eq(session));
+        response = captor.getValue();
+        assertEquals(null, response.get(WebSocketConstants.ICE_SERVERS));
     }
     
     @Test
@@ -330,6 +423,63 @@ public class WebSocketCommunityHandlerTest {
 
         // Assert - Verify that sendMessage is called with the correct JSON object and session
         verify(webSocketCommunityHandler).sendMessage(eq(jsonResponse), eq(session));
+    }
+
+    @Test
+    public void testParseIceServers() {
+        String iceServersConfig = "[{\"urls\":\"stun:stun.l.google.com:19302\"}, {\"urls\":\"turn:turn.antmedia.io\", \"username\":\"user\", \"credential\":\"pass\"}]";
+        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
+
+        WebRTCUtils.parseIceServers(iceServersConfig, iceServers);
+
+        assertEquals(2, iceServers.size());
+        assertEquals("stun:stun.l.google.com:19302", iceServers.get(0).urls.get(0));
+        assertEquals("turn:turn.antmedia.io", iceServers.get(1).urls.get(0));
+        assertEquals("user", iceServers.get(1).username);
+        assertEquals("pass", iceServers.get(1).password);
+    }
+    
+    @Test
+    public void testParseIceServersConditionalCoverage() {
+        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
+        
+        // Test null config
+        WebRTCUtils.parseIceServers(null, iceServers);
+        assertEquals(0, iceServers.size());
+        
+        // Test empty config
+        WebRTCUtils.parseIceServers("", iceServers);
+        assertEquals(0, iceServers.size());
+        
+        // Test invalid JSON
+        WebRTCUtils.parseIceServers("invalid_json", iceServers);
+        assertEquals(0, iceServers.size());
+        
+        // Test config with null urls
+        String iceServersConfigNullUrl = "[{\"urls\":null}]";
+        WebRTCUtils.parseIceServers(iceServersConfigNullUrl, iceServers);
+        assertEquals(0, iceServers.size());
+        
+        // Test config with empty urls (should be added but might be empty list internally depending on lib, but WebRTCUtils checks if urls != null only)
+        // Actually WebRTCUtils checks if urls != null. If it's a string, it creates builder.
+        
+        // Test config with missing username and credential (null)
+        String iceServersConfigNoAuth = "[{\"urls\":\"stun:stun.l.google.com:19302\"}]";
+        WebRTCUtils.parseIceServers(iceServersConfigNoAuth, iceServers);
+        assertEquals(1, iceServers.size());
+        assertEquals("stun:stun.l.google.com:19302", iceServers.get(0).urls.get(0));
+        assertEquals("", iceServers.get(0).username); // Defaults to empty string or null depending on implementation details of IceServer, usually "" if not set
+        assertEquals("", iceServers.get(0).password);
+        
+        iceServers.clear();
+
+        // Test config with empty username and credential
+        String iceServersConfigEmptyAuth = "[{\"urls\":\"stun:stun.l.google.com:19302\", \"username\":\"\", \"credential\":\"\"}]";
+        WebRTCUtils.parseIceServers(iceServersConfigEmptyAuth, iceServers);
+        assertEquals(1, iceServers.size());
+        assertEquals("stun:stun.l.google.com:19302", iceServers.get(0).urls.get(0));
+        assertEquals("", iceServers.get(0).username);
+        assertEquals("", iceServers.get(0).password);
     }
 
 }

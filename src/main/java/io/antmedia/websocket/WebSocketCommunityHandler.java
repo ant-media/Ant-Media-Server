@@ -87,7 +87,8 @@ public class WebSocketCommunityHandler {
 
 			final String streamId = (String) jsonObject.get(WebSocketConstants.STREAM_ID);
 			if ((streamId == null || streamId.isEmpty())
-					&& !cmd.equals(WebSocketConstants.PING_COMMAND)) 
+					&& !cmd.equals(WebSocketConstants.PING_COMMAND)
+					&& !cmd.equals(WebSocketConstants.GET_ICE_SERVER_CONFIG)) 
 			{
 				sendNoStreamIdSpecifiedError(session);
 				return;
@@ -153,6 +154,9 @@ public class WebSocketCommunityHandler {
 			else if (cmd.equals(WebSocketConstants.PING_COMMAND)) {
 				sendPongMessage(session);
 			}
+			else if (cmd.equals(WebSocketConstants.GET_ICE_SERVER_CONFIG)) {
+				processGetIceServerConfig();
+			}
 			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND) || cmd.equals(WebSocketConstants.PLAY_COMMAND)) 
 			{
 				sendNotFoundJSON(streamId, session);
@@ -165,6 +169,36 @@ public class WebSocketCommunityHandler {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
+	}
+
+	private void processGetIceServerConfig() {
+		String stunServerURI = appSettings.getStunServerURI();
+		if (stunServerURI != null && !stunServerURI.isEmpty())
+		{
+			JSONObject jsonResponse = new JSONObject();
+			jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ICE_SERVER_CONFIG_NOTIFICATION);
+			jsonResponse.put(WebSocketConstants.STUN_SERVER_URI, stunServerURI);
+
+			String turnServerUsername = appSettings.getTurnServerUsername();
+			String turnServerCredential = appSettings.getTurnServerCredential();
+			if (turnServerUsername != null && !turnServerUsername.isEmpty() && turnServerCredential != null && !turnServerCredential.isEmpty()) {
+				jsonResponse.put(WebSocketConstants.TURN_SERVER_USERNAME, turnServerUsername);
+				jsonResponse.put(WebSocketConstants.TURN_SERVER_CREDENTIAL, turnServerCredential);
+			}
+
+			String iceServers = appSettings.getIceServers();
+			if (iceServers != null && !iceServers.isEmpty()) {
+				try {
+					JSONParser parser = new JSONParser();
+					JSONArray iceServersArray = (JSONArray) parser.parse(iceServers);
+					jsonResponse.put(WebSocketConstants.ICE_SERVERS, iceServersArray);
+				} catch (Exception e) {
+					logger.error("Error parsing iceServers: {}", iceServers);
+				}
+			}
+
+			sendMessage(jsonResponse, session);
+		}
 	}
 		
 
@@ -180,7 +214,7 @@ public class WebSocketCommunityHandler {
 		connectionContext.setSession(session);
 		connectionContext.setStreamId(streamId);
 		connectionContext.setPortRange(appSettings.getWebRTCPortRangeMin(), appSettings.getWebRTCPortRangeMax());
-		connectionContext.setStunServerUri(appSettings.getStunServerURI(), appSettings.getTurnServerUsername(), appSettings.getTurnServerCredential());
+		connectionContext.setStunServerUri(appSettings.getStunServerURI(), appSettings.getTurnServerUsername(), appSettings.getTurnServerCredential(), appSettings.getIceServers());
 		connectionContext.setTcpCandidatesEnabled(appSettings.isWebRTCTcpCandidatesEnabled());
 		connectionContext.setEnableVideo(enableVideo);	
 		connectionContext.start();
