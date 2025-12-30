@@ -1,16 +1,11 @@
 package io.antmedia.security;
 
-import java.util.Date;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,6 +104,15 @@ public interface ITokenService {
 	 */
 
 	Token createJwtToken(String streamId, long exprireDate, String type, String roomId);
+
+	/**
+	 * creates room-scoped JWT token (independent of streamId)
+	 * @param roomId - id of the room for playing streams in the room
+	 * @param exprireDate - expire date of the token (unix timestamp seconds)
+	 * @param type type of the token (play/publish)
+	 * @return token or null if not available
+	 */
+	Token createRoomJwtToken(String roomId, long exprireDate, String type);
 
 	/**
 	 * gets  map of authenticated sessions
