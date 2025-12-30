@@ -1848,6 +1848,34 @@ public abstract class RestServiceBase {
 		return new Result(false, message);
 	}
 
+	protected Object getRoomJwtToken (String roomId, long expireDate, String type)
+	{
+		Token token = null;
+		String message = "Define Room ID, Token Type and Expire Date (unix time)";
+
+		if(roomId != null && type != null && expireDate > 0) {
+
+			ITokenService tokenService = getTokenService();
+
+			if(tokenService != null)
+			{
+				token = tokenService.createRoomJwtToken(roomId, expireDate, type);
+				if(token != null)
+				{
+					return token;
+				}
+				else {
+					message = "Cannot create Room JWT token. The problem can be ->  this is community edition or JWT stream key is not set or it's length is less than 32";
+				}
+			}
+			else {
+				message = "No token service in this app";
+			}
+		}
+
+		return new Result(false, message);
+	}
+
     protected Object getAppJwtToken (long expireDate, String type)
     {
         Token token = null;

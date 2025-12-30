@@ -35,6 +35,11 @@ public class MockTokenService implements  IStreamPublishSecurity , IStreamPlayba
 	}
 
 	@Override
+	public Token createRoomJwtToken(String roomId, long exprireDate, String type) {
+		return null;
+	}
+
+	@Override
 	public Token createAppJwtToken(long exprireDate, String type) {
 		return null;
 	}
