@@ -13,6 +13,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
+import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -173,6 +174,13 @@ public class StreamFetcher {
 		if (streamUrl == null) {
 			return;
 		}
+		try {
+			URI.create(streamUrl);
+		} catch (IllegalArgumentException | NullPointerException e) {
+			logger.warn("cannot parse URL parameters incorrect URL format");
+			return;
+		}
+
 		int questionMarkIndex = streamUrl.indexOf('?');
 		if (questionMarkIndex == -1) {
 			return;
