@@ -13,7 +13,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
-import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +25,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -47,7 +45,6 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
-import org.springframework.web.util.UriComponentsBuilder;
 
 public class StreamFetcher {
 
@@ -172,29 +169,49 @@ public class StreamFetcher {
 
 	}
 
-	public void parseRtspUrlParams(AVDictionary optionsDictionary){
-		try {
-		  URI uri = new URI(streamUrl);
-		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
+	public void parseRtspUrlParams(AVDictionary optionsDictionary) {
+		if (streamUrl == null) {
+			return;
+		}
+		int questionMarkIndex = streamUrl.indexOf('?');
+		if (questionMarkIndex == -1) {
+			return;
+		}
 
-		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+		String query = streamUrl.substring(questionMarkIndex + 1);
+		String[] params = query.split("&");
+		StringBuilder newQuery = new StringBuilder();
+		boolean first = true;
 
-		  for (NameValuePair param : params) {
-			String key = param.getName();
-			String value = param.getValue();
+		for (String param : params) {
+			String[] keyValue = param.split("=", 2);
+			String key = keyValue[0];
+			String value = keyValue.length > 1 ? keyValue[1] : "";
 
-			if(key == null && value == null)
-			  continue;
-
-			if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
-			  av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
-			  uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
+			if (RTSP_ALLOWED_MEDIA_TYPES.equals(key)) {
+				try {
+					if (value != null && !value.isEmpty()) {
+						String decodedValue = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+						av_dict_set(optionsDictionary, RTSP_ALLOWED_MEDIA_TYPES, decodedValue, 0);
+					}
+				} catch (Exception e) {
+					logger.warn("Cannot decode value for key: {} value: {}", key, value);
+				}
+				continue;
 			}
-		  }
 
-		  streamUrl = uriBuilder.build().toString();
-		} catch (Exception URISyntaxException) {
-		  logger.warn("cannot parse URL parameters incorrect URL format");
+			if (!first) {
+				newQuery.append("&");
+			}
+			newQuery.append(param);
+			first = false;
+		}
+
+		String baseUrl = streamUrl.substring(0, questionMarkIndex);
+		if (newQuery.length() > 0) {
+			streamUrl = baseUrl + "?" + newQuery.toString();
+		} else {
+			streamUrl = baseUrl;
 		}
 	}
 
