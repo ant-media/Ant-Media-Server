@@ -40,7 +40,7 @@ public class HttpForwardFilter extends AbstractFilter {
 	
 		        String redirectUri = getRedirectUrl(requestURI, httpForwardingBaseURL, httpForwardingExtension);
 	
-		        if (redirectUri != null) {
+		        if (redirectUri != null && !HlsManifestModifierFilter.isHLSIntervalQuery((HttpServletRequest) request)) {
 		            HttpServletResponse httpResponse = (HttpServletResponse) response;
 		            httpResponse.sendRedirect(redirectUri);
 		            return; // return immediately after redirect
