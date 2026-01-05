@@ -379,6 +379,7 @@ public class MongoStore extends DataStore {
 				
 				if(cachedBroadcast != null) {
 					cachedBroadcast.setStatus(status);
+					cachedBroadcast.setUpdateTime(System.currentTimeMillis());
 				}
 
 				if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 

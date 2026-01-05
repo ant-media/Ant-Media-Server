@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1947,7 +1948,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
 		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
-		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture());
+		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture(), anyBoolean());
 
 		broadcast = dataStore.get(broadcast.getStreamId());
 		assertNotNull(broadcastListCaptor.getValue());
@@ -3548,6 +3549,7 @@ public class AntMediaApplicationAdaptorUnitTest {
         AntMediaApplicationAdapter adaptor = new AntMediaApplicationAdapter();
         
         DataStore inMemoryDatastore = new InMemoryDataStore("") {
+			@Override
         	public Broadcast get(String id) {
         		Broadcast b = super.get(id);
         		try {
