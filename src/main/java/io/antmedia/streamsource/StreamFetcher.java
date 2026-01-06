@@ -74,6 +74,12 @@ public class StreamFetcher {
 	private MuxAdaptor muxAdaptor = null;
 
 	/**
+	 * When true, bypass the isStreaming status check once at startup.
+	 * It is reset to false after the worker thread reads it.
+	 */
+	private boolean startStreamForce = false;
+
+	/**
 	 * If it is true, it restarts fetching everytime it disconnects
 	 * if it is false, it does not restart
 	 */
@@ -321,13 +327,16 @@ public class StreamFetcher {
 				//update broadcast status to preparing
 
 				Broadcast broadcast = getDataStore().get(streamId);
+				// read and reset the force flag so retries use normal checks
+				boolean forceStart = startStreamForce;
+				startStreamForce = false;
 				if (broadcast == null) {
 					//if broadcast null, it means it's deleted
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					stopRequestReceived = true; //set stop request to finish the thread
 					return;
 				}
-				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
+				else if (!forceStart && AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
 					stopRequestReceived = true; //set stop request to finish the thread
 					return;
@@ -1117,6 +1126,9 @@ public class StreamFetcher {
 
 	public WorkerThread getThread() {
 		return thread;
+	}
+	public void setStartStreamForce(boolean startStreamForce) {
+		this.startStreamForce = startStreamForce;
 	}
 	public  Broadcast getBroadcast(){
 		return dataStore.get(streamId);

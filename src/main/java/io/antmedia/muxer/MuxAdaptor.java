@@ -116,6 +116,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private int videoStreamIndex;
 	protected int audioStreamIndex;
+	private int dataStreamIndex;
+
 
 	protected boolean previewOverwrite = false;
 
@@ -330,6 +332,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private boolean metadataTimeout = false;
 
 	private long lastWebhookStreamStatusUpdateTime = 0;
+
+	private boolean directMuxingSupported = true;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
 
@@ -863,6 +867,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				audioStreamIndex = streamIndex;
 				audioCodecParameters = codecpar;
+				streamIndex++;
+			}
+			else if (codecpar.codec_type() == AVMEDIA_TYPE_DATA)
+			{
+				logger.info("Data stream detected (e.g., SCTE-35) codec Id: {} for stream: {} source index:{} target index:{}", codecpar.codec_id(), streamId, i, streamIndex);
+				addStream2Muxers(codecpar, stream.time_base(), i);
+				dataStreamIndex = streamIndex;
 				streamIndex++;
 			}
 		}
@@ -1871,6 +1882,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
+	public void setDirectMuxingSupported(boolean directMuxingSupported) {
+		this.directMuxingSupported = directMuxingSupported;
+	}
+
 	/**
 	 * This method means that if the MuxAdaptor writes 
 	 * incoming packets to muxers({@link MuxAdaptor#muxerList}) directly without any StreamAdaptor/Encoders
@@ -1884,7 +1899,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean directMuxingSupported() {
 		//REFACTOR: I think it may be good idea to proxy every packet through StreamAdaptor even for RTMP Ingest
 		//It'll likely provide better compatibility for codecs and formats
-		return true;
+		return this.directMuxingSupported;
 	}
 
 
@@ -2819,6 +2834,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setAudioStreamIndex(int audioStreamIndex) {
 		this.audioStreamIndex = audioStreamIndex;
+	}
+	
+	public int getDataStreamIndex() {
+		return dataStreamIndex;
 	}
 
 	public void addPacketListener(IPacketListener listener) {
