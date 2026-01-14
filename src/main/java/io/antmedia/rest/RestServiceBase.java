@@ -1075,7 +1075,8 @@ public abstract class RestServiceBase {
 				url.startsWith("rtsps://") ||
 				url.startsWith(RTSP) ||
 				url.startsWith("udp://") ||
-				url.startsWith("srt://")
+				url.startsWith("srt://")  ||
+				url.startsWith("custom:")
 				)) {
 			streamUrlControl=true;
 			ipAddrParts = url.split("//");
