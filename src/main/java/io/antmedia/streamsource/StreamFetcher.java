@@ -13,9 +13,11 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
+import java.lang.reflect.Array;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -23,10 +25,12 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -66,12 +70,14 @@ public class StreamFetcher {
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
-    private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
-    private IScope scope;
+	private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
+	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
 	private MuxAdaptor muxAdaptor = null;
+	List<Integer> selectedVideoStreams = null; 
+	List<Integer> selectedAudioStreams = null; 
 
 	/**
 	 * When true, bypass the isStreaming status check once at startup.
@@ -132,6 +138,17 @@ public class StreamFetcher {
 
 	private static final String RTSP_ALLOWED_MEDIA_TYPES = "allowed_media_types";
 
+	AVRational videoTb = null;
+
+	AVRational audioTb = null;
+
+	public List<Integer> getSelecteVideoStreams() {
+	    return selectedVideoStreams;
+	}
+	public List<Integer> getSelectedAudioStreams() {
+	    return selectedAudioStreams;
+	}
+
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
 	}
@@ -156,9 +173,45 @@ public class StreamFetcher {
 
 		this.bufferTime = getAppSettings().getStreamFetcherBufferTime();
 	}
+	private static List<Integer> parseList(String value) {
+	    if (value == null || value.isEmpty()) {
+		return new ArrayList<>();
+	    }
 
+	    return Arrays.stream(value.split(","))
+		    .map(String::trim)
+		    .filter(s -> !s.isEmpty()) 
+		    .map(Integer::parseInt)
+		    .collect(Collectors.toList());
+	}
 
+	public void initOnlySelectedStreams(AVFormatContext inputFormatContext){
+		int nbStreams = inputFormatContext.nb_streams();
 
+		int videoOrder = 0;
+		int audioOrder = 0;
+
+		for (int s = 0; s < nbStreams; s++) {
+			AVStream stream = inputFormatContext.streams(s);
+			AVCodecParameters codecpar = stream.codecpar();
+
+			switch (codecpar.codec_type()) {
+				case AVMEDIA_TYPE_VIDEO:
+					if (selectedVideoStreams != null && !selectedVideoStreams.contains(videoOrder)) {
+						codecpar.codec_type(-1);
+					}
+					videoOrder++;
+					break;
+
+				case AVMEDIA_TYPE_AUDIO:
+					if (selectedAudioStreams != null && !selectedAudioStreams.contains(audioOrder)) {
+						codecpar.codec_type(-1);
+					}
+					audioOrder++;
+					break;
+			}
+		}
+	}
 	public void initDTSArrays(int nbStreams)
 	{
 		lastSentDTS = new long[nbStreams];
@@ -172,32 +225,42 @@ public class StreamFetcher {
 
 	}
 
-	public void parseRtspUrlParams(AVDictionary optionsDictionary){
+	public void parseUrlParam(AVDictionary optionsDictionary) {
 		try {
-		  URI uri = new URI(streamUrl);
-		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
+		    URI uri = new URI(streamUrl);
+		    UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
 
-		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+		    List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
 
-		  for (NameValuePair param : params) {
+		    for (NameValuePair param : params) {
 			String key = param.getName();
 			String value = param.getValue();
 
-			if(key == null && value == null)
-			  continue;
+			if (key == null || value == null)
+			    continue;
 
-			if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
-			  av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
-			  uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
+			if (key.equals(RTSP_ALLOWED_MEDIA_TYPES)) {
+			    av_dict_set(optionsDictionary, RTSP_ALLOWED_MEDIA_TYPES, value, 0);
+			    uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
 			}
-		  }
 
-		  streamUrl = uriBuilder.build().toString();
+			if (key.equals("v")) {
+			    selectedVideoStreams = parseList(value);
+			    uriBuilder.replaceQueryParam("v", (Object[]) null);
+			}
+
+			if (key.equals("a")) {
+			    selectedAudioStreams = parseList(value);
+			    uriBuilder.replaceQueryParam("a", (Object[]) null);
+			}
+		    }
+
+		    streamUrl = uriBuilder.build().toString();
+
 		} catch (Exception URISyntaxException) {
-		  logger.warn("cannot parse URL parameters incorrect URL format");
+		    logger.warn("cannot parse URL parameters incorrect URL format");
 		}
 	}
-
 	public class WorkerThread extends Thread {
 
 		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
@@ -269,10 +332,8 @@ public class StreamFetcher {
 				String timeoutStr = String.valueOf(StreamFetcher.this.timeoutMicroSeconds);
 				av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 
-				// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
-				parseRtspUrlParams(optionsDictionary);
-
 			}
+			parseUrlParam(optionsDictionary);
 
 			//analyze duration is a generic parameter
 			int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
@@ -305,6 +366,17 @@ public class StreamFetcher {
 				result.setMessage("Could not find stream information\n");
 				logger.error(result.getMessage());
 				return result;
+			}
+			initOnlySelectedStreams(inputFormatContext);
+
+			for(int i=0 ; i < inputFormatContext.nb_streams(); i++){
+				AVStream stream = inputFormatContext.streams(i);
+				if(stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO){
+				    videoTb = stream.time_base();
+				}
+				else if(stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO){
+				    audioTb = stream.time_base();
+				}
 			}
 
 			initDTSArrays(inputFormatContext.nb_streams());
@@ -510,7 +582,8 @@ public class StreamFetcher {
 				muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
 
 				MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
-
+				muxAdaptor.setVideoTimeBase(videoTb);
+				muxAdaptor.setAudioTimeBase(audioTb);
 				muxAdaptor.init(scope, streamId, false);
 
 				logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
@@ -788,32 +861,43 @@ public class StreamFetcher {
 		}
 
 		public void writePacket(AVStream stream, AVPacket pkt) {
+			AVCodecParameters params = stream.codecpar();
+			if(params != null && params.codec_type() == -1)
+				return;
+
 			int packetIndex = pkt.stream_index();
 
 			long pktDts = pkt.dts();
 
 			//if last sent DTS is bigger than incoming dts, it may be corrupt packet (due to network, etc) or stream is restarted
 
-			if (lastSentDTS[packetIndex] >= pkt.dts())
-			{
-				//it may be corrupt packet
-				if (pkt.dts() > lastReceivedDTS[packetIndex]) {
-					//it may be seeked or restarted
-					pktDts = lastSentDTS[packetIndex] + pkt.dts() - lastReceivedDTS[packetIndex];
-					//if stream is restarted, audio/video sync may be accumulated and we need to check the audio/video synch
-					checkAndFixSynch();
+			try{
+				if (lastSentDTS[packetIndex] >= pkt.dts())
+				{
+					//it may be corrupt packet
+					if (pkt.dts() > lastReceivedDTS[packetIndex]) {
+						//it may be seeked or restarted
+						pktDts = lastSentDTS[packetIndex] + pkt.dts() - lastReceivedDTS[packetIndex];
+						//if stream is restarted, audio/video sync may be accumulated and we need to check the audio/video synch
+						checkAndFixSynch();
+					}
+					else {
+						logger.info("Last dts:{} is bigger than incoming dts: {} for stream index:{} and streamId:{}-"
+								+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
+								lastSentDTS[packetIndex], pkt.dts(), packetIndex, streamId);
+						pktDts = lastSentDTS[packetIndex] + 1;
+					}
 				}
-				else {
-					logger.info("Last dts:{} is bigger than incoming dts: {} for stream index:{} and streamId:{}-"
-							+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
-							lastSentDTS[packetIndex], pkt.dts(), packetIndex, streamId);
-					pktDts = lastSentDTS[packetIndex] + 1;
-				}
-			}
 
 			lastReceivedDTS[packetIndex] = pkt.dts();
 			pkt.dts(pktDts);
 			lastSentDTS[packetIndex] = pkt.dts();
+
+			}
+			catch(ArrayIndexOutOfBoundsException e){
+				//some time during stream info gathring process the nb_streams may not be correct so resize if required 
+				initDTSArrays(packetIndex);
+			}
 
 
 			if (pkt.dts() > pkt.pts())

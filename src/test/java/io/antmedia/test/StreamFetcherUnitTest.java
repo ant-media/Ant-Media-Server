@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.EncoderSettings;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
@@ -1709,8 +1710,32 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			
 		}
 
-	}
-	
+    }
+    @Test
+    public void testWritePacketNonSelectedStream(){
+
+        StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx, 0);
+        MuxAdaptor muxAdaptor = spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
+        fetcher.setMuxAdaptor(muxAdaptor);
+
+        WorkerThread workerThread = fetcher.new WorkerThread();
+        //test write packet non selected stream
+        {
+            AVPacket pkt = avcodec.av_packet_alloc();
+            pkt.pts(1);
+            pkt.dts(1);
+            pkt.stream_index(-1);
+
+            AVStream stream = new AVStream();
+            stream.codecpar(new AVCodecParameters().codec_type(-1));
+            workerThread.writePacket(stream, pkt);
+
+            avcodec.av_packet_free(pkt);
+
+            verify(muxAdaptor,times(0)).writePacket(any(),any());
+        }
+    }
+
 	@Test
 	public void testCheckAndFixSynch() {
 		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx, 0);
@@ -1758,12 +1783,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testRTSPAllowedMediaTypes(){
+	public void testStreamFetcherUrlParam(){
   		// allowed_media_types should be remove from url params ( because what if rtsp server does not support url param eg. happytime rtsp server )
 		StreamFetcher streamFetcher = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio", "testRtspUrlParam", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions = new AVDictionary();
-		streamFetcher.parseRtspUrlParams(testOptions);
+		streamFetcher.parseUrlParam(testOptions);
     		assertEquals(streamFetcher.getStreamUrl(),"rtsp://127.0.0.1:6554/test.flv");
 
 		AVDictionaryEntry entry = avutil.av_dict_get(testOptions, "allowed_media_types", null, 0);
@@ -1779,14 +1804,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamFetcher streamFetcher1 = new StreamFetcher("rtsp://127.0.0.1:6554/test.flv?testParam=testParam", "testRtspUrlParam1", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions1 = new AVDictionary();
-		streamFetcher1.parseRtspUrlParams(testOptions1);
+		streamFetcher1.parseUrlParam(testOptions1);
     		assertEquals("rtsp://127.0.0.1:6554/test.flv?testParam=testParam",streamFetcher1.getStreamUrl());
 
 		//incorrect url format
 		StreamFetcher streamFetcher2 = new StreamFetcher("rtsp://127.0.0.1:  space  6554/test.flv?allowed_media_types=video", "testRtspUrlParam2", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		AVDictionary testOptions2 = new AVDictionary();
-		streamFetcher2.parseRtspUrlParams(testOptions2);
+		streamFetcher2.parseUrlParam(testOptions2);
 
 		entry = avutil.av_dict_get(testOptions2, "allowed_media_types", null, 0);
     		assertTrue(entry == null);
@@ -1796,8 +1821,23 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		streamFetcher1 = new StreamFetcher("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1&allowed_media_types=video", "testRtspUrlParam1", "rtsp_source", appScope, Vertx.vertx(), 0);
 
 		testOptions1 = new AVDictionary();
-		streamFetcher1.parseRtspUrlParams(testOptions1);
+		streamFetcher1.parseUrlParam(testOptions1);
 		assertEquals("rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1",streamFetcher1.getStreamUrl());
+
+
+		streamFetcher1 = new StreamFetcher("srt://localhost:5000/test?v=1,2&a=1,2,3", "testRtspUrlParam1", "test", appScope, Vertx.vertx(), 0);
+
+		testOptions1 = new AVDictionary();
+		streamFetcher1.parseUrlParam(testOptions1);
+		assertEquals("srt://localhost:5000/test",streamFetcher1.getStreamUrl());
+		ArrayList<Integer> expected = new ArrayList<Integer>();
+		expected.add(1);
+		expected.add(2);
+		
+		assertEquals(streamFetcher1.getSelecteVideoStreams(),expected);
+        expected.add(3);
+        assertEquals(streamFetcher1.getSelectedAudioStreams(),expected);
+
 	}
 	@Test
 	public void testInternalStreamFetcher(){

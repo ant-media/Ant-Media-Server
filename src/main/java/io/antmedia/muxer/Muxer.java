@@ -363,7 +363,10 @@ public abstract class Muxer {
 	}
 
 	public String getOutputURL() {
-		return file.getAbsolutePath();
+		if(file != null)
+			return file.getAbsolutePath();
+
+		return null;
 	}
 
 
@@ -579,6 +582,7 @@ public abstract class Muxer {
 		int codecType = outStream.codecpar().codec_type();
 
 		if (!checkToDropPacket(pkt, codecType)) {
+			pkt.stream_index(outputStreamIndex);
 			//added for audio video sync
 			writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
 		}
