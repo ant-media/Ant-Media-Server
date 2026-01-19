@@ -78,7 +78,7 @@ public class StreamFetcher {
 	 * or lock port (EX: in case of udp multicast connection).
 	 * Instead, it will fail properly with timeout error.
 	 */
-	private static final int CONNECTION_FAILSAFE_TIMEOUT = 5000;
+	private static final int CONNECTION_FAILSAFE_TIMEOUT = 15000;
 
 	/**
 	 * When true, bypass the isStreaming status check once at startup.
