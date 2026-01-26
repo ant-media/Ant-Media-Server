@@ -501,7 +501,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {		
+	public boolean updateBroadcastFieldsDb(String streamId, BroadcastUpdate broadcast) {
 		boolean result = false;
 		try {
 			Broadcast oldBroadcast = get(streamId);

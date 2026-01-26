@@ -1091,7 +1091,7 @@ public class MongoStore extends DataStore {
 
 
 	@Override
-	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {
+	public boolean updateBroadcastFieldsDb(String streamId, BroadcastUpdate broadcast) {
 		long startTime = System.nanoTime();
 		boolean result = false;
 		synchronized(broadcastLock) {

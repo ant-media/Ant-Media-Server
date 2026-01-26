@@ -148,7 +148,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				return;
 			}
 				
-			if (isBroadcastOnThisServer(broadcast)) {
+			if (dataStore.isBroadcastOnThisServer(broadcast)) {
 				logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
 				rtmpProvider.detachRtmpPublisher(streamId);
 				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
@@ -1142,11 +1142,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		
 	}
-	public boolean isBroadcastOnThisServer(Broadcast broadcast)
-	{
-        return Strings.CS.equals(broadcast.getOriginAdress(), getServerSettings().getHostAddress());
-    }
-
 
 	/**
 	 * 
@@ -2114,7 +2109,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			return false;
 		}
 		
-		if (isBroadcastOnThisServer(broadcast)) {
+		if (dataStore.isBroadcastOnThisServer(broadcast)) {
 			logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
 			return false;
 		}

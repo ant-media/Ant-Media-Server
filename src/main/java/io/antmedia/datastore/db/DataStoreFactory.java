@@ -58,7 +58,8 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	private boolean writeStatsToDatastore;
 	private boolean writeSubscriberEventsToDatastore;
 	private AppSettings appSettings;
-	
+	private ServerSettings serverSettings;
+
 	public String getDbName() {
 		return dbName;
 	}
@@ -121,6 +122,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		
 		if(dataStore != null) {
 			dataStore.setAppSettings(appSettings);
+			dataStore.setServerSettings(serverSettings);
 		}
 	}	
 	
@@ -144,10 +146,10 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		vertx = (Vertx)applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 		
-		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
+		serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		hostAddress = serverSettings.getHostAddress();
 		appSettings = ((AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME));
-		
+
 		init();
 	}
 	

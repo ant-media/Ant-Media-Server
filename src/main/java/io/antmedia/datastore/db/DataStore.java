@@ -2,16 +2,11 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.annotation.Nullable;
 
+import io.antmedia.settings.ServerSettings;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -21,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
@@ -65,6 +59,8 @@ public abstract class DataStore {
 	 * We have appSettings fields because we need to refect the changes on the fly
 	 */
 	protected AppSettings appSettings;
+
+	protected ServerSettings serverSettings;
 
 
 	public abstract String save(Broadcast broadcast);
@@ -854,6 +850,29 @@ public abstract class DataStore {
 		return broadcastList;
 	}
 
+	public boolean isBroadcastOnThisServer(Broadcast broadcast){
+			if(broadcast == null){
+				return false;
+			}
+
+			String host = serverSettings.getHostAddress();
+			String originIp = broadcast.getOriginAdress();
+
+			if(host == null || originIp == null){
+				return true;
+			}
+
+			return host.equals(originIp);
+    }
+
+	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast){
+		if(Objects.equals(broadcast.getPublishType(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP) && !isBroadcastOnThisServer(get(broadcast.getStreamId()))){
+			return true;
+		}
+
+		return updateBroadcastFieldsDb(streamId,broadcast);
+	}
+
 	/**
 	 * Updates the Broadcast objects fields if it's not null. The updated fields are
 	 * as follows name, description, userName, password, IP address, streamUrl
@@ -861,8 +880,7 @@ public abstract class DataStore {
 	 * @param broadcast
 	 * @return
 	 */
-	public abstract boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast);
-
+	public abstract boolean updateBroadcastFieldsDb(String streamId, BroadcastUpdate broadcast);
 	/**
 	 * Add or subtract the HLS viewer count from current value
 	 * @param streamId
@@ -1801,7 +1819,11 @@ public abstract class DataStore {
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
-	
+
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
+	}
+
 	/**
 	 * Calculate total query time in milliseconds
 	 * @return

@@ -3045,6 +3045,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String streamId = "test";
 
 		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.getDataStore().setServerSettings(new ServerSettings());
 		spyAdapter.setAppSettings(new AppSettings());
 		IScope scope = mock(IScope.class);
 		spyAdapter.setScope(scope);
@@ -3375,8 +3376,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 	public void testRTMPClusterStreamFetcherListener() throws Exception {
 
 		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		InMemoryDataStore dtStore = spy(new InMemoryDataStore("test"));
+		ServerSettings serverSettings = new ServerSettings();
+		dtStore.setServerSettings(serverSettings);
+		spyAdapter.setDataStore(dtStore);
 
-		spyAdapter.setDataStore(new InMemoryDataStore("test"));
 
 		RTMPClusterStreamFetcher rtmpClusterStreamFetcher = Mockito.mock(RTMPClusterStreamFetcher.class);
 		String rtmpUrl = "rtmp://localhost/live/stream";
@@ -3403,14 +3407,14 @@ public class AntMediaApplicationAdaptorUnitTest {
 		broadcast.setUpdateTime(System.currentTimeMillis());
 		broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 
-		Mockito.doReturn(true).when(spyAdapter).isBroadcastOnThisServer(Mockito.any());
+		Mockito.doReturn(true).when(dtStore).isBroadcastOnThisServer(Mockito.any());
 
 		listener.streamFinished(listener);
 		//it enters another if statement
 		Mockito.verify(rtmpProvider, times(3)).detachRtmpPublisher(streamId);
 
 
-		Mockito.doReturn(false).when(spyAdapter).isBroadcastOnThisServer(Mockito.any());
+		Mockito.doReturn(false).when(dtStore).isBroadcastOnThisServer(Mockito.any());
 
 		listener.streamFinished(listener);
 		//it enters another if statement
