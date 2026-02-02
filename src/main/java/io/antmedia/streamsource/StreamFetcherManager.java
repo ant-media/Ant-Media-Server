@@ -74,12 +74,6 @@ public class StreamFetcherManager {
 	boolean serverShuttingDown = false;
 
 	private ServerSettings serverSettings;
-	
-	private static final IStreamFetcherFactory DEFAULT_STREAM_FETCHER_FACTORY = (streamUrl, streamId, streamType, scope, vertx, seekTimeInMs) -> 
-		new StreamFetcher(streamUrl, streamId, streamType, scope, vertx, seekTimeInMs);
-	
-	private IStreamFetcherFactory streamFetcherFactory = DEFAULT_STREAM_FETCHER_FACTORY;
-
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
@@ -100,12 +94,7 @@ public class StreamFetcherManager {
 	}
 	
 	public StreamFetcher makeStreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx, long seekTimeInMs) {
-		IStreamFetcherFactory factory = (streamFetcherFactory != null) ? streamFetcherFactory : DEFAULT_STREAM_FETCHER_FACTORY;
-		return factory.create(streamUrl, streamId, streamType, scope, vertx, seekTimeInMs);
-	}
-	
-	public void setStreamFetcherFactory(IStreamFetcherFactory streamFetcherFactory) {
-		this.streamFetcherFactory = (streamFetcherFactory != null) ? streamFetcherFactory : DEFAULT_STREAM_FETCHER_FACTORY;
+		 return  new StreamFetcher(streamUrl, streamId, streamType, scope, vertx, seekTimeInMs);
 	}
 
 	public int getStreamCheckerInterval() {
