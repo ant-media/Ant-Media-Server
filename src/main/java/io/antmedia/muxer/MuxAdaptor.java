@@ -335,6 +335,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private boolean directMuxingSupported = true;
 
+	private static final IRtmpMuxerFactory DEFAULT_RTMP_MUXER_FACTORY = RtmpMuxer::new;
+
+	private static IRtmpMuxerFactory rtmpMuxerFactory = DEFAULT_RTMP_MUXER_FACTORY;
+
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
 
 
@@ -592,6 +596,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 	}
 
+	public static IRtmpMuxerFactory getRtmpMuxerFactory() {
+		return rtmpMuxerFactory;
+	}
+
+	/**
+	 * Programmatically set a custom {@link IRtmpMuxerFactory}.
+	 * Useful when setting from a plugin.
+	 *
+	 */
+	public static void setRtmpMuxerFactory(IRtmpMuxerFactory factory) {
+		rtmpMuxerFactory = factory != null ? factory : DEFAULT_RTMP_MUXER_FACTORY;
+	}
+
 	protected void enableMp4Setting() {
 		broadcast = getBroadcast();
 
@@ -632,7 +649,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (endPointList != null && !endPointList.isEmpty()) 
 			{
 				for (Endpoint endpoint : endPointList) {
-					RtmpMuxer rtmpMuxer = new RtmpMuxer(endpoint.getRtmpUrl(), vertx);
+					RtmpMuxer rtmpMuxer = getRtmpMuxerFactory().create(endpoint.getRtmpUrl(), vertx);
 					rtmpMuxer.setStatusListener(muxAdaptor);
 					muxAdaptor.addMuxer(rtmpMuxer);
 				}
@@ -805,6 +822,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return true;
 	}
 
+	public void prepareInternal() {
+	}
 
 	public void registerToMainTrackIfExists(String mainTrack) {
 		if(mainTrack != null) {
@@ -2475,7 +2494,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
-			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
+			RtmpMuxer rtmpMuxer = rtmpMuxerFactory.create(rtmpUrl, vertx);
 			rtmpMuxer.setStatusListener(this);
 			if (prepareMuxer(rtmpMuxer, resolutionHeight)) 
 			{
