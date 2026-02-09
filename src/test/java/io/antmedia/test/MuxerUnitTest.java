@@ -1,5 +1,6 @@
 package io.antmedia.test;
 
+import java.lang.reflect.Field;
 import com.google.gson.JsonObject;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -1265,6 +1266,72 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertFalse(rtmpMuxer.prepareIO());
 
+	}
+
+	@Test
+	public void testRTMPMuxerRaceCondition() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://no_server", vertx);
+		rtmpMuxer.init(appScope, "test", 0, null, 0);
+
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		codecParameters.codec_id(AV_CODEC_ID_H264);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		AVRational rat = new AVRational().num(1).den(1000);
+		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
+
+		// 1. Test preparedIO reset in clearResource
+		assertTrue(rtmpMuxer.prepareIO());
+		assertFalse(rtmpMuxer.prepareIO()); // already prepared
+
+		rtmpMuxer.clearResource(); // headerWritten is false, resets preparedIO
+		
+		// Re-add stream because clearResource cleared outputFormatContext
+		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
+		assertTrue(rtmpMuxer.prepareIO()); // can prepare again
+
+		// 2. Test cancelOpenIO race protection
+		RtmpMuxer rtmpMuxer2 = new RtmpMuxer("rtmp://no_server", vertx);
+		rtmpMuxer2.init(appScope, "test", 0, null, 0);
+		assertTrue(rtmpMuxer2.addStream(codecParameters, rat, 50));
+
+		// Start prepareIO which will call openIO in blocking thread
+		rtmpMuxer2.prepareIO();
+		// Immediately cancel it
+		rtmpMuxer2.writeTrailer();
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			String status = rtmpMuxer2.getStatus();
+			return status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+		});
+
+		// isRunning should remain false because it was cancelled
+		assertFalse(rtmpMuxer2.getIsRunning().get());
+	}
+
+	@Test
+	public void testWriteTrailerBeforeHeader() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://no_server", vertx);
+		rtmpMuxer.init(appScope, "test", 0, null, 0);
+
+		// No header written yet
+		rtmpMuxer.writeTrailer();
+
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, rtmpMuxer.getStatus());
+
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		codecParameters.codec_id(AV_CODEC_ID_H264);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		AVRational rat = new AVRational().num(1).den(1000);
+		
+		// It should be able to add stream and prepareIO again because clearResource was called in writeTrailer
+		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
+		assertTrue(rtmpMuxer.prepareIO());
 	}
 
 
@@ -6359,7 +6426,70 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1, muxAdaptor.getVideoStreamIndex());
 		assertEquals(2, muxAdaptor.getAudioStreamIndex());
 	}
-	
+
+	@Test
+	public void testRtmpMuxerPrepareIOCancelledAndNotCancelled() throws Exception {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		// Scenario 1: Test Cancellation (Lines 246-253 and 151-164 cancellation path)
+		RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://dummy", vertx));
+		
+		// Mock getOutputFormatContext to return a context with streams
+		AVFormatContext outputFormatContext = new AVFormatContext(null);
+		avformat_alloc_output_context2(outputFormatContext, null, "flv", null);
+		avformat_new_stream(outputFormatContext, null);
+		Mockito.doReturn(outputFormatContext).when(rtmpMuxer).getOutputFormatContext();
+		
+		// Mock openIO to set cancelOpenIO = true and return true
+		Mockito.doAnswer(invocation -> {
+			Field cancelField = RtmpMuxer.class.getDeclaredField("cancelOpenIO");
+			cancelField.setAccessible(true);
+			AtomicBoolean cancel = (AtomicBoolean) cancelField.get(rtmpMuxer);
+			cancel.set(true);
+			return true;
+		}).when(rtmpMuxer).openIO();
+		
+		// Add element to bsfFilterContextList so it enters the check block
+		Field bsfField = Muxer.class.getDeclaredField("bsfFilterContextList");
+		bsfField.setAccessible(true);
+		List<AVBSFContext> bsfList = (List<AVBSFContext>) bsfField.get(rtmpMuxer);
+		bsfList.add(new AVBSFContext(null));
+		
+		rtmpMuxer.prepareIO();
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			// preparedIO should be false because clearResource is called
+			Field preparedField = RtmpMuxer.class.getDeclaredField("preparedIO");
+			preparedField.setAccessible(true);
+			AtomicBoolean prepared = (AtomicBoolean) preparedField.get(rtmpMuxer);
+			return !prepared.get() && !rtmpMuxer.getIsRunning().get();
+		});
+		
+		Mockito.verify(rtmpMuxer, Mockito.atLeastOnce()).clearResource();
+		
+		
+		// Scenario 2: Test Normal Flow (Lines 151-164 normal path)
+		RtmpMuxer rtmpMuxer2 = Mockito.spy(new RtmpMuxer("rtmp://dummy2", vertx));
+		Mockito.doReturn(outputFormatContext).when(rtmpMuxer2).getOutputFormatContext();
+		Mockito.doReturn(true).when(rtmpMuxer2).openIO();
+		
+		bsfList = (List<AVBSFContext>) bsfField.get(rtmpMuxer2);
+		bsfList.add(new AVBSFContext(null));
+		
+		rtmpMuxer2.prepareIO();
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return rtmpMuxer2.getIsRunning().get() 
+					&& rtmpMuxer2.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		});
+		
+		assertTrue(rtmpMuxer2.getIsRunning().get());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, rtmpMuxer2.getStatus());
+		
+		// Clean up
+		avformat_free_context(outputFormatContext);
+	}
 	
 	
 
