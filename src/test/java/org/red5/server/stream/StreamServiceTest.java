@@ -8,19 +8,25 @@ import java.util.Set;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.red5.io.object.StreamAction;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.service.IStreamSecurityService;
 import org.red5.server.api.stream.*;
+import org.red5.server.scope.BasicScope;
 import org.red5.server.scope.Scope;
 import org.red5.server.util.ScopeUtils;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.websocket.WebSocketConstants;
 
+import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.internal.util.MockUtil.resetMock;
@@ -160,6 +166,47 @@ public class StreamServiceTest {
 		Mockito.verify(bs, Mockito.times(1)).startPublishing();
 
 	}
+	
+	@Test
+	public void testVerifySecurityRTMPPlayback() {
+		StreamService streamService = Mockito.spy(new StreamService());
+		
+		IScope scope = Mockito.mock(Scope.class);
+		IStreamCapableConnection streamConn = Mockito.mock(IStreamCapableConnection.class);
+		String streamIdText = "stream123";
+				
+		Number streamId = 123132;
+		String subscriberId = "subId";
+
+		Map<String, String> params = new HashMap<String, String>();
+		params.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
+
+		String mode = "mode";
+		StreamAction action = StreamAction.PLAY;
+		
+		when(streamConn.getScope()).thenReturn(scope);
+		when(streamConn.getStreamId()).thenReturn(streamId);
+		
+		Mockito.doReturn(Mockito.mock(IStreamSecurityService.class)).when(streamService).getSecurityService(scope);
+		
+        AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+        IContext context = Mockito.mock(IContext.class);
+        when(scope.getContext()).thenReturn(context);
+		when(scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
+		
+		DataStore dataStore = new InMemoryDataStore("junit");
+		when(adaptor.getDataStore()).thenReturn(dataStore);
+		dataStore.blockSubscriber(streamIdText, subscriberId, Subscriber.PUBLISH_AND_PLAY_TYPE, 10000);
+		
+		Mockito.doNothing().when(streamService).sendNSFailed(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+		
+		boolean result = streamService.verifySecurity(scope, streamConn, streamIdText, streamId, params, mode, action);
+		assertFalse(result);
+		
+		Mockito.verify(streamService, Mockito.times(1)).sendNSFailed(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+		
+		
+	}
 
 	@Test
 	public void testRtmpUrlFormat() {
@@ -185,7 +232,6 @@ public class StreamServiceTest {
 
 		streamService.publish(name,"live");
 		Mockito.verify(streamService).parsePathSegments(streamId + "/" +name);
-
 
 	}
 
@@ -262,6 +308,11 @@ public class StreamServiceTest {
 		Mockito.doReturn(mockMap).when(conn).getConnectParams();
 		Mockito.doReturn(1).when(conn).getStreamId();
 		Red5.setConnectionLocal(conn);
+		
+		when(scope.getContext()).thenReturn(mock(IContext.class));
+		AntMediaApplicationAdapter adaptor = mock(AntMediaApplicationAdapter.class);
+		when(scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
+		when(adaptor.getDataStore()).thenReturn(new InMemoryDataStore("junit"));
 
 		IStreamSecurityService mockSecurityService = mock(IStreamSecurityService.class);
 		IStreamPlaybackSecurity mockHandler = mock(IStreamPlaybackSecurity.class);

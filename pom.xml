@@ -67,6 +67,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <!-- keep it blank -->
 		<enterprise.profile></enterprise.profile>
 		<argLine></argLine> <!-- Empty default value -->
+	    <sonar.exclusions>
+	        **/.github/**,
+	        **/*.yml,
+	        **/*.yaml
+	    </sonar.exclusions>
     </properties>
 
     <build>
@@ -231,6 +236,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                 </execution>
               </executions>
             </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar-maven-plugin.version}</version>
+            </plugin>
         </plugins>
          </pluginManagement>
     </build>
@@ -238,7 +248,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <dependency>
             <groupId>io.antmedia.ipcamera.onvif</groupId>
             <artifactId>ONVIF</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
+            <version>1.2.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

@@ -104,8 +104,8 @@ public class TokenFilterManager extends AbstractFilter   {
 				if (streamId != null) {
 					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
 				}
-				if (!checkJwtToken) 
-				{
+
+				if (!checkJwtToken) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);
 					logger.warn("Cluster communication token is not valid for streamId:{}" , streamId);
 					return; 	
@@ -186,6 +186,10 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		if(requestURI.contains("streams")) {
 			requestURI = requestURI.split("streams")[1];
+			if (requestURI.startsWith("/drm/")) {
+				requestURI = requestURI.substring(5);
+				return requestURI.substring(0, requestURI.indexOf("/"));
+			}
 		}
 
 		if(requestURI.contains("m4s") || requestURI.contains("mpd")) {

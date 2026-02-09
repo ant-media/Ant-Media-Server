@@ -708,6 +708,51 @@ public class HlsManifestModifierFilterTest {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	
+	@Test
+	public void testFilterWithRedirectionWithHeadRequest() {
+		try {
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+			
+			ServletOutputStream outputStream = mock(ServletOutputStream.class);
+			when(mockResponse.getOutputStream()).thenReturn(outputStream);
+			when(mockResponse.getStatus()).thenReturn(200);
+			when(mockResponse.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
+			FilterChain myChain = new FilterChain() {
+				@Override
+				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
+					((ContentCachingResponseWrapper)servletResponse).setStatus(200);
+					((ContentCachingResponseWrapper)servletResponse).getOutputStream().write(testM3u8.getBytes());
+				}
+			};
+
+			//blank start end params
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			when(mockRequest.getMethod()).thenReturn("HEAD");
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/test.m3u8");
+			when(mockRequest.getParameter(HlsManifestModifierFilter.START)).thenReturn("1709926082");
+			when(mockRequest.getParameter(HlsManifestModifierFilter.END)).thenReturn("1709926087");
+
+			AppSettings appSettings = new AppSettings();
+			appSettings.setHttpForwardingBaseURL("forward_url");
+			
+			doReturn(appSettings).when(hlsManifestModifierFilter).getAppSettings();
+	
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
+			
+			verify(mockResponse).sendRedirect("forward_url/streams/test.m3u8");
+
+			
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (ServletException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 	@Test
 	public void testNoDoubleAmps(){
 
@@ -748,4 +793,68 @@ public class HlsManifestModifierFilterTest {
 		assertEquals(hlsManifestModifierFilter.addParamSeparator("test?segment"),"&");
 
 	}
+	
+	@Test
+    public void testIsHLSIntervalQuery() {
+
+        // ---- Case 1: Valid m3u8 + start + end → true ----
+        {
+            HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getRequestURI()).thenReturn("/live/stream.m3u8");
+            when(req.getParameter("start")).thenReturn("1");
+            when(req.getParameter("end")).thenReturn("2");
+
+            assertTrue(HlsManifestModifierFilter.isHLSIntervalQuery(req));
+        }
+
+        // ---- Case 2: URI does not end with .m3u8 → false ----
+        {
+            HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getRequestURI()).thenReturn("/live/stream.txt");
+            when(req.getParameter("start")).thenReturn("1");
+            when(req.getParameter("end")).thenReturn("2");
+
+            assertFalse(HlsManifestModifierFilter.isHLSIntervalQuery(req));
+        }
+
+        // ---- Case 3: Missing start param → false ----
+        {
+            HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getRequestURI()).thenReturn("/live/stream.m3u8");
+            when(req.getParameter("start")).thenReturn(null);
+            when(req.getParameter("end")).thenReturn("2");
+
+            assertFalse(HlsManifestModifierFilter.isHLSIntervalQuery(req));
+        }
+
+        // ---- Case 4: Missing end param → false ----
+        {
+            HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getRequestURI()).thenReturn("/live/stream.m3u8");
+            when(req.getParameter("start")).thenReturn("1");
+            when(req.getParameter("end")).thenReturn(null);
+
+            assertFalse(HlsManifestModifierFilter.isHLSIntervalQuery(req));
+        }
+
+        // ---- Case 5: Empty start → false ----
+        {
+            HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getRequestURI()).thenReturn("/live/stream.m3u8");
+            when(req.getParameter("start")).thenReturn("");
+            when(req.getParameter("end")).thenReturn("2");
+
+            assertFalse(HlsManifestModifierFilter.isHLSIntervalQuery(req));
+        }
+
+        // ---- Case 6: Empty end → false ----
+        {
+            HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getRequestURI()).thenReturn("/live/stream.m3u8");
+            when(req.getParameter("start")).thenReturn("1");
+            when(req.getParameter("end")).thenReturn("");
+
+            assertFalse(HlsManifestModifierFilter.isHLSIntervalQuery(req));
+        }
+    }
 }

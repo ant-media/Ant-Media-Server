@@ -414,6 +414,13 @@ public class CommonRestService {
 					message = appNameUserTypeJson.toString();
 				}
 				getDataStore().resetInvalidLoginCount(user.getEmail());
+				User userFinal = user;
+				//send user info
+				new Thread() {
+					public void run() {
+						sendUserInfo(userFinal.getEmail(), userFinal.getFirstName(), userFinal.getLastName(), userFinal.getScope(), userFinal.getUserType().toString(), userFinal.getAppNameUserType());
+					}
+				}.start();
 			} 
 			else 
 			{

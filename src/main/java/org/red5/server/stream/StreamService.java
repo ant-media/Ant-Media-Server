@@ -680,9 +680,14 @@ public class StreamService implements IStreamService {
 
         return params;
     }
+    
+    
+    public IStreamSecurityService getSecurityService(IScope scope) {
+    	return  (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
+    }
 
     public boolean verifySecurity(IScope scope , IStreamCapableConnection streamConn, String name, Number streamId, Map<String, String> params, String mode, StreamAction action){
-        IStreamSecurityService security = (IStreamSecurityService) ScopeUtils.getScopeService(scope, IStreamSecurityService.class);
+        IStreamSecurityService security = getSecurityService(scope);
         if (security == null)
             return true;
         Set<IStreamPublishSecurity> publishSecurityHandlers = security.getStreamPublishSecurity();
@@ -716,7 +721,16 @@ public class StreamService implements IStreamService {
                 return false;
             }
         }
-        else if(action.equals(StreamAction.PLAY)){
+        else if(action.equals(StreamAction.PLAY))
+        {
+            AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+
+              //if it is already blocked in database, do not get started
+        	 if (AntMediaApplicationAdapter.isSubscriberBlocked(adaptor.getDataStore(), name, subscriberId, Subscriber.PLAY_TYPE)) {
+                 sendNSFailed(streamConn, StatusCodes.NS_FAILED, "Subscriber " + subscriberId + " is blocked to play stream.", name, streamId);
+                 return false;
+             }
+        	 
             for (IStreamPlaybackSecurity handler : playbackSecurityHandlers) {
                 if (!handler.isPlayAllowed(scope, name, mode, params, null, token, subscriberId, subscriberCode)) {
                     sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "You are not allowed to play the stream due to security.", name, streamId);
