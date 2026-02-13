@@ -111,6 +111,14 @@ public interface ITokenService {
 	Token createJwtToken(String streamId, long exprireDate, String type, String roomId);
 
 	/**
+	 * creates application-scoped JWT token (independent of streamId)
+	 * @param exprireDate - expire date of the token (unix timestamp seconds)
+	 * @param type type of the token (play/publish)
+	 * @return token or null if not available
+	 */
+	Token createAppJwtToken(long exprireDate, String type);
+
+	/**
 	 * gets  map of authenticated sessions
 	 * @return list
 	 */
