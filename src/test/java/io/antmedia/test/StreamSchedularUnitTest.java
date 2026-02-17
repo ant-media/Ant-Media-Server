@@ -380,7 +380,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
 		broadcastItem1.setDurationInMs(Muxer.getDurationInMs(broadcastItem1.getStreamUrl(), ""));
 		logger.info("Duration of the stream: {}", broadcastItem1.getDurationInMs());
-		assertTrue(15045 == broadcastItem1.getDurationInMs() || 15046 == broadcastItem1.getDurationInMs());
+		assertTrue(10000 == broadcastItem1.getDurationInMs());
 
 		try {
 
