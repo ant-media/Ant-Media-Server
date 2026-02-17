@@ -75,10 +75,10 @@ import io.vertx.core.Vertx;
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
-	public static String VALID_MP4_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL_2 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL_3 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
+	public static String VALID_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/cutting_orange_tuil_2000kbps_720p_59.94fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_2 = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/vegetables_tuil_2000kbps_720p_59.94fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_3 = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_2/segments/Dancers_8s_2470kbps_720p_60.0fps_h264.mp4";
 	public static String INVALID_MP4_URL = "invalid_link";
 	public static String INVALID_403_MP4_URL = "https://httpstat.us/403";
 	private WebScope appScope;
@@ -380,7 +380,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
 		broadcastItem1.setDurationInMs(Muxer.getDurationInMs(broadcastItem1.getStreamUrl(), ""));
 		logger.info("Duration of the stream: {}", broadcastItem1.getDurationInMs());
-		assertTrue(15045 == broadcastItem1.getDurationInMs() || 15046 == broadcastItem1.getDurationInMs());
+		assertTrue(10000 == broadcastItem1.getDurationInMs());
 
 		try {
 
