@@ -366,8 +366,26 @@ public class VoDRestServiceV2UnitTest {
 			assertEquals(3, store.getTotalVodNumber());
 
 			assertEquals(3, restServiceReal.getTotalVodNumber().getNumber());
+
+			// Test upload with metadata
+			try (FileInputStream inputStream4 = new FileInputStream("src/test/resources/sample_MP4_480.mp4")) {
+				String testMetadata = "{\"customField\":\"value\"}";
+				Result result4 = restServiceReal.uploadVoDFile(fileName, inputStream4, testMetadata);
+				assertTrue(result4.isSuccess());
+				
+				VoD vodWithMetadata = restServiceReal.getVoD(result4.getDataId());
+				assertEquals(testMetadata, vodWithMetadata.getMetadata());
+			}
+
+			// Test upload without metadata (null) - should work, metadata should be null
+			try (FileInputStream inputStream5 = new FileInputStream("src/test/resources/sample_MP4_480.mp4")) {
+				Result result5 = restServiceReal.uploadVoDFile(fileName, inputStream5, null);
+				assertTrue(result5.isSuccess());
+				
+				VoD vodWithoutMetadata = restServiceReal.getVoD(result5.getDataId());
+				assertNull(vodWithoutMetadata.getMetadata());
+			}
 		}
-		
 
 
 	}
