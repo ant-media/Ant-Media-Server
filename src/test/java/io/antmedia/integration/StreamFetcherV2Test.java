@@ -213,10 +213,10 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		//add rtmp endpoint 
 		Endpoint endpoint = new Endpoint();
 		String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
-		endpoint.setRtmpUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId); 
+		endpoint.setEndpointUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId);
 		try 
 		{
-			result = RestServiceV2Test.addEndpointV2(streamSource.getStreamId(), endpoint);
+			result = RestServiceV2Test.addEndpointV3(streamSource.getStreamId(), endpoint);
 			assertTrue(result.isSuccess());
 			String endpointId = result.getDataId();
 			//check that rtmp endpoint is streaming
@@ -289,7 +289,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		dataStore.save(localStream);
 
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl(endpointStream.getRtmpURL());
+		endpoint.setEndpointUrl(endpointStream.getRtmpURL());
 		//add endpoint to the server
 		dataStore.addEndpoint(localStream.getStreamId(), endpoint);
 
