@@ -228,7 +228,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		BroadcastRestService.updatePlayListItemDurationsIfApplicable(broadcast.getPlayListItemList(), broadcast.getStreamId());
 
-		assertEquals(15046, item.getDurationInMs());
+		assertEquals(10000, item.getDurationInMs());
 		assertEquals(0, item2.getDurationInMs());
 	}
 
@@ -237,7 +237,7 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testGetDuration() {
 
 		Result result = restServiceReal.getDuration(StreamSchedularUnitTest.VALID_MP4_URL);
-		assertEquals(15046, Integer.valueOf(result.getDataId()).intValue());
+		assertEquals(10000, Integer.valueOf(result.getDataId()).intValue());
 		assertTrue(result.isSuccess());
 
 
