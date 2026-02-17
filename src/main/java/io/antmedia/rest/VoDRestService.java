@@ -171,8 +171,9 @@ public class VoDRestService extends RestServiceBase{
     @Override
     public Result uploadVoDFile(
             @Parameter(description = "Name of the VoD File", required = true) @QueryParam("name") String fileName,
-            @Parameter(description = "VoD file", required = true) @FormDataParam("file") InputStream inputStream) {
-        return super.uploadVoDFile(fileName, inputStream);
+            @Parameter(description = "VoD file", required = true) @FormDataParam("file") InputStream inputStream,
+            @Parameter(description = "Custom metadata for the VoD file", required = false) @FormDataParam("metadata") String metadata) {
+        return super.uploadVoDFile(fileName, inputStream, metadata);
     }
 
 

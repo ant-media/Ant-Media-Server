@@ -632,9 +632,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (endPointList != null && !endPointList.isEmpty()) 
 			{
 				for (Endpoint endpoint : endPointList) {
-					RtmpMuxer rtmpMuxer = new RtmpMuxer(endpoint.getRtmpUrl(), vertx);
-					rtmpMuxer.setStatusListener(muxAdaptor);
-					muxAdaptor.addMuxer(rtmpMuxer);
+					EndpointMuxer endpointMuxer = new EndpointMuxer(endpoint.getEndpointUrl(), vertx);
+					endpointMuxer.setStatusListener(muxAdaptor);
+					muxAdaptor.addMuxer(endpointMuxer);
 				}
 			}
 		}
@@ -2347,7 +2347,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return muxer;
 	}
 
-	public boolean prepareMuxer(Muxer muxer, int resolutionHeight) 
+	public boolean prepareMuxer(Muxer muxer, int resolutionHeight)
 	{
 		boolean streamAdded = false;
 		muxer.init(scope, streamId, resolutionHeight, getSubfolder(getBroadcast(), getAppSettings()), 0);
@@ -2460,31 +2460,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	public Result startRtmpStreaming(String rtmpUrl, int resolutionHeight)
+	public Result startEndpointStreaming(String endpointUrl, int resolutionHeight)
 	{
 		Result result = new Result(false);
-		rtmpUrl = rtmpUrl.replaceAll("[\n\r\t]", "_");
+		endpointUrl = endpointUrl.replaceAll("[\n\r\t]", "_");
 
 		if (!isRecording.get()) 
 		{
-			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
-			result.setMessage("Start rtmp streaming return false for stream:"+ streamId +" because stream is being prepared. Try again");			
+			logger.warn("Start endpoint streaming return false for stream:{} because stream is being prepared", streamId);
+			result.setMessage("Start endpoint streaming return false for stream:"+ streamId +" because stream is being prepared. Try again");
 			return result;
 		}
-		logger.info("start rtmp streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, rtmpUrl, resolutionHeight, height);
+		logger.info("start endpoint streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, endpointUrl, resolutionHeight, height);
 
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
-			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
-			rtmpMuxer.setStatusListener(this);
-			if (prepareMuxer(rtmpMuxer, resolutionHeight)) 
+			EndpointMuxer endpointMuxer = new EndpointMuxer(endpointUrl, vertx);
+			endpointMuxer.setStatusListener(this);
+			if (prepareMuxer(endpointMuxer, resolutionHeight))
 			{
 				result.setSuccess(true);
 			}
 			else 
 			{
-				logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
-				result.setMessage("RTMP prepare returned false so that rtmp pushing to " + rtmpUrl + " for "+ streamId +" didn't started ");
+				logger.error("endpoint prepare returned false so that stream pushing to {} for {} didn't started ", endpointUrl, streamId);
+				result.setMessage("endpoint prepare returned false so that stream pushing to " + endpointUrl + " for "+ streamId +" didn't started ");
 			}
 		}
 
@@ -2555,13 +2555,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
 
 				//TODO: 0 as second parameter may cause a problem
-				stopRtmpStreaming(url, 0);
-				startRtmpStreaming(url, height);
+				stopEndpointStreaming(url, 0);
+				startEndpointStreaming(url, height);
 				retryCounter.put(url, tmpRetryCount + 1);
 			}
 			else{
 				logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
-				stopRtmpStreaming(url, 0);
+				stopEndpointStreaming(url, 0);
 				sendEndpointErrorNotifyHook(url);
 				retryCounter.remove(url);
 			}
@@ -2623,12 +2623,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
 			{
 				Endpoint endpoint = (Endpoint) iterator.next();
-				String statusUpdate = endpointStatusUpdateMap.getOrDefault(endpoint.getRtmpUrl(), null);
+				String statusUpdate = endpointStatusUpdateMap.getOrDefault(endpoint.getEndpointUrl(), null);
 				if (statusUpdate != null) {
 					endpoint.setStatus(statusUpdate);
 				}
 				else {
-					logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
+					logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getEndpointUrl());
 				}
 			}
 			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
@@ -2641,38 +2641,38 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 	}
 
-	public RtmpMuxer getRtmpMuxer(String rtmpUrl)
+	public EndpointMuxer getEndpointMuxer(String rtmpUrl)
 	{
-		RtmpMuxer rtmpMuxer = null;
+		EndpointMuxer endpointMuxer = null;
 		synchronized (muxerList)
 		{
 			Iterator<Muxer> iterator = muxerList.iterator();
 			while (iterator.hasNext())
 			{
 				Muxer muxer = iterator.next();
-				if (muxer instanceof RtmpMuxer &&
-						((RtmpMuxer)muxer).getOutputURL().equals(rtmpUrl))
+				if (muxer instanceof EndpointMuxer &&
+						((EndpointMuxer)muxer).getOutputURL().equals(rtmpUrl))
 				{
-					rtmpMuxer = (RtmpMuxer) muxer;
+					endpointMuxer = (EndpointMuxer) muxer;
 					break;
 				}
 			}
 		}
-		return rtmpMuxer;
+		return endpointMuxer;
 	}
 
-	public Result stopRtmpStreaming(String rtmpUrl, int resolutionHeight)
+	public Result stopEndpointStreaming(String endpointUrl, int resolutionHeight)
 	{
 		Result result = new Result(false);
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
-			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
-			String status = statusMap.getOrDefault(rtmpUrl, null);
-			if (rtmpMuxer != null)
+			EndpointMuxer endpointMuxer = getEndpointMuxer(endpointUrl);
+			String status = statusMap.getOrDefault(endpointUrl, null);
+			if (endpointMuxer != null)
 			{
-				muxerList.remove(rtmpMuxer);
-				statusMap.remove(rtmpUrl);
-				rtmpMuxer.writeTrailer();
+				muxerList.remove(endpointMuxer);
+				statusMap.remove(endpointUrl);
+				endpointMuxer.writeTrailer();
 				result.setSuccess(true);
 			}
 			else if(status == null
