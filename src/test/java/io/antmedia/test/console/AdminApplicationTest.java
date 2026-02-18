@@ -25,6 +25,8 @@ import org.red5.server.scope.WebScope;
 import org.red5.server.tomcat.TomcatConnector;
 import org.red5.server.tomcat.TomcatLoader;
 import org.red5.server.tomcat.WarDeployer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.console.AdminApplication;
@@ -45,6 +47,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class AdminApplicationTest {
+	
+	private Logger logger = LoggerFactory.getLogger(AdminApplicationTest.class);
 
 	static Vertx vertx;
 
@@ -174,6 +178,46 @@ public class AdminApplicationTest {
 		assertTrue(commandCaptor.getValue().contains("-s pass"));
 		assertTrue(commandCaptor.getValue().contains("-f warfile"));
 
+	}
+	@Test
+	public void testApplictionWarFileName() {
+		 	assertEquals("myapp", WarDeployer.getApplicationName("myapp-1.0.0.war"));
+	        assertEquals("customer-portal", WarDeployer.getApplicationName("customer-portal-2.5.war"));
+	        assertEquals("testapp", WarDeployer.getApplicationName("testapp-2024.04.26.war"));
+
+	        assertEquals("e-commerce", WarDeployer.getApplicationName("e-commerce.war"));
+	        assertEquals("simpleapp", WarDeployer.getApplicationName("simpleapp.war"));
+	        assertEquals("something-else-v1", WarDeployer.getApplicationName("something-else-v1.war"));
+
+	        assertEquals("fancy-app", WarDeployer.getApplicationName("fancy-app-1.0.0.war"));
+	        assertEquals("my-super-cool-app", WarDeployer.getApplicationName("my-super-cool-app.war"));
+
+	        assertEquals("app", WarDeployer.getApplicationName("app-1.war"));
+	        assertEquals("app", WarDeployer.getApplicationName("app-123.war"));
+	        assertEquals("weirdapp-", WarDeployer.getApplicationName("weirdapp-.war"));
+	   
+	}
+	@Test
+	public void testGetDirectorySize() {
+		AdminApplication app = Mockito.spy(new AdminApplication());
+
+		File testDir = new File(".");
+		long directorySize = app.getDirectorySize(testDir.toPath());
+		logger.info("Directory size: {}", directorySize);
+		assertTrue(directorySize >= 10000000); // 10 MB
+		
+		
+		File testFile = new File("pom.xml");
+		directorySize = app.getDirectorySize(testFile.toPath());
+		logger.info("Size: {}", directorySize);
+		assertTrue(directorySize >= 1000); // 
+		
+		
+		testFile = new File("not exist");
+		directorySize = app.getDirectorySize(testFile.toPath());
+		logger.info("Directory size: {}", directorySize);
+		assertEquals(-1, directorySize); // 10 MB
+		
 	}
 
 	@Test

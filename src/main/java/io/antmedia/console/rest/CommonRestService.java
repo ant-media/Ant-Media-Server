@@ -160,6 +160,10 @@ public class CommonRestService {
 	public static final String USER_TYPE = "user-type";
 
 	public static final String SCOPE_SYSTEM = "system";
+	
+	
+	public static final String APP_NAME_REGEX = "^[a-zA-Z0-9_-]*$";
+
 
 	public int getAllowedLoginAttempts() {
 		return ALLOWED_LOGIN_ATTEMPTS;
@@ -383,8 +387,10 @@ public class CommonRestService {
 		boolean result = false;
 		if (tryToAuthenticate) 
 		{
-			result = getDataStore().doesUserExist(user.getEmail(), user.getPassword()) ||
-					getDataStore().doesUserExist(user.getEmail(), getMD5Hash(user.getPassword()));
+			
+			String md5Password = getMD5Hash(user.getPassword());
+			result = getDataStore().doesUserExist(user.getEmail(), md5Password) || 
+					getDataStore().doesUserExist(user.getEmail(), getMD5Hash(md5Password));
 
 			if (result) 
 			{
@@ -408,6 +414,13 @@ public class CommonRestService {
 					message = appNameUserTypeJson.toString();
 				}
 				getDataStore().resetInvalidLoginCount(user.getEmail());
+				User userFinal = user;
+				//send user info
+				new Thread() {
+					public void run() {
+						sendUserInfo(userFinal.getEmail(), userFinal.getFirstName(), userFinal.getLastName(), userFinal.getScope(), userFinal.getUserType().toString(), userFinal.getAppNameUserType());
+					}
+				}.start();
 			} 
 			else 
 			{
@@ -1515,7 +1528,7 @@ public class CommonRestService {
 		appName = appName.replaceAll("[\n\r\t]", "_");
 		boolean result = false;
 		String message = "";
-		if (appName != null && appName.matches("^[a-zA-Z0-9]*$")) {
+		if (appName != null && appName.matches(APP_NAME_REGEX)) {
 			logger.info("delete application http request:{}", appName);
 			AppSettings appSettings = getSettings(appName);
 			
@@ -1529,7 +1542,7 @@ public class CommonRestService {
 			}
 		}
 		else {
-			message = "appname contains invalid character and does not match regexp ^[a-zA-Z0-9]*$";
+			message = "appname contains invalid character and does not match regexp "+ APP_NAME_REGEX;
 		}
 		return new Result(result, message);
 	}

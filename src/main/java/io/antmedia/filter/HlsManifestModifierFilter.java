@@ -51,7 +51,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 
 		String method = httpRequest.getMethod();
-		if (HttpMethod.GET.equals(method) && httpRequest.getRequestURI().endsWith("m3u8")) {
+		if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) && httpRequest.getRequestURI().endsWith("m3u8")) {
 
 			//start date is in seconds since epoch
 			String startDate = request.getParameter(START);
@@ -116,6 +116,11 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 						redirectLocation = redirectLocation.replaceAll(RestServiceBase.REPLACE_CHARS, "_");
 					    logger.info("HLS manifest file will be downloaded from redirect location:{}", redirectLocation);
 				    	
+					    if (HttpMethod.HEAD.equals(method)) {
+					    	httpResponse.sendRedirect(redirectLocation);
+					    	return; // return immediately after redirect
+					    }
+					    
 				        // Make a new HTTP request to the redirect URL
 				        URL url = createRedirectURL(redirectLocation);
 				        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -240,31 +245,38 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 	}
 
-	private String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode, String regex) {
+	public String addParamSeparator(String current) {
+		if (current.contains("?")) {
+			String lastChar = current.substring(current.length() - 1);
+			if (lastChar.equals("&")){
+				return "";
+			}
+			return "&";
+		}
+		return "?";
+	}
+
+	public String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode,
+			String regex) {
 		Pattern pattern = Pattern.compile(regex);
 		Matcher matcher = pattern.matcher(original);
 
 		StringBuilder result = new StringBuilder();
+
 		while (matcher.find()) {
 			String replacementString = matcher.group();
 
-			if (replacementString.contains("?")) {
-				replacementString += "&";
-			}
-			else {
-				replacementString += "?";
-			}
-
 			if (!StringUtils.isNullOrEmpty(subscriberCode)) {
-				replacementString += WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode;
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode);
 			}
 
 			if (!StringUtils.isNullOrEmpty(subscriberId)) {
-				replacementString += "&" + WebSocketConstants.SUBSCRIBER_ID + "=" + subscriberId;
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.SUBSCRIBER_ID + "="
+						+ subscriberId);
 			}
 
 			if (!StringUtils.isNullOrEmpty(token)) {
-				replacementString += "&" + WebSocketConstants.TOKEN + "=" + token;
+				replacementString += (addParamSeparator(replacementString) + WebSocketConstants.TOKEN + "=" + token);
 			}
 
 			matcher.appendReplacement(result, replacementString);
@@ -272,5 +284,13 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		matcher.appendTail(result);
 
 		return result.toString();
+	}
+	
+	public static boolean isHLSIntervalQuery(HttpServletRequest request) {
+		String startDate = request.getParameter(START);
+		String endDate = request.getParameter(END);
+		return request.getRequestURI().endsWith("m3u8") 
+				&& !StringUtils.isNullOrEmpty(startDate)
+				&& !StringUtils.isNullOrEmpty(endDate);
 	}
 }

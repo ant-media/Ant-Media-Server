@@ -1,43 +1,31 @@
 package io.antmedia;
 
 import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
-import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
-import io.antmedia.filter.JWTFilter;
-import io.antmedia.filter.TokenFilterManager;
-import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -45,9 +33,8 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -58,16 +45,15 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IBroadcastStream;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IPlayItem;
-import org.red5.server.api.stream.IStreamCapableConnection;
-import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.red5.server.api.stream.ISubscriberStream;
+import org.red5.server.api.stream.*;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import io.antmedia.analytic.model.PublishEndedEvent;
 import io.antmedia.analytic.model.PublishStartedEvent;
@@ -79,12 +65,16 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.StreamAcceptFilter;
+import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.RtmpProvider;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
@@ -93,31 +83,104 @@ import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.IStreamListener;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
-import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
+import io.antmedia.statistic.DashViewerStats;
+import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.StatsCollector;
+import io.antmedia.statistic.ViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.track.ISubtrackPoller;
 import io.antmedia.webrtc.PublishParameters;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
+import io.antmedia.webrtc.datachannel.IDataChannelRouter;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
+
+	public final class RTMPClusterStreamFetcherListener implements StreamFetcher.IStreamFetcherListener {
+		private final RTMPClusterStreamFetcher rtmpClusterStreamFetcher;
+		private final String rtmpUrl;
+		private final String streamId;
+		
+		public RTMPClusterStreamFetcherListener(RTMPClusterStreamFetcher rtmpClusterStreamFetcher, String rtmpUrl,
+				String streamId) {
+			this.rtmpClusterStreamFetcher = rtmpClusterStreamFetcher;
+			this.rtmpUrl = rtmpUrl;
+			this.streamId = streamId;
+		}
+
+		@Override
+		public void streamFinished(StreamFetcher.IStreamFetcherListener listener) {
+				
+			RtmpProvider rtmpProvider = rtmpClusterStreamFetcher.getRtmpProvider();
+			Broadcast broadcast = getDataStore().get(streamId);
+			if(broadcast == null) {
+				rtmpProvider.detachRtmpPublisher(streamId);
+				//use the rtmpUrl from the outer scope because broadcast is null
+				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
+				return;
+			}
+			
+			
+			if (!isStreaming(broadcast.getStatus()) ) {
+				logger.warn("broadcast is not streaming(status:{}) no need to fetch the streamId:{}", broadcast.getStatus(), broadcast.getStreamId());
+				rtmpProvider.detachRtmpPublisher(streamId);
+				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
+				return;
+			}
+				
+			if (isBroadcastOnThisServer(broadcast)) {
+				logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
+				rtmpProvider.detachRtmpPublisher(streamId);
+				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
+				return ;
+			}
+			
+			
+			IBroadcastScope broadcastScope = rtmpProvider.getBroadcastScope();
+			
+			if (broadcastScope == null || broadcastScope.getConsumers().isEmpty()) {
+				logger.warn("No RTMP viewer for the streamId:{}. It will not restart the RTMPCLusterStreamFetcher", streamId);
+				rtmpProvider.detachRtmpPublisher(streamId);
+				rtmpClusterStreamFetcherMap.remove(rtmpUrl);
+				return;
+			}
+			
+			
+			vertx.setTimer(5000, h -> {
+				rtmpClusterStreamFetcher.startStream();
+			});
+			
+
+		}
+
+		@Override
+		public void streamStarted(StreamFetcher.IStreamFetcherListener listener) {
+			//no need to implement
+		}
+	}
+
+	
 	public static final String NOT_ASSIGNED = "NOT_ASSIGNED";
 
 	/**
@@ -137,6 +200,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
+
+	public static final String HOOK_IDLE_TIME_EXPIRED = "idleTimeIsExpired";
 
 
 	/**
@@ -197,6 +262,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
+	private List<IStreamPlaybackSecurity> streamPlaySecurityList;
 	private Map<String, OnvifCamera> onvifCameraList = new ConcurrentHashMap<>();
 	protected StreamFetcherManager streamFetcherManager;
 	protected Map<String, MuxAdaptor> muxAdaptors = new ConcurrentHashMap<>();
@@ -242,17 +308,35 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private Set<IAppSettingsUpdateListener> settingsUpdateListenerSet = new ConcurrentHashSet<IAppSettingsUpdateListener>();
 
+	private Map<String, RTMPClusterStreamFetcher> rtmpClusterStreamFetcherMap = new ConcurrentHashMap<>();
+	
+	private final LoadingCache<String, Object> mainTrackUpdateLocks =
+	        Caffeine.newBuilder()
+	                .expireAfterAccess(10, TimeUnit.MINUTES)
+	                .build(key -> new Object());
+
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 			registerStreamPublishSecurity(streamPublishSecurity);
 		}
+		
+		//make it bacward compatible because old apps does not have stream playback security
+		if (getStreamPlaySecurityList() != null) 
+		{
+			for (IStreamPlaybackSecurity streamPlaybackSecurity : getStreamPlaySecurityList()) {
+				registerStreamPlaybackSecurity(streamPlaybackSecurity);
+			}
+		}
 		//init vertx
 		getVertx();
 
 		//initalize to access the data store directly in the code
 		getDataStore();
+		
+		//init server settings
+		getServerSettings();
 
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
@@ -325,7 +409,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					if (!broadcast.isAutoStartStopEnabled()) {
 						//start streaming is auto/stop is not enabled
-						streamFetcherManager.startStreaming(broadcast);
+						streamFetcherManager.startStreaming(broadcast, true);
 					}
 				}
 			}
@@ -608,7 +692,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							subDirectory.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() - baseDirectory.getName().length())
 							+  File.separator + file.getName();
 
-					String vodId = RandomStringUtils.randomNumeric(24);
+					String vodId = RandomStringUtils.secure().nextNumeric(24);
 
 					//add base directory folder name as streamId in order to find it easily
 					VoD newVod = new VoD(baseDirectory.getName(), baseDirectory.getName(), relativePath, file.getName(), unixTime, 0, Muxer.getDurationInMs(file, null),
@@ -666,8 +750,38 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return listenerHookURL;
 
 	}
-
+	/**
+	 * This method is used to close the broadcast stream
+	 * @deprecated use {@link #closeBroadcast(String, String)}
+	 *  
+	 * @param streamId
+	 */
+	@Deprecated
 	public void closeBroadcast(String streamId) {
+		closeBroadcast(streamId, null, null);
+	}
+	
+	
+	/**
+	 * 
+	 * @param streamId
+	 * @param subscriberId
+	 * 
+	 * @deprecated use {@link #closeBroadcast(String, String, Map)}
+	 */
+	@Deprecated
+	public void closeBroadcast(String streamId, String subscriberId) {
+		closeBroadcast(streamId, subscriberId, null);
+	}
+
+	/**
+	 * This method is used to close the broadcast stream
+	 * 
+	 * @param streamId
+	 * @param subscriberId
+	 * @param parameters
+	 */
+	public void closeBroadcast(String streamId, String subscriberId, Map<String, String> parameters) {
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
@@ -687,6 +801,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					if(serverShuttingDown) {
 						broadcastUpdate.setOriginAdress(NOT_ASSIGNED);
 					}
+					broadcastUpdate.setHlsViewerCount(0);
+					broadcastUpdate.setDashViewerCount(0);
+					broadcastUpdate.setWebRTCViewerCount(0);
 					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
@@ -695,21 +812,24 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					resetDASHStats(streamId);
 				}
 
+				final String mainTrackId = broadcast.getMainTrackStreamId();
+				final String role = broadcast.getRole();
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
-					final String mainTrackId = broadcast.getMainTrackStreamId();
+
 					logger.info("call live stream ended hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
-							null, null, metaData, null);
+							null, null, metaData, subscriberId, parameters);
 				}
 
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
 				publishEndedEvent.setStreamId(streamId);
 				publishEndedEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
 				publishEndedEvent.setApp(scope.getName());
+				publishEndedEvent.setSubscriberId(subscriberId);
 
 				LoggerUtils.logAnalyticsFromServer(publishEndedEvent);
 
@@ -719,13 +839,34 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				for (IStreamListener listener : streamListeners) {
 					//keep backward compatibility
-					listener.streamFinished(broadcast.getStreamId());
-					listener.streamFinished(broadcast);
+					try {
+						listener.streamFinished(broadcast.getStreamId());
+						listener.streamFinished(broadcast);
+					} catch (Throwable t) {
+						logger.error("Error invoking streamFinished method on stream listener {} for stream: {}", listener.getClass().getName(), streamId, t);
+					}
 				}
+
+				notifyPublishStopped(streamId, role, mainTrackId);
+				
+				if(broadcast.getMaxIdleTime() > 0) {
+					createIdleCheckTimer(broadcast, false);
+				}
+				
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
+				
+				runStreamEndedScript(broadcast);
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+	private void runStreamEndedScript(Broadcast broadcast) {
+		String streamEndedScript = appSettings.getStreamEndedScript();
+		if (StringUtils.isNotBlank(streamEndedScript)) 
+		{
+			runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
 		}
 	}
 
@@ -747,7 +888,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public static boolean isInstanceAlive(String originAdress, String hostAddress, int httpPort, String appName) {
-		if (StringUtils.isBlank(originAdress) || StringUtils.equals(originAdress, hostAddress)) {
+		if (StringUtils.isBlank(originAdress) || Strings.CS.equals(originAdress, hostAddress)) {
 			return true;
 		}
 
@@ -786,7 +927,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	/**
 	 * If multiple threads enter the method at the same time, the following method does not work correctly.
-	 * So we have made it synchronized
+	 * So we had made it synchronized, then changed it.
+	 * We make it synchronized for the same main track (room) IDs. Otherwise, one room was waiting for the others.
 	 *
 	 * It fixes the bug that sometimes main track(room) is not deleted in the video conferences
 	 *
@@ -794,48 +936,54 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *
 	 * @param finishedBroadcast
 	 */
-	public synchronized void updateMainTrackWithRecentlyFinishedBroadcast(Broadcast finishedBroadcast) 
+	public void updateMainTrackWithRecentlyFinishedBroadcast(Broadcast finishedBroadcast) 
 	{
-		Broadcast mainBroadcast = getDataStore().get(finishedBroadcast.getMainTrackStreamId());
-		logger.info("updating main track:{} status with recently finished broadcast:{}", finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
-
-		if (mainBroadcast != null) {
-
-			mainBroadcast.getSubTrackStreamIds().remove(finishedBroadcast.getStreamId());
-
-			long activeSubtracksCount = getDataStore().getActiveSubtracksCount(mainBroadcast.getStreamId(), null);
-
-			if (activeSubtracksCount == 0) {
-
-				if (mainBroadcast.isZombi()) {
-					logger.info("Deleting main track streamId:{} because it's a zombi stream and there is no activeSubtrack", mainBroadcast.getStreamId());
-					getDataStore().delete(mainBroadcast.getStreamId());
+		
+		synchronized (mainTrackUpdateLocks.get(finishedBroadcast.getMainTrackStreamId())) {
+			Broadcast mainBroadcast = getDataStore().get(finishedBroadcast.getMainTrackStreamId());
+			logger.info("updating main track:{} status with recently finished broadcast:{}", finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
+	
+			if (mainBroadcast != null) {
+	
+				mainBroadcast.getSubTrackStreamIds().remove(finishedBroadcast.getStreamId());
+	
+				long activeSubtracksCount = getDataStore().getActiveSubtracksCount(mainBroadcast.getStreamId(), null);
+	
+				if (activeSubtracksCount == 0) {
+	
+					if (mainBroadcast.isZombi()) {
+						logger.info("Deleting main track streamId:{} because it's a zombi stream and there is no activeSubtrack", mainBroadcast.getStreamId());
+						getDataStore().delete(mainBroadcast.getStreamId());
+					}
+					else {
+						logger.info("Update main track:{} status to finished ", finishedBroadcast.getMainTrackStreamId());
+						BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+						broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+	
+						getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
+					}
+					notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
+					
+					if(mainBroadcast.getMaxIdleTime() > 0) {
+						createIdleCheckTimer(mainBroadcast, true);
+					}
 				}
 				else {
-					logger.info("Update main track:{} status to finished ", finishedBroadcast.getMainTrackStreamId());
+					logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-					broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-
+					broadcastUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
+	
 					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
 				}
-				notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
 			}
 			else {
-				logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
-
-				getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
+				logger.warn("Maintrack is null while removing subtrack from maintrack for streamId:{} maintrackId:{}", finishedBroadcast.getStreamId(), finishedBroadcast.getMainTrackStreamId());
 			}
+	
+	
+	
+			leftTheRoom(finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
 		}
-		else {
-			logger.warn("Maintrack is null while removing subtrack from maintrack for streamId:{} maintrackId:{}", finishedBroadcast.getStreamId(), finishedBroadcast.getMainTrackStreamId());
-		}
-
-
-
-		leftTheRoom(finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
-
 	}
 
 	public void resetHLSStats(String streamId) {
@@ -854,36 +1002,76 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
-		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), true));
+		vertx.setTimer(100, l -> {
+			getDataStore().updateRtmpViewerCount(item.getName(), true);
+			
+			logger.debug("Stream play item started for stream: {}", item.getName());
+			sendWebHook(item.getName(), null, AntMediaApplicationAdapter.HOOK_ACTION_PLAY_STARTED, null, null, null, null, null, null, stream.getParams());
+			
+			Map<String,String> params = stream.getParams();
+			String subscriberId = params != null ? params.get(WebSocketConstants.SUBSCRIBER_ID) : null;
+			String subscriberName = params != null ? params.get(WebSocketConstants.SUBSCRIBER_NAME) : null;
+			if (StringUtils.isNotBlank(subscriberId)) 
+			{
+				registerSubscriberToNode(item.getName(), subscriberId, subscriberName);
+			}
+			
+		});
 	}
 	@Override
 	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
-		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), false));
+		vertx.setTimer(100, l -> {
+			getDataStore().updateRtmpViewerCount(item.getName(), false);
+			logger.debug("Stream play item stopped for stream: {}", item.getName());
+
+			sendWebHook(item.getName(), null, AntMediaApplicationAdapter.HOOK_ACTION_PLAY_STOPPED, null, null, null, null, null, null, stream.getParams());
+
+		});
 	}
 
 	@Override
 	public void streamSubscriberClose(ISubscriberStream stream) {
-		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
+		vertx.setTimer(100, l -> { 
+			logger.debug("Stream subscriber closed for stream: {}", stream.getBroadcastStreamPublishName());
+			getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false);
+			sendWebHook(stream.getBroadcastStreamPublishName(), null, AntMediaApplicationAdapter.HOOK_ACTION_PLAY_STOPPED, null, null, null, null, null, null, stream.getParams());
+
+		});
+	}
+
+	/**
+	 * This method is used to start the publish process
+	 * @deprecated use {@link #startPublish(String, long, String, String)}
+	 * @param streamId
+	 * @param absoluteStartTimeMs
+	 * @param publishType
+	 */
+	@Override
+	@Deprecated
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
+		startPublish(streamId, absoluteStartTimeMs, publishType, null, null);
 	}
 
 	@Override
-	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> parameters) {
 		vertx.executeBlocking( () -> {
 			try {
 
 				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
 
 				final String listenerHookURL = getListenerHookURL(broadcast);
+				final String mainTrackId = broadcast.getMainTrackStreamId();
+				String role = broadcast.getRole();
 				if (listenerHookURL != null && !listenerHookURL.isEmpty())
 				{
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
-					final String mainTrackId = broadcast.getMainTrackStreamId();
+
 
 					logger.info("Call live stream started hook for stream:{}",streamId );
 					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-							null, null, metaData, null);
+							null, null, metaData, subscriberId, parameters);
 				}
 
 				int ingestingStreamLimit = appSettings.getIngestingStreamLimit();
@@ -892,41 +1080,29 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (ingestingStreamLimit != -1 && activeBroadcastNumber > ingestingStreamLimit)
 				{
 					logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
-					stopStreaming(broadcast, true);
+					stopStreaming(broadcast, true, null);
 				}
 
 				for (IStreamListener listener : streamListeners) {
-					listener.streamStarted(broadcast.getStreamId());
-					listener.streamStarted(broadcast);
-				}
-
-				long videoHeight = 0;
-				long videoWidth = 0;
-				String videoCodecName=null;
-				String audioCodecName=null;
-				MuxAdaptor adaptor = getMuxAdaptor(streamId);
-				if(adaptor!=null) {
-					if(adaptor.isEnableVideo()) {
-						AVCodecParameters videoCodecPar = adaptor.getVideoCodecParameters();
-						videoWidth = videoCodecPar.width();
-						videoHeight = videoCodecPar.height();
-						videoCodecName = avcodec_get_name(videoCodecPar.codec_id()).getString();
-					}
-					if(adaptor.isEnableAudio()) {
-						audioCodecName = avcodec_get_name(adaptor.getAudioCodecParameters().codec_id()).getString();
+					try {
+						listener.streamStarted(broadcast.getStreamId());
+						listener.streamStarted(broadcast);
+					} catch (Throwable t) { // going for Throwable to catch classpath problems too
+						logger.error("Error invoking streamStarted method on stream listener {} for stream: {}", listener.getClass().getName(), streamId, t);
 					}
 				}
 
-				PublishStartedEvent event = new PublishStartedEvent();
-				event.setStreamId(streamId);
-				event.setProtocol(publishType);
-				event.setHeight((int) videoHeight);
-				event.setWidth((int) videoWidth);
-				event.setVideoCodec(videoCodecName);
-				event.setAudioCodec(audioCodecName);
-				event.setApp(scope.getName());
 
-				LoggerUtils.logAnalyticsFromServer(event);
+				logPublishStartedEvent(streamId, publishType, subscriberId);
+				notifyPublishStarted(streamId, role, mainTrackId);
+				
+				String streamStartedScript = appSettings.getStreamStartedScript();
+				if (StringUtils.isNotBlank(streamStartedScript)) 
+				{
+					runScript(streamStartedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
+				}
+
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -934,46 +1110,50 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		}, false);
 
-
-		if (absoluteStartTimeMs == 0)
-		{
-			vertx.setTimer(2000, h ->
-			{
-				IBroadcastStream broadcastStream = getBroadcastStream(getScope(), streamId);
-				if (broadcastStream instanceof ClientBroadcastStream)
-				{
-					long absoluteStarTime = ((ClientBroadcastStream)broadcastStream).getAbsoluteStartTimeMs();
-					if (absoluteStarTime != 0)
-					{
-						Broadcast broadcast = getDataStore().get(streamId);
-						if (broadcast != null)
-						{
-							broadcast.setAbsoluteStartTimeMs(absoluteStarTime);
-
-							getDataStore().save(broadcast);
-							logger.info("Updating broadcast absolute time {} ms for stream:{}", absoluteStarTime, streamId);
-						}
-						else {
-							logger.info("Broadcast is not available in the database to update the absolute start time for stream:{}", streamId);
-						}
-
-					}
-					else {
-						logger.info("Broadcast absolute time is not available for stream:{}", streamId);
-					}
-
-				}
-			});
-		}
-
 		logger.info("start publish leaved for stream:{}", streamId);
 	}
 
+	private void logPublishStartedEvent(String streamId, String publishType, String subscriberId) {
+		long videoHeight = 0;
+		long videoWidth = 0;
+		String videoCodecName=null;
+		String audioCodecName=null;
+		MuxAdaptor adaptor = getMuxAdaptor(streamId);
+		if(adaptor!=null) {
+			if(adaptor.isEnableVideo()) {
+				AVCodecParameters videoCodecPar = adaptor.getVideoCodecParameters();
+				videoWidth = videoCodecPar.width();
+				videoHeight = videoCodecPar.height();
+				videoCodecName = avcodec_get_name(videoCodecPar.codec_id()).getString();
+			}
+			if(adaptor.isEnableAudio()) {
+				audioCodecName = avcodec_get_name(adaptor.getAudioCodecParameters().codec_id()).getString();
+			}
+		}
 
+		PublishStartedEvent event = new PublishStartedEvent();
+		event.setStreamId(streamId);
+		event.setProtocol(publishType);
+		event.setHeight((int) videoHeight);
+		event.setWidth((int) videoWidth);
+		event.setVideoCodec(videoCodecName);
+		event.setAudioCodec(audioCodecName);
+		event.setSubscriberId(subscriberId);
+		event.setApp(scope.getName());
 
-	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
-		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		LoggerUtils.logAnalyticsFromServer(event);
 	}
+
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) 
+	{
+		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		
+	}
+	public boolean isBroadcastOnThisServer(Broadcast broadcast)
+	{
+        return Strings.CS.equals(broadcast.getOriginAdress(), getServerSettings().getHostAddress());
+    }
+
 
 	/**
 	 * 
@@ -994,7 +1174,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else 
 		{
-			if (broadcastUpdate == null) 
+			if (broadcastUpdate == null)
 			{
 				broadcastUpdate = getFreshBroadcastUpdateForStatus(publishType, status);
 			}
@@ -1002,6 +1182,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcastUpdate.setStatus(status);
 				broadcastUpdate.setPublishType(publishType);
 			}
+			broadcastUpdate.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 			//updateBroadcastFields just updates broadcast with the updated fields. No need to give real object
 			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 
@@ -1131,7 +1312,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		if (StringUtils.isBlank(vodId)) {
-			vodId = RandomStringUtils.randomAlphanumeric(24);
+			vodId = RandomStringUtils.secure().nextAlphanumeric(24);
 		}
 
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
@@ -1156,12 +1337,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		{
 			final String baseName = vodName.substring(0, index);
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metadata, null);
+			Map<String, String> parameters = new HashMap<>();
+			parameters.put("duration", String.valueOf(duration));
+			
+			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, metadata, null, parameters);
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
 		if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {
-			runScript(muxerFinishScript + "  " + file.getAbsolutePath());
+			runScript(muxerFinishScript + "  " + file.getAbsolutePath() + "  " + getScope().getName());
 		}
 
 
@@ -1175,7 +1359,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		final String name = mainTrack.getName();
 		final String category = mainTrack.getCategory();
-		notifyHook(listenerHookURL, subtrackId, mainTrack.getStreamId(), HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, name, category, null, null, null, null);
+		notifyHook(listenerHookURL, subtrackId, mainTrack.getStreamId(), HOOK_ACTION_FIRST_ACTIVE_SUBTRACK_ADDED_IN_THE_MAINTRACK, name, category, 
+							null, null, null, null, null);
+
+		notifyPublishStarted(mainTrack.getStreamId(), null, mainTrack.getStreamId());
 	}
 
 	public void notifyNoActiveSubtracksLeftInMainTrack(Broadcast mainTrack) 
@@ -1185,14 +1372,34 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (StringUtils.isNotBlank(listenerHookURL)) {
 			final String name = mainTrack.getName();
 			final String category = mainTrack.getCategory();
-			notifyHook(listenerHookURL, mainTrack.getStreamId(), null, HOOK_ACTION_NO_ACTIVE_SUBTRACKS_LEFT_IN_THE_MAINTRACK, name, category, null, null, null, null);
+			notifyHook(listenerHookURL, mainTrack.getStreamId(), null, HOOK_ACTION_NO_ACTIVE_SUBTRACKS_LEFT_IN_THE_MAINTRACK, name, category, 
+							null, null, null, null, null);
 		}
+
+		notifyPublishStopped(mainTrack.getStreamId(), null, mainTrack.getStreamId());
+
 	}
 	public void runScript(String scriptFile) {
 		vertx.executeBlocking(() -> {
 			try {
 				logger.info("running script: {}", scriptFile);
 				Process exec = Runtime.getRuntime().exec(scriptFile);
+				
+				InputStream errorStream = exec.getErrorStream();
+	            byte[] data = new byte[1024];
+	            int length = 0;
+
+	            while ((length = errorStream.read(data, 0, data.length)) > 0) {
+	                logger.info(new String(data, 0, length));
+	            }
+
+	            InputStream inputStream = exec.getInputStream();
+
+	            while ((length = inputStream.read(data, 0, data.length)) > 0) {
+	            	logger.info(new String(data, 0, length));
+	            }
+	            
+	            
 				int result = exec.waitFor();
 
 				logger.info("completing script: {} with return value {}", scriptFile, result);
@@ -1223,12 +1430,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	public void sendWebHook(String id, String mainTrackId, String action, String streamName, String category,
-			String vodName, String vodId, String metadata, String subscriberId)  
+			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters)  
 	{
-		String listenerHookURL = getListenerHookURL(getDataStore().get(id));	
+		Broadcast broadcast = getDataStore().get(id);
+		String metaDataLocal = StringUtils.isNotBlank(metadata) ? metadata : (broadcast != null ? broadcast.getMetaData() : null);
+
+		
+		String listenerHookURL = getListenerHookURL(broadcast);	
 		if (StringUtils.isNotBlank(listenerHookURL)) 
 		{
-			notifyHook(listenerHookURL, id, mainTrackId, action, streamName, category, vodName, vodId, metadata, subscriberId);
+			notifyHook(listenerHookURL, id, mainTrackId, action, streamName, category, vodName, vodId, metaDataLocal, subscriberId, parameters);
 		} 
 	}
 
@@ -1246,10 +1457,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *                    {@link #HOOK_ACTION_START_LIVE_STREAM}
 	 * @param vodName     name of the vod
 	 * @param vodId       id of the vod in the datastore
+	 * @param parameters 
 	 * @return
 	 */
 	public void notifyHook(@NotNull String url, String id, String mainTrackId, String action, String streamName, String category,
-			String vodName, String vodId, String metadata, String subscriberId) {
+			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters) {
 
 		//Previously, we're using runOnContext and switched to executeBlocking without ordered because this operation may take some time
 		//and we don't want to block the event loop, the disadvantage of this approach is that the order of the operations may not be guaranteed 
@@ -1272,6 +1484,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			putToMap("mainTrackId", mainTrackId, variables);
 			putToMap("roomId", mainTrackId, variables);
 			putToMap("subscriberId", subscriberId, variables);
+			putToMap("app", getScope().getName(), variables);
 
 			if (StringUtils.isNotBlank(metadata)) {
 				Object metaDataJsonObj = null;
@@ -1285,6 +1498,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			}
 			putToMap("timestamp", String.valueOf(System.currentTimeMillis()), variables);
+			
+			if (parameters != null && !parameters.isEmpty()) {
+				for (Entry<String, String> entry : parameters.entrySet()) {
+					putToMap(entry.getKey(), entry.getValue(), variables);
+				}
+			}
 
 
 			try {
@@ -1340,13 +1559,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public boolean sendClusterPost(String url, String clusterCommunicationToken) 
+	public boolean sendClusterPost(String url, String clusterCommunicationToken, byte[] data) 
 	{
 
-		return callClusterRestMethod(url, clusterCommunicationToken);
+		return callClusterRestMethod(url, clusterCommunicationToken, data);
 	}
 
-	public boolean callClusterRestMethod(String url, String clusterCommunicationToken) 
+	public boolean callClusterRestMethod(String url, String clusterCommunicationToken, byte[] data) 
 	{
 
 		boolean result = false;
@@ -1363,10 +1582,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			request.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
 
+			if (data != null) {
+				// Set Content-Type for binary data
+				request.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM);
+
+				// Attach the byte stream as entity
+				HttpEntity byteEntity = new ByteArrayEntity(data);
+				request.setEntity(byteEntity);
+			}
+
+
 			try (CloseableHttpResponse httpResponse = httpClient.execute(request)) 
 			{
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
-				logger.info("Cluster POST Response Status: {} for url:{}", statusCode, request.getURI());
 				if (statusCode == HttpStatus.SC_OK) {
 					result = true;
 				} 
@@ -1380,24 +1608,26 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	public void trySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts, CompletableFuture<Boolean> future) {
+	public void trySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts, CompletableFuture<Boolean> future, byte[] data) 
+	{
 		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
 
 			vertx.executeBlocking(() -> {
 
-				boolean result = sendClusterPost(url, clusterCommunicationToken);
+				boolean result = sendClusterPost(url, clusterCommunicationToken, data);
 
-				if (!result && retryAttempts >= 1) {
-					trySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1, future);
+				if (!result && retryAttempts >= 1) 
+				{
+					trySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1, future, data);
 				}
-				else {
-
+				else 
+				{
 					future.complete(result);
 					if (result) {
-						logger.info("Cluster POST is successful another node for url:{}", url);
+						logger.debug("Cluster POST is successful:200 for url:{}", url);
 					}
 					else {
-						logger.info("Cluster POST is not successful to another node for url:{} and no more retry attempts left",
+						logger.info("Cluster POST is not successful for url:{} and no more retry attempts left",
 								url);
 					}
 				}
@@ -1491,6 +1721,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void setStreamPublishSecurityList(List<IStreamPublishSecurity> streamPublishSecurityList) {
 		this.streamPublishSecurityList = streamPublishSecurityList;
+	}
+
+	public void setStreamPlaySecurityList(List<IStreamPlaybackSecurity> streamPlaySecurityList) {
+		this.streamPlaySecurityList = streamPlaySecurityList;
+	}
+
+	public List<IStreamPlaybackSecurity> getStreamPlaySecurityList() {
+		return streamPlaySecurityList;
 	}
 
 	@Override
@@ -1602,7 +1840,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		CompletableFuture<Boolean> future = new CompletableFuture<>();
 
-		trySendClusterPostWithDelay(restRouteOfNode, jwtToken, CLUSTER_POST_RETRY_ATTEMPT_COUNT, future);
+		trySendClusterPostWithDelay(restRouteOfNode, jwtToken, CLUSTER_POST_RETRY_ATTEMPT_COUNT, future, null);
 
 
 		future.thenAccept(success -> {
@@ -1620,7 +1858,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		});
 	}
 
-	public Result stopStreaming(Broadcast broadcast, boolean stopSubtracks)
+	public Result stopStreaming(Broadcast broadcast, boolean stopSubtracks, String subscriberId)
 	{
 		Result result = new Result(false);
 		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
@@ -1628,7 +1866,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD))
 		{
-			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
+			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST))
 		{
@@ -1640,10 +1878,23 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
 			if (broadcastStream != null)
 			{
+				ClientBroadcastStream clientBroadcastStream = (ClientBroadcastStream) broadcastStream;
+				Map<String,String> parameters = clientBroadcastStream.getParameters();
+				boolean stopStreaming = true;
+				if (parameters != null) {
+					String subscriberIdParameter = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+					stopStreaming = isSubscriberIdMatching(subscriberId, subscriberIdParameter);
+				}
 
 				IStreamCapableConnection connection = ((IClientBroadcastStream) broadcastStream).getConnection();
 				if (connection != null) {
-					connection.close();
+					if (stopStreaming) {
+						connection.close();
+					}
+					else {
+						logger.info("Not closing the connection for stream: {} because subscriberId({}) is not matched. "
+								+ "Connection will be closed when the subscriber leaves", broadcast.getStreamId(), subscriberId);
+					}
 				}
 				else {
 					logger.warn("Connection is null. It should not happen for stream: {}. Analyze the logs", broadcast.getStreamId());
@@ -1651,7 +1902,83 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				result.setSuccess(true);
 			}
 		}
+		
 		return result;
+	}
+	
+
+	public static boolean isSubscriberBlocked(DataStore dataStore, String streamId, String subscriberId, String type) {
+
+		if (StringUtils.isNoneBlank(subscriberId, streamId)) {
+			Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
+			if(subscriber == null){
+				return false;
+			}
+
+			return subscriber.isBlocked(type);
+		}
+
+		return false;
+	}
+
+	public static boolean isSubscriberIdMatching(String subscriberId, String subscriberIdParameter) {
+		boolean subscriberIdMatching = true;
+		if (StringUtils.isNotBlank(subscriberId)) 
+		{
+			subscriberIdMatching = false;		
+			if (Strings.CS.equals(subscriberId, subscriberIdParameter)) {
+				subscriberIdMatching = true;
+			}
+		}
+		return subscriberIdMatching;
+	}
+	
+	
+
+	private void createIdleCheckTimer(Broadcast broadcast, boolean isMainTrack) {
+		logger.info("Idle check timer is set to {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
+		vertx.setTimer(broadcast.getMaxIdleTime() * 1000L, l -> {
+			Broadcast currentBroadcast = dataStore.get(broadcast.getStreamId());
+			if(currentBroadcast == null) {
+				logger.info("Broadcast {} is not exist anymore", broadcast.getStreamId());
+				return;
+			}
+			
+			if(isMainTrack) {
+				long activeSubtrackCount = dataStore.getActiveSubtracksCount(currentBroadcast.getStreamId(), null);
+				logger.info("Room {} idle time {} has expired and active subtrack count is {}", currentBroadcast.getStreamId(), currentBroadcast.getMaxIdleTime(), activeSubtrackCount);
+				if(activeSubtrackCount == 0) {
+					notifyBroadcastIdleTimeExpired(currentBroadcast);
+				}
+			}
+			else {
+				long now = System.currentTimeMillis();
+				logger.info("Broadcast {} idle time {} has expired at {} and last update time {}", currentBroadcast.getStreamId(), currentBroadcast.getMaxIdleTime(), now, currentBroadcast.getUpdateTime());
+				if(now > (currentBroadcast.getUpdateTime() + currentBroadcast.getMaxIdleTime()*1000)) {
+					notifyBroadcastIdleTimeExpired(currentBroadcast);
+				}
+			}
+		});
+	}
+
+	private void notifyBroadcastIdleTimeExpired(Broadcast broadcast) {
+		logger.info("Idle time {} seconds is expired for {}", broadcast.getMaxIdleTime(), broadcast.getStreamId());
+		final String listenerHookURL = getListenerHookURL(broadcast);
+		if (listenerHookURL != null && listenerHookURL.length() > 0)
+		{
+			final String streamId = broadcast.getStreamId();
+			final String mainTrackId = broadcast.getMainTrackStreamId();
+			final String name = broadcast.getName();
+			final String category = broadcast.getCategory();
+			
+			notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_IDLE_TIME_EXPIRED, name, category, null, null, null, null, null);
+		}
+		
+		String streamIdleTimeoutScript = getAppSettings().getStreamIdleTimeoutScript();
+		if (StringUtils.isNotBlank(streamIdleTimeoutScript)) {
+			runScript(streamIdleTimeoutScript + " " + broadcast.getStreamId() + " " + getScope().getName());
+		}
+		
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {
@@ -1781,6 +2108,47 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.vertx = vertx;
 	}
 
+	public boolean fetchRtmpFromOriginIfExist(String streamId){
+		Broadcast broadcast = getDataStore().get(streamId);
+		if(broadcast == null) {
+			logger.warn("Broadcast not found for streamId: {} to play with RTMP", streamId);
+			return false;
+		}
+		
+		
+		if (!isStreaming(broadcast.getStatus())) {
+			logger.warn("Broadcast:{} is not streaming(status:{}) no need to fetch", streamId, broadcast.getStatus());
+			return false;
+		}
+		
+		if (isBroadcastOnThisServer(broadcast)) {
+			logger.warn("Broadcast:{} is on same origin {} no need to fetch", streamId, broadcast.getOriginAdress());
+			return false;
+		}
+		
+		logger.info("Stream exist in another node {} trying to fetch Stream {} with RTMP", broadcast.getOriginAdress(), getServerSettings().getHostAddress());
+
+		RTMPClusterStreamFetcher rtmpClusterStreamFetcherTmp = null;
+		synchronized(rtmpClusterStreamFetcherMap) {
+			RTMPClusterStreamFetcher streamFetcher = rtmpClusterStreamFetcherMap.get(broadcast.getRtmpURL());
+			if (streamFetcher != null && !streamFetcher.isFinishing()) {
+				logger.warn("There is already RTMP ClusterStreamFetcher for the same url: {}. No need to create a new one", broadcast.getRtmpURL());
+				return false;
+			}
+			rtmpClusterStreamFetcherTmp = new RTMPClusterStreamFetcher(broadcast.getRtmpURL(), streamId, getScope());
+			rtmpClusterStreamFetcherMap.put(broadcast.getRtmpURL(), rtmpClusterStreamFetcherTmp);
+		}
+		
+		RTMPClusterStreamFetcher rtmpClusterStreamFetcher = rtmpClusterStreamFetcherTmp;
+		
+		rtmpClusterStreamFetcher.startStream();
+		
+		String rtmpUrl = broadcast.getRtmpURL();
+
+		rtmpClusterStreamFetcher.setStreamFetcherListener(new RTMPClusterStreamFetcherListener(rtmpClusterStreamFetcher, rtmpUrl, streamId));
+		return true;
+	}
+
 	public void closeRTMPStreams()
 	{
 		Collection<MuxAdaptor> adaptors = getMuxAdaptors();
@@ -1858,8 +2226,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.warn("Following streams status set to finished explicitly because they're not stopped properly: {}", String.join(",", streamIdList));
 			}
 		}
-
-
 	}
 
 
@@ -2103,7 +2469,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String metaData = broadcast.getMetaData();
 				String mainTrackId = broadcast.getMainTrackStreamId();
 				logger.info("Setting timer to call encoder not opened error for stream:{}", streamId);
-				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, metaData, null);
+				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, metaData, null, null);
 			}
 		}
 	}
@@ -2135,7 +2501,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 
-				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString(), null);
+				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString(), null, null);
 			}
 		}
 	}
@@ -2217,8 +2583,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		 *   {@link #updateAppSettingsFile} && {@link #updateAppSettingsBean} should be updated
 		 */
 		updateAppSettingsBean(appSettings, newSettings, notifyCluster);
-		AcceptOnlyStreamsInDataStore securityHandler = (AcceptOnlyStreamsInDataStore)  getScope().getContext().getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME);
-		securityHandler.setEnabled(newSettings.isAcceptOnlyStreamsInDataStore());
 
 		if (notifyCluster && clusterNotifier != null) {
 			//we should set to be deleted because app deletion fully depends on the cluster synch TODO remove the following line because toBeDeleted is deprecated
@@ -2233,6 +2597,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		if (updateAppSettingsFile(getScope().getName(), newSettings))
 		{
+			logger.debug("Settings are saved for {}", getScope().getName());
 			result = true;
 		}
 		else {
@@ -2427,9 +2792,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.serverSettings = serverSettings;
 	}
 
-	/*
+	/**
 	 * This method is overridden in enterprise edition since RTMP to WebRTC streaming is an enterprise feature.
+	 * @deprecated use the stats on the broadcast object or publish stats
 	 */
+	@Deprecated(forRemoval = true, since = "2.13+")
 	public RTMPToWebRTCStats getRTMPToWebRTCStats(String streamId) {
 		return new RTMPToWebRTCStats(streamId);
 	}
@@ -2489,7 +2856,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.info("Setting timer to call rtmp endpoint failed hook for stream:{}", streamId);
 				JSONObject jsonObject = new JSONObject();
 				jsonObject.put("rtmp-url", url);
-				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENDPOINT_FAILED, name, category, null, null, jsonObject.toJSONString(), null);
+				notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENDPOINT_FAILED, name, category, null, null, jsonObject.toJSONString(), null, null);
 			}
 		}
 	}
@@ -2582,18 +2949,27 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return new Result(false);
 	}
 
-	public boolean stopPlayingBySubscriberId(String subscriberId){
+	public boolean stopPlayingBySubscriberId(String subscriberId, String streamId){
 		return false;
 	}
 
-	public boolean stopPublishingBySubscriberId(String subscriberId){
+	public boolean stopPublishingBySubscriberId(String subscriberId, String streamId) {
 		return false;
 	}
 
+	@Override
 	public void stopPublish(String streamId) {
+		stopPublish(streamId, null);
+	}
 
+	@Override
+	public void stopPublish(String streamId, String subscriberId) {
+		stopPublish(streamId, subscriberId, null);
+	}
+	
+	public void stopPublish(String streamId, String subscriberId, Map<String, String> publishParameters) {
 		vertx.executeBlocking(() -> {
-			closeBroadcast(streamId);
+			closeBroadcast(streamId, subscriberId, publishParameters);
 			return null;
 		}, false);
 	}
@@ -2641,5 +3017,68 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void setStatsCollector(IStatsCollector statsCollector) {
 		this.statsCollector = statsCollector;
 	}
+
+	/**
+	 * This is a callback-method and called when a stream is fully started and it means it is called post publish operations has finished
+	 * It can be called from the cluster side or from the local side to synch subtracks
+	 */
+	public boolean publishStarted(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+		return false;
+	}
+
+	/**
+	 * This method is called when a stream is fully stopped and it means it is called post publish operations has finished
+	 * It can be called from the cluster side or from the local side to synch subtracks
+	 */
+	public boolean publishStopped(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+		return false;
+	}
+
+	/**
+	 * This method is called to notify the local node and cluster nodes when a stream is started 
+	 */
+	public void notifyPublishStarted(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+	}
+
+	/*
+	 * This method is called to notify the local or cluster nodes when a stream is stopped 
+	 */
+	public void notifyPublishStopped(String streamId, String role, String mainTrackId) {
+		//implemented in the enterprise edition
+	}
+
+	@Override
+	public IDataChannelRouter getDataChannelRouter() {
+		//implemented in the enterprise edition
+		return null;
+	}
+	
+	public void registerSubscriberToNode(String streamId, String subscriberId, String subscriberName) {
+		Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
+
+		if (subscriber == null) {
+			subscriber = new Subscriber();
+			subscriber.setStreamId(streamId);
+			subscriber.setSubscriberId(subscriberId);
+			subscriber.setSubscriberName(subscriberName);
+		}
+		
+		subscriber.setConnected(true);
+
+		
+		//if the subscriber is not registered to the current node, I mean it's created above then, 
+		//subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress() will not equal
+		
+		if (!Strings.CS.equals(subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress()))  //use getServerSettings to avoid null pointer exception
+		{
+			subscriber.setRegisteredNodeIp(serverSettings.getHostAddress()); //use getServerSettings to avoid null pointer exception
+		}
+		getDataStore().addSubscriber(streamId, subscriber);
+		
+	}
+
 
 }

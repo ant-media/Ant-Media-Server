@@ -47,6 +47,7 @@ public abstract class DataStore {
 	private static final int QUERY_TIME_THRESHOLD_MS_SEC  = 100;
 	
 	private static final int QUERY_TIME_THRESHOLD_NANO_SEC = QUERY_TIME_THRESHOLD_MS_SEC * 1_000_000;
+	private static final int QUERY_TIME_EXTRA_LOG_THRESHOLD_NANO_SEC = 5 * QUERY_TIME_THRESHOLD_NANO_SEC;
 	public static final int MAX_ITEM_IN_ONE_LIST = 250;
 	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
@@ -493,8 +494,25 @@ public abstract class DataStore {
 	 * @return lists of subscribers
 	 */	
 	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size);
-
-	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson) {
+	
+	/**
+	 * Returns the number of the subscribers of requested stream
+	 * @param streamId
+	 * @return number of the subscribers of requested stream
+	 */	
+	public abstract long getConnectedSubscriberCount(String streamId);
+	
+	/**
+	 * Lists connected subscribers of requested stream
+	 * @param streamId
+	 * @param offset
+	 * @param size
+	 * @return lists of subscribers
+	 */	
+	public abstract List<Subscriber> getConnectedSubscribers(String streamId, int offset, int size);
+	
+	
+	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson, boolean connectedOnly) {
 		long startTime = System.nanoTime();
 
 		List<Subscriber> list = new ArrayList<>();
@@ -516,7 +534,8 @@ public abstract class DataStore {
 			while (iterator.hasNext()) {
 				Subscriber subscriber = gson.fromJson(iterator.next(), Subscriber.class);
 
-				if (subscriber.getStreamId().equals(streamId)) {
+				if (subscriber.getStreamId().equals(streamId) &&
+					    (!connectedOnly || subscriber.isConnected())) {
 					list.add(subscriber);
 				}
 			}
@@ -1093,11 +1112,23 @@ public abstract class DataStore {
 		if (newBroadcast.getWebRTCViewerLimit() != null) {
 			broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		}
+		
+		if (newBroadcast.getWebRTCViewerCount() != null) {
+			broadcast.setWebRTCViewerCount(newBroadcast.getWebRTCViewerCount());
+		}
 
 		if (newBroadcast.getHlsViewerLimit() != null) {
 			broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
 		}
+		
+		if (newBroadcast.getHlsViewerCount() != null) {
+			broadcast.setHlsViewerCount(newBroadcast.getHlsViewerCount());
+		}
 
+		if (newBroadcast.getDashViewerLimit() != null) {
+			broadcast.setDashViewerLimit(newBroadcast.getDashViewerLimit());
+		}
+		
 		if (newBroadcast.getDashViewerCount() != null) {
 			broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
 		}
@@ -1178,6 +1209,11 @@ public abstract class DataStore {
 			broadcast.setVirtual(newBroadcast.getVirtual());
 		}
 		
+		if (newBroadcast.getMaxIdleTime() != null) {
+			broadcast.setMaxIdleTime(newBroadcast.getMaxIdleTime());
+		}
+		
+		
 	}
 
 
@@ -1191,35 +1227,36 @@ public abstract class DataStore {
 	 * They are used by InMemoryDataStore and MapDBStore, Mongodb implements the same functionality inside its own class.
 	 */
 	protected ArrayList<VoD> searchOnServerVod(ArrayList<VoD> broadcastList, String search){
-		
+
 		long startTime = System.nanoTime();
 		if(search != null && !search.isEmpty()) {
+			String searchLower = search.toLowerCase();
 			for (Iterator<VoD> i = broadcastList.iterator(); i.hasNext(); ) {
 				VoD item = i.next();
-				if(item.getVodName() != null && item.getStreamName() != null && item.getStreamId() != null && item.getVodId() != null) {
-					if (item.getVodName().toLowerCase().contains(search.toLowerCase()) || item.getStreamId().toLowerCase().contains(search.toLowerCase()) || item.getStreamName().toLowerCase().contains(search.toLowerCase()) || item.getVodId().toLowerCase().contains(search.toLowerCase()))
-						continue;
-					else i.remove();
+				if (matchesVodSearch(item, searchLower)) {
+					continue;
 				}
-				else if (item.getVodName()!= null && item.getVodId() != null){
-					if (item.getVodName().toLowerCase().contains(search.toLowerCase()) || item.getVodId().toLowerCase().contains(search.toLowerCase()))
-						continue;
-					else i.remove();
-				}
-				else{
-					if (item.getVodId() != null){
-						if (item.getVodId().toLowerCase().contains(search.toLowerCase()))
-							continue;
-						else i.remove();
-					}
-				}
+				i.remove();
 			}
 		}
-		
+
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "searchOnServerVod");
 		return broadcastList;
+	}
+
+	private boolean matchesVodSearch(VoD item, String searchLower) {
+		return containsIgnoreCase(item.getVodId(), searchLower) ||
+				containsIgnoreCase(item.getVodName(), searchLower) ||
+				containsIgnoreCase(item.getStreamId(), searchLower) ||
+				containsIgnoreCase(item.getStreamName(), searchLower) ||
+				containsIgnoreCase(item.getDescription(), searchLower) ||
+				containsIgnoreCase(item.getMetadata(), searchLower);
+	}
+
+	private boolean containsIgnoreCase(String field, String searchLower) {
+		return field != null && field.toLowerCase().contains(searchLower);
 	}
 
 	protected List<VoD> sortAndCropVodList(List<VoD> vodList, int offset, int size, String sortBy, String orderBy) 
@@ -1796,8 +1833,12 @@ public abstract class DataStore {
 			logger.warn("Query execution time:{}ms is more than {} ms for method: {}", elapsedNano / 1_000_000,
 					QUERY_TIME_THRESHOLD_MS_SEC, methodName);
 		}
+		
+		if (elapsedNano > QUERY_TIME_EXTRA_LOG_THRESHOLD_NANO_SEC) {
+			logger.warn(ExceptionUtils.getStackTrace(new Exception("Long Mongo Query:")));
+		}
 	}
-	
+
 	//**************************************
 	//ATTENTION: Write function above with descriptions while adding new functions
 	//**************************************	

@@ -2,6 +2,7 @@ package io.antmedia.test.filter;
 
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.IOException;
 
 import jakarta.servlet.FilterChain;
@@ -14,6 +15,13 @@ import org.springframework.mock.web.MockHttpServletRequest;
 
 import io.antmedia.AppSettings;
 import io.antmedia.filter.HttpForwardFilter;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 public class HttpForwardFilterTest {
 
@@ -145,4 +153,57 @@ public class HttpForwardFilterTest {
 	          
 	         
 	    }
+        @Test
+        public void testCorsFilterOrder()  {
+             //cors filter should be before http forwarding filter because correct headers should be set before forwarding
+            try {
+                File xmlFile = new File("/usr/local/antmedia/webapps/live/WEB-INF/web.xml");
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                Document doc = dBuilder.parse(xmlFile);
+                doc.getDocumentElement().normalize();
+
+                NodeList filterList = doc.getElementsByTagName("filter");
+
+                int corsIndex = -1;
+                int httpForwardIndex = -1;
+
+                for (int i = 0; i < filterList.getLength(); i++) {
+                    Node node = filterList.item(i);
+                    if (node.getNodeType() == Node.ELEMENT_NODE) {
+                        Element filterElement = (Element) node;
+                        String filterName = filterElement.getElementsByTagName("filter-name")
+                                .item(0).getTextContent().trim();
+
+                        if ("CorsFilter".equals(filterName)) {
+                            corsIndex = i;
+                        } else if ("HttpForwardFilter".equals(filterName)) {
+                            httpForwardIndex = i;
+                        }
+                    }
+                }
+
+                if (corsIndex == -1) {
+                    System.out.println("❌ CorsFilter not found in web.xml");
+                    assert(false);
+                } else if (httpForwardIndex == -1) {
+                    System.out.println("❌ HttpForwardFilter not found in web.xml");
+                    assert(false);
+                } else {
+                    if (corsIndex < httpForwardIndex) {
+                        System.out.println("✅ CorsFilter is declared BEFORE HttpForwardFilter");
+                        assert(true);
+                    } else {
+                        System.out.println("❌ CorsFilter is declared AFTER HttpForwardFilter");
+                        assert(false);
+                    }
+                    System.out.println("CorsFilter index: " + corsIndex + ", HttpForwardFilter index: " + httpForwardIndex);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+    }
+
+
 }

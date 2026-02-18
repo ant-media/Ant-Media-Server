@@ -18,14 +18,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -99,6 +92,7 @@ import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 
 
@@ -122,6 +116,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private int videoStreamIndex;
 	protected int audioStreamIndex;
+	private int dataStreamIndex;
+
 
 	protected boolean previewOverwrite = false;
 
@@ -224,6 +220,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 		return false;
+	}
+
+	public void setScope(IScope scope) {
+		this.scope = scope;
 	}
 
 	public boolean addSEIData(String data) {
@@ -332,6 +332,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private boolean metadataTimeout = false;
 
 	private long lastWebhookStreamStatusUpdateTime = 0;
+
+	private boolean directMuxingSupported = true;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
 
@@ -468,7 +470,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		previewOverwrite = appSettingsLocal.isPreviewOverwrite();
 
-		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettingsList() != null && !getBroadcast().getEncoderSettingsList().isEmpty()) 
+		// if the encoder settings is not null, it means that it is set and empty is also an value for it
+		// because there can be some encoder settings in application and user may want to not encode a specific stream.
+		// In this case user can set the encoderSettingsList empty
+		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettingsList() != null) 
 				? getBroadcast().getEncoderSettingsList() 
 						: appSettingsLocal.getEncoderSettings();
 
@@ -516,7 +521,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (hlsMuxingEnabled) {
 			addHLSMuxer();
 		}
-
+		
 		getDashMuxer();
 		if (dashMuxer != null) {
 			addMuxer(dashMuxer);
@@ -531,7 +536,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public HLSMuxer addHLSMuxer() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
-		hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getHlsSegmentType());
+		hlsMuxer.setHlsParameters(hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), 
+									getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getHlsSegmentType());
 		hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 		hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
 		addMuxer(hlsMuxer);
@@ -551,7 +557,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				dashMuxer = (Muxer) dashMuxerClass.getConstructors()[0].newInstance(vertx, dashFragmentDuration, dashSegDuration, targetLatency, deleteDASHFilesOnExit, !appSettings.getEncoderSettings().isEmpty(),
 						appSettings.getDashWindowSize(), appSettings.getDashExtraWindowSize(), appSettings.islLDashEnabled(), appSettings.islLHLSEnabled(),
 						appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint(), serverSettings.getDefaultHttpPort());
-
 
 
 			}
@@ -627,9 +632,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (endPointList != null && !endPointList.isEmpty()) 
 			{
 				for (Endpoint endpoint : endPointList) {
-					RtmpMuxer rtmpMuxer = new RtmpMuxer(endpoint.getRtmpUrl(), vertx);
-					rtmpMuxer.setStatusListener(muxAdaptor);
-					muxAdaptor.addMuxer(rtmpMuxer);
+					EndpointMuxer endpointMuxer = new EndpointMuxer(endpoint.getEndpointUrl(), vertx);
+					endpointMuxer.setStatusListener(muxAdaptor);
+					muxAdaptor.addMuxer(endpointMuxer);
 				}
 			}
 		}
@@ -795,33 +800,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		prepareMuxerIO();
 
-		registerToMainTrackIfExists();
+		if(broadcastStream!=null && broadcastStream.getParameters()!=null)
+			registerToMainTrackIfExists(broadcastStream.getParameters().get("mainTrack"));
 		return true;
 	}
 
 
-	public void registerToMainTrackIfExists() {
-		if(broadcastStream.getParameters() != null) {
-			String mainTrack = broadcastStream.getParameters().get("mainTrack");
-			if(mainTrack != null) {
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setMainTrackStreamId(mainTrack);
+	public void registerToMainTrackIfExists(String mainTrack) {
+		if(mainTrack != null) {
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setMainTrackStreamId(mainTrack);
 
-				getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+			getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 
-				Broadcast mainBroadcast = getDataStore().get(mainTrack);
-				if(mainBroadcast == null) 
-				{
-					mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
-				}
-				else 
-				{
-					mainBroadcast.getSubTrackStreamIds().add(streamId);
-					BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
-					broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
+			Broadcast mainBroadcast = getDataStore().get(mainTrack);
+			if(mainBroadcast == null)
+			{
+				mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
+			}
+			else
+			{
+				mainBroadcast.getSubTrackStreamIds().add(streamId);
+				BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
+				broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
 
-					getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
-				}
+				getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
 			}
 		}
 	}
@@ -866,11 +869,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				audioCodecParameters = codecpar;
 				streamIndex++;
 			}
+			else if (codecpar.codec_type() == AVMEDIA_TYPE_DATA)
+			{
+				logger.info("Data stream detected (e.g., SCTE-35) codec Id: {} for stream: {} source index:{} target index:{}", codecpar.codec_id(), streamId, i, streamIndex);
+				addStream2Muxers(codecpar, stream.time_base(), i);
+				dataStreamIndex = streamIndex;
+				streamIndex++;
+			}
 		}
 
 		if (enableVideo && (width == 0 || height == 0)) {
 			logger.info("Width or height is zero so returning for stream: {}", streamId);
-			return false;
 		}
 
 		isRecording.set(true); 
@@ -1479,9 +1488,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void clearAndStopStream() {
 		broadcastStream.removeStreamListener(MuxAdaptor.this);
 		logger.warn("closing adaptor for {} ", streamId);
+		Map<String,String> parameters = broadcastStream.getParameters();
+		String subscriberId = null;
+		if (parameters != null) {
+			subscriberId = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+		}
 		closeResources();
 		logger.warn("closed adaptor for {}", streamId);
-		getStreamHandler().stopPublish(streamId);
+
+		getStreamHandler().stopPublish(streamId, subscriberId, parameters);
 	}
 
 
@@ -1617,13 +1632,54 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			//Calling startPublish to here is critical. It's called after encoders are ready and isRecording is true
 			//the above prepare method is overriden in EncoderAdaptor so that we resolve calling startPublish just here
-			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
+			Map<String,String> parameters = broadcastStream.getParameters();
+			String subscriberId = null;
+			if (parameters != null) {
+				subscriberId = parameters.get(WebSocketConstants.SUBSCRIBER_ID);
+				
+				setBroadcastMetaData(parameters);
+			}
+			
+			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, subscriberId, parameters);
 
 		}
 		catch(Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			closeRtmpConnection();
 		}
+	}
+	
+	public void setBroadcastMetaData(Map<String, String> parameters) {
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		String metaData = getParametersAsJson(parameters);
+		broadcastUpdate.setMetaData(metaData);
+		
+		getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+	}
+
+	private String getParametersAsJson(Map<String, String> parameters) {
+	    StringBuilder jsonBuilder = new StringBuilder();
+	    jsonBuilder.append("{");
+
+	    int size = parameters.size();
+	    int index = 0;
+
+	    for (Map.Entry<String, String> entry : parameters.entrySet()) {
+	        jsonBuilder.append("\"")
+	                   .append(entry.getKey())
+	                   .append("\":")
+	                   .append("\"")
+	                   .append(entry.getValue())
+	                   .append("\"");
+
+	        if (index < size - 1) {
+	            jsonBuilder.append(",");
+	        }
+	        index++;
+	    }
+
+	    jsonBuilder.append("}");
+	    return jsonBuilder.toString();
 	}
 
 
@@ -1826,6 +1882,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
+	public void setDirectMuxingSupported(boolean directMuxingSupported) {
+		this.directMuxingSupported = directMuxingSupported;
+	}
+
 	/**
 	 * This method means that if the MuxAdaptor writes 
 	 * incoming packets to muxers({@link MuxAdaptor#muxerList}) directly without any StreamAdaptor/Encoders
@@ -1839,7 +1899,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean directMuxingSupported() {
 		//REFACTOR: I think it may be good idea to proxy every packet through StreamAdaptor even for RTMP Ingest
 		//It'll likely provide better compatibility for codecs and formats
-		return true;
+		return this.directMuxingSupported;
 	}
 
 
@@ -2250,6 +2310,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public RecordMuxer startRecording(RecordType recordType, int resolutionHeight) {
 
+		return startRecordingInternal(recordType, resolutionHeight, null);
+	}
+
+	public RecordMuxer startRecording(RecordType recordType, int resolutionHeight, String baseFileName) {
+		return startRecordingInternal(recordType, resolutionHeight, baseFileName);
+	}
+
+	private RecordMuxer startRecordingInternal(RecordType recordType, int resolutionHeight, String baseFileName) {
 		if (!isRecording.get()) {
 			logger.warn("Starting recording return false for stream:{} because stream is being prepared", streamId);
 			return null;
@@ -2260,12 +2328,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			return null;
 		}
 
-
 		RecordMuxer muxer = null;
 		if(recordType == RecordType.MP4) {
 			Mp4Muxer mp4Muxer = createMp4Muxer();
 			muxer = mp4Muxer;
-
+			if (baseFileName != null && !baseFileName.isEmpty()) {
+				muxer.setInitialResourceNameOverride(baseFileName);
+			}
 			addMuxer(muxer, resolutionHeight);
 		}
 		else if(recordType == RecordType.WEBM) {
@@ -2278,7 +2347,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return muxer;
 	}
 
-	public boolean prepareMuxer(Muxer muxer, int resolutionHeight) 
+	public boolean prepareMuxer(Muxer muxer, int resolutionHeight)
 	{
 		boolean streamAdded = false;
 		muxer.init(scope, streamId, resolutionHeight, getSubfolder(getBroadcast(), getAppSettings()), 0);
@@ -2391,31 +2460,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	public Result startRtmpStreaming(String rtmpUrl, int resolutionHeight)
+	public Result startEndpointStreaming(String endpointUrl, int resolutionHeight)
 	{
 		Result result = new Result(false);
-		rtmpUrl = rtmpUrl.replaceAll("[\n\r\t]", "_");
+		endpointUrl = endpointUrl.replaceAll("[\n\r\t]", "_");
 
 		if (!isRecording.get()) 
 		{
-			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
-			result.setMessage("Start rtmp streaming return false for stream:"+ streamId +" because stream is being prepared. Try again");			
+			logger.warn("Start endpoint streaming return false for stream:{} because stream is being prepared", streamId);
+			result.setMessage("Start endpoint streaming return false for stream:"+ streamId +" because stream is being prepared. Try again");
 			return result;
 		}
-		logger.info("start rtmp streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, rtmpUrl, resolutionHeight, height);
+		logger.info("start endpoint streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, endpointUrl, resolutionHeight, height);
 
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
-			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
-			rtmpMuxer.setStatusListener(this);
-			if (prepareMuxer(rtmpMuxer, resolutionHeight)) 
+			EndpointMuxer endpointMuxer = new EndpointMuxer(endpointUrl, vertx);
+			endpointMuxer.setStatusListener(this);
+			if (prepareMuxer(endpointMuxer, resolutionHeight))
 			{
 				result.setSuccess(true);
 			}
 			else 
 			{
-				logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
-				result.setMessage("RTMP prepare returned false so that rtmp pushing to " + rtmpUrl + " for "+ streamId +" didn't started ");
+				logger.error("endpoint prepare returned false so that stream pushing to {} for {} didn't started ", endpointUrl, streamId);
+				result.setMessage("endpoint prepare returned false so that stream pushing to " + endpointUrl + " for "+ streamId +" didn't started ");
 			}
 		}
 
@@ -2486,13 +2555,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
 
 				//TODO: 0 as second parameter may cause a problem
-				stopRtmpStreaming(url, 0);
-				startRtmpStreaming(url, height);
+				stopEndpointStreaming(url, 0);
+				startEndpointStreaming(url, height);
 				retryCounter.put(url, tmpRetryCount + 1);
 			}
 			else{
 				logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
-				stopRtmpStreaming(url, 0);
+				stopEndpointStreaming(url, 0);
 				sendEndpointErrorNotifyHook(url);
 				retryCounter.remove(url);
 			}
@@ -2554,12 +2623,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
 			{
 				Endpoint endpoint = (Endpoint) iterator.next();
-				String statusUpdate = endpointStatusUpdateMap.getOrDefault(endpoint.getRtmpUrl(), null);
+				String statusUpdate = endpointStatusUpdateMap.getOrDefault(endpoint.getEndpointUrl(), null);
 				if (statusUpdate != null) {
 					endpoint.setStatus(statusUpdate);
 				}
 				else {
-					logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
+					logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getEndpointUrl());
 				}
 			}
 			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
@@ -2572,38 +2641,38 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 	}
 
-	public RtmpMuxer getRtmpMuxer(String rtmpUrl)
+	public EndpointMuxer getEndpointMuxer(String rtmpUrl)
 	{
-		RtmpMuxer rtmpMuxer = null;
+		EndpointMuxer endpointMuxer = null;
 		synchronized (muxerList)
 		{
 			Iterator<Muxer> iterator = muxerList.iterator();
 			while (iterator.hasNext())
 			{
 				Muxer muxer = iterator.next();
-				if (muxer instanceof RtmpMuxer &&
-						((RtmpMuxer)muxer).getOutputURL().equals(rtmpUrl))
+				if (muxer instanceof EndpointMuxer &&
+						((EndpointMuxer)muxer).getOutputURL().equals(rtmpUrl))
 				{
-					rtmpMuxer = (RtmpMuxer) muxer;
+					endpointMuxer = (EndpointMuxer) muxer;
 					break;
 				}
 			}
 		}
-		return rtmpMuxer;
+		return endpointMuxer;
 	}
 
-	public Result stopRtmpStreaming(String rtmpUrl, int resolutionHeight)
+	public Result stopEndpointStreaming(String endpointUrl, int resolutionHeight)
 	{
 		Result result = new Result(false);
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
-			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
-			String status = statusMap.getOrDefault(rtmpUrl, null);
-			if (rtmpMuxer != null)
+			EndpointMuxer endpointMuxer = getEndpointMuxer(endpointUrl);
+			String status = statusMap.getOrDefault(endpointUrl, null);
+			if (endpointMuxer != null)
 			{
-				muxerList.remove(rtmpMuxer);
-				statusMap.remove(rtmpUrl);
-				rtmpMuxer.writeTrailer();
+				muxerList.remove(endpointMuxer);
+				statusMap.remove(endpointUrl);
+				endpointMuxer.writeTrailer();
 				result.setSuccess(true);
 			}
 			else if(status == null
@@ -2765,6 +2834,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setAudioStreamIndex(int audioStreamIndex) {
 		this.audioStreamIndex = audioStreamIndex;
+	}
+	
+	public int getDataStreamIndex() {
+		return dataStreamIndex;
 	}
 
 	public void addPacketListener(IPacketListener listener) {

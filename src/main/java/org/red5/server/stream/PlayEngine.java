@@ -98,7 +98,7 @@ import io.antmedia.datastore.db.types.Broadcast;
  * @author Tiago Daniel Jacobs (tiago@imdt.com.br)
  * @author Vladimir Hmelyoff (vlhm@splitmedialabs.com)
  */
-public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnectionListener {
+public class PlayEngine implements IFilter, IPushableConsumer, IPipeConnectionListener {
 
 	private static final Logger log = Red5LoggerFactory.getLogger(PlayEngine.class);
 
@@ -456,8 +456,8 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 			}
 			break;
 		case 2:
-			// get source input with create
-			in = providerService.getLiveProviderInput(thisScope, itemName, true);
+			// get source input without create
+			in = providerService.getLiveProviderInput(thisScope, itemName, false);
 			if (msgInReference.compareAndSet(null, in)) {
 				if (type == -1 && itemLength >= 0) {
 					if (log.isDebugEnabled()) {
@@ -476,7 +476,7 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 						log.debug("Creating wait job");
 					}
 					// Wait x seconds for the stream to be published
-					waitLiveJob = schedulingService.addScheduledOnceJob(15000, new IScheduledJob() {
+					waitLiveJob = schedulingService.addScheduledOnceJob(5000, new IScheduledJob() {
 						public void execute(ISchedulingService service) {
 							connectToProvider(itemName);
 							waitLiveJob = null;
@@ -704,7 +704,7 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 		log.debug("Attempting connection to {}", itemName);
 		IMessageInput in = msgInReference.get();
 		if (in == null) {
-			in = providerService.getLiveProviderInput(subscriberStream.getScope(), itemName, true);
+			in = providerService.getLiveProviderInput(subscriberStream.getScope(), itemName, false);
 			msgInReference.set(in);
 		}
 		if (in != null) {
@@ -2042,5 +2042,9 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 	 */
 	public void setMaxSequentialPendingVideoFrames(int maxSequentialPendingVideoFrames) {
 		this.maxSequentialPendingVideoFrames = maxSequentialPendingVideoFrames;
+	}
+	
+	public ISubscriberStream getSubscriberStream() {
+		return subscriberStream;
 	}
 }

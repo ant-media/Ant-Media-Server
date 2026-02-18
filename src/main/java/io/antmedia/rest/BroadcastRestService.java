@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,9 +9,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressEventType;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.util.Base32;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.RecordType;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.cluster.IClusterNotifier;
@@ -26,10 +31,13 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.ITokenService;
@@ -39,6 +47,7 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
@@ -92,6 +101,10 @@ public class BroadcastRestService extends RestServiceBase{
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
 	private static final String CONTINUOUS_MOVE = "continuous";
+	
+	private static final int MIN_TOTP_EXPIRATION_TIME = 10;
+    private static final int MAX_TOTP_EXPIRATION_TIME = Integer.MAX_VALUE;
+    
 
 	@Schema(description="Simple generic statistics class to return single values")
 	public static class SimpleStat {
@@ -428,32 +441,6 @@ public class BroadcastRestService extends RestServiceBase{
 
 	}
 
-	@Hidden
-	@Deprecated
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/endpoint")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result addEndpointV2(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
-			@Parameter(description = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
-
-		Result result = super.addEndpoint(id, rtmpUrl);
-		if (result.isSuccess()) 
-		{
-			String status = getDataStore().get(id).getStatus();
-			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-			{
-				result = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
-			}
-		}
-		else {
-			if (logger.isErrorEnabled()) {
-				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
-			}
-		}
-
-		return result;
-	}
 
 	@Operation(summary = "Adds a third party RTMP end point to the stream",
 			description = "It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an URL is already added to a stream, trying to add the same RTMP URL will return false.",
@@ -465,56 +452,81 @@ public class BroadcastRestService extends RestServiceBase{
 									))
 	}
 			)
+
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Deprecated(since = "3.0" , forRemoval = true)
 	public Result addEndpointV3(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
 			@Parameter(description = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
 			@Parameter(description = "Resolution height of the broadcast that is wanted to send to the RTMP endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
 
-		String rtmpUrl = null;
+		return addEndpointV4(id,endpoint,resolutionHeight);
+    }
+
+	@Operation(summary = "Adds a third party RTMP or SRT end point to the stream",
+			description = "It supports adding RTMP or SRT restreaming endpoints after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an URL is already added to a stream, trying to add the same Endpoint URL will return false.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Add Endpoint URL response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
+
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/endpoint")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addEndpointV4(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
+								@Parameter(description = "SRT or RTMP URL of the destination endpoint where the stream will be republished. Encode the URL if required", required = true) Endpoint endpoint,
+								@Parameter(description = "Resolution height of the broadcast that is wanted to send to the endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
+
+		String endpointUrl = null;
 		Result result = new Result(false);
 
-		if(endpoint != null && endpoint.getRtmpUrl() != null) {
-
-			Broadcast broadcast = getDataStore().get(id);
-			if (broadcast != null) {
-
-				List<Endpoint> endpoints = broadcast.getEndPointList();
-				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl()))) 
-				{
-					rtmpUrl = endpoint.getRtmpUrl();
-
-					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-					{
-						result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
-						if (result.isSuccess()) 
-						{
-							result = super.addEndpoint(id, endpoint);
-						}
-					}
-					else 
-					{
-						result = super.addEndpoint(id, endpoint);
-					}
-
-
-					if (!result.isSuccess()) 
-					{
-						result.setMessage("Rtmp endpoint is not added to stream: " + id);
-
-					}
-					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
-				}
-				else 
-				{
-					result.setMessage("Rtmp endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getRtmpUrl());
-				}
-			}
+		if(endpoint == null || endpoint.getEndpointUrl() == null) {
+			result.setMessage("Missing Endpoint url");
+			return result;
 		}
-		else {
-			result.setMessage("Missing rtmp url");
+
+		Broadcast broadcast = getDataStore().get(id);
+		if (broadcast == null){
+			result.setMessage("Stream does not exist with Id: " + id);
+			return result;
+		}
+
+		List<Endpoint> endpoints = broadcast.getEndPointList();
+		if (endpoints == null || endpoints.stream().noneMatch(o -> o.getEndpointUrl().equals(endpoint.getEndpointUrl())))
+		{
+			endpointUrl = endpoint.getEndpointUrl();
+
+			if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+			{
+			  result = processEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpointUrl, true, resolutionHeight);
+			  if (result.isSuccess())
+			  {
+				result = super.addEndpoint(id, endpoint);
+			  }
+			}
+			else
+			{
+			  result = super.addEndpoint(id, endpoint);
+			}
+
+
+			if (!result.isSuccess())
+			{
+			  result.setMessage("Endpoint is not added to stream: " + id);
+
+			}
+			logRtmpEndpointInfo(id, endpoint, result.isSuccess());
+		}
+		else
+		{
+			result.setMessage("Endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getEndpointUrl());
 		}
 
 		return result;
@@ -522,36 +534,10 @@ public class BroadcastRestService extends RestServiceBase{
 
 	private void logRtmpEndpointInfo(String id, Endpoint endpoint, boolean result) {
 		if (logger.isInfoEnabled()) {
-			logger.info("Rtmp endpoint({}) adding to the stream: {} is {}", endpoint.getRtmpUrl().replaceAll(REPLACE_CHARS, "_") , id.replaceAll(REPLACE_CHARS, "_"), result);
+			logger.info("Rtmp endpoint({}) adding to the stream: {} is {}", endpoint.getEndpointUrl().replaceAll(REPLACE_CHARS, "_") , id.replaceAll(REPLACE_CHARS, "_"), result);
 		}
 	}
 
-	@Hidden
-	@Deprecated
-	@DELETE
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/endpoint")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result removeEndpoint(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id, 
-			@Parameter(description = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("rtmpUrl") String rtmpUrl ) {
-		Result result = super.removeEndpoint(id, rtmpUrl);
-		if (result.isSuccess()) 
-		{
-			String status = getDataStore().get(id).getStatus();
-			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-			{
-				result = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
-			}
-		}
-		else {	
-
-			if (logger.isErrorEnabled()) {
-				logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
-			}
-		}
-
-		return result;
-	}
 
 	@Operation(summary = "Remove third-party RTMP end point from the stream",
 			description = "For the stream that is broadcasting, it will stop immediately.",
@@ -561,15 +547,38 @@ public class BroadcastRestService extends RestServiceBase{
 									mediaType = "application/json",
 									schema = @Schema(implementation = Result.class)
 									))
-	}
-			)
+	})
+
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result removeEndpointV2(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id, 
-			@Parameter(description = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId, 
-			@Parameter(description = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.") 
+	@Deprecated(since = "3.0" , forRemoval = true)
+	public Result removeEndpointV2(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
+			@Parameter(description = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId,
+			@Parameter(description = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.")
+	@QueryParam("resolutionHeight") int resolutionHeight){
+
+    return removeEndpointV3(id, endpointServiceId, resolutionHeight);
+	}
+
+	@Operation(summary = "Remove third-party SRT or RTMP end point from the stream",
+			description = "For the stream that is broadcasting, it will stop immediately.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Remove RTMP or SRT endpoint response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	})
+
+	@DELETE
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/endpoint")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result removeEndpointV3(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
+			@Parameter(description = "RTMP or SRT URL of the target endpoint that should be stopped", required = true) @QueryParam("endpointServiceId") String endpointServiceId,
+			@Parameter(description = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP or SRT endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.")
 	@QueryParam("resolutionHeight") int resolutionHeight){
 
 		//Get rtmpURL with broadcast
@@ -577,34 +586,35 @@ public class BroadcastRestService extends RestServiceBase{
 		Broadcast broadcast = getDataStore().get(id);
 		Result result = new Result(false);
 
-		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty()) 
+		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty())
 		{
 
-			Endpoint endpoint = getRtmpUrlFromList(endpointServiceId, broadcast);
-			if (endpoint != null && endpoint.getRtmpUrl() != null) {
-				rtmpUrl = endpoint.getRtmpUrl();
-				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);	
+			Endpoint endpoint = getEndpointMuxerFromList(endpointServiceId, broadcast);
+			if (endpoint != null && endpoint.getEndpointUrl() != null) {
+				rtmpUrl = endpoint.getEndpointUrl();
+				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);
 			}
-		} 
-		if (logger.isInfoEnabled()) 
-		{ 
+		}
+		if (logger.isInfoEnabled())
+		{
 			logger.info("Rtmp endpoint({}) removal operation is {} from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , result.isSuccess(), id.replaceAll(REPLACE_CHARS, "_"));
 		}
 		return result;
 	}
 
+
 	private Result removeRTMPEndpointProcess(Broadcast broadcast, Endpoint endpoint, int resolutionHeight, String id) {
 		Result result;
 
-		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
+		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
 		{
-			result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getRtmpUrl(), false, resolutionHeight);
-			if (result.isSuccess()) 
+			result = processEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getEndpointUrl(), false, resolutionHeight);
+			if (result.isSuccess())
 			{
 				result = super.removeRTMPEndpoint(id, endpoint);
 			}
 		}
-		else 
+		else
 		{
 			result = super.removeRTMPEndpoint(id, endpoint);
 		}
@@ -613,9 +623,9 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 
-	private Endpoint getRtmpUrlFromList(String endpointServiceId, Broadcast broadcast) {
+	private Endpoint getEndpointMuxerFromList(String endpointServiceId, Broadcast broadcast) {
 		Endpoint endpoint = null;
-		for(Endpoint selectedEndpoint: broadcast.getEndPointList()) 
+		for(Endpoint selectedEndpoint: broadcast.getEndPointList())
 		{
 			if(selectedEndpoint.getEndpointServiceId().equals(endpointServiceId)) {
 				endpoint = selectedEndpoint;
@@ -907,7 +917,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return subscriberStats;
 	}
-	
+
 	@Operation(summary = "Retrieve all subscriber statistics of the requested stream. Deprecated ",
 			description = "Fetches comprehensive statistics for all subscribers of the specified stream.",
 			responses = {
@@ -931,7 +941,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return connectionEvents;
 	}
-	
+
 
 	@Operation(summary = "Add Subscriber to the requested stream",
 			description = "Adds a subscriber to the requested stream. If the subscriber's type is 'publish', they can also play the stream, which is critical in conferencing. If the subscriber's type is 'play', they can only play the stream. If 'b32Secret' is not set, it will default to the AppSettings. The length of 'b32Secret' should be a multiple of 8 and use base32 characters A–Z, 2–7.",
@@ -978,7 +988,22 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 
 			if (secretCodeLengthCorrect) {
-				result = getDataStore().addSubscriber(streamId, subscriber);
+				Integer totpExpiryPeriodSeconds = subscriber.getTotpExpiryPeriodSeconds();
+				if (totpExpiryPeriodSeconds == null) {
+					logger.info("Custom TOTP expiry period is set from AppSetings:{}", getAppSettings().getTimeTokenPeriod());
+					totpExpiryPeriodSeconds = getAppSettings().getTimeTokenPeriod();
+					subscriber.setTotpExpiryPeriodSeconds(totpExpiryPeriodSeconds);
+				}
+				
+				if(totpExpiryPeriodSeconds >= MIN_TOTP_EXPIRATION_TIME 
+						&& totpExpiryPeriodSeconds <= MAX_TOTP_EXPIRATION_TIME) {
+					result = getDataStore().addSubscriber(streamId, subscriber);					
+				}
+				else {
+					logger.info("Custom TOTP expiry period {} is out of range ({},{})",
+							totpExpiryPeriodSeconds, MIN_TOTP_EXPIRATION_TIME, MAX_TOTP_EXPIRATION_TIME);
+					message = "Custom TOTP expiry period must be between " + MIN_TOTP_EXPIRATION_TIME + " and " + MAX_TOTP_EXPIRATION_TIME;
+				}
 			}
 			else {
 				message = "Secret code is not multiple of 8 bytes length. Use b32Secret which is a string and its lenght is multiple of 8 bytes and allowed characters A-Z, 2-7";
@@ -990,7 +1015,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result, message);
 	}
-
+	
 	@Operation(description="Return TOTP for the subscriberId, streamId, type. This is a helper method. You can generate TOTP on your end."
 			+ "If subscriberId is not in the database, it generates TOTP from the secret in the AppSettings. Secret code is for the subscriberId not in the database"
 
@@ -1015,7 +1040,12 @@ public class BroadcastRestService extends RestServiceBase{
 			if (subscriber != null && StringUtils.isNotBlank(subscriber.getB32Secret())) 
 			{
 				byte[] decodedSubscriberSecret = Base32.decode(subscriber.getB32Secret().getBytes());
-				totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, getAppSettings().getTimeTokenPeriod(),  6, ITokenService.HMAC_SHA1);
+
+				// Use custom expiry period for this subscriber if it is set; otherwise fall back to global setting
+				int period = subscriber.getTotpExpiryPeriodSeconds() != null ?
+						subscriber.getTotpExpiryPeriodSeconds() : getAppSettings().getTimeTokenPeriod();
+
+				totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, period,  6, ITokenService.HMAC_SHA1);
 			}
 			else 
 			{	
@@ -1095,27 +1125,36 @@ public class BroadcastRestService extends RestServiceBase{
 		String message = "";
 
 
-
-		if (!StringUtils.isAnyBlank(streamId, subscriberId)) 
-		{
-			//if the user is not in this node, it's in another node in the cluster.  
-			//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
-
-			result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
-
-			if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType) ) 
-			{
-				getApplication().stopPlayingBySubscriberId(subscriberId);
-			} 
-
-			if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
-				getApplication().stopPublishingBySubscriberId(subscriberId);
-			}
-
-
-		}
-		else {
+        if (StringUtils.isAnyBlank(streamId, subscriberId)) {
 			message = "streamId or subscriberId is blank";
+			return new Result(result, message);
+		}
+    
+        // Replace special characters in streamId and subscriberId
+		streamId = streamId.replaceAll(REPLACE_CHARS, "_");
+		subscriberId = subscriberId.replaceAll(REPLACE_CHARS, "_");
+
+    
+		//if the user is not in this node, it's in another node in the cluster.
+		//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
+		result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
+
+		message = "";
+		AntMediaApplicationAdapter application = getApplication();
+		if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
+			boolean playerStopped = application.stopPlayingBySubscriberId(subscriberId, streamId);
+			if (!playerStopped) {
+				logger.warn("Playback cannot be stopped for streamId:{} and subscriberId:{} likely there is no active subscriber", streamId, subscriberId);			
+			}
+				
+		}
+
+		if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
+			// Stops WebRTC streams
+			if (!application.stopPublishingBySubscriberId(subscriberId, streamId)) {
+				// WebRTC stream not stopped. Try to stop other streams
+				this.stopStreaming(streamId, false, subscriberId);
+			}
 		}
 
 		return new Result(result, message);
@@ -1217,6 +1256,11 @@ public class BroadcastRestService extends RestServiceBase{
 		return new WebRTCReceiveStats(getApplication().getWebRTCAudioReceiveStats(), getApplication().getWebRTCVideoReceiveStats());
 	}
 
+	/**
+	 * @deprecated use stats in broadcast object or publish stats
+	 * @param id
+	 * @return
+	 */
 	@Operation(summary = "Get RTMP to WebRTC Path Stats",
 			description = "Retrieves general statistics for the RTMP to WebRTC path.",
 			responses = {
@@ -1230,6 +1274,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/{id}/rtmp-to-webrtc-stats")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Deprecated(forRemoval = true, since = "2.13+")
 	public RTMPToWebRTCStats getRTMPToWebRTCStats(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id) 
 	{
 		return getApplication().getRTMPToWebRTCStats(id);
@@ -1299,12 +1344,16 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result enableRecording(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@Parameter(description = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
 			@Parameter(description = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType,
-			@Parameter(description = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight
+			@Parameter(description = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight,
+			@Parameter(description = "Optional base filename (without extension) for the output VOD.", required = false) @QueryParam("fileName") String fileName
 			) {
-		if (logger.isInfoEnabled()) {
-			logger.info("Recording method is called for {} to make it {} and record Type: {} resolution:{}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null, resolutionHeight);
-		}
 		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;  // It means, if recordType is null, function using Mp4 Record by default
+		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight, fileName);
+	}
+
+	// Backward-compatible overload for existing test callers
+	public Result enableRecording(String streamId, boolean enableRecording, String recordType, int resolutionHeight) {
+		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;
 		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight);
 	}
 
@@ -1383,7 +1432,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result stopStreamingV2(@Parameter(description = "the id of the broadcast.", required = true) @PathParam("id") String id,
 			@Parameter(description = "Stop also subtracks", required = false) @QueryParam("stopSubtracks") Boolean stopSubtracks) 
 	{
-		return super.stopStreaming(id, stopSubtracks);
+		return super.stopStreaming(id, stopSubtracks, null);
 	}
 
 
@@ -1536,7 +1585,7 @@ public class BroadcastRestService extends RestServiceBase{
 			if(room.getEndDate() == 0) {
 				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
 			}
-			
+
 			if (StringUtils.isNoneBlank(room.getRoomId())) 
 			{
 				Broadcast broadcast = getDataStore().get(room.getRoomId());
@@ -1825,7 +1874,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 			else {
 				roomInfo = new RootRestService.RoomInfo(roomId, RestServiceBase.getRoomInfoFromConference(broadcastRoom, streamId, getDataStore()));
-	
+
 				roomInfo.setStartDate(broadcastRoom.getPlannedStartDate());
 				roomInfo.setEndDate(broadcastRoom.getPlannedEndDate());
 			}
@@ -1971,7 +2020,7 @@ public class BroadcastRestService extends RestServiceBase{
 			return new Result(false, null, "ID3 tag is not enabled");
 		}
 		logger.info("ID3 data is received for stream: {} data: {}", streamId.replaceAll(REPLACE_CHARS, "_"), data.replaceAll(REPLACE_CHARS, "_"));
-		
+
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(muxAdaptor != null) {
 			return new Result(muxAdaptor.addID3Data(data));
@@ -1987,8 +2036,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{stream_id}/sei")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSEIData(@Parameter(description = "the id of the stream", required = true) @PathParam("stream_id") String streamId,
-							 @Parameter(description = "SEI data.", required = false) String data) {
-		
+			@Parameter(description = "SEI data.", required = false) String data) {
+
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(muxAdaptor != null) {
 			return new Result(muxAdaptor.addSEIData(data));
@@ -1996,5 +2045,153 @@ public class BroadcastRestService extends RestServiceBase{
 		else {
 			return new Result(false, null, "Stream is not available");
 		}
+	}
+
+	//TODO: add start and end time support
+	@Operation(description = "Converts the recorded HLS to MP4 file")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{hls_filename}/hls-to-mp4")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response convertHLStoMP4(@PathParam("hls_filename") String hlsFileName, 
+			@QueryParam("download") boolean download,
+			@QueryParam("deleteHLSFiles") boolean deleteHLSFiles) 
+	{
+		//check if the storageClient is enabled to record the stream to S3
+		//if it is recording to s3 and hlsHttpEndpoint is active
+		//Convert the hls to mp4 file by using hlsHttpEndpoint
+
+
+		boolean result = false;
+		if (StringUtils.isBlank(hlsFileName)) {
+			return Response.status(Status.OK).entity(new Result(false, "HLS file name is empty")).build();
+		}
+
+		//check if m3u8 extension is given, if not add it
+		String fileNameWithoutExtension = null;
+		hlsFileName = hlsFileName.replaceAll(REPLACE_CHARS, "_");
+		if (!hlsFileName.endsWith(".m3u8")) 
+		{
+			hlsFileName += ".m3u8";
+		}
+		
+
+
+		String streamId = TokenFilterManager.getStreamId(hlsFileName);
+
+		Broadcast broadcast = lookupBroadcast(streamId);
+		int height = 0;
+		long startTime = 0;
+		String subFolder = null;
+		if (broadcast != null) {
+			subFolder = broadcast.getSubFolder();
+			if (StringUtils.isNotBlank(subFolder)) {
+				hlsFileName = subFolder + File.separator + hlsFileName;
+			}
+			startTime = broadcast.getStartTime();
+			broadcast.getHeight();
+		} 
+		else {
+			logger.warn("Broadcast not found for stream id: {}", streamId);
+		}
+
+		fileNameWithoutExtension = hlsFileName.substring(0, hlsFileName.length() - 5); // remove .m3u8
+
+		File hlsFile = new File(IAntMediaStreamHandler.WEBAPPS_PATH + File.separator + getScope().getName() 
+				+ File.separator + "streams" + File.separator + hlsFileName);
+		File parentFolder = hlsFile.getParentFile();
+		parentFolder.mkdirs();
+
+		String outputPath = parentFolder.getAbsolutePath() + File.separator + fileNameWithoutExtension + ".mp4";
+
+		File outputFile = new File(outputPath);
+		AppSettings appSettings = getAppSettings();
+		String hlsHttpEndpoint = appSettings.getHlsHttpEndpoint();
+
+		String inputUrl = null;
+		if (StringUtils.isNotBlank(hlsHttpEndpoint)) 
+		{						
+			// check if the stream exists
+			inputUrl = hlsHttpEndpoint + File.separator + hlsFileName;
+		}
+		else {
+			inputUrl = hlsFile.getAbsolutePath();
+		}
+
+		result = HLSMuxer.convertToMp4(inputUrl, outputPath);
+
+		if (!result) {
+			return Response.status(Status.OK).entity(new Result(false, "HLS to MP4 conversion has failed")).build(); 
+		}
+
+		long durationInMs = Muxer.getDurationInMs(outputFile, streamId);
+		getApplication().muxingFinished(broadcast, streamId, outputFile, startTime, durationInMs, height, null, null);
+
+		StorageClient storageClient = getApplication().getStorageClient();
+
+		if (storageClient.isEnabled() && (RecordMuxer.S3_CONSTANT & getAppSettings().getUploadExtensionsToS3()) != 0)
+		{
+
+			uploadToS3(deleteHLSFiles, fileNameWithoutExtension, outputPath, appSettings, storageClient);
+
+			result = true;
+		}
+		else if (deleteHLSFiles) {
+			deleteLocalHLSFiles(hlsFile);
+		}
+
+		if (download) {
+			//return the file as a download
+
+			Response.ResponseBuilder response = Response.ok(outputFile);
+			response.header("Content-Disposition", "attachment; filename=\"" + fileNameWithoutExtension + ".mp4\"");
+
+			return response.build();
+		}
+
+
+
+		return Response.status(Status.OK).entity(new Result(result)).build();
+	}
+
+	public void deleteLocalHLSFiles(File hlsFile) {
+		File[] hlsFiles = HLSMuxer.getHLSFilesInDirectory(hlsFile, HLSMuxer.HLS_FILES_REGEX_MATCHER);
+
+		if (hlsFiles != null && hlsFiles.length > 0) {
+			for (File hlsFileToDelete : hlsFiles) {
+				if (!hlsFileToDelete.delete()) {
+					logger.warn("Failed to delete HLS file: {}", hlsFileToDelete.getAbsolutePath());
+				}
+			}
+		} else {
+			logger.warn("No HLS files found in directory: {}", hlsFile.getAbsolutePath());
+		}
+	}
+
+	public void uploadToS3(boolean deleteHLSFiles, String fileNameWithoutExtension, String outputPath,
+			AppSettings appSettings, StorageClient storageClient) {
+		String key = Muxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + fileNameWithoutExtension + ".mp4");
+
+		logger.info("Saving converted MP4 file to S3 bucket with key: {}", key);
+		storageClient.save(key, new File(outputPath), true, new ProgressListener() {
+
+			@Override
+			public void progressChanged(ProgressEvent progressEvent) 
+			{
+				if (progressEvent.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT) {
+					// The transfer is completed
+					logger.info("MP4 file upload completed to S3 bucket with key: {}", key);
+					if (deleteHLSFiles) 
+					{
+						logger.info("Deleting HLS files from S3 bucket for stream: {}", fileNameWithoutExtension);
+						String key = RecordMuxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + fileNameWithoutExtension);
+						storageClient.deleteMultipleFiles(key, HLSMuxer.HLS_FILES_REGEX_MATCHER);
+					}
+				}
+				else if (progressEvent.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT) {
+					logger.error("MP4 file upload failed to S3 bucket with key: {}", key);
+				}
+			}
+		});
 	}
 }

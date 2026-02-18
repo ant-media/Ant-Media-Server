@@ -6,12 +6,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
-import java.net.MalformedURLException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -49,15 +47,12 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
-import io.antmedia.filter.JWTFilter;
-import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
-import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
@@ -351,7 +346,7 @@ public abstract class RestServiceBase {
 		{
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
-			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks);
+			Result stopResult = stopBroadcastInternal(broadcast, deleteSubtracks, null);
 
 			//if it's something about scheduled playlist
 			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
@@ -447,7 +442,7 @@ public abstract class RestServiceBase {
 
 
 
-	protected Broadcast lookupBroadcast(String id) {
+	public Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
 		try {
 			broadcast = getDataStore().get(id);
@@ -571,10 +566,10 @@ public abstract class RestServiceBase {
 
 		if(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
 		{
-			return getApplication().stopStreaming(broadcast, false).isSuccess();
+			return getApplication().stopStreaming(broadcast, false, null).isSuccess();
 		}
 		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
-			return getApplication().stopStreaming(broadcast, false).isSuccess();
+			return getApplication().stopStreaming(broadcast, false, null).isSuccess();
 		}
 		else
 		{
@@ -618,7 +613,7 @@ public abstract class RestServiceBase {
 			if (validateStreamURL(rtmpUrl))
 			{
 				Endpoint endpoint = new Endpoint();
-				endpoint.setRtmpUrl(rtmpUrl);
+				endpoint.setEndpointUrl(rtmpUrl);
 				endpoint.setType(ENDPOINT_GENERIC);
 
 				success = getDataStore().addEndpoint(id, endpoint);
@@ -639,13 +634,13 @@ public abstract class RestServiceBase {
 		String endpointServiceId = endpoint.getEndpointServiceId();
 		if (endpointServiceId == null || endpointServiceId.isEmpty()) {
 			//generate custom endpoint invidual ID
-			endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);
+			endpointServiceId = "custom"+RandomStringUtils.secure().nextAlphanumeric(6);
 		}
 		endpoint.setEndpointServiceId(endpointServiceId);
 
 
 		try {
-			if (validateStreamURL(endpoint.getRtmpUrl()))
+			if (validateStreamURL(endpoint.getEndpointUrl()))
 			{
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
@@ -660,7 +655,7 @@ public abstract class RestServiceBase {
 	public Result removeEndpoint(String id, String rtmpUrl)
 	{
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl(rtmpUrl);
+		endpoint.setEndpointUrl(rtmpUrl);
 		endpoint.setType(ENDPOINT_GENERIC);
 
 		boolean removed = getDataStore().removeEndpoint(id, endpoint, true);
@@ -680,15 +675,15 @@ public abstract class RestServiceBase {
 		return !isCluster || originAddress.equals(getServerSettings().getHostAddress());
 	}
 
-	public Result processRTMPEndpoint(String streamId, String originAddress, String rtmpUrl, boolean addEndpoint, int resolution) {
+	public Result processEndpoint(String streamId, String originAddress, String endpointUrl, boolean addEndpoint, int resolution) {
 		Result result = new Result(false);
 		if(isInSameNodeInCluster(originAddress))
 		{
 			if(addEndpoint) {
-				result = getMuxAdaptor(streamId).startRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).startEndpointStreaming(endpointUrl, resolution);
 			}
 			else {
-				result = getMuxAdaptor(streamId).stopRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).stopEndpointStreaming(endpointUrl, resolution);
 			}
 		}
 		else {
@@ -1022,6 +1017,7 @@ public abstract class RestServiceBase {
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
+				url.startsWith("srt://") ||
 				url.startsWith(RTSP))) {
 
 			ipAddrParts = url.split("//");
@@ -1256,98 +1252,76 @@ public abstract class RestServiceBase {
 		return String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams");
 	}
 
-	protected Result uploadVoDFile(String fileName, InputStream inputStream) {
-		boolean success = false;
-		String message = "";
-		String id= null;
+	public Result uploadVoDFile(String fileName, InputStream inputStream) {
+		return uploadVoDFile(fileName, inputStream, null);
+	}
+
+	public Result uploadVoDFile(String fileName, InputStream inputStream, String metadata) {
+		String id = null;
 		String appScopeName = getScope().getName();
 		String fileExtension = FilenameUtils.getExtension(fileName);
+		
+		String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
+		if (!ArrayUtils.contains(supportedFormats, fileExtension)) {
+			//this message has been used in the frontend(webpanel) pay attention
+			return new Result(false, null, "notSupportedFileType");
+		}
+
+		IStatsCollector statsCollector = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
+		String vodUploadFinishScript = getAppSettings().getVodUploadFinishScript();
+		if (StringUtils.isNotBlank(vodUploadFinishScript) && !statsCollector.enoughResource()) {
+			logger.info("Not enough resource to upload VoD file");
+			return new Result(false, null, "Not enough system resources available to upload and process VoD File");
+		}
+
 		try {
+			File streamsDirectory = new File(getStreamsDirectory(appScopeName));
+			if (!streamsDirectory.exists()) {
+				streamsDirectory.mkdirs();
+			}
 
-			String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
+			String vodId = RandomStringUtils.secure().nextNumeric(24);
+			File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
 
-			if (ArrayUtils.contains(supportedFormats, fileExtension)) {
+			if (!savedFile.toPath().normalize().startsWith(streamsDirectory.toPath().normalize())) {
+				throw new IOException("Entry is outside of the target directory");
+			}
 
+			int read = 0;
+			byte[] bytes = new byte[2048];
+			try (OutputStream outpuStream = new FileOutputStream(savedFile)) {
+				while ((read = inputStream.read(bytes)) != -1) {
+					outpuStream.write(bytes, 0, read);
+				}
+				outpuStream.flush();
 
-				IStatsCollector statsCollector = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
-				String vodUploadFinishScript = getAppSettings().getVodUploadFinishScript();
-				if (StringUtils.isNotBlank(vodUploadFinishScript)  && !statsCollector.enoughResource()) 
-				{
-					logger.info("Not enough resource to upload VoD file");
-					message = "Not enough system resources available to upload and process VoD File";
-				} 
-				else 
-				{
+				long fileSize = savedFile.length();
+				long unixTime = System.currentTimeMillis();
+				String relativePath = AntMediaApplicationAdapter.getRelativePath(savedFile.getPath());
 
-					File streamsDirectory = new File(
-							getStreamsDirectory(appScopeName));
+				VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, 
+						Muxer.getDurationInMs(savedFile, fileName), fileSize, VoD.UPLOADED_VOD, vodId, null);
 
-					// if the directory does not exist, create it
-					if (!streamsDirectory.exists()) {
-						streamsDirectory.mkdirs();
-					}
-					String vodId = RandomStringUtils.randomNumeric(24);
+				if (StringUtils.isNotBlank(metadata)) {
+					newVod.setMetadata(metadata);
+				}
 
+				if (StringUtils.isNotBlank(vodUploadFinishScript)) {
+					newVod.setProcessStatus(VoD.PROCESS_STATUS_INQUEUE);
+				}
 
-					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
+				id = getDataStore().addVod(newVod);
 
-					if (!savedFile.toPath().normalize().startsWith(streamsDirectory.toPath().normalize())) {
-						throw new IOException("Entry is outside of the target directory");
-					} 
-
-					int read = 0;
-					byte[] bytes = new byte[2048];
-					try (OutputStream outpuStream = new FileOutputStream(savedFile))
-					{
-
-						while ((read = inputStream.read(bytes)) != -1) {
-							outpuStream.write(bytes, 0, read);
-						}
-						outpuStream.flush();
-
-						long fileSize = savedFile.length();
-						long unixTime = System.currentTimeMillis();
-
-						String path = savedFile.getPath();
-
-
-						String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
-
-						VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, Muxer.getDurationInMs(savedFile,fileName), fileSize,
-								VoD.UPLOADED_VOD, vodId, null);
-
-						if (StringUtils.isNotBlank(vodUploadFinishScript)) {
-							newVod.setProcessStatus(VoD.PROCESS_STATUS_INQUEUE);
-						}
-
-						id = getDataStore().addVod(newVod);
-
-						if(id != null) {
-							success = true;
-							message = id;
-
-							if (StringUtils.isNotBlank(vodUploadFinishScript)) 
-							{
-								startVoDScriptProcess(vodUploadFinishScript, savedFile, newVod, id);	
-
-							}
-
-						}
-					}
+				if (id != null && StringUtils.isNotBlank(vodUploadFinishScript)) {
+					startVoDScriptProcess(vodUploadFinishScript, savedFile, newVod, id);
 				}
 			}
-			else {
-				//this message has been used in the frontend(webpanel) pay attention
-				message = "notSupportedFileType";
-			}
-
-		}
-		catch (IOException iox) {
+		} catch (IOException iox) {
 			logger.error(iox.getMessage());
+			return new Result(false, null, "");
 		}
 
-
-		return new Result(success, id, message);
+		return new Result(id != null, id, id != null ? id : "");
 	}
 
 	public void startVoDScriptProcess(String vodUploadFinishScript, File savedFile, VoD newVod, String vodId) {
@@ -1458,6 +1432,21 @@ public abstract class RestServiceBase {
 			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ?
 					streamId.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_") : "null ",
 					recordType, resolutionHeight);
+		}
+
+		return null;
+	}
+
+	protected RecordMuxer startRecord(String streamId, RecordType recordType, int resolutionHeight, String baseFileName) {
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		if (muxAdaptor != null)
+		{
+			return muxAdaptor.startRecording(recordType, resolutionHeight, baseFileName);
+		}
+		else {
+			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{} baseFileName:{}", streamId != null  ?
+					streamId.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_") : "null ",
+					recordType, resolutionHeight, baseFileName);
 		}
 
 		return null;
@@ -1642,10 +1631,10 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks) {
+	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks, String subscriberId) {
 		Result result = new Result(false);
 		if (broadcast != null) {
-			result = getApplication().stopStreaming(broadcast, stopSubrtracks);
+			result = getApplication().stopStreaming(broadcast, stopSubrtracks, subscriberId);
 			if (result.isSuccess()) 
 			{
 				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
@@ -1659,13 +1648,13 @@ public abstract class RestServiceBase {
 
 
 
-	public Result stopStreaming(String id, Boolean stopSubtracks)
+	public Result stopStreaming(String id, Boolean stopSubtracks, String subscriberId)
 	{
 		if (stopSubtracks == null) {
 			stopSubtracks = true;
 		}
 		Broadcast broadcast = getDataStore().get(id);
-		return stopBroadcastInternal(broadcast, stopSubtracks);
+		return stopBroadcastInternal(broadcast, stopSubtracks, subscriberId);
 	}
 
 
@@ -2140,113 +2129,7 @@ public abstract class RestServiceBase {
 
 	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight)
 	{
-		boolean result = false;
-		String message = null;
-		String status = (enableRecording)?"started":"stopped";
-		String vodId = null;
-
-		RecordType recordType = null;
-		//type cannot be null
-		if (type.equals(RecordType.MP4.toString()))
-		{
-			recordType = RecordType.MP4;
-		}
-		else if (type.equals(RecordType.WEBM.toString()))
-		{
-			recordType = RecordType.WEBM;
-		}
-
-
-		if (streamId != null && recordType != null)
-		{
-			Broadcast broadcast = getDataStore().get(streamId);
-			if (broadcast != null)
-			{
-				if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-				{
-					if(recordType == RecordType.MP4) {
-						broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-					}
-					else {
-						broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-					}
-					result = true;
-				}
-				else {
-					boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
-					//start recording and there is no active recording or stop recording and there is active recording
-					if (enableRecording != isAlreadyRecording)
-					{
-						result = true;
-						RecordMuxer muxer = null;
-
-						if (isInSameNodeInCluster(broadcast.getOriginAdress()))
-						{
-							if (enableRecording)
-							{
-								muxer = startRecord(streamId, recordType, resolutionHeight);
-								if (muxer != null) {
-									vodId = RandomStringUtils.randomAlphanumeric(24);
-									muxer.setVodId(vodId);
-									message = Long.toString(muxer.getCurrentVoDTimeStamp());
-									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
-								}
-
-							}
-							else
-							{
-								muxer = stopRecord(streamId, recordType, resolutionHeight);
-								if (muxer != null) {
-									vodId = muxer.getVodId();
-									message = Long.toString(muxer.getCurrentVoDTimeStamp());
-								}
-							}
-
-							//Check process status result
-							if (muxer == null)
-							{
-								result = false;
-								logFailedOperation(enableRecording, streamId, recordType);
-								message= recordType +" recording couldn't be " + status;
-							}
-						}
-						else
-						{
-							message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
-							result = false;
-						}
-					}
-					else {
-						if(enableRecording) {
-							message = type+" recording couldn't be started";
-						}
-						else {
-							message = type+" recording couldn't be stopped";
-						}
-						result = false;
-					}
-
-				}
-				// If record process works well then change record status in DB
-				if (result)
-				{
-					if (recordType == RecordType.WEBM)
-					{
-						result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-					}
-					else if (recordType == RecordType.MP4)
-					{
-						result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-					}
-				}
-			}
-		}
-		else
-		{
-			message = "No stream for this id: " + streamId + " or unexpected record type. Record type is "+ recordType;
-		}
-
-		return new Result(result, vodId, message);
+		return enableRecordMuxingInternal(streamId, enableRecording, type, resolutionHeight, null);
 	}
 
 	public boolean isAlreadyRecording(String streamId, RecordType recordType, int resolutionHeight) {
@@ -2266,4 +2149,138 @@ public abstract class RestServiceBase {
 		return value.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_");
 	}
 
+
+    public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName)
+    {
+        return enableRecordMuxingInternal(streamId, enableRecording, type, resolutionHeight, fileName);
+    }
+
+    private Result enableRecordMuxingInternal(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName) {
+        boolean result = false;
+        String message = null;
+        String status = (enableRecording)?"started":"stopped";
+        String vodId = null;
+
+        RecordType recordType = null;
+        if (type.equals(RecordType.MP4.toString()))
+        {
+            recordType = RecordType.MP4;
+        }
+        else if (type.equals(RecordType.WEBM.toString()))
+        {
+            recordType = RecordType.WEBM;
+        }
+
+        if (streamId != null && recordType != null)
+        {
+            Broadcast broadcast = getDataStore().get(streamId);
+            if (broadcast != null)
+            {
+                if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+                {
+                    if(recordType == RecordType.MP4) {
+                        broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+                    }
+                    else {
+                        broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+                    }
+                    result = true;
+                }
+                else {
+                    boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
+                    if (enableRecording != isAlreadyRecording)
+                    {
+                        result = true;
+                        RecordMuxer muxer = null;
+
+                        if (isInSameNodeInCluster(broadcast.getOriginAdress()))
+                        {
+                            if (enableRecording)
+                            {
+                                String sanitizedBaseName = sanitizeAndStripExtension(fileName, recordType);
+                                muxer = (sanitizedBaseName != null) ?
+                                        startRecord(streamId, recordType, resolutionHeight, sanitizedBaseName) :
+                                        startRecord(streamId, recordType, resolutionHeight);
+                                if (muxer != null) {
+                                    vodId = RandomStringUtils.secure().nextAlphanumeric(24);
+                                    muxer.setVodId(vodId);
+                                    message = Long.toString(muxer.getCurrentVoDTimeStamp());
+                                    logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+                                }
+
+                            }
+                            else
+                            {
+                                muxer = stopRecord(streamId, recordType, resolutionHeight);
+                                if (muxer != null) {
+                                    vodId = muxer.getVodId();
+                                    message = Long.toString(muxer.getCurrentVoDTimeStamp());
+                                }
+                            }
+
+                            if (muxer == null)
+                            {
+                                result = false;
+                                logFailedOperation(enableRecording, streamId, recordType);
+                                message= recordType +" recording couldn't be " + status;
+                            }
+                        }
+                        else
+                        {
+                            message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
+                            result = false;
+                        }
+                    }
+                    else {
+                        if(enableRecording) {
+                            message = type+" recording couldn't be started";
+                        }
+                        else {
+                            message = type+" recording couldn't be stopped";
+                        }
+                        result = false;
+                    }
+
+                }
+                if (result)
+                {
+                    if (recordType == RecordType.WEBM)
+                    {
+                        result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+                    }
+                    else if (recordType == RecordType.MP4)
+                    {
+                        result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+                    }
+                }
+            }
+        }
+        else
+        {
+            message = "No stream for this id: " + streamId + " or unexpected record type. Record type is "+ recordType;
+        }
+
+        return new Result(result, vodId, message);
+    }
+
+    protected String sanitizeAndStripExtension(String fileName, RecordType recordType) {
+        if (fileName == null) {
+            return null;
+        }
+        String safe = replaceCharsForSecurity(fileName);
+        safe = safe.replaceAll("[\\\\/]+", "_");
+        safe = safe.replaceAll("\r|\n|\t", "_");
+        // remove extension if present
+        if (recordType == RecordType.MP4 && safe.toLowerCase().endsWith(".mp4")) {
+            safe = safe.substring(0, safe.length() - 4);
+        }
+        else if (recordType == RecordType.WEBM && safe.toLowerCase().endsWith(".webm")) {
+            safe = safe.substring(0, safe.length() - 5);
+        }
+        // length cap
+        if (safe.length() > 120) {
+            safe = safe.substring(0, 120);
+        }
+        return safe;
+    }
 }

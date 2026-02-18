@@ -23,7 +23,7 @@ public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 	protected static Logger logger = LoggerFactory.getLogger(ExpireStreamPublishSecurity.class);
 
 	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData) {
+	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData, String token, String subscriberId, String subscriberCode) {
 
 		boolean result = false;
 

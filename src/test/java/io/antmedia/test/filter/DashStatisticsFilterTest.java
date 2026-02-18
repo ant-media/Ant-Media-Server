@@ -37,6 +37,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -92,6 +93,9 @@ public class DashStatisticsFilterTest {
 		assertNull(dashStatisticsFilter.getStreamStats(DashViewerStats.BEAN_NAME));
 		
 		
+		AppSettings appSettings = new AppSettings();
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+
 		
 		HttpServletRequest mockRequest = mock(HttpServletRequest.class);
 		HttpServletResponse mockResponse = mock(HttpServletResponse.class);
@@ -190,12 +194,17 @@ public class DashStatisticsFilterTest {
 			DataStoreFactory dsf = mock(DataStoreFactory.class);		
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
 			
+			AppSettings appSettings = new AppSettings();
+			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+
+			
 			DataStore dataStore = mock(DataStore.class);
 			when(dataStore.isAvailable()).thenReturn(true);
 			when(dsf.getDataStore()).thenReturn(dataStore);
 			
 			AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 			doReturn(appAdaptor).when(dashStatisticsFilterSpy).getAntMediaApplicationAdapter();
+			
 			
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
@@ -307,6 +316,10 @@ public class DashStatisticsFilterTest {
 			DataStoreFactory dsf = mock(DataStoreFactory.class);		
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
 			
+			AppSettings appSettings = new AppSettings();
+			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+
+			
 			DataStore dataStore = mock(DataStore.class);
 			when(dataStore.isAvailable()).thenReturn(true);
 			when(dsf.getDataStore()).thenReturn(dataStore);
@@ -346,6 +359,10 @@ public class DashStatisticsFilterTest {
 		when(context.isRunning()).thenReturn(true);
 		DataStoreFactory dsf = mock(DataStoreFactory.class);		
 		when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
+		
+		AppSettings appSettings = new AppSettings();
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+
 		
 		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
 				.thenReturn(context);

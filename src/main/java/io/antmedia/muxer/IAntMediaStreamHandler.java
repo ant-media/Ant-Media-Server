@@ -1,6 +1,7 @@
 package io.antmedia.muxer;
 
 import java.io.File;
+import java.util.Map;
 
 import org.onvif.ver10.device.wsdl.GetScopes;
 import org.red5.server.api.scope.IScope;
@@ -13,6 +14,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.IStreamListener;
+import io.antmedia.webrtc.datachannel.IDataChannelRouter;
 
 public interface IAntMediaStreamHandler {
 	
@@ -138,18 +140,52 @@ public interface IAntMediaStreamHandler {
 
 	/**
 	 * Notify the handler that stream is started to publish
+	 * @deprecated use {@link #startPublish(String, long, String, String)} instead of this method
+	 * 
 	 * @param streamName
 	 * @param absoluteStartTimeMs
 	 * @param publishType
 	 */
+	@Deprecated
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType);
+	
+	
+	/**
+	 * Notify the handler that stream is started to publish
+	 * 
+	 * @param streamId
+	 * @param absoluteStartTimeMs
+	 * @param publishType
+	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
+	 */
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> publishParameters);
+
 	
 	/**
 	 * Notify the handler that is stream is stopped
+	 * @deprecated use {@link #stopPublish(String, String)} instead of this method
 	 * @param streamId
 	 */
+	@Deprecated
 	public void stopPublish(String streamId);
 	
+	/**
+	 * Notify the handler that is stream is stopped
+	 * 
+	 * @param streamId
+	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
+	 */
+	public void stopPublish(String streamId, String subscriberId);
+	
+	
+	/**
+	 * Notify the handler that is stream is stopped
+	 * 
+	 * @param streamId
+	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
+	 * @param publishParameters: It's the parameters of the publish. It can be null if it's not available.
+	 */
+	public void stopPublish(String streamId, String subscriberId, Map<String, String> publishParameters);	
 	/**
 	 * Update broadcast status to BROADCASTING
 	 * 
@@ -287,4 +323,10 @@ public interface IAntMediaStreamHandler {
 	 * @param listener
 	 */
 	public void addSettingsUpdateListener(IAppSettingsUpdateListener listener);
+	
+	/**
+	 * Get data channel router for data channel delivery
+	 * @return
+	 */
+	public IDataChannelRouter getDataChannelRouter();
 }

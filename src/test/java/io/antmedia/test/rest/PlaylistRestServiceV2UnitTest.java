@@ -260,7 +260,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		when(restServiceSpy.getApplication()).thenReturn(adptr);
 
-		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean())).thenReturn(result);
+		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any())).thenReturn(result);
 
 		try {
 			playlist.setStreamId("testPlaylistId");
@@ -367,7 +367,7 @@ public class PlaylistRestServiceV2UnitTest {
 		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
 		Mockito.verify(app).schedulePlayList(Mockito.anyLong(), Mockito.any());
 		//because we don't restart for playlist
-		Mockito.verify(app, Mockito.never()).stopStreaming(Mockito.any(), Mockito.anyBoolean());
+		Mockito.verify(app, Mockito.never()).stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any());
 		Mockito.verify(app, Mockito.never()).startStreaming(Mockito.any());
 		
 		
@@ -517,7 +517,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 
 		when(restServiceSpy.getApplication()).thenReturn(mock(AntMediaApplicationAdapter.class));
-		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean())).thenReturn(result);
+		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any())).thenReturn(result);
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);	
 		//it's created because it's not started
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, playlist.getStatus());

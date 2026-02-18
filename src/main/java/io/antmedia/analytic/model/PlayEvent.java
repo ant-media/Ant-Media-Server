@@ -31,7 +31,6 @@ public class PlayEvent extends AnalyticEvent {
 		
 	private String clientIP;
 	
-	private String subscriberId;
 
 	public String getProtocol() {
 		return protocol;
@@ -39,14 +38,6 @@ public class PlayEvent extends AnalyticEvent {
 
 	public void setProtocol(String protocol) {
 		this.protocol = protocol;
-	}
-
-	public String getSubscriberId() {
-		return subscriberId;
-	}
-
-	public void setSubscriberId(String subscriberId) {
-		this.subscriberId = subscriberId;
 	}
 
 	public String getClientIP() {

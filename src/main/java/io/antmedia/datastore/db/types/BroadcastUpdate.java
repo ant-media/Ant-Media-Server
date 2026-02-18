@@ -163,6 +163,8 @@ public class BroadcastUpdate {
     private List<EncoderSettings> encoderSettingsList = null;
     
     private Boolean virtual = null;
+    
+    private Integer maxIdleTime = null;
 
 	public String getStreamId() {
 		return streamId;
@@ -801,6 +803,14 @@ public class BroadcastUpdate {
 	 */
 	public void setVirtual(Boolean virtual) {
 		this.virtual = virtual;
+	}
+
+	public Integer getMaxIdleTime() {
+		return maxIdleTime;
+	}
+
+	public void setMaxIdleTime(Integer maxIdleTime) {
+		this.maxIdleTime = maxIdleTime;
 	}
     
     

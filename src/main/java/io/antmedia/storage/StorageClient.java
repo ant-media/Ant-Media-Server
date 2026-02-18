@@ -3,10 +3,15 @@ package io.antmedia.storage;
 import java.io.File;
 import java.io.InputStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.amazonaws.event.ProgressListener;
 
 public abstract class StorageClient {
 	
+	
+	Logger logger = LoggerFactory.getLogger(StorageClient.class);
 	
 	public static final String BEAN_NAME = "app.storageClient";
 
@@ -66,7 +71,14 @@ public abstract class StorageClient {
 	 * @param type
 	 */
 	public abstract void delete(String key);
-	
+	/**
+	 * Delete Multiple files from storage
+	 * 
+	 * @param fileName
+	 * @param fileExtensions
+	 */
+
+  public abstract void deleteMultipleFiles(String key, String regex);
 	/**
 	 * Save input stream to the storage with key parameter
 	 * 
@@ -83,6 +95,19 @@ public abstract class StorageClient {
 	 * @param deleteLocalFile
 	 */
 	public abstract void save(String key, File file, boolean deleteLocalFile);
+	
+	/**
+	 * Save file to storage and delete the local file according to the parameter
+	 * 
+	 * @param key
+	 * @param file
+	 * @param deleteLocalFile
+	 * @param progressListener
+	 */
+	public void save(String key, File file, boolean deleteLocalFile, ProgressListener progressListener) {
+		//it is implemented in the subclass this is the default implementation
+		save(key, file, deleteLocalFile);
+	}
 	
 	
 	public void setProgressListener(ProgressListener progressListener) {
@@ -106,6 +131,13 @@ public abstract class StorageClient {
 	 * @return
 	 */
 	public abstract boolean fileExist(String key);
+	
+	
+	public InputStream get(String key) {
+		//default implementation returns null
+		logger.warn("get method is not implemented in StorageClient. Please implement it in the subclass.");
+		return null;
+	}
 	
 	/**
 	 * Re-initialize the storage client with the current parameters

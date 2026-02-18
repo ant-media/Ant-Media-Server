@@ -62,7 +62,6 @@
     <logger name="org.apache" level="${logLevel}" />
     <logger name="org.apache.jasper.servlet" level="${logLevel}" />
     <logger name="ch.qos" level="${logLevel}" />
-    <logger name="io.antmedia" level="${logLevel}"/>
     <logger name="org.quartz" level="${logLevel}"/>
     <logger name="org.apache.catalina.core.ApplicationContext" level="${logLevel}" />
 </configuration>

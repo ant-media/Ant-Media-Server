@@ -104,6 +104,7 @@ public abstract class MapBasedDataStore extends DataStore
 				Broadcast broadcast = getBroadcastFromMap(id);
 				if (broadcast != null) {
 					broadcast.setStatus(status);
+					broadcast.setUpdateTime(System.currentTimeMillis());
 					if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
 					} else if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
@@ -196,7 +197,7 @@ public abstract class MapBasedDataStore extends DataStore
 						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 							Endpoint endpointItem = iterator.next();
 							if (checkRTMPUrl) {
-								if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+								if (endpointItem.getEndpointUrl().equals(endpoint.getEndpointUrl())) {
 									iterator.remove();
 									result = true;
 									break;
@@ -838,8 +839,27 @@ public abstract class MapBasedDataStore extends DataStore
 	}
 
 	@Override
+	public long getConnectedSubscriberCount(String streamId) {
+		int subscriberCount = 0;
+		synchronized (this) {
+			for (String subscriberJson : subscriberMap.values()) {
+				Subscriber subscriber = gson.fromJson(subscriberJson, Subscriber.class);
+				if(subscriber.getStreamId().equals(streamId) && subscriber.isConnected()) {
+					subscriberCount++;
+				}
+			}
+		}
+		return subscriberCount;
+	}
+	
+	@Override
+	public List<Subscriber> getConnectedSubscribers(String streamId, int offset, int size) {
+		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson, true);
+	}
+
+	@Override
 	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
-		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson);
+		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson, false);
 	}
 
 	@Override

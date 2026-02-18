@@ -19,6 +19,7 @@
 package org.red5.server.api.stream;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.red5.server.api.scheduling.IScheduledJob;
 
@@ -140,5 +141,19 @@ public interface ISubscriberStream extends IClientStream {
      *            job name
      */
     public void cancelJob(String jobName);
+
+    /**
+	 * Sets parameters to be used when playing the stream.
+	 * 
+	 * @param params
+	 *            parameters
+	 */
+	public void setParams(Map<String, String> params);
+	
+	/**
+	 * Returns parameters used when playing the stream.
+	 * @return
+	 */
+	public Map<String, String> getParams();
 
 }
