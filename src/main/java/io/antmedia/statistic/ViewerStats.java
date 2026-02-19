@@ -135,7 +135,7 @@ public class ViewerStats {
 			
 		});
 		
-	}
+}
 	
 	public void resetViewerMap(String streamID, String type) {
 		
@@ -162,6 +162,18 @@ public class ViewerStats {
 		}
 	}
 	
+	public void removeViewerEntry(String streamId, String viewerKey) {
+		vertx.runOnContext(h -> {
+			synchronized (lock) {
+				Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
+				if (viewerMap != null && viewerMap.remove(viewerKey) != null) {
+					logger.debug("Removed fingerprint entry {} for stream {}", viewerKey, streamId);
+					sessionId2subscriberId.remove(viewerKey);
+				}
+			}
+		});
+	}
+
 	public int getViewerCount(String streamId) {
 		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
 		int viewerCount = 0;
