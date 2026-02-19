@@ -22,20 +22,18 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import io.antmedia.statistic.IStatsExporter;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avutil.AVRational;
-import org.bytedeco.javacpp.Pointer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.red5.server.Launcher;
 import org.red5.server.api.IContext;
 import org.red5.server.api.IServer;
 import org.red5.server.api.scope.IScope;
@@ -437,6 +435,9 @@ public class StatsCollectorTest {
 		
 		resMonitor.setVertx(vertx);
 		resMonitor.setWebRTCVertx(webRTCVertx);
+		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		resMonitor.setKafkaBrokers("9900");
+		resMonitor.start();
 		
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		
@@ -456,7 +457,7 @@ public class StatsCollectorTest {
 		
 		verify(kafkaProducer).send(producerRecord.capture());
 		
-		assertEquals(StatsCollector.INSTANCE_STATS_TOPIC_NAME, producerRecord.getValue().topic());
+		assertEquals(IStatsExporter.INSTANCE_STATS, producerRecord.getValue().topic());
 	}
 	
 	@Test
@@ -475,24 +476,28 @@ public class StatsCollectorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
+		resMonitor.setVertx(Vertx.vertx());
+		resMonitor.setKafkaBrokers("9000");
+		resMonitor.start();
 		resMonitor.setKafkaProducer(kafkaProducer);
-		
+
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
 		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info", "192.168.1.1");
 		webRTCClientStatList.add(stats);
-		resMonitor.sendWebRTCClientStats2Kafka(webRTCClientStatList, "stream1");
+		resMonitor.sendWebRTCClientStats(webRTCClientStatList, "stream1");
 		
 		
 		verify(kafkaProducer).send(producerRecord.capture());
 		
-		assertEquals(StatsCollector.WEBRTC_STATS_TOPIC_NAME, producerRecord.getValue().topic());
+		assertEquals(IStatsExporter.WEBRTC_CLIENT_STATS, producerRecord.getValue().topic());
 	}
 	
 	@Test
 	public void testCreateKafka() {
 		StatsCollector resMonitor = new StatsCollector();
 		try {
-			Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
+			resMonitor.start();
+			Producer<Long, String> kafkaProducer = resMonitor.getKafkaProducer();
 			//it should throw exception
 			fail("it shold throw exception");
 		}
@@ -501,7 +506,9 @@ public class StatsCollectorTest {
 		}
 		
 		resMonitor.setKafkaBrokers("localhost:9092");
-		Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
+		resMonitor.setVertx(Vertx.vertx());
+		resMonitor.start();
+		Producer<Long, String> kafkaProducer = resMonitor.getKafkaProducer();
 		assertNotNull(kafkaProducer);
 		kafkaProducer.close();
 	}
@@ -509,6 +516,9 @@ public class StatsCollectorTest {
 	@Test
 	public void testCollectAndSendWebRTCStats() {
 		StatsCollector resMonitor = new StatsCollector();
+		resMonitor.setKafkaBrokers("9000");
+		resMonitor.setVertx(Vertx.vertx());
+		resMonitor.start();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);
 		
