@@ -849,6 +849,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(TIME, DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
 		jsonObject.addProperty(HOST_ADDRESS, hostAddress);
 		jsonObject.addProperty(IP_ADDRESS, ServerSettings.getGlobalHostAddress());
+		jsonObject.addProperty(USER_EMAIL+":" + getUserEmail(),0);
 
 		statsExporter.sendStats(jsonObject, IStatsExporter.INSTANCE_STATS); 
 	}
