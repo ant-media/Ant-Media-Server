@@ -24,6 +24,7 @@ public class ClusterNode implements Serializable {
 	private long lastUpdateTime;
 	private String memory;
 	private String cpu;
+	private boolean master;
 	
 	private int dbQueryAveargeTimeMs;
 	
@@ -103,5 +104,13 @@ public class ClusterNode implements Serializable {
 	 */
 	public void setDbQueryAveargeTimeMs(int dbQueryAveargeTimeMs) {
 		this.dbQueryAveargeTimeMs = dbQueryAveargeTimeMs;
+	}
+
+	public boolean isMaster() {
+		return master;
+	}
+
+	public void setMaster(boolean master) {
+		this.master = master;
 	}
 }

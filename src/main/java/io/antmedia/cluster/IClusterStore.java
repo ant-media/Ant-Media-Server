@@ -37,4 +37,17 @@ public interface IClusterStore
 	 * @param statsCollector
 	 */
 	public void setStatsCollector(StatsCollector statsCollector);
+	
+	/**
+	 * get the master node 
+	 */
+	public ClusterNode getMasterNode();
+	
+	/**
+	 * promote the calling node to the master 
+	 * @param newMasterNode 
+	 * @param oldMasterNode 
+	 */
+	public void promoteToMaster(ClusterNode newMasterNode, ClusterNode oldMasterNode);
+
 }
