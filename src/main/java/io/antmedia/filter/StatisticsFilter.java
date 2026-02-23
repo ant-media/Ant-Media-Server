@@ -134,9 +134,12 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			String cookieFingerprint = cookieValue.substring(separatorIndex + 1);
 
 			if (!uuid.isEmpty()) {
-				// Cookie is valid — use UUID as identity, return the old fingerprint for cleanup
-				String oldFp = cookieFingerprint.equals(fingerprint) ? cookieFingerprint : null;
-				return new String[] { uuid, oldFp };
+				// Cookie is valid — use UUID as identity.
+				// Always return the stored fingerprint for cleanup because the
+				// first visit (before the cookie existed) registered the viewer
+				// under that fingerprint.  It must be removed regardless of
+				// whether the client's IP/UA has changed since then.
+				return new String[] { uuid, cookieFingerprint };
 			}
 		}
 
