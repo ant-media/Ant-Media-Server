@@ -49,7 +49,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
 
-	public static final String BIG_BUNNY_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+	public static final String BIG_BUNNY_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
 
 	private static int OS_TYPE;
 
@@ -213,10 +213,10 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		//add rtmp endpoint 
 		Endpoint endpoint = new Endpoint();
 		String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
-		endpoint.setRtmpUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId); 
+		endpoint.setEndpointUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId);
 		try 
 		{
-			result = RestServiceV2Test.addEndpointV2(streamSource.getStreamId(), endpoint);
+			result = RestServiceV2Test.addEndpointV3(streamSource.getStreamId(), endpoint);
 			assertTrue(result.isSuccess());
 			String endpointId = result.getDataId();
 			//check that rtmp endpoint is streaming
@@ -289,7 +289,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		dataStore.save(localStream);
 
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl(endpointStream.getRtmpURL());
+		endpoint.setEndpointUrl(endpointStream.getRtmpURL());
 		//add endpoint to the server
 		dataStore.addEndpoint(localStream.getStreamId(), endpoint);
 

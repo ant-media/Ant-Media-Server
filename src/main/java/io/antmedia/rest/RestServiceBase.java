@@ -613,7 +613,7 @@ public abstract class RestServiceBase {
 			if (validateStreamURL(rtmpUrl))
 			{
 				Endpoint endpoint = new Endpoint();
-				endpoint.setRtmpUrl(rtmpUrl);
+				endpoint.setEndpointUrl(rtmpUrl);
 				endpoint.setType(ENDPOINT_GENERIC);
 
 				success = getDataStore().addEndpoint(id, endpoint);
@@ -640,7 +640,7 @@ public abstract class RestServiceBase {
 
 
 		try {
-			if (validateStreamURL(endpoint.getRtmpUrl()))
+			if (validateStreamURL(endpoint.getEndpointUrl()))
 			{
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
@@ -655,7 +655,7 @@ public abstract class RestServiceBase {
 	public Result removeEndpoint(String id, String rtmpUrl)
 	{
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl(rtmpUrl);
+		endpoint.setEndpointUrl(rtmpUrl);
 		endpoint.setType(ENDPOINT_GENERIC);
 
 		boolean removed = getDataStore().removeEndpoint(id, endpoint, true);
@@ -675,15 +675,15 @@ public abstract class RestServiceBase {
 		return !isCluster || originAddress.equals(getServerSettings().getHostAddress());
 	}
 
-	public Result processRTMPEndpoint(String streamId, String originAddress, String rtmpUrl, boolean addEndpoint, int resolution) {
+	public Result processEndpoint(String streamId, String originAddress, String endpointUrl, boolean addEndpoint, int resolution) {
 		Result result = new Result(false);
 		if(isInSameNodeInCluster(originAddress))
 		{
 			if(addEndpoint) {
-				result = getMuxAdaptor(streamId).startRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).startEndpointStreaming(endpointUrl, resolution);
 			}
 			else {
-				result = getMuxAdaptor(streamId).stopRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).stopEndpointStreaming(endpointUrl, resolution);
 			}
 		}
 		else {
@@ -1017,6 +1017,7 @@ public abstract class RestServiceBase {
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
+				url.startsWith("srt://") ||
 				url.startsWith(RTSP))) {
 
 			ipAddrParts = url.split("//");
@@ -1252,98 +1253,76 @@ public abstract class RestServiceBase {
 		return String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams");
 	}
 
-	protected Result uploadVoDFile(String fileName, InputStream inputStream) {
-		boolean success = false;
-		String message = "";
-		String id= null;
+	public Result uploadVoDFile(String fileName, InputStream inputStream) {
+		return uploadVoDFile(fileName, inputStream, null);
+	}
+
+	public Result uploadVoDFile(String fileName, InputStream inputStream, String metadata) {
+		String id = null;
 		String appScopeName = getScope().getName();
 		String fileExtension = FilenameUtils.getExtension(fileName);
+		
+		String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
+		if (!ArrayUtils.contains(supportedFormats, fileExtension)) {
+			//this message has been used in the frontend(webpanel) pay attention
+			return new Result(false, null, "notSupportedFileType");
+		}
+
+		IStatsCollector statsCollector = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
+		String vodUploadFinishScript = getAppSettings().getVodUploadFinishScript();
+		if (StringUtils.isNotBlank(vodUploadFinishScript) && !statsCollector.enoughResource()) {
+			logger.info("Not enough resource to upload VoD file");
+			return new Result(false, null, "Not enough system resources available to upload and process VoD File");
+		}
+
 		try {
+			File streamsDirectory = new File(getStreamsDirectory(appScopeName));
+			if (!streamsDirectory.exists()) {
+				streamsDirectory.mkdirs();
+			}
 
-			String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
+			String vodId = RandomStringUtils.secure().nextNumeric(24);
+			File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
 
-			if (ArrayUtils.contains(supportedFormats, fileExtension)) {
+			if (!savedFile.toPath().normalize().startsWith(streamsDirectory.toPath().normalize())) {
+				throw new IOException("Entry is outside of the target directory");
+			}
 
+			int read = 0;
+			byte[] bytes = new byte[2048];
+			try (OutputStream outpuStream = new FileOutputStream(savedFile)) {
+				while ((read = inputStream.read(bytes)) != -1) {
+					outpuStream.write(bytes, 0, read);
+				}
+				outpuStream.flush();
 
-				IStatsCollector statsCollector = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
-				String vodUploadFinishScript = getAppSettings().getVodUploadFinishScript();
-				if (StringUtils.isNotBlank(vodUploadFinishScript)  && !statsCollector.enoughResource()) 
-				{
-					logger.info("Not enough resource to upload VoD file");
-					message = "Not enough system resources available to upload and process VoD File";
-				} 
-				else 
-				{
+				long fileSize = savedFile.length();
+				long unixTime = System.currentTimeMillis();
+				String relativePath = AntMediaApplicationAdapter.getRelativePath(savedFile.getPath());
 
-					File streamsDirectory = new File(
-							getStreamsDirectory(appScopeName));
+				VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, 
+						Muxer.getDurationInMs(savedFile, fileName), fileSize, VoD.UPLOADED_VOD, vodId, null);
 
-					// if the directory does not exist, create it
-					if (!streamsDirectory.exists()) {
-						streamsDirectory.mkdirs();
-					}
-					String vodId = RandomStringUtils.secure().nextNumeric(24);
+				if (StringUtils.isNotBlank(metadata)) {
+					newVod.setMetadata(metadata);
+				}
 
+				if (StringUtils.isNotBlank(vodUploadFinishScript)) {
+					newVod.setProcessStatus(VoD.PROCESS_STATUS_INQUEUE);
+				}
 
-					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
+				id = getDataStore().addVod(newVod);
 
-					if (!savedFile.toPath().normalize().startsWith(streamsDirectory.toPath().normalize())) {
-						throw new IOException("Entry is outside of the target directory");
-					} 
-
-					int read = 0;
-					byte[] bytes = new byte[2048];
-					try (OutputStream outpuStream = new FileOutputStream(savedFile))
-					{
-
-						while ((read = inputStream.read(bytes)) != -1) {
-							outpuStream.write(bytes, 0, read);
-						}
-						outpuStream.flush();
-
-						long fileSize = savedFile.length();
-						long unixTime = System.currentTimeMillis();
-
-						String path = savedFile.getPath();
-
-
-						String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
-
-						VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, Muxer.getDurationInMs(savedFile,fileName), fileSize,
-								VoD.UPLOADED_VOD, vodId, null);
-
-						if (StringUtils.isNotBlank(vodUploadFinishScript)) {
-							newVod.setProcessStatus(VoD.PROCESS_STATUS_INQUEUE);
-						}
-
-						id = getDataStore().addVod(newVod);
-
-						if(id != null) {
-							success = true;
-							message = id;
-
-							if (StringUtils.isNotBlank(vodUploadFinishScript)) 
-							{
-								startVoDScriptProcess(vodUploadFinishScript, savedFile, newVod, id);	
-
-							}
-
-						}
-					}
+				if (id != null && StringUtils.isNotBlank(vodUploadFinishScript)) {
+					startVoDScriptProcess(vodUploadFinishScript, savedFile, newVod, id);
 				}
 			}
-			else {
-				//this message has been used in the frontend(webpanel) pay attention
-				message = "notSupportedFileType";
-			}
-
-		}
-		catch (IOException iox) {
+		} catch (IOException iox) {
 			logger.error(iox.getMessage());
+			return new Result(false, null, "");
 		}
 
-
-		return new Result(success, id, message);
+		return new Result(id != null, id, id != null ? id : "");
 	}
 
 	public void startVoDScriptProcess(String vodUploadFinishScript, File savedFile, VoD newVod, String vodId) {

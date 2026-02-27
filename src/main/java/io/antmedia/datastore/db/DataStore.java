@@ -1227,35 +1227,36 @@ public abstract class DataStore {
 	 * They are used by InMemoryDataStore and MapDBStore, Mongodb implements the same functionality inside its own class.
 	 */
 	protected ArrayList<VoD> searchOnServerVod(ArrayList<VoD> broadcastList, String search){
-		
+
 		long startTime = System.nanoTime();
 		if(search != null && !search.isEmpty()) {
+			String searchLower = search.toLowerCase();
 			for (Iterator<VoD> i = broadcastList.iterator(); i.hasNext(); ) {
 				VoD item = i.next();
-				if(item.getVodName() != null && item.getStreamName() != null && item.getStreamId() != null && item.getVodId() != null) {
-					if (item.getVodName().toLowerCase().contains(search.toLowerCase()) || item.getStreamId().toLowerCase().contains(search.toLowerCase()) || item.getStreamName().toLowerCase().contains(search.toLowerCase()) || item.getVodId().toLowerCase().contains(search.toLowerCase()))
-						continue;
-					else i.remove();
+				if (matchesVodSearch(item, searchLower)) {
+					continue;
 				}
-				else if (item.getVodName()!= null && item.getVodId() != null){
-					if (item.getVodName().toLowerCase().contains(search.toLowerCase()) || item.getVodId().toLowerCase().contains(search.toLowerCase()))
-						continue;
-					else i.remove();
-				}
-				else{
-					if (item.getVodId() != null){
-						if (item.getVodId().toLowerCase().contains(search.toLowerCase()))
-							continue;
-						else i.remove();
-					}
-				}
+				i.remove();
 			}
 		}
-		
+
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "searchOnServerVod");
 		return broadcastList;
+	}
+
+	private boolean matchesVodSearch(VoD item, String searchLower) {
+		return containsIgnoreCase(item.getVodId(), searchLower) ||
+				containsIgnoreCase(item.getVodName(), searchLower) ||
+				containsIgnoreCase(item.getStreamId(), searchLower) ||
+				containsIgnoreCase(item.getStreamName(), searchLower) ||
+				containsIgnoreCase(item.getDescription(), searchLower) ||
+				containsIgnoreCase(item.getMetadata(), searchLower);
+	}
+
+	private boolean containsIgnoreCase(String field, String searchLower) {
+		return field != null && field.toLowerCase().contains(searchLower);
 	}
 
 	protected List<VoD> sortAndCropVodList(List<VoD> vodList, int offset, int size, String sortBy, String orderBy) 

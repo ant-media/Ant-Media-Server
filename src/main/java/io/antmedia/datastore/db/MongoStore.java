@@ -513,7 +513,7 @@ public class MongoStore extends DataStore {
 						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 							Endpoint endpointItem = iterator.next();
 							if(checkRTMPUrl) {
-								if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+								if (endpointItem.getEndpointUrl().equals(endpoint.getEndpointUrl())) {
 									iterator.remove();
 									result = true;
 									break;
@@ -825,7 +825,9 @@ public class MongoStore extends DataStore {
 						Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex(VOD_ID).caseInsensitive().pattern(".*" + search + ".*"),
-						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
+						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("description").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("metadata").caseInsensitive().pattern(".*" + search + ".*")
 						)
 						);
 
@@ -973,14 +975,16 @@ public class MongoStore extends DataStore {
 		synchronized(vodLock) {
 
 			Query<VoD> query = vodDatastore.find(VoD.class);
-			if (search != null && !search.isEmpty()) 
+			if (search != null && !search.isEmpty())
 			{
 				logger.info("Server side search is called for {}", search);
 				query.filter(Filters.or(
 						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex(VOD_ID).caseInsensitive().pattern(".*" + search + ".*"),
-						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
+						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("description").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("metadata").caseInsensitive().pattern(".*" + search + ".*")
 						));
 			}
 			partialVodNumber = query.count();
