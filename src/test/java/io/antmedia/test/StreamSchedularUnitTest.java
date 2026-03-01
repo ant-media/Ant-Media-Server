@@ -75,10 +75,10 @@ import io.vertx.core.Vertx;
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
-	public static String VALID_MP4_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL_2 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL_3 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
+	public static String VALID_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/cutting_orange_tuil_2000kbps_720p_59.94fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_2 = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/vegetables_tuil_2000kbps_720p_59.94fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_3 = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_2/segments/Dancers_8s_2470kbps_720p_60.0fps_h264.mp4";
 	public static String INVALID_MP4_URL = "invalid_link";
 	public static String INVALID_403_MP4_URL = "https://httpstat.us/403";
 	private WebScope appScope;
@@ -380,7 +380,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
 		broadcastItem1.setDurationInMs(Muxer.getDurationInMs(broadcastItem1.getStreamUrl(), ""));
 		logger.info("Duration of the stream: {}", broadcastItem1.getDurationInMs());
-		assertTrue(15045 == broadcastItem1.getDurationInMs() || 15046 == broadcastItem1.getDurationInMs());
+		assertTrue(10000 == broadcastItem1.getDurationInMs());
 
 		try {
 
@@ -732,7 +732,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testControlStreamFetchersPlayListAndRestart() {
-		DataStore dataStore = Mockito.mock(DataStore.class); 
+		DataStore dataStore = Mockito.mock(DataStore.class);
 		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
 		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
 
@@ -742,7 +742,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streamFetcherList.put(streamId, fetcher);
 		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
 		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
-		
+
 		when(fetcher.isStreamAlive()).thenReturn(true);
 		when(fetcher.isStreamBlocked()).thenReturn(false);
 
@@ -751,11 +751,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		when(broadcast.getStreamId()).thenReturn(streamId);
 		when(broadcast.getStreamUrl()).thenReturn("streamurl");
 		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.PLAY_LIST);
+		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
 
 		streamFetcherManager.setStreamFetcherList(streamFetcherList);
 
 		streamFetcherManager.controlStreamFetchers(false);
-		//it should not call anything because type is playlist
+		//it should not call isToBeStoppedAutomatically because type is playlist and autoStartStopEnabled is false
 		Mockito.verify(streamFetcherManager, Mockito.never()).isToBeStoppedAutomatically(Mockito.any());
 
 
@@ -772,6 +773,47 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		listenerCaptor.getValue().streamFinished(null);;
 		Mockito.verify(streamFetcherManager).startStreaming(broadcast);
 
+	}
+
+	@Test
+	public void testControlStreamFetchersPlayListAutoStop() {
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
+
+		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
+		String streamId = "playlistStream123";
+		String streamUrl = "streamurl";
+		streamFetcherList.put(streamId, fetcher);
+		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
+		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
+
+		when(fetcher.isStreamAlive()).thenReturn(true);
+		when(fetcher.isStreamBlocked()).thenReturn(false);
+
+		Broadcast broadcast = mock(Broadcast.class);
+		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
+		when(broadcast.getStreamId()).thenReturn(streamId);
+		when(broadcast.getStreamUrl()).thenReturn("streamurl");
+		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.PLAY_LIST);
+		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
+
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+
+		// When autoStartStopEnabled is true, isToBeStoppedAutomatically should be called for playlists
+		Mockito.doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
+		streamFetcherManager.controlStreamFetchers(false);
+		Mockito.verify(streamFetcherManager, Mockito.times(1)).isToBeStoppedAutomatically(broadcast);
+
+		// Reset and test when isToBeStoppedAutomatically returns true - should call stopPlayList
+		Mockito.reset(streamFetcherManager);
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+		Mockito.doReturn(true).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
+		Mockito.doReturn(new Result(true)).when(streamFetcherManager).stopPlayList(Mockito.any());
+
+		streamFetcherManager.controlStreamFetchers(false);
+		Mockito.verify(streamFetcherManager, Mockito.times(1)).isToBeStoppedAutomatically(broadcast);
+		Mockito.verify(streamFetcherManager, Mockito.times(1)).stopPlayList(streamId);
 	}
 	
 	
