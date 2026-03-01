@@ -18,7 +18,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$0
+ExecStart=$AMS_DIR/conf/$0
 StandardOutput=journal
 StandardError=journal
 
