@@ -1476,7 +1476,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e1.printStackTrace();
 		}
 
-		stream2.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");		
+		stream2.setStreamUrl("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4");		
 		dataStore.save(stream2);
 
 		StreamFetcherManager sfm = new StreamFetcherManager(vertx, dataStore, scope);
@@ -2008,7 +2008,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		broadcast.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");
+		broadcast.setStreamUrl("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4");
 		dataStore.save(broadcast);
 
 		boolean startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
