@@ -114,6 +114,8 @@ public class PrometheusStatsExporter implements IStatsExporter {
 		createGauge(StatsCollector.LOCAL_HLS_VIEWERS, "HLS viewers");
 		createGauge(StatsCollector.LOCAL_DASH_VIEWERS, "DASH viewers");
 		createGauge(StatsCollector.DB_AVERAGE_QUERY_TIME_MS, "DB average query time in ms");
+		createGauge(StatsCollector.USER_EMAIL_HASH, "Hashed user email value");
+		createGauge(StatsCollector.LICENSE_KEY_HASH, "Hashed license key value");
 	}
 
 	private void createGauge(String key, String help) {

@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -123,6 +127,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String MARKETPLACE_NAME = "marketplace";
 
 	public static final String USER_EMAIL = "userEmail";
+	public static final String USER_EMAIL_HASH = "userEmailHash";
+	public static final String LICENSE_KEY_HASH = "licenseKeyHash";
 
 	public static final String LICENSE_VALID = "licenseValid";
 
@@ -231,7 +237,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String EXPORTER_KAFKA = "kafka";
 	public static final String EXPORTER_PROMETHEUS = "prometheus";
 
-	private String statsExporterType = EXPORTER_KAFKA;
+	private String statsExporterType = "" ;
 	private int prometheusPort = 9090;
 	private IStatsExporter statsExporter = null;
 
@@ -331,6 +337,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private ILicenceService licenseService;
 
 	private String userEmail;
+	private String licenceKey;
 
 	/**
 	 * Webhook url to notify high resource usage, unexpected shutdown. More callbacks can be added
@@ -431,7 +438,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			statsExporter = new PrometheusStatsExporter(prometheusPort);
 		} else {
 			if (statsExporterType != null && !statsExporterType.isEmpty()) {
-				logger.warn("Unknown stats exporter type: {}. Stats export disabled.", statsExporterType);
+				logger.warn("Stats export disabled.");
 			}
 			return;
 		}
@@ -849,9 +856,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(TIME, DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
 		jsonObject.addProperty(HOST_ADDRESS, hostAddress);
 		jsonObject.addProperty(IP_ADDRESS, ServerSettings.getGlobalHostAddress());
-		jsonObject.addProperty(USER_EMAIL+":" + getUserEmail(),0);
+		String email = getUserEmail();
+		if (StringUtils.isNotBlank(email)) {
+			jsonObject.addProperty(USER_EMAIL, email);
+			jsonObject.addProperty(USER_EMAIL_HASH, hashStringToLong(email));
+		}
+		if (StringUtils.isNotBlank(licenceKey)) {
+			jsonObject.addProperty(LICENSE_KEY_HASH, hashStringToLong(licenceKey));
+		}
 
 		statsExporter.sendStats(jsonObject, IStatsExporter.INSTANCE_STATS); 
+	}
+
+	private long hashStringToLong(String input) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] hashBytes = digest.digest(input.trim().toLowerCase().getBytes(StandardCharsets.UTF_8));
+			long hashLong = ByteBuffer.wrap(hashBytes, 0, Long.BYTES).getLong();
+			return hashLong & Long.MAX_VALUE;
+		} catch (NoSuchAlgorithmException e) {
+			logger.warn("Could not hash value with SHA-256. Falling back to hashCode.");
+			return Integer.toUnsignedLong(input.hashCode());
+		}
 	}
 
 	public void addCpuMeasurement(int systemCpuLoad, int processCpu) {
@@ -1094,6 +1120,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		windowSize = serverSettings.getCpuMeasurementWindowSize();
 		marketplace = serverSettings.getMarketplace();
 		webhookURL = serverSettings.getServerStatusWebHookURL();
+		licenceKey = serverSettings.getLicenceKey();
 
 		licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 
