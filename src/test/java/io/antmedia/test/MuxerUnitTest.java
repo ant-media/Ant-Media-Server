@@ -1724,16 +1724,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		if (aacConfigParser.getObjectType() == AudioObjectTypes.AAC_LC) {
 
-			audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LOW);
+			audioCodecParameters.profile(AV_PROFILE_AAC_LOW);
 		} else if (aacConfigParser.getObjectType() == AudioObjectTypes.AAC_LTP) {
 
-			audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LTP);
+			audioCodecParameters.profile(AV_PROFILE_AAC_LTP);
 		} else if (aacConfigParser.getObjectType() == AudioObjectTypes.AAC_MAIN) {
 
-			audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_MAIN);
+			audioCodecParameters.profile(AV_PROFILE_AAC_MAIN);
 		} else if (aacConfigParser.getObjectType() == AudioObjectTypes.AAC_SSR) {
 
-			audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_SSR);
+			audioCodecParameters.profile(AV_PROFILE_AAC_SSR);
 		}
 
 		audioCodecParameters.frame_size(aacConfigParser.getFrameSize());

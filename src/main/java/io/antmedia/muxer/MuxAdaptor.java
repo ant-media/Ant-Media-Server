@@ -5,6 +5,10 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PNG;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PROFILE_AAC_LOW;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PROFILE_AAC_LTP;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PROFILE_AAC_MAIN;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PROFILE_AAC_SSR;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
@@ -663,19 +667,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				if (aacParser.getObjectType() == AudioObjectTypes.AAC_LC) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LOW);
+					audioCodecParameters.profile(AV_PROFILE_AAC_LOW);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_LTP) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LTP);
+					audioCodecParameters.profile(AV_PROFILE_AAC_LTP);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_MAIN) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_MAIN);
+					audioCodecParameters.profile(AV_PROFILE_AAC_MAIN);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_SSR) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_SSR);
+					audioCodecParameters.profile(AV_PROFILE_AAC_SSR);
 				}
 
 				audioCodecParameters.frame_size(aacParser.getFrameSize());
