@@ -99,6 +99,18 @@ public abstract class DataStore {
 	 */
 	public abstract Broadcast get(String id);
 
+	/**
+	 * Return the broadcast directly from the database, bypassing any local cache.
+	 * This is useful in cluster mode where the local cache may hold a stale status
+	 * while the database has been updated by another node.
+	 * Default implementation delegates to {@link #get(String)}.
+	 * @param id
+	 * @return broadcast
+	 */
+	public Broadcast getDirectFromDB(String id) {
+		return get(id);
+	}
+
 	public Broadcast get(Map<String, String> broadcastMap, String streamId, Gson gson) {
 		long startTime = System.nanoTime();
 
