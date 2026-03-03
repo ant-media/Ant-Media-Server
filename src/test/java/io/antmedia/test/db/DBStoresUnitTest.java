@@ -199,6 +199,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
 		testCustomTotpExpiry(dataStore);
+		testGetBroadcastByHost(dataStore);
 
 		dataStore.close(false);
 
@@ -297,6 +298,8 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
 		testCustomTotpExpiry(dataStore);
+		testGetBroadcastByHost(dataStore);
+
 
 
 		dataStore.close(false);
@@ -382,6 +385,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithSearch(dataStore);
 		testConnectedSubscribers(dataStore);
 		testCustomTotpExpiry(dataStore);
+		testGetBroadcastByHost(dataStore);
 
 		dataStore.close(true);
 
@@ -4120,6 +4124,7 @@ public class DBStoresUnitTest {
 
 	}
 	
+	
 	public void testBroadcastCache(DataStore dataStore) {
 		MongoStore mongoDataStore = (MongoStore) dataStore;
 		
@@ -4250,5 +4255,43 @@ public class DBStoresUnitTest {
 		assertNotNull(retrievedSubscriber2);
 		assertNull(retrievedSubscriber2.getTotpExpiryPeriodSeconds());
 	}
+	
+	public void testGetBroadcastByHost(DataStore dataStore) {
+		clear(dataStore);
+
+		assertEquals(0, dataStore.getBroadcastCount());
+
+		Broadcast broadcast1 = new Broadcast(null, null);
+		try {
+			broadcast1.setStreamId("broadcast1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast1.setOriginAdress("origin1");
+		dataStore.save(broadcast1);
+
+		
+		Broadcast broadcast2 = new Broadcast(null, null);
+		try {
+			broadcast2.setStreamId("broadcast2");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast2.setOriginAdress("origin2");
+		dataStore.save(broadcast2);
+
+		List<Broadcast> list = dataStore.getBroadcastListByHost("origin1");
+		
+		assertEquals(1, list.size());
+		assertEquals("broadcast1", list.get(0).getStreamId());
+		
+		list = dataStore.getBroadcastListByHost("origin2");
+		
+		assertEquals(1, list.size());
+		assertEquals("broadcast2", list.get(0).getStreamId());
+
+
+	}
+	
 
 }
