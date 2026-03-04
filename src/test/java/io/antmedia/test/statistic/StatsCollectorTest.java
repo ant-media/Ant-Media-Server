@@ -478,6 +478,7 @@ public class StatsCollectorTest {
 		
 		resMonitor.setVertx(Vertx.vertx());
 		resMonitor.setKafkaBrokers("9000");
+		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
 		resMonitor.start();
 		resMonitor.setKafkaProducer(kafkaProducer);
 
@@ -506,6 +507,7 @@ public class StatsCollectorTest {
 		}
 		
 		resMonitor.setKafkaBrokers("localhost:9092");
+		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
 		resMonitor.setVertx(Vertx.vertx());
 		resMonitor.start();
 		Producer<Long, String> kafkaProducer = resMonitor.getKafkaProducer();
@@ -518,6 +520,7 @@ public class StatsCollectorTest {
 		StatsCollector resMonitor = new StatsCollector();
 		resMonitor.setKafkaBrokers("9000");
 		resMonitor.setVertx(Vertx.vertx());
+		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
 		resMonitor.start();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);
