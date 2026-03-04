@@ -1,8 +1,6 @@
 package io.antmedia.test.statistic;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -10,8 +8,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import com.google.gson.JsonObject;
 
@@ -47,19 +43,38 @@ public class StatsCollectorExporterPayloadTest {
 		licenceKeyField.setAccessible(true);
 		licenceKeyField.set(statsCollector, "my-license-key");
 
-		IStatsExporter exporter = Mockito.mock(IStatsExporter.class);
+		CapturingStatsExporter exporter = new CapturingStatsExporter();
 		statsCollector.setStatsExporter(exporter);
 
 		statsCollector.sendInstanceStats(new ConcurrentLinkedQueue<>());
 
-		ArgumentCaptor<JsonObject> payloadCaptor = ArgumentCaptor.forClass(JsonObject.class);
-		verify(exporter).sendStats(payloadCaptor.capture(), eq(IStatsExporter.INSTANCE_STATS));
-
-		JsonObject payload = payloadCaptor.getValue();
+		JsonObject payload = exporter.payload;
 		assertTrue(payload.has(StatsCollector.USER_EMAIL));
 		assertTrue(payload.has(StatsCollector.USER_EMAIL_HASH));
 		assertTrue(payload.has(StatsCollector.LICENSE_KEY_HASH));
 		assertTrue(payload.get(StatsCollector.USER_EMAIL_HASH).getAsLong() > 0);
 		assertTrue(payload.get(StatsCollector.LICENSE_KEY_HASH).getAsLong() > 0);
+		assertTrue(IStatsExporter.INSTANCE_STATS.equals(exporter.type));
+	}
+
+	private static class CapturingStatsExporter implements IStatsExporter {
+		private JsonObject payload;
+		private String type;
+
+		@Override
+		public void start() {
+			// no-op
+		}
+
+		@Override
+		public void sendStats(JsonObject jsonObject, String type) {
+			this.payload = jsonObject;
+			this.type = type;
+		}
+
+		@Override
+		public void stop() {
+			// no-op
+		}
 	}
 }

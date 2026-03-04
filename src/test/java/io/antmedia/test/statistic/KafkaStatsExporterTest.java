@@ -1,18 +1,14 @@
 package io.antmedia.test.statistic;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
-import java.util.concurrent.Future;
-
+import org.apache.kafka.clients.producer.MockProducer;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.LongSerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import com.google.gson.JsonObject;
 
@@ -22,12 +18,28 @@ import io.antmedia.statistic.KafkaStatsExporter;
 public class KafkaStatsExporterTest {
 
 	@Test
+	public void testStartAndStop() {
+		KafkaStatsExporter exporter = new KafkaStatsExporter("localhost:9092");
+		exporter.start();
+		assertNotNull(exporter.getKafkaProducer());
+
+		exporter.stop();
+
+		JsonObject jsonObject = new JsonObject();
+		jsonObject.addProperty("foo", 1);
+		try {
+			exporter.sendStats(jsonObject, IStatsExporter.INSTANCE_STATS);
+			fail("Expected IllegalStateException after producer is closed");
+		} catch (IllegalStateException e) {
+			// expected: producer is closed
+		}
+	}
+
+	@Test
 	public void testSendStatsSendsToGivenTopic() {
 		KafkaStatsExporter exporter = new KafkaStatsExporter("localhost:9092");
 
-		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
-		Future<RecordMetadata> futureMetadata = Mockito.mock(Future.class);
-		when(kafkaProducer.send(any())).thenReturn(futureMetadata);
+		Producer<Long, String> kafkaProducer = new MockProducer<>(true, new LongSerializer(), new StringSerializer());
 		exporter.setKafkaProducer(kafkaProducer);
 
 		JsonObject jsonObject = new JsonObject();
@@ -35,8 +47,8 @@ public class KafkaStatsExporterTest {
 
 		exporter.sendStats(jsonObject, IStatsExporter.INSTANCE_STATS);
 
-		ArgumentCaptor<ProducerRecord<Long, String>> producerRecordCaptor = ArgumentCaptor.forClass(ProducerRecord.class);
-		verify(kafkaProducer).send(producerRecordCaptor.capture());
-		assertEquals(IStatsExporter.INSTANCE_STATS, producerRecordCaptor.getValue().topic());
+		MockProducer<Long, String> mockProducer = (MockProducer<Long, String>) kafkaProducer;
+		assertEquals(1, mockProducer.history().size());
+		assertEquals(IStatsExporter.INSTANCE_STATS, mockProducer.history().get(0).topic());
 	}
 }
