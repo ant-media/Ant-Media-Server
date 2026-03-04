@@ -49,7 +49,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
 
-	public static final String BIG_BUNNY_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+	public static final String BIG_BUNNY_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
 
 	private static int OS_TYPE;
 
