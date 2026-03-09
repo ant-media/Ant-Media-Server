@@ -72,6 +72,13 @@ public class StreamFetcher {
 	private MuxAdaptor muxAdaptor = null;
 
 	/**
+	 * FFMPEG will abort connection, in order not to forever block the thread
+	 * or lock port (EX: in case of udp multicast connection).
+	 * Instead, it will fail properly with timeout error.
+	 */
+	private static final int UDP_TCP_HTTP_TIMEOUT = 15000;
+
+	/**
 	 * When true, bypass the isStreaming status check once at startup.
 	 * It is reset to false after the worker thread reads it.
 	 */
@@ -297,6 +304,14 @@ public class StreamFetcher {
 				// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
 				parseRtspUrlParams(optionsDictionary);
 
+			} else if (streamUrl.startsWith("udp://") || streamUrl.startsWith("tcp://") || streamUrl.startsWith("http://")) {
+				// For UDP/HTTP/TCP, use "rw_timeout" (microseconds)
+				// This ensures avformat_open_input throws an error if no packets arrive
+				String timeoutStr = String.valueOf(UDP_TCP_HTTP_TIMEOUT * 1000);
+				av_dict_set(optionsDictionary, "rw_timeout", timeoutStr, 0);
+
+				// Also set "timeout" as a fallback for some protocols (like UDP listener)
+				av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 			}
 
 			//analyze duration is a generic parameter

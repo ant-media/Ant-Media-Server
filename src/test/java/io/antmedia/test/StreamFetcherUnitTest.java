@@ -252,13 +252,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
 		String streamId = String.valueOf((Math.random() * 100000));
 
-		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		//create a broadcast
-		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		//create a broadcast
-		Broadcast.PlayListItem broadcastItem3 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem3 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		List<Broadcast.PlayListItem> broadcastList = new ArrayList<>();
 
