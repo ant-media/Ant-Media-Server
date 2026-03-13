@@ -116,6 +116,7 @@ import jakarta.ws.rs.core.MediaType;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
+
 	public final class RTMPClusterStreamFetcherListener implements StreamFetcher.IStreamFetcherListener {
 		private final RTMPClusterStreamFetcher rtmpClusterStreamFetcher;
 		private final String rtmpUrl;
@@ -178,6 +179,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			//no need to implement
 		}
 	}
+
+	
+	public static final String NOT_ASSIGNED = "NOT_ASSIGNED";
 
 	/**
 	 * Timeout value that stream is considered as finished or stuck
@@ -794,6 +798,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					if(serverShuttingDown) {
+						broadcastUpdate.setOriginAdress(NOT_ASSIGNED);
+					}
 					broadcastUpdate.setHlsViewerCount(0);
 					broadcastUpdate.setDashViewerCount(0);
 					broadcastUpdate.setWebRTCViewerCount(0);
