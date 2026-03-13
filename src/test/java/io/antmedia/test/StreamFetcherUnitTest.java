@@ -1808,4 +1808,36 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//assertTrue(internalStreamFetcher.getStreamUrl().startsWith("rtmp://test.com/test?token="));
         //assertEquals("rtmp://test.com/test", internalStreamFetcher.rtmpUrl);
 	}
+
+	@Test
+	public void testRTSPUrlWithSpecialChars() {
+		// This test replicates the issue where special characters like @ in the password 
+		// cause issues when UriComponentsBuilder reconstructs the URL.
+		
+		String streamId = "testStreamSpecialChar";
+		// Password is "pass@word", encoded as "pass%40word"
+		String originalUrl = "rtsp://user:pass@word@127.0.0.1:6554/stream?allowed_media_types=video";
+		
+		// The expected behavior is that the URL is cleaned of allowed_media_types 
+		// AND the password remains correctly encoded so it doesn't break the URL structure.
+		// If the @ is decoded to "pass@word", it breaks standard RTSP parsing (two @ symbols).
+		String expectedUrl = "rtsp://user:pass@word@127.0.0.1:6554/stream";
+
+		StreamFetcher streamFetcher = new StreamFetcher(originalUrl, streamId, "rtsp_source", appScope, Vertx.vertx(), 0);
+		
+		AVDictionary options = new AVDictionary();
+		// This method is expected to fail/corrupt the URL if the bug exists
+		streamFetcher.parseRtspUrlParams(options);
+		
+		logger.info("Original URL: {}", originalUrl);
+		logger.info("Resulting URL: {}", streamFetcher.getStreamUrl());
+		
+		assertEquals("The stream URL should preserve the encoded @ character in the password to avoid ambiguity", 
+					 expectedUrl, streamFetcher.getStreamUrl());
+		
+		// Also verify the parameter was extracted
+		AVDictionaryEntry entry = avutil.av_dict_get(options, "allowed_media_types", null, 0);
+		assertNotNull("allowed_media_types should be extracted to options", entry);
+		assertEquals("video", entry.value().getString());
+	}
 }
