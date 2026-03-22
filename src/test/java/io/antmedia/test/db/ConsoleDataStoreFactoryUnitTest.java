@@ -57,8 +57,6 @@ public class ConsoleDataStoreFactoryUnitTest {
     public void testGetDataStoreMongoDB() {
         consoleDataStoreFactory.setDbType(DataStoreFactory.DB_TYPE_MONGODB);
         consoleDataStoreFactory.setDbHost("127.0.0.1");
-        consoleDataStoreFactory.setDbUser(null);
-        consoleDataStoreFactory.setDbPassword("password");
         
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
         assertNotNull("DataStore should not be null", dataStore);

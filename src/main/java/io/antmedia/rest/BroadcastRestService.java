@@ -1,7 +1,6 @@
 package io.antmedia.rest;
 
 import java.io.File;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,17 +19,12 @@ import io.antmedia.RecordType;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IStreamInfo;
-import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
-import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.Subscriber;
-import io.antmedia.datastore.db.types.SubscriberStats;
-import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.HLSMuxer;
@@ -42,7 +36,6 @@ import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
-import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -51,7 +44,6 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
-import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -266,22 +258,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return super.deleteBroadcast(id, deleteSubtracks);		
 	}
 
-
-	/**
-	 * Use {@link #deleteBroadcastsBulk(String[])} for compliance
-	 */
-	@Hidden
-	@Deprecated
-	@DELETE
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/bulk")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result deleteBroadcasts(@Parameter(description = "Id of the broadcast", required = true) String[] streamIds) 
-	{
-		return super.deleteBroadcasts(streamIds);
-	}
-
 	@Operation(description = "Delete multiple broadcasts from data store and stop if they are broadcasting")
 	@ApiResponse(responseCode = "200", description = "If it's deleted, success is true. If it's not deleted, success if false.",
 	content = @Content(
@@ -442,29 +418,6 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
-	@Operation(summary = "Adds a third party RTMP end point to the stream",
-			description = "It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an URL is already added to a stream, trying to add the same RTMP URL will return false.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Add RTMP endpoint response",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = Result.class)
-									))
-	}
-			)
-
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/rtmp-endpoint")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Deprecated(since = "3.0" , forRemoval = true)
-	public Result addEndpointV3(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
-			@Parameter(description = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
-			@Parameter(description = "Resolution height of the broadcast that is wanted to send to the RTMP endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
-
-		return addEndpointV4(id,endpoint,resolutionHeight);
-    }
-
 	@Operation(summary = "Adds a third party RTMP or SRT end point to the stream",
 			description = "It supports adding RTMP or SRT restreaming endpoints after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an URL is already added to a stream, trying to add the same Endpoint URL will return false.",
 			responses = {
@@ -480,7 +433,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addEndpointV4(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
+	public Result addEndpoint(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
 								@Parameter(description = "SRT or RTMP URL of the destination endpoint where the stream will be republished. Encode the URL if required", required = true) Endpoint endpoint,
 								@Parameter(description = "Resolution height of the broadcast that is wanted to send to the endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
 
@@ -539,47 +492,14 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
-	@Operation(summary = "Remove third-party RTMP end point from the stream",
-			description = "For the stream that is broadcasting, it will stop immediately.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Remove RTMP endpoint response",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = Result.class)
-									))
-	})
-
-	@DELETE
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/rtmp-endpoint")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Deprecated(since = "3.0" , forRemoval = true)
-	public Result removeEndpointV2(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
-			@Parameter(description = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId,
-			@Parameter(description = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.")
-	@QueryParam("resolutionHeight") int resolutionHeight){
-
-    return removeEndpointV3(id, endpointServiceId, resolutionHeight);
-	}
-
-	@Operation(summary = "Remove third-party SRT or RTMP end point from the stream",
-			description = "For the stream that is broadcasting, it will stop immediately.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Remove RTMP or SRT endpoint response",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = Result.class)
-									))
-	})
-
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result removeEndpointV3(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
+	public Result removeEndpoint(@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
 			@Parameter(description = "RTMP or SRT URL of the target endpoint that should be stopped", required = true) @QueryParam("endpointServiceId") String endpointServiceId,
 			@Parameter(description = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP or SRT endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.")
-	@QueryParam("resolutionHeight") int resolutionHeight){
+			@QueryParam("resolutionHeight") int resolutionHeight){
 
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
@@ -632,61 +552,6 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 		}
 		return endpoint;
-	}
-
-
-	@Operation(summary = "Retrieve detected objects from the stream",
-			description = "Fetches detected objects from the stream, using specified offset and size parameters.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "List of detected TensorFlow objects",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = TensorFlowObject.class, type = "array")
-									))
-	}
-			)
-	@GET
-	@Path("/{id}/detections/{offset}/{size}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<TensorFlowObject> getDetectionListV2(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id,
-			@Parameter(description = "starting point of the list", required = true) @PathParam("offset") int offset,
-			@Parameter(description = "total size of the return list", required = true) @PathParam("size") int size) {
-		return super.getDetectionList(id, offset, size);
-	}
-
-	@Operation(summary = "Get total number of detected objects",
-			description = "Retrieves the total count of objects detected.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Total number of detected objects",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = Long.class)
-									))
-	}
-			)
-	@GET
-	@Path("/{id}/detections/count")
-	@Produces(MediaType.APPLICATION_JSON)
-	public SimpleStat getObjectDetectedTotal(@Parameter(description = "id of the stream", required = true) @PathParam("id") String id){
-		return new SimpleStat(getDataStore().getObjectDetectedTotal(id));
-	}
-
-	@Operation(summary = "Import Live Streams to Stalker Portal",
-			description = "Imports live streams into the Stalker Portal.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Import operation result",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = Result.class)
-									))
-	}
-			)
-	@POST
-	@Path("/import-to-stalker")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result importLiveStreams2StalkerV2() 
-	{
-		return super.importLiveStreams2Stalker();
 	}
 
 
@@ -894,37 +759,14 @@ public class BroadcastRestService extends RestServiceBase{
 		return subscribers;
 	}	
 
-	@Operation(summary = "Retrieve all subscriber statistics of the requested stream. Deprecated use connection-events method. ",
-			description = "Fetches comprehensive statistics for all subscribers of the specified stream. Deprecated use connection-events method. This method is kept for backward compatibility and getting old records. New records saved and retrieved with connection-events method because there is a schema design causes performance issues",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "List of subscriber statistics",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = SubscriberStats.class, type = "array")
-									))
-	}
-			)
-	@GET
-	@Path("/{id}/subscriber-stats/list/{offset}/{size}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Deprecated(since="2.12.0", forRemoval = true)
-	public List<SubscriberStats> listSubscriberStatsV2(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String streamId,
-			@Parameter(description = "the starting point of the list", required = true) @PathParam("offset") int offset,
-			@Parameter(description = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
-		List<SubscriberStats> subscriberStats = null;
-		if(streamId != null) {
-			subscriberStats = getDataStore().listAllSubscriberStats(streamId, offset, size);
-		}
-		return subscriberStats;
-	}
 
-	@Operation(summary = "Retrieve all subscriber statistics of the requested stream. Deprecated ",
+	@Operation(summary = "Retrieve all subscriber statistics of the requested stream. ",
 			description = "Fetches comprehensive statistics for all subscribers of the specified stream.",
 			responses = {
 					@ApiResponse(responseCode = "200", description = "List of subscriber statistics",
 							content = @Content(
 									mediaType = "application/json",
-									schema = @Schema(implementation = SubscriberStats.class, type = "array")
+									schema = @Schema(implementation = ConnectionEvent.class, type = "array")
 									))
 	}
 			)
@@ -967,10 +809,6 @@ public class BroadcastRestService extends RestServiceBase{
 		{
 			// add stream id inside the Subscriber
 			subscriber.setStreamId(streamId);
-			// create a new stats object before adding to datastore
-			subscriber.setStats(new SubscriberStats());
-			// subscriber is not connected yet
-			subscriber.setConnected(false);
 			// subscriber is not viewing anyone
 			subscriber.setCurrentConcurrentConnections(0);
 
@@ -1256,30 +1094,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return new WebRTCReceiveStats(getApplication().getWebRTCAudioReceiveStats(), getApplication().getWebRTCVideoReceiveStats());
 	}
 
-	/**
-	 * @deprecated use stats in broadcast object or publish stats
-	 * @param id
-	 * @return
-	 */
-	@Operation(summary = "Get RTMP to WebRTC Path Stats",
-			description = "Retrieves general statistics for the RTMP to WebRTC path.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "RTMP to WebRTC path statistics",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = RTMPToWebRTCStats.class)
-									))
-	}
-			)
-	@GET
-	@Path("/{id}/rtmp-to-webrtc-stats")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Deprecated(forRemoval = true, since = "2.13+")
-	public RTMPToWebRTCStats getRTMPToWebRTCStats(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id) 
-	{
-		return getApplication().getRTMPToWebRTCStats(id);
-	}
-
 
 	@Operation(summary = "Get WebRTC Client Statistics",
 			description = "Retrieves WebRTC client statistics, including audio bitrate, video bitrate, target bitrate, video sent period, etc.",
@@ -1300,32 +1114,6 @@ public class BroadcastRestService extends RestServiceBase{
 
 		return super.getWebRTCClientStatsList(offset, size, streamId);
 	}
-
-	@Hidden
-	@Deprecated
-	@Operation(summary = "Returns filtered broadcast list according to type",
-	description = "Useful for retrieving IP Camera and Stream Sources from the entire broadcast list. For sorting mechanisms, using Mongo DB is recommended.",
-	responses = {
-			@ApiResponse(responseCode = "200", description = "Filtered broadcast list",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = Broadcast.class, type = "array")
-							))
-	}
-			)
-	@GET
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/filter-list/{offset}/{size}/{type}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<Broadcast> filterBroadcastListV2(@Parameter(description = "starting point of the list", required = true) @PathParam("offset") int offset,
-			@Parameter(description = "size of the return list (max:50 )", required = true) @PathParam("size") int size,
-			@Parameter(description = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = true) @PathParam("type") String type,
-			@Parameter(description = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
-			@Parameter(description = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy
-			) {
-		return getDataStore().getBroadcastList(offset, size, type, sortBy, orderBy, null);
-	}
-
 
 	@Operation(summary = "Set stream specific recording setting",
 			description = "This setting overrides the general Mp4 and WebM Muxing Setting for a specific stream.",
@@ -1554,119 +1342,9 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
-	@Operation(description = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "400", description = "If the operation is not completed for any reason",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = Result.class)
-							)),
-			@ApiResponse(responseCode = "200", description = "Returns the created conference room",
-			content = @Content(
-					mediaType = "application/json",
-					schema = @Schema(implementation = ConferenceRoom.class)
-					))
-	})
-
-	@POST
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/conference-rooms")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.9.1", forRemoval=true)
-	public Response createConferenceRoomV2(@Parameter(description = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
 
 
-		try {
-			if(room.getStartDate() == 0) {
-				room.setStartDate(Instant.now().getEpochSecond());
-			}
 
-			if(room.getEndDate() == 0) {
-				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
-			}
-
-			if (StringUtils.isNoneBlank(room.getRoomId())) 
-			{
-				Broadcast broadcast = getDataStore().get(room.getRoomId());
-				if (broadcast != null) {
-					return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
-				}	
-			}
-
-			Broadcast broadcast = DataStore.conferenceToBroadcast(room);
-			if (getDataStore().save(broadcast) != null) 
-			{
-				ConferenceRoom confRoom = DataStore.broadcastToConference(getDataStore().get(broadcast.getStreamId()));
-				return Response.status(Status.OK).entity(confRoom).build();
-
-			}
-
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Operation not completed")).build();
-
-	}
-
-
-	@Operation(description = "Edits previously saved conference room")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "400", description = "If the operation is not completed for any reason",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = Result.class)
-							)),
-			@ApiResponse(responseCode = "200", description = "Returns the updated Conference room",
-			content = @Content(
-					mediaType = "application/json",
-					schema = @Schema(implementation = ConferenceRoom.class)
-					))
-	})
-	@PUT
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/conference-rooms/{room_id}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.9.1", forRemoval=true)
-	public Response editConferenceRoom(@Parameter(description="Room id") @PathParam("room_id") String roomId,  @Parameter(description = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
-
-		if(room != null) 
-		{
-			BroadcastUpdate conferenceToBroadcast;
-			try {
-				conferenceToBroadcast = DataStore.conferenceUpdateToBroadcastUpdate(room);
-				if (getDataStore().updateBroadcastFields(roomId, conferenceToBroadcast)) {
-					return Response.status(Status.OK).entity(room).build();
-				}
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-
-		}
-		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Operation not completed")).build();
-	}
-
-	@Operation(summary = "Delete a conference room",
-			description = "Deletes a conference room. The room ID is the key, so if this is called with the same room ID, then the new room overwrites the old one.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Result of deleting the conference room",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = Result.class)
-									))
-	}
-			)
-	@DELETE
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/conference-rooms/{room_id}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.9.1", forRemoval=true)
-	public Result deleteConferenceRoomV2(@Parameter(description = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
-		return deleteBroadcast(roomId, false);
-	}
 
 	@Operation(summary = "Add a subtrack to a main track (broadcast)",
 			description = "Adds a subtrack to a main track (broadcast).",
@@ -1715,6 +1393,106 @@ public class BroadcastRestService extends RestServiceBase{
 			getApplication().leftTheRoom(id, subTrackId);
 		}
 		return result;
+	}
+
+	@Operation(summary = "Get subtracks of a broadcast",
+			description = "Returns the list of subtracks associated with a main broadcast. Subtracks are alternative streams that are linked to a main broadcast.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "List of subtracks",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Broadcast[].class)
+									)),
+					@ApiResponse(responseCode = "404", description = "Broadcast not found")
+	}
+			)
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/subtracks/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getSubtracks(@Parameter(description = "Broadcast id (main track)", required = true) @PathParam("id") String id,
+			@Parameter(description = "This is the offset of the list, it is useful for pagination.", required = true) @PathParam("offset") int offset,
+			@Parameter(description = "Number of items that will be fetched. If there is not enough subtracks, returned list size may be less than this value", required = true) @PathParam("size") int size,
+			@Parameter(description = "Role parameter for filtering subtracks", required = false) @QueryParam("role") String role) {
+
+		// Verify that the main broadcast exists
+		Broadcast mainBroadcast = getDataStore().get(id);
+		if (mainBroadcast == null) {
+			return Response.status(Status.NOT_FOUND).entity(new Result(false, "Broadcast not found with id: " + id)).build();
+		}
+
+		// Get the subtracks
+		String roleParam = role != null ? role : "";
+		List<Broadcast> subtracks = getDataStore().getSubtracks(id, offset, size, roleParam);
+
+		return Response.status(Status.OK).entity(subtracks).build();
+	}
+
+	@Operation(summary = "Get active subtracks of a broadcast",
+			description = "Returns the list of active subtracks associated with a main broadcast. Only returns subtracks that are currently broadcasting.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "List of active subtracks",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Broadcast[].class)
+									)),
+					@ApiResponse(responseCode = "404", description = "Broadcast not found")
+	}
+			)
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/active-subtracks/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getActiveSubtracks(@Parameter(description = "Broadcast id (main track)", required = true) @PathParam("id") String id,
+			@Parameter(description = "This is the offset of the list, it is useful for pagination.", required = true) @PathParam("offset") int offset,
+			@Parameter(description = "Number of items that will be fetched. If there is not enough active subtracks, returned list size may be less than this value", required = true) @PathParam("size") int size,
+			@Parameter(description = "Role parameter for filtering active subtracks", required = false) @QueryParam("role") String role) {
+
+		// Verify that the main broadcast exists
+		Broadcast mainBroadcast = getDataStore().get(id);
+		if (mainBroadcast == null) {
+			return Response.status(Status.NOT_FOUND).entity(new Result(false, "Broadcast not found with id: " + id)).build();
+		}
+
+		// Get the active subtracks
+		String roleParam = role != null ? role : "";
+		List<Broadcast> activeSubtracks = getDataStore().getActiveSubtracks(id, offset, size, roleParam);
+
+		return Response.status(Status.OK).entity(activeSubtracks).build();
+	}
+
+	@Operation(summary = "Get count of active subtracks of a broadcast",
+			description = "Returns the count of active subtracks associated with a main broadcast. Only counts subtracks that are currently broadcasting.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Count of active subtracks",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									)),
+					@ApiResponse(responseCode = "404", description = "Broadcast not found")
+	}
+			)
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/active-subtracks-count")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getActiveSubtracksCount(@Parameter(description = "Broadcast id (main track)", required = true) @PathParam("id") String id,
+			@Parameter(description = "Role parameter for filtering active subtracks", required = false) @QueryParam("role") String role) {
+
+		// Verify that the main broadcast exists
+		Broadcast mainBroadcast = getDataStore().get(id);
+		if (mainBroadcast == null) {
+			return Response.status(Status.NOT_FOUND).entity(new Result(false, "Broadcast not found with id: " + id)).build();
+		}
+
+		// Get the count of active subtracks
+		String roleParam = role != null ? role : "";
+		long count = getDataStore().getActiveSubtracksCount(id, roleParam);
+		
+		Result result = new Result(true);
+		result.setDataId(Long.toString(count));
+
+		return Response.status(Status.OK).entity(result).build();
 	}
 
 	@Operation(summary = "Get stream information",
@@ -1776,237 +1554,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 		return RestServiceBase.sendDataChannelMessage(id, message, getApplication(), getDataStore());
 	}
-	@Operation(description = "Gets the conference room list from database")
-	@GET
-	@Path("/conference-rooms/list/{offset}/{size}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.9.1", forRemoval=true)
-	/**
-	 * Use getBroadcastList instead of this method
-	 * @param offset
-	 * @param size
-	 * @param sortBy
-	 * @param orderBy
-	 * @param search
-	 * @return
-	 */
-	public List<ConferenceRoom> getConferenceRoomList(@Parameter(description = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
-			@Parameter(description = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
-			@Parameter(description = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
-			@Parameter(description = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
-			@Parameter(description = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
-			) {
-		List<Broadcast> broadcastList = getDataStore().getBroadcastList(offset, size, null, sortBy, orderBy, search);
-
-		List<ConferenceRoom> conferenceRoomList = new ArrayList<>();
-		for (Broadcast broadcast : broadcastList) {
-			conferenceRoomList.add(DataStore.broadcastToConference(broadcast));
-		}
-
-		return conferenceRoomList;
-	}
-
-	@Operation(description = "Get conference room object")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Return the ConferenceRoom object",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = ConferenceRoom.class)
-							)),
-			@ApiResponse(responseCode = "404", description = "ConferenceRoom object not found")
-	})
-
-	@GET
-	@Path("/conference-rooms/{roomId}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	public Response getConferenceRoom(@Parameter(description = "id of the room", required = true) @PathParam("roomId") String id) {
-		ConferenceRoom room = null;
-		if (id != null) {
-			Broadcast broadcast = getDataStore().get(id);
-			if (broadcast != null) {
-				room = DataStore.broadcastToConference(broadcast);
-			}
-		}
-		if (room != null) {
-			return Response.status(Status.OK).entity(room).build();
-		}
-		else {
-			return Response.status(Status.NOT_FOUND).build();
-		}
-	}
-
-
-	/**
-	 * @deprecated
-	 * 
-	 * @param roomId
-	 * @param streamId
-	 * @return
-	 */
-	@Operation(summary = "Get stream IDs in the room",
-			description = "Returns the stream IDs in the room.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "List of stream IDs",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = String.class, type = "array")
-									))
-	}
-			)
-	@GET
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/conference-rooms/{room_id}/room-info")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.9.1", forRemoval=true)
-	public RootRestService.RoomInfo getRoomInfo(@Parameter(description = "Room id", required=true) @PathParam("room_id") String roomId,
-			@Parameter(description="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId)
-	{
-		RootRestService.RoomInfo roomInfo = new RootRestService.RoomInfo(roomId, null);
-		if (StringUtils.isNotBlank(roomId)) {
-			Broadcast broadcastRoom = getDataStore().get(roomId);
-
-			if (broadcastRoom == null) {
-				roomId = roomId.replaceAll(REPLACE_CHARS, "_");
-				logger.warn("Room not found with id: {}", roomId);
-			}
-			else {
-				roomInfo = new RootRestService.RoomInfo(roomId, RestServiceBase.getRoomInfoFromConference(broadcastRoom, streamId, getDataStore()));
-
-				roomInfo.setStartDate(broadcastRoom.getPlannedStartDate());
-				roomInfo.setEndDate(broadcastRoom.getPlannedEndDate());
-			}
-		}
-
-		return roomInfo;
-	}
-
-	@Operation(summary = "Add stream to the room",
-			description = "Adds the specified stream with stream ID to the room. Use PUT conference-rooms/{room_id}/{streamId}.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Result of adding the stream",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = Result.class)
-									))
-	}
-			)
-	@PUT
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/conference-rooms/{room_id}/add")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.6.2", forRemoval=true)
-	public Result addStreamToTheRoomDeprecated(@Parameter(description="Room id", required=true) @PathParam("room_id") String roomId,
-			@Parameter(description="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
-
-		return addSubTrack(roomId, streamId);
-	}
-
-	@Operation(summary = "Add stream to the room",
-			description = "Adds the specified stream with stream ID to the room.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Result of adding the stream",
-							content = @Content(
-									mediaType = "application/json",
-									schema = @Schema(implementation = Result.class)
-									))
-	}
-			)
-	@PUT
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/conference-rooms/{room_id}/{streamId}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.9.1", forRemoval=true)
-	/**
-	 * Use addSubtrack instead of this method
-	 * @param roomId
-	 * @param streamId
-	 * @return
-	 */
-	public Result addStreamToTheRoom(@Parameter(description="Room id", required=true) @PathParam("room_id") String roomId,
-			@Parameter(description="Stream id to add to the conference room",required = true) @PathParam("streamId") String streamId){
-
-		if (StringUtils.isNoneBlank(roomId, streamId)) {
-			return addSubTrack(roomId, streamId);
-		}
-		return new Result(false, "Room id or stream id is empty");
-	}
-
-	@Operation(summary = "Delete stream from the room",
-			description = "Deletes the specified stream correlated with stream ID in the room. Use DELETE /conference-rooms/{room_id}/{streamId}.",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Result of deleting the stream")
-	}
-			)
-	@PUT
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/conference-rooms/{room_id}/delete")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.6.2", forRemoval=true)
-	public Result deleteStreamFromTheRoomDeprecated(@Parameter(description ="Room id", required=true) @PathParam("room_id") String roomId,
-			@Parameter(description="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId)
-	{
-		return removeSubTrack(roomId, streamId);
-	}
-
-	@Operation(description ="Deletes the specified stream correlated with streamId in the room. Use removeSubTrack directly")
-	@DELETE
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/conference-rooms/{room_id}/{streamId}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Hidden
-	@Deprecated(since="2.9.1", forRemoval=true)
-	public Result deleteStreamFromTheRoom(@Parameter(description="Room id", required=true) @PathParam("room_id") String roomId,
-			@Parameter(description="Stream id to delete from the conference room",required = true) @PathParam("streamId") String streamId)
-	{
-		return removeSubTrack(roomId, streamId);
-	}
-
-	/**
-	 * @deprecated use subscriber rest methods, it will be deleted next versions
-	 * @param offset
-	 * @param size
-	 * @param sortBy
-	 * @param orderBy
-	 * @param search
-	 * @return
-	 */
-	@Hidden
-	@Deprecated(since = "2.7.0", forRemoval = true)
-	@GET
-	@Path("/webrtc-viewers/list/{offset}/{size}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<WebRTCViewerInfo> getWebRTCViewerList(@Parameter(description = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
-			@Parameter(description = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
-			@Parameter(description = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
-			@Parameter(description = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
-			@Parameter(description = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
-			) {
-		return getDataStore().getWebRTCViewerList(offset, size ,sortBy, orderBy, search);
-	}
-
-	/**
-	 * @deprecated use subscriber rest methods, it will be deleted next versions
-	 * @param viewerId
-	 * @return
-	 */
-	@Hidden
-	@Deprecated(since = "2.7.0", forRemoval = true)
-	@Operation(description = "Stop player with a specified id")
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/webrtc-viewers/{webrtc-viewer-id}/stop")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopPlaying(@Parameter(description = "the id of the webrtc viewer.", required = true) @PathParam("webrtc-viewer-id") String viewerId) 
-	{
-		boolean result = getApplication().stopPlaying(viewerId);
-		return new Result(result);
-	}
+	
 
 	@Operation(description = "Add ID3 data to HLS stream at the moment")
 	@POST

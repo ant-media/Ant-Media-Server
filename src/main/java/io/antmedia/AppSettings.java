@@ -202,18 +202,7 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_PREVIEW_OVERWRITE = "settings.previewOverwrite";
-	/**
-	 * @hidden
-	 */
-	private static final String SETTINGS_STALKER_DB_SERVER = "settings.stalkerDBServer";
-	/**
-	 * @hidden
-	 */
-	private static final String SETTINGS_STALKER_DB_USER_NAME = "settings.stalkerDBUsername";
-	/**
-	 * @hidden
-	 */
-	private static final String SETTINGS_STALKER_DB_PASSWORD = "settings.stalkerDBPassword";
+	
 	/**
 	 * @hidden
 	 */
@@ -1093,13 +1082,6 @@ public class AppSettings implements Serializable{
 	private boolean playTokenControlEnabled ;
 
 	/**
-	 * The settings for accepting only time based token subscribers as connections to the streams 
-	 * @deprecated. Please use {@link #enableTimeTokenForPlay} or {@link #enableTimeTokenForPublish}
-	 */
-	@Value( "${timeTokenSubscriberOnly:${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}}" )
-	@Deprecated
-	private boolean timeTokenSubscriberOnly;
-	/**
 	 * The setting for accepting only time based token(TOTP) subscribers as connections to the streams
 	 */
 	@Value( "${enableTimeTokenForPlay:${"+SETTINGS_ENABLE_TIME_TOKEN_PLAY+":false}}" )
@@ -1162,15 +1144,6 @@ public class AppSettings implements Serializable{
 	private String hlsSegmentFileSuffixFormat = "%09d";
 
 	/**
-	 * The path for manually saved used VoDs
-	 * Determines the directory to store VOD files.
-	 * @deprecated use {@link VoDRestService#importVoDs(String)}
-	 */
-	@Value( "${vodFolder:${"+SETTINGS_VOD_FOLDER+":}}" )
-	@Deprecated
-	private String vodFolder = "";
-
-	/**
 	 * Overwrite preview files if exist, default value is false
 	 * If it is set true and new stream starts with the same id,
 	 * preview of the new one overrides the previous file,
@@ -1179,36 +1152,8 @@ public class AppSettings implements Serializable{
 	@Value( "${previewOverwrite:${"+SETTINGS_PREVIEW_OVERWRITE+":false}}" )
 	private boolean previewOverwrite;
 
-	/**
-	 * Address of the Stalker Portal DB server
-	 * Database host address of IP TV Ministra platform.
-	 */
 
-	@Value( "${stalkerDBServer:${"+SETTINGS_STALKER_DB_SERVER+":}}" )
-	private String stalkerDBServer = "";
-
-	/**
-	 * Username of stalker portal DB
-	 * Database user name of IP TV Ministra platform.
-	 */
-	@Value( "${stalkerDBUsername:${"+SETTINGS_STALKER_DB_USER_NAME+":}}" )
-	private String stalkerDBUsername = "";
-
-	/**
-	 * Password of the stalker portal DB User
-	 * Database password of IP TV Ministra platform.
-	 */
-	@Value( "${stalkerDBPassword:${"+SETTINGS_STALKER_DB_PASSWORD+":}}" )
-	private String stalkerDBPassword = "";
-
-	/**
-	 * It's mandatory,
-	 * The directory contains the tensorflow object detection model
-	 *  If it is set true then object detection algorithm is run for streaming video,
-	 * Default value is false.
-	 */
-	@Value( "${objectDetectionEnabled:${"+SETTINGS_OBJECT_DETECTION_ENABLED+":false}}" )
-	private boolean objectDetectionEnabled;
+	
 	/**
 	 * It's mandatory,
 	 * This determines the period (milliseconds) of preview (png, jpg) file creation,
@@ -1400,56 +1345,6 @@ public class AppSettings implements Serializable{
 	private Map<String, Map<String,String>> encoderParameters = new HashMap<>();
 
 	/**
-	 * Encoder's preset value in adaptive bitrate
-	 * Libx264 presets are there
-	 * https://trac.ffmpeg.org/wiki/Encode/H.264
-	 * Ant Media Server uses "veryfast" by default
-	 * 
-	 * @deprecated use {@link #encoderParameters}
-	 *
-	 */
-	@Value("${encoderPreset:${" + SETTINGS_ENCODING_PRESET +":}}")
-	@Deprecated
-	private String encoderPreset = "";
-
-	/**
-	 * Encoder profile in adaptive bitrate,
-	 * It's baseline by default.
-	 * @deprecated use {@link #encoderParameters}
-	 */
-	@Value( "${encoderProfile:${" + SETTINGS_ENCODING_PROFILE +":}}")
-	@Deprecated
-	private String encoderProfile = "";
-
-	/**
-	 * Encoder level in adaptive bitrate
-	 * @deprecated use {@link #encoderParameters}
-	 */
-	@Deprecated
-	@Value( "${encoderLevel:${" + SETTINGS_ENCODING_LEVEL +":}}")
-	private String encoderLevel = "";
-
-	/**
-	 * Encoding rate control in adaptive bitrate
-	 * @deprecated use {@link #encoderParameters}
-	 */
-	@Deprecated
-	@Value( "${encoderRc:${" + SETTINGS_ENCODING_RC +":}}")
-	private String encoderRc = "";
-
-	/**
-	 * Encoder specific configuration for libx264 in adaptive bitrate,
-	 * This is the x264-params in ffmpeg
-	 * Specific settings for selected encoder,
-	 * For libx264 please check https://trac.ffmpeg.org/wiki/Encode/H.264
-	 * 
-	 * @deprecated use {@link #encoderParameters}
-	 */
-	@Deprecated
-	@Value( "${encoderSpecific:${" + SETTINGS_ENCODING_SPECIFIC +":}}")
-	private String encoderSpecific = "";
-
-	/**
 	 * Encoder thread count.
 	 */
 	@Value( "${encoderThreadCount:${" + SETTINGS_ENCODING_THREAD_COUNT +":0}}")
@@ -1463,26 +1358,6 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${encoderThreadType:${" + SETTINGS_ENCODING_THREAD_TYPE +":0}}")
 	private int encoderThreadType;
-
-	/**
-	 * Set quality/speed ratio modifier, Higher values speed up the encode at the cost of quality.
-	 * @deprecated use {@link #encoderParameters}
-	 */
-	@Value( "${vp8EncoderSpeed:${" + SETTINGS_ENCODING_VP8_SPEED +":4}}")
-	@Deprecated
-	private int vp8EncoderSpeed = 4;
-
-	/**
-	 * VP8 Encoder deadline:
-	 *  best
-	 * 	good 
-	 *  realtime
-	 *  
-	 *  @deprecated use {@link #encoderParameters}
-	 */
-	@Value( "${vp8EncoderDeadline:${" + SETTINGS_ENCODING_VP8_DEADLINE +":realtime}}")
-	@Deprecated
-	private String vp8EncoderDeadline = "realtime";
 
 	/**
 	 * VP8 Encoder thread count.
@@ -1631,33 +1506,12 @@ public class AppSettings implements Serializable{
 	private String appName = "";
 
 	/**
-	 * Timeout for encoding
-	 * If encoder cannot encode a frame in this timeout, streaming is finished by server. 
-	 */
-	@Value("${encodingTimeout:${" + SETTINGS_ENCODING_TIMEOUT +":5000}}")
-	@Deprecated(forRemoval = true, since = "2.14.0")
-	private int encodingTimeout = 5000;
-
-	/**
 	 * If webrtc client(publish or play) is not started in this time, it'll close automatically.
 	 * It's also being used as a timeout to let publisher reconnect in fluctuating networks or ungraceful termination such as
 	 * closing the browser without closing the connection.
 	 */
 	@Value("${webRTCClientStartTimeoutMs:${" + SETTINGS_WEBRTC_CLIENT_START_TIMEOUT +":10000}}")
 	private int webRTCClientStartTimeoutMs = 10000;
-
-	/**
-	 * Set true to enable WebRTC default decoders(such as VP8, VP9) 
-	 * Set false to only enable h264 decoder
-	 * If it is set true, WebRTC using default decoders(such as VP8, VP9).
-	 * If it is set false, WebRTC using only default h264 decoder.
-	 * Default value is false.
-	 *
-	 * Deprecated: Use {@code vp8Enabled} and {@code h264enabled}
-	 */
-	@Deprecated
-	@Value("${defaultDecodersEnabled:${" + SETTINGS_DEFAULT_DECODERS_ENABLED+ ":false}}")
-	private boolean defaultDecodersEnabled;
 
 	/**
 	 * Update time of the setting in the cluster
@@ -1783,36 +1637,6 @@ public class AppSettings implements Serializable{
 	private String dataChannelWebHookURL = "";
 
 	/**
-	 * @deprecated. Please use {@link #encoderParameters}
-	 */
-	@Deprecated
-	private String h265EncoderPreset;
-	
-	/**
-	 * @deprecated. Please use {@link #encoderParameters}
-	 */
-	@Deprecated
-	private String h265EncoderProfile;
-
-	/**
-	 * @deprecated. Please use {@link #encoderParameters}
-	 */
-	@Deprecated
-	private String h265EncoderRc;
-
-	/**
-	 * @deprecated. Please use {@link #encoderParameters}
-	 */
-	@Deprecated
-	private String h265EncoderSpecific;
-
-	/**
-	 * @deprecated. Please use {@link #encoderParameters}
-	 */
-	@Deprecated
-	private String h265EncoderLevel;
-
-	/**
 	 * The height of the stream that is transcoded from incoming WebRTC stream to the RTMP
 	 * This settings is effective in community edition by default
 	 * It's also effective WebRTC to RTMP direct forwarding by giving rtmpForward=true in WebSocket communication
@@ -1860,27 +1684,10 @@ public class AppSettings implements Serializable{
 	private int gopSize;
 
 	/**
-	 * Constant Rate Factor used by x264, x265, VP8,
-	 * Use values between 4-51
-	 * @deprecated. Please use {@link #encoderParameters}
-	 */
-	@Value("${constantRateFactor:${"+SETTINGS_CONSTANT_RATE_FACTOR+":23}}")
-	@Deprecated
-	private String constantRateFactor = "23";
-
-	/**
 	 * Application level WebRTC viewer limit
 	 */
 	@Value("${webRTCViewerLimit:${"+SETTINGS_WEBRTC_VIEWER_LIMIT+":-1}}")
 	private int webRTCViewerLimit = -1;
-
-	/**
-	 * Set to true when you want to delete an application 
-	 */
-	@Deprecated (forRemoval = true)
-	private boolean toBeDeleted = false;
-
-
 
 	public static final String APPLICATION_STATUS_INSTALLING = "installing";
 	public static final String APPLICATION_STATUS_INSTALLED = "installed";
@@ -2731,18 +2538,6 @@ public class AppSettings implements Serializable{
 		this.acceptOnlyRoomsInDataStore = acceptOnlyRoomsInDataStore;
 	}
 
-	public boolean isObjectDetectionEnabled() {
-		return objectDetectionEnabled;
-	}
-
-	public String getVodFolder() {
-		return vodFolder;
-	}
-
-	public void setVodFolder(String vodFolder) {
-		this.vodFolder = vodFolder;
-	}
-
 	public int getCreatePreviewPeriod() {
 		return createPreviewPeriod;
 	}
@@ -2757,30 +2552,6 @@ public class AppSettings implements Serializable{
 
 	public void setPreviewOverwrite(boolean previewOverwrite) {
 		this.previewOverwrite = previewOverwrite;
-	}
-
-	public String getStalkerDBServer() {
-		return stalkerDBServer;
-	}
-
-	public void setStalkerDBServer(String stalkerDBServer) {
-		this.stalkerDBServer = stalkerDBServer;
-	}
-
-	public String getStalkerDBUsername() {
-		return stalkerDBUsername;
-	}
-
-	public void setStalkerDBUsername(String stalkerDBUsername) {
-		this.stalkerDBUsername = stalkerDBUsername;
-	}
-
-	public String getStalkerDBPassword() {
-		return stalkerDBPassword;
-	}
-
-	public void setStalkerDBPassword(String stalkerDBPassword) {
-		this.stalkerDBPassword = stalkerDBPassword;
 	}
 
 	public int getRestartStreamFetcherPeriod() {
@@ -2831,20 +2602,6 @@ public class AppSettings implements Serializable{
 
 	public void setPlayTokenControlEnabled(boolean playTokenControlEnabled) {
 		this.playTokenControlEnabled = playTokenControlEnabled;
-	}
-
-	/**
-	 * @deprecated Please use {@link #isEnableTimeTokenForPlay()} or {@link #isEnableTimeTokenForPublish()}
-	 * @return
-	 */
-	@Deprecated
-	public boolean isTimeTokenSubscriberOnly() {
-		return timeTokenSubscriberOnly;
-	}
-
-	@Deprecated
-	public void setTimeTokenSubscriberOnly(boolean timeTokenSubscriberOnly) {
-		this.timeTokenSubscriberOnly = timeTokenSubscriberOnly;
 	}
 
 	public boolean isEnableTimeTokenForPlay() {
@@ -2917,12 +2674,10 @@ public class AppSettings implements Serializable{
 		publishTokenControlEnabled = false;
 		rtmpPlaybackEnabled = false;
 		playTokenControlEnabled = false;
-		timeTokenSubscriberOnly = false;
 		enableTimeTokenForPlay = false;
 		enableTimeTokenForPublish = false;
 		hlsPlayListType = null;
 		previewOverwrite = false;
-		objectDetectionEnabled = false;
 		createPreviewPeriod = 5000;
 		restartStreamFetcherPeriod = 0;
 		webRTCFrameRate = 20;
@@ -2975,46 +2730,6 @@ public class AppSettings implements Serializable{
 
 	public void setEncoderName(String encoderName) {
 		this.encoderName = encoderName;
-	}
-
-	public String getEncoderPreset() {
-		return encoderPreset;
-	}
-
-	public void setEncoderPreset(String encoderPreset) {
-		this.encoderPreset = encoderPreset;
-	}
-
-	public String getEncoderProfile() {
-		return encoderProfile;
-	}
-
-	public void setEncoderProfile(String encoderProfile) {
-		this.encoderProfile = encoderProfile;
-	}
-
-	public String getEncoderLevel() {
-		return encoderLevel;
-	}
-
-	public void setEncoderLevel(String encoderLevel) {
-		this.encoderLevel = encoderLevel;
-	}
-
-	public String getEncoderRc() {
-		return encoderRc;
-	}
-
-	public void setEncoderRc(String encoderRc) {
-		this.encoderRc = encoderRc;
-	}
-
-	public String getEncoderSpecific() {
-		return encoderSpecific;
-	}
-
-	public void setEncoderSpecific(String encoderSpecific) {
-		this.encoderSpecific = encoderSpecific;
 	}
 
 	public int getPreviewHeight() {
@@ -3189,22 +2904,6 @@ public class AppSettings implements Serializable{
 		return appName;
 	}
 
-	public int getEncodingTimeout() {
-		return encodingTimeout;
-	}
-
-	public void setEncodingTimeout(int encodingTimeout) {
-		this.encodingTimeout = encodingTimeout;
-	}
-
-	public boolean isDefaultDecodersEnabled() {
-		return defaultDecodersEnabled;
-	}
-
-	public void setDefaultDecodersEnabled(boolean defaultDecodersEnabled) {
-		this.defaultDecodersEnabled = defaultDecodersEnabled;
-	}
-
 	public String getHttpForwardingExtension() {
 		return httpForwardingExtension;
 	}
@@ -3345,68 +3044,12 @@ public class AppSettings implements Serializable{
 		this.webRTCClientStartTimeoutMs = webRTCClientStartTimeout;
 	}
 
-	public String getH265EncoderProfile() {
-		return this.h265EncoderProfile;
-	}
-
-	public String getH265EncoderPreset() {
-		return this.h265EncoderPreset;
-	}
-
-	public String getH265EncoderLevel() {
-		return this.h265EncoderLevel;
-	}
-
-	public String getH265EncoderSpecific() {
-		return this.h265EncoderSpecific;
-	}
-
-	public String getH265EncoderRc() {
-		return this.h265EncoderRc ;
-	}
-
-	public void setH265EncoderLevel(String encoderLevel) {
-		this.h265EncoderLevel = encoderLevel;
-	}
-
-	public void setH265EncoderPreset(String preset) {
-		this.h265EncoderPreset = preset;
-	}
-
-	public void setH265EncoderProfile(String profile) {
-		this.h265EncoderProfile = profile;
-	}
-
-	public void setH265EncoderRc(String encoderRc) {
-		this.h265EncoderRc = encoderRc;
-	}
-
-	public void setH265EncoderSpecific(String encoderSpecific) {
-		this.h265EncoderSpecific = encoderSpecific;
-	}
-
 	public boolean isWebMMuxingEnabled() {
 		return webMMuxingEnabled;
 	}
 
 	public void setWebMMuxingEnabled(boolean webMMuxingEnabled) {
 		this.webMMuxingEnabled = webMMuxingEnabled;
-	}
-
-	public int getVp8EncoderSpeed() {
-		return vp8EncoderSpeed;
-	}
-
-	public void setVp8EncoderSpeed(int vp8EncoderSpeed) {
-		this.vp8EncoderSpeed = vp8EncoderSpeed;
-	}
-
-	public String getVp8EncoderDeadline() {
-		return vp8EncoderDeadline;
-	}
-
-	public void setVp8EncoderDeadline(String vp8EncoderDeadline) {
-		this.vp8EncoderDeadline = vp8EncoderDeadline;
 	}
 
 	public int getVp8EncoderThreadCount() {
@@ -3479,14 +3122,6 @@ public class AppSettings implements Serializable{
 
 	public void setGopSize(int gopSize) {
 		this.gopSize = gopSize;
-	}
-
-	public String getConstantRateFactor() {
-		return constantRateFactor;
-	}
-
-	public void setConstantRateFactor(String constantRateFactor) {
-		this.constantRateFactor = constantRateFactor;
 	}
 
 	public int getWebRTCViewerLimit() {
@@ -3567,16 +3202,6 @@ public class AppSettings implements Serializable{
 
 	public void setTimeTokenPeriod(int timeTokenPeriod) {
 		this.timeTokenPeriod = timeTokenPeriod;
-	}
-
-	@Deprecated(forRemoval = true, since = "2.12.0")
-	public boolean isToBeDeleted() {
-		return toBeDeleted;
-	}
-
-	@Deprecated(forRemoval = true, since = "2.12.0")
-	public void setToBeDeleted(boolean toBeDeleted) {
-		this.toBeDeleted = toBeDeleted;
 	}
 
 	public String getAppStatus() {
@@ -3965,10 +3590,6 @@ public class AppSettings implements Serializable{
 
 	public String getVodUploadFinishScript() {
 		return vodUploadFinishScript;
-	}
-
-	public void setObjectDetectionEnabled(boolean objectDetectionEnabled) {
-		this.objectDetectionEnabled = objectDetectionEnabled;
 	}
 
 	public boolean isId3TagEnabled() {

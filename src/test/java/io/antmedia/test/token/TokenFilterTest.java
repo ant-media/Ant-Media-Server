@@ -380,7 +380,7 @@ public class TokenFilterTest {
 		ITokenService tokenService = mock(ITokenService.class);
 		AppSettings settings = new AppSettings();
 		settings.resetDefaults();
-		settings.setTimeTokenSubscriberOnly(true);
+		settings.setPlayTokenControlEnabled(true);
 
 		
 		when(context.getBean("token.service")).thenReturn(tokenService);

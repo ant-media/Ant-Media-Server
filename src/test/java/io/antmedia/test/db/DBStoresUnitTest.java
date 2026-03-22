@@ -14,16 +14,21 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import io.antmedia.datastore.db.*;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.ffmpeg.avutil.tm;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,10 +46,16 @@ import dev.morphia.query.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapBasedDataStore;
+import io.antmedia.datastore.db.MapDBStore;
+import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
-import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
@@ -52,11 +63,8 @@ import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberMetadata;
-import io.antmedia.datastore.db.types.SubscriberStats;
-import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.pushnotification.IPushNotificationService.PushNotificationServiceTypes;
@@ -94,50 +102,6 @@ public class DBStoresUnitTest {
 	}
 
 	@Test
-	public void testConferenceRoomWrapper() throws Exception {
-
-		ConferenceRoom conferenceRoom = new ConferenceRoom();
-		conferenceRoom.setRoomId("roomId");
-		long startDate = Instant.now().getEpochSecond();
-		long endDate = startDate + 1000;
-		conferenceRoom.setStartDate(startDate);
-		conferenceRoom.setEndDate(endDate);
-		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
-		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
-		conferenceRoom.setOriginAdress("originAdress");
-
-		assertEquals("roomId", conferenceRoom.getRoomId());
-		assertEquals(ConferenceRoom.LEGACY_MODE, conferenceRoom.getMode());
-		assertEquals("originAdress", conferenceRoom.getOriginAdress());
-		assertEquals(2, conferenceRoom.getRoomStreamList().size());
-
-		Broadcast broadcast = DataStore.conferenceToBroadcast(conferenceRoom);
-		assertEquals("roomId", broadcast.getStreamId());
-		assertEquals("originAdress", broadcast.getOriginAdress());
-		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
-		assertEquals(2, broadcast.getSubTrackStreamIds().size());
-		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
-		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
-		assertEquals(startDate, broadcast.getPlannedStartDate());
-		assertEquals(endDate, broadcast.getPlannedEndDate());
-
-
-		ConferenceRoom conferenceRoom2 = DataStore.broadcastToConference(broadcast);
-		assertEquals("roomId", conferenceRoom2.getRoomId());
-		assertEquals(ConferenceRoom.LEGACY_MODE, conferenceRoom2.getMode());
-		assertEquals("originAdress", conferenceRoom2.getOriginAdress());
-		assertEquals(2, conferenceRoom2.getRoomStreamList().size());
-		assertEquals("stream1", conferenceRoom2.getRoomStreamList().get(0));
-		assertEquals("stream2", conferenceRoom2.getRoomStreamList().get(1));
-		assertEquals(startDate, conferenceRoom2.getStartDate());
-		assertEquals(endDate, conferenceRoom2.getEndDate());
-	}
-
-
-
-
-
-	@Test
 	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
@@ -163,7 +127,6 @@ public class DBStoresUnitTest {
 		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
@@ -180,7 +143,6 @@ public class DBStoresUnitTest {
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
-		testAddTrack(dataStore);
 		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
 		testGetVoDIdByStreamId(dataStore);
@@ -190,7 +152,6 @@ public class DBStoresUnitTest {
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 		testGetSubtracks(dataStore);
@@ -260,7 +221,6 @@ public class DBStoresUnitTest {
 		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
@@ -278,7 +238,6 @@ public class DBStoresUnitTest {
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
-		testAddTrack(dataStore);
 		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
 		testGetVoDIdByStreamId(dataStore);
@@ -288,7 +247,6 @@ public class DBStoresUnitTest {
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 		testGetSubtracks(dataStore);
@@ -308,11 +266,11 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMongoStore() throws Exception {
 
-		DataStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		DataStore dataStore = new MongoStore("127.0.0.1", "testdb");
 		//delete db
 		dataStore.close(true);
 
-		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		dataStore = new MongoStore("127.0.0.1", "testdb");
 
 		appSettings = new AppSettings();
 
@@ -340,7 +298,6 @@ public class DBStoresUnitTest {
 		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
@@ -360,7 +317,6 @@ public class DBStoresUnitTest {
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
-		testAddTrack(dataStore);
 		testRemoveTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
@@ -369,7 +325,6 @@ public class DBStoresUnitTest {
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 
 
@@ -416,7 +371,6 @@ public class DBStoresUnitTest {
 		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
@@ -437,7 +391,6 @@ public class DBStoresUnitTest {
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
-		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
 		testFullTextSearch(dataStore);
@@ -445,7 +398,6 @@ public class DBStoresUnitTest {
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 
 		testGetSubtracks(dataStore);
@@ -486,124 +438,9 @@ public class DBStoresUnitTest {
 		dataStore.getBroadcastList(0, 10, "asc", null, null, null);
 	}
 
-	@Test
-	public void testConferenceRoomMigrationMapBased() {
-
-		MapDBStore dataStore = new MapDBStore("testdb" + RandomStringUtils.randomAlphanumeric(12) , vertx);
-
-		appSettings = new AppSettings();
-
-		dataStore.setAppSettings(appSettings);
-
-		Map<String, String> conferenceRoomMap = dataStore.getConferenceRoomMap();
-
-		Gson gson = new Gson();
-		ConferenceRoom conferenceRoom = new ConferenceRoom();
-		conferenceRoom.setRoomId("roomId");
-		long startDate = Instant.now().getEpochSecond();
-		long endDate = startDate + 1000;
-		conferenceRoom.setStartDate(startDate);
-		conferenceRoom.setEndDate(endDate);
-		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
-		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
-		conferenceRoom.setOriginAdress("originAdress");
-
-		conferenceRoomMap.put("roomId", gson.toJson(conferenceRoom));
-
-
-		ConferenceRoom conferenceRoom2 = new ConferenceRoom();
-		conferenceRoom2.setRoomId("roomId2");
-		long startDate2 = Instant.now().getEpochSecond();
-		long endDate2 = startDate + 1000;
-		conferenceRoom2.setStartDate(startDate2);
-		conferenceRoom2.setEndDate(endDate2);
-		conferenceRoom2.setMode(ConferenceRoom.MULTI_TRACK_MODE);
-		conferenceRoom2.setRoomStreamList(Arrays.asList("stream3", "stream4"));
-		conferenceRoom2.setOriginAdress("originAdress2");
-
-		conferenceRoomMap.put("roomId2", gson.toJson(conferenceRoom2));
-
-
-		dataStore.migrateConferenceRoomsToBroadcasts();
-
-		assertEquals(2, dataStore.getTotalBroadcastNumber());
-		Broadcast broadcast = dataStore.get("roomId");
-		assertNotNull(broadcast);
-		assertEquals("roomId", broadcast.getStreamId());
-		assertEquals("originAdress", broadcast.getOriginAdress());
-		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
-		assertEquals(2, broadcast.getSubTrackStreamIds().size());
-		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
-		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
-
-
-		assertEquals(0, conferenceRoomMap.size());
-
-	}
-
-	@Test
-	public void testConferenceRoomMigrationMongo() {
-
-		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
-
-		//delete db
-		dataStore.close(true);
-
-		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
-
-		appSettings = new AppSettings();
-
-		dataStore.setAppSettings(appSettings);
-
-		Datastore conferenceRoomMap = dataStore.getConferenceRoomDatastore();
-
-		Gson gson = new Gson();
-		ConferenceRoom conferenceRoom = new ConferenceRoom();
-		conferenceRoom.setRoomId("roomId");
-		long startDate = Instant.now().getEpochSecond();
-		long endDate = startDate + 1000;
-		conferenceRoom.setStartDate(startDate);
-		conferenceRoom.setEndDate(endDate);
-		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
-		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
-		conferenceRoom.setOriginAdress("originAdress");
-
-		conferenceRoomMap.save(conferenceRoom);
-
-
-		ConferenceRoom conferenceRoom2 = new ConferenceRoom();
-		conferenceRoom2.setRoomId("roomId2");
-		long startDate2 = Instant.now().getEpochSecond();
-		long endDate2 = startDate + 1000;
-		conferenceRoom2.setStartDate(startDate2);
-		conferenceRoom2.setEndDate(endDate2);
-		conferenceRoom2.setMode(ConferenceRoom.MULTI_TRACK_MODE);
-		conferenceRoom2.setRoomStreamList(Arrays.asList("stream3", "stream4"));
-		conferenceRoom2.setOriginAdress("originAdress2");
-
-		conferenceRoomMap.save(conferenceRoom2);
-
-
-		dataStore.migrateConferenceRoomsToBroadcasts();
-
-		assertEquals(2, dataStore.getTotalBroadcastNumber());
-		Broadcast broadcast = dataStore.get("roomId");
-		assertNotNull(broadcast);
-		assertEquals("roomId", broadcast.getStreamId());
-		assertEquals("originAdress", broadcast.getOriginAdress());
-		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
-		assertEquals(2, broadcast.getSubTrackStreamIds().size());
-		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
-		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
-
-
-		assertEquals(0, conferenceRoomMap.find(ConferenceRoom.class).count());
-
-	}
-
 	public void clear(DataStore dataStore) 
 	{
-		long numberOfStreams = dataStore.getBroadcastCount();
+		long numberOfStreams = dataStore.getTotalBroadcastNumber();
 		int numberOfCall = 0;
 		int pageSize = 50;
 
@@ -675,7 +512,7 @@ public class DBStoresUnitTest {
 	public void testUnexpectedBroadcastOffset(DataStore dataStore) {
 		clear(dataStore);
 
-		assertEquals(0, dataStore.getBroadcastCount());
+		assertEquals(0, dataStore.getTotalBroadcastNumber());
 
 
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(50, 50, null, null, null, null);
@@ -703,7 +540,7 @@ public class DBStoresUnitTest {
 	public void testLocalLiveBroadcast(DataStore dataStore) {
 		clear(dataStore);
 
-		assertEquals(0, dataStore.getBroadcastCount());
+		assertEquals(0, dataStore.getTotalBroadcastNumber());
 
 		long streamCount = 10;
 		String streamId = null;
@@ -733,7 +570,7 @@ public class DBStoresUnitTest {
 
 		clear(dataStore);
 
-		assertEquals(0, dataStore.getBroadcastCount());
+		assertEquals(0, dataStore.getTotalBroadcastNumber());
 
 		streamCount = 15;
 		for (int i = 0; i < streamCount; i++) {
@@ -758,7 +595,7 @@ public class DBStoresUnitTest {
 		//long broadcastCountInDataStore = dataStore.getBroadcastCount();
 		clear(dataStore);
 
-		assertEquals(0, dataStore.getBroadcastCount());
+		assertEquals(0, dataStore.getTotalBroadcastNumber());
 
 
 		long streamCount = 10 + (int)(Math.random()  * 500);
@@ -774,7 +611,7 @@ public class DBStoresUnitTest {
 			logger.info("Saved streamId:{}", streamId);
 		}
 
-		assertEquals(streamCount, dataStore.getBroadcastCount());
+		assertEquals(streamCount, dataStore.getTotalBroadcastNumber());
 
 		//check that no active broadcast exist
 		assertEquals(0, dataStore.getActiveBroadcastCount());
@@ -819,7 +656,7 @@ public class DBStoresUnitTest {
 		assertEquals(numberOfStatusChangeStreams, localLiveBroadcasts.size());
 
 		//change all streams to finished
-		streamCount = dataStore.getBroadcastCount();
+		streamCount = dataStore.getTotalBroadcastNumber();
 		pageCount = streamCount / pageSize + ((streamCount % pageSize) > 0 ? 1 : 0);
 		for (int i = 0; i < pageCount; i++) {
 
@@ -1444,7 +1281,7 @@ public class DBStoresUnitTest {
 	}
 
 	public void testBroadcastListSearch(DataStore dataStore){
-		long broadcastCount = dataStore.getBroadcastCount();
+		long broadcastCount = dataStore.getTotalBroadcastNumber();
 		int pageCount = (int)(broadcastCount/50 + 1);
 
 		for (int i = 0; i < pageCount; i++) {
@@ -1838,7 +1675,6 @@ public class DBStoresUnitTest {
 			tmp.setUsername("user");
 			tmp.setPassword("pass");
 			tmp.setStreamUrl("url");
-			tmp.setConferenceMode("mode");
 			tmp.setPlannedStartDate(100L);
 			tmp.setPlannedEndDate(200L);
 			tmp.setAbsoluteStartTimeMs(197L);
@@ -1861,9 +1697,6 @@ public class DBStoresUnitTest {
 			tmp.setVirtual(false);
 			tmp.setAutoStartStopEnabled(false);
 			tmp.setSubtracksLimit(13);
-			List<String> ids = Arrays.asList("st1", "st2");
-			tmp.setSubTrackStreamIds(ids);
-			tmp.setSubTrackStreamIds(ids);
 
 
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
@@ -1888,7 +1721,6 @@ public class DBStoresUnitTest {
 			assertEquals("user", broadcast2.getUsername());
 			assertEquals("pass", broadcast2.getPassword());
 			assertEquals("url", broadcast2.getStreamUrl());
-			assertEquals("mode", broadcast2.getConferenceMode());
 			assertEquals(100L, broadcast2.getPlannedStartDate());
 			assertEquals(200L, broadcast2.getPlannedEndDate());
 			assertEquals(197L, broadcast2.getAbsoluteStartTimeMs());
@@ -1911,9 +1743,6 @@ public class DBStoresUnitTest {
 			assertFalse(broadcast2.isVirtual());
 			assertFalse(broadcast2.isAutoStartStopEnabled());
 			assertEquals(13, broadcast2.getSubtracksLimit());
-			assertEquals(2, broadcast2.getSubTrackStreamIds().size());
-			assertEquals("st1", broadcast2.getSubTrackStreamIds().get(0));
-			assertEquals("st2", broadcast2.getSubTrackStreamIds().get(1));
 
 
 
@@ -2256,38 +2085,6 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testSaveDetection(DataStore dataStore){
-		String item1 = "item1";
-		long detectionTime = 434234L;
-		float probability1 = 0.1f;
-
-		double minX = 5.5;
-		double minY = 4.4;
-		double maxX = 3.3;
-		double maxY = 2.2;
-
-		List<TensorFlowObject> detectedObjects = new ArrayList<>();
-		TensorFlowObject tfObject = new TensorFlowObject(item1, probability1, "imageId");
-		tfObject.setMinX(minX);
-		tfObject.setMinY(minY);
-		tfObject.setMaxX(maxX);
-		tfObject.setMaxY(maxY);
-
-		detectedObjects.add(tfObject);
-		dataStore.saveDetection("id", detectionTime, detectedObjects);
-
-		List<TensorFlowObject> list = dataStore.getDetectionList("id", 0, 10);
-		assertEquals(1,list.size());
-		assertEquals(item1, list.get(0).getObjectName());
-		assertEquals(probability1, list.get(0).getProbability(),0.1F);
-		assertEquals(detectionTime, list.get(0).getDetectionTime());	
-
-		assertEquals(minX, list.get(0).getMinX(), 0.0001);	
-		assertEquals(minY, list.get(0).getMinY(), 0.0001);	
-		assertEquals(maxX, list.get(0).getMaxX(), 0.0001);	
-		assertEquals(maxY, list.get(0).getMaxY(), 0.0001);	
-	}
-
 	public void testTokenOperations(DataStore store) {
 
 		//create token
@@ -2525,20 +2322,16 @@ public class DBStoresUnitTest {
 		//get subscribers of stream
 		List <Subscriber> subscribers = store.listAllSubscribers(streamId, 0, 10);
 		assertEquals(2, subscribers.size());
-		List <SubscriberStats> subscriberStats = store.listAllSubscriberStats(streamId, 0, 10);
-		assertEquals(2, subscriberStats.size());
 
 		//revoke subscribers
 		store.revokeSubscribers(subscriberPlay.getStreamId());
 
 		//get subscribers of stream
 		subscribers = store.listAllSubscribers(streamId, 0, 10);
-		subscriberStats = store.listAllSubscriberStats(streamId, 0, 10);
 
 
 		//it should be zero because all subscribers are revoked
 		assertEquals(0, subscribers.size());
-		assertEquals(0, subscriberStats.size());
 
 		//create subscriber again
 		assertTrue(store.addSubscriber(subscriberPub.getStreamId(), subscriberPub));
@@ -2575,12 +2368,10 @@ public class DBStoresUnitTest {
 		assertEquals(0, store.getConnectionEvents(subscriberPub.getStreamId(), null, 0, 50).size());
 
 		subscribers = store.listAllSubscribers(streamId, 0, 10);
-		subscriberStats = store.listAllSubscriberStats(streamId, 0, 10);
 
 
 		//it should be zero because subscriber is deleted
 		assertEquals(0, subscribers.size());
-		assertEquals(0, subscriberStats.size());
 		assertEquals(0, store.getConnectionEvents(streamId, written.getSubscriberId(), 0, 50).size());
 
 
@@ -2785,10 +2576,10 @@ public class DBStoresUnitTest {
 
 		if (dataStore instanceof MongoStore) {
 			deleteBroadcast((MongoStore) dataStore);
-			assertEquals(0, dataStore.getBroadcastCount());
+			assertEquals(0, dataStore.getTotalBroadcastNumber());
 		}
 		else  {
-			long broadcastCount = dataStore.getBroadcastCount();
+			long broadcastCount = dataStore.getTotalBroadcastNumber();
 			System.out.println("broadcast count: " + broadcastCount);
 			int j = 0;
 			List<Broadcast> broadcastList;
@@ -2805,7 +2596,7 @@ public class DBStoresUnitTest {
 
 		}
 
-		assertEquals(0, dataStore.getBroadcastCount());
+		assertEquals(0, dataStore.getTotalBroadcastNumber());
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test1");
 		broadcast.setZombi(true);
@@ -2832,11 +2623,11 @@ public class DBStoresUnitTest {
 		broadcast4.setRtmpViewerCount(50);
 		dataStore.save(broadcast4);
 
-		assertEquals(4, dataStore.getBroadcastCount());
+		assertEquals(4, dataStore.getTotalBroadcastNumber());
 
 		dataStore.resetBroadcasts(ServerSettings.getLocalHostAddress());
 
-		assertEquals(2, dataStore.getBroadcastCount());
+		assertEquals(2, dataStore.getTotalBroadcastNumber());
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null, null, null);
 		for (Broadcast tmp : broadcastList) {
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, tmp.getStatus());
@@ -2852,10 +2643,10 @@ public class DBStoresUnitTest {
 
 		if (dataStore instanceof MongoStore) {
 			deleteBroadcast((MongoStore) dataStore);
-			assertEquals(0, dataStore.getBroadcastCount());
+			assertEquals(0, dataStore.getTotalBroadcastNumber());
 		}
 		else  {
-			long broadcastCount = dataStore.getBroadcastCount();
+			long broadcastCount = dataStore.getTotalBroadcastNumber();
 			System.out.println("broadcast count: " + broadcastCount);
 			int j = 0;
 			List<Broadcast> broadcastList;
@@ -2897,19 +2688,19 @@ public class DBStoresUnitTest {
 
 		dataStore.getStreamInfoList(broadcast.getStreamId());
 
-		assertEquals(1, dataStore.getBroadcastCount());
+		assertEquals(1, dataStore.getTotalBroadcastNumber());
 		assertEquals(2, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
 
 		dataStore.resetBroadcasts(ServerSettings.getLocalHostAddress());
 
-		assertEquals(0, dataStore.getBroadcastCount());
+		assertEquals(0, dataStore.getTotalBroadcastNumber());
 		assertEquals(0, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
 
 	}
 
 	@Test
 	public void testMongoDBSaveStreamInfo() {
-		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		MongoStore dataStore = new MongoStore("127.0.0.1", "testdb");
 		deleteStreamInfos(dataStore);
 		assertEquals(0, dataStore.getDataStore().find(StreamInfo.class).count());
 
@@ -2962,10 +2753,10 @@ public class DBStoresUnitTest {
 	private void testStreamSourceList(DataStore dataStore) {
 		if (dataStore instanceof MongoStore) {
 			deleteBroadcast((MongoStore) dataStore);
-			assertEquals(0, dataStore.getBroadcastCount());
+			assertEquals(0, dataStore.getTotalBroadcastNumber());
 		}
 		else  {
-			long broadcastCount = dataStore.getBroadcastCount();
+			long broadcastCount = dataStore.getTotalBroadcastNumber();
 			System.out.println("broadcast count: " + broadcastCount);
 			int j = 0;
 			List<Broadcast> broadcastList;
@@ -3287,53 +3078,6 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testAddTrack(DataStore dataStore) {
-
-		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
-		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
-
-		Broadcast mainTrack= new Broadcast();
-		try {
-			mainTrack.setStreamId(mainTrackId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		Broadcast subtrack= new Broadcast();
-		try {
-			subtrack.setStreamId(subTrackId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		dataStore.save(mainTrack);
-		dataStore.save(subtrack);
-
-		assertTrue(mainTrack.getSubTrackStreamIds().isEmpty());
-		assertNull(subtrack.getMainTrackStreamId());
-
-		subtrack.setMainTrackStreamId(mainTrackId);
-		BroadcastUpdate updateData = new BroadcastUpdate();
-		updateData.setMainTrackStreamId(mainTrackId);
-		assertTrue(dataStore.updateBroadcastFields(subTrackId, updateData));
-
-		boolean result = dataStore.addSubTrack(mainTrackId, subTrackId);
-		assertTrue(result);
-		mainTrack = dataStore.get(mainTrackId);
-		subtrack = dataStore.get(subTrackId);
-		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
-		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
-		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
-
-
-		result = dataStore.addSubTrack("Not exists", subTrackId);
-		assertFalse(result);
-
-		result = dataStore.addSubTrack(mainTrackId, null);
-		assertFalse(result);
-
-
-	}
 
 	/*
 	 * Test remove track
@@ -3351,7 +3095,6 @@ public class DBStoresUnitTest {
 		Broadcast mainTrack1= new Broadcast();
 		try {
 			mainTrack1.setStreamId(mainTrackId1);
-			mainTrack1.setSubTrackStreamIds(new ArrayList<>(Arrays.asList(subTrackId)));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -3359,7 +3102,6 @@ public class DBStoresUnitTest {
 		Broadcast mainTrack2= new Broadcast();
 		try {
 			mainTrack2.setStreamId(mainTrackId2);
-			mainTrack2.setSubTrackStreamIds(new ArrayList<>(Arrays.asList(subTrackId)));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -3376,20 +3118,11 @@ public class DBStoresUnitTest {
 		dataStore.save(mainTrack2);
 		dataStore.save(subtrack);
 
-		assertTrue(dataStore.get(mainTrackId1).getSubTrackStreamIds().size() == 1);
-		assertEquals(subTrackId, mainTrack1.getSubTrackStreamIds().get(0));
-		assertTrue(dataStore.get(mainTrackId2).getSubTrackStreamIds().size() == 1);
-		assertEquals(subTrackId, mainTrack2.getSubTrackStreamIds().get(0));
+		
 		assertEquals(mainTrackId1, dataStore.get(subTrackId).getMainTrackStreamId());
 
-		assertTrue(dataStore.removeSubTrack(mainTrackId1, subTrackId));
-		assertTrue(dataStore.removeSubTrack(mainTrackId2, subTrackId));
 
-		assertTrue(dataStore.get(mainTrackId1).getSubTrackStreamIds().isEmpty());
-		assertTrue(dataStore.get(mainTrackId2).getSubTrackStreamIds().isEmpty());
 
-		assertFalse(dataStore.removeSubTrack("nonExistedStreamID", subTrackId));
-		assertFalse(dataStore.removeSubTrack(mainTrackId1, null));
 
 
 	}
@@ -3475,9 +3208,9 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMongoDBCollection() {
 		String dbName = "deleteMapdb";
-		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", dbName);
+		MongoStore dataStore = new MongoStore("127.0.0.1", dbName);
 
-		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("127.0.0.1", "", ""));
+		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("127.0.0.1"));
 		MongoClient client = new MongoClient(mongoUri);
 
 
@@ -3492,49 +3225,6 @@ public class DBStoresUnitTest {
 		assertFalse(dbNames.contains(dbName));
 
 	}
-
-
-	public void testWebRTCViewerOperations(DataStore dataStore) {
-
-		ArrayList<String> idList = new ArrayList<String>();
-
-		int total = RandomUtils.nextInt(10, DataStore.MAX_ITEM_IN_ONE_LIST);
-		for (int i = 0; i < total; i++) {
-			WebRTCViewerInfo info = new WebRTCViewerInfo();
-			String streamId = RandomStringUtils.randomAlphabetic(5);
-			info.setStreamId(streamId);
-			String id = RandomStringUtils.randomAlphabetic(5);
-			info.setViewerId(id);
-
-			dataStore.saveViewerInfo(info);
-
-			idList.add(id);
-		}
-
-		List<WebRTCViewerInfo> returningList = dataStore.getWebRTCViewerList(0, DataStore.MAX_ITEM_IN_ONE_LIST+10, "viewerId", "asc", "");
-		assertEquals(total,  returningList.size());	
-
-
-		Collections.sort(idList);
-
-		for (int i = 0; i < total; i++) {
-			assertEquals(idList.get(i),  returningList.get(i).getViewerId());	
-		}
-
-		List<WebRTCViewerInfo> returningList2 = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "a");
-		for (WebRTCViewerInfo webRTCViewerInfo : returningList2) {
-			assertTrue(webRTCViewerInfo.getViewerId().contains("a")||webRTCViewerInfo.getViewerId().contains("A"));
-		}
-
-
-		int deleted = 0;
-		for (String id : idList) {
-			dataStore.deleteWebRTCViewerInfo(id);
-			List<WebRTCViewerInfo> tempList = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "");
-
-			assertEquals(total - (++deleted),  tempList.size());	
-		}
-	}	
 
 	public void testUpdateMetaData(DataStore dataStore) {
 

@@ -275,7 +275,7 @@ public class TokenFilterTest {
 		ITokenService tokenService = mock(ITokenService.class);
 		AppSettings settings = new AppSettings();
 		settings.resetDefaults();
-		settings.setTimeTokenSubscriberOnly(true);
+		settings.setEnableTimeTokenForPlay(true);
 
 
 		when(context.getBean("token.service")).thenReturn(tokenService);
@@ -331,7 +331,6 @@ public class TokenFilterTest {
 
 	private AppSettings mockAppSettings(boolean timeTokenSubscriberOnly, boolean playJwtControlEnabled, boolean enableTimeTokenForPlay, boolean playTokenControlEnabled, boolean hashControlPlayEnabled) {
 		AppSettings appSettings = mock(AppSettings.class);
-		when(appSettings.isTimeTokenSubscriberOnly()).thenReturn(timeTokenSubscriberOnly);
 		when(appSettings.isPlayJwtControlEnabled()).thenReturn(playJwtControlEnabled);
 		when(appSettings.isEnableTimeTokenForPlay()).thenReturn(enableTimeTokenForPlay);
 		when(appSettings.isPlayTokenControlEnabled()).thenReturn(playTokenControlEnabled);

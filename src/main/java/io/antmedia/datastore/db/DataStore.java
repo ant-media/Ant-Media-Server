@@ -21,22 +21,17 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
-import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberMetadata;
-import io.antmedia.datastore.db.types.SubscriberStats;
-import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public abstract class DataStore {
@@ -177,13 +172,6 @@ public abstract class DataStore {
 	 */
 	public abstract String addVod(VoD vod);
 
-	/**
-	 * Use getTotalBroadcastNumber
-	 * @deprecated
-	 */
-	@Deprecated
-	public abstract long getBroadcastCount();
-
 	public long getBroadcastCount(Map<String,String> broadcastMap) {
 		long startTime = System.nanoTime();
 		long count = 0;
@@ -309,68 +297,6 @@ public abstract class DataStore {
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getTotalBroadcastNumber(Map<String,String> broadcastMap)");
 		return count;
-	}
-
-	public abstract void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects);
-
-	public abstract List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize);
-
-	public List<TensorFlowObject> getDetectionList(Map<String, String> detectionMap, String idFilter, int offsetSize, int batchSize, Gson gson) {
-		long startTime = System.nanoTime();
-
-
-		List<TensorFlowObject> list = new ArrayList<>();
-
-		synchronized (this) {
-			Type listType = new TypeToken<ArrayList<TensorFlowObject>>() {
-			}.getType();
-			int offsetCount = 0;
-			int batchCount = 0;
-
-			if (batchSize > MAX_ITEM_IN_ONE_LIST) {
-				batchSize = MAX_ITEM_IN_ONE_LIST;
-			}
-
-			for (Iterator<String> keyIterator = detectionMap.keySet().iterator(); keyIterator.hasNext();) {
-				String keyValue = keyIterator.next();
-				if (keyValue.startsWith(idFilter)) {
-					if (offsetCount < offsetSize) {
-						offsetCount++;
-						continue;
-					}
-					if (batchCount >= batchSize) {
-						break;
-					}
-					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
-					list.addAll(detectedList);
-					batchCount = list.size();
-				}
-			}
-		}
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getDetectionList(Map<String, String> detectionMap, String idFilter, int offsetSize, int batchSize, Gson gson)");
-		return list;
-	}
-
-	public abstract List<TensorFlowObject> getDetection(String id);
-
-	public List<TensorFlowObject> getDetection(Map<String, String> detectionMap, String id, Gson gson){
-		long startTime = System.nanoTime();
-		List<TensorFlowObject> list = new ArrayList<>();
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = detectionMap.get(id);
-				if (jsonString != null) {
-					Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-					list = gson.fromJson(jsonString, listType);
-				}
-			}
-		}
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getDetection(Map<String, String> detectionMap, String id, Gson gson)");
-		return list;
 	}
 
 	/**
@@ -559,33 +485,6 @@ public abstract class DataStore {
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson)");
 		return listSubscriber;
-	}
-
-	/**
-	 * Lists all subscriber statistics of requested stream
-	 * @param streamId
-	 * @param offset
-	 * @param size
-	 * @return lists of subscriber statistics
-	 */	
-	public List<SubscriberStats> listAllSubscriberStats(String streamId, int offset, int size) {
-		long startTime = System.nanoTime();
-		List<Subscriber> subscribers= listAllSubscribers(streamId, offset, size);
-		List<SubscriberStats> subscriberStats = new ArrayList<>();
-
-
-		for(Subscriber subscriber : subscribers) {
-			SubscriberStats stat = subscriber.getStats();
-			stat.setStreamId(subscriber.getStreamId());
-			stat.setSubscriberId(subscriber.getSubscriberId());
-			subscriberStats.add(stat);
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "listAllSubscriberStats(String streamId, int offset, int size)");
-
-		return subscriberStats;
 	}
 
 	/**
@@ -891,37 +790,6 @@ public abstract class DataStore {
 
 	protected abstract boolean updateDASHViewerCountLocal(String streamId, int diffCount);	
 
-	/**
-	 * Returns the total number of detected objects in the stream
-	 * @param id is the stream id
-	 * @return total number of detected objects
-	 */
-	public abstract long getObjectDetectedTotal(String streamId);
-
-	public long getObjectDetectedTotal(Map<String, String> detectionMap, String streamId, Gson gson) {
-		long startTime = System.nanoTime();
-
-		List<TensorFlowObject> list = new ArrayList<>();
-
-		Type listType = new TypeToken<ArrayList<TensorFlowObject>>() {
-		}.getType();
-
-		synchronized (this) {
-
-			for (Iterator<String> keyIterator = detectionMap.keySet().iterator(); keyIterator.hasNext();) {
-				String keyValue = keyIterator.next();
-				if (keyValue.startsWith(streamId)) {
-					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
-					list.addAll(detectedList);
-				}
-			}
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getObjectDetectedTotal(Map<String, String> detectionMap, String streamId, Gson gson)");
-		return list.size();
-	}
 
 	/**
 	 * Update the WebRTC viewer count
@@ -1073,10 +941,6 @@ public abstract class DataStore {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
 
-		if (newBroadcast.getConferenceMode() != null) {
-			broadcast.setConferenceMode(newBroadcast.getConferenceMode());
-		}
-
 		if (newBroadcast.getEncoderSettingsList() != null) {
 			broadcast.setEncoderSettingsList(newBroadcast.getEncoderSettingsList());
 		}
@@ -1131,10 +995,6 @@ public abstract class DataStore {
 		
 		if (newBroadcast.getDashViewerCount() != null) {
 			broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
-		}
-
-		if (newBroadcast.getSubTrackStreamIds() != null) {
-			broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		}
 
 		if (newBroadcast.getPlaylistLoopEnabled() != null) {
@@ -1430,30 +1290,6 @@ public abstract class DataStore {
 	public abstract boolean deleteP2PConnection(String streamId);
 
 	/**
-	 * @deprecated no need to use this method, logic has changed and we use directly getSubtracks, getActiveSubtracks.
-	 * It's kept for backward compatibility
-	 * 
-	 * Add a subtrack id to a main track (broadcast)
-	 * @param mainTrackId - main track id
-	 * @param subTrackId - main track id
-	 * @return boolean - success 
-	 */
-	@Deprecated(since = "2.9.1", forRemoval = true)
-	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
-
-	/**
-	 * @deprecated no need to use this method, logic has changed and we use directly getSubtracks, getActiveSubtracks.
-	 * It's kept for backward compatibility
-	 * 
-	 * Remove a subtrack id from a main track (broadcast)
-	 * @param mainTrackId - main track id
-	 * @param subTrackId - main track id
-	 * @return boolean - success
-	 */
-	@Deprecated(since = "2.9.1", forRemoval = true)
-	public abstract boolean removeSubTrack(String mainTrackId, String subTrackId);
-
-	/**
 	 * Resets the broadcasts in the database. 
 	 * It sets number of viewers to zero. 
 	 * It also delete the stream if it's zombi stream
@@ -1501,105 +1337,7 @@ public abstract class DataStore {
 		
 		return totalWebRTCViewerCount;
 	}
-
-	protected ArrayList<WebRTCViewerInfo> searchOnWebRTCViewerInfo(ArrayList<WebRTCViewerInfo> list, String search) {
-		long startTime = System.nanoTime();
-		if(search != null && !search.isEmpty()) {
-			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
-				WebRTCViewerInfo item = i.next();
-				if(item.getViewerId() != null && !item.getViewerId().toLowerCase().contains(search.toLowerCase())) {
-					i.remove();
-				}
-			}
-		}
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "searchOnWebRTCViewerInfo");
-		return list;
-	}
-
-	protected List<WebRTCViewerInfo> sortAndCropWebRTCViewerInfoList(List<WebRTCViewerInfo> list, int offset, int size, String sortBy, String orderBy) {
-		long startTime = System.nanoTime();
-		if("viewerId".equals(sortBy)) 
-		{
-			Collections.sort(list, (viewer1, viewer2) -> {
-				Comparable c1 = viewer1.getViewerId();
-				Comparable c2 = viewer2.getViewerId();
-
-				return "desc".equals(orderBy) ? c2.compareTo(c1) : c1.compareTo(c2);
-			});
-		}
-
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0 ) {
-			offset = 0;
-		}
-
-		int toIndex =  Math.min(offset+size, list.size());
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "sortAndCropWebRTCViewerInfoList");
-		if (offset >= toIndex)
-		{
-			return new ArrayList<>();
-		}
-		else {
-			return list.subList(offset,toIndex);
-		}
-	}
-
-	/**
-	 * This is used to save WebRTC Viewer Info to datastore 
-	 *
-	 * @param info information for the WebRTC Viewer
-	 */
-	public abstract void saveViewerInfo(WebRTCViewerInfo info);
-
-	/**
-	 * Get list of webrtc viewers
-	 *
-	 * @param offset
-	 * @param size
-	 * @param search 
-	 * @param orderBy 
-	 * @param sortBy 
-	 *
-	 * @return list of webrtc viewers
-	 */
-	public abstract List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy, String search);
-
-	public List<WebRTCViewerInfo> getWebRTCViewerList(Map<String, String> webRTCViewerMap, int offset, int size, String sortBy, String orderBy,
-			String search, Gson gson) {
-		long startTime = System.nanoTime();
-
-		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
-		synchronized (this) {
-
-			Collection<String> webRTCViewers = webRTCViewerMap.values();
-			for (String infoString : webRTCViewers) {
-				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
-				list.add(info);
-			}
-		}
-		if (search != null && !search.isEmpty()) {
-			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
-			logger.info("server side search called for Conference Room = {}", search);
-			list = searchOnWebRTCViewerInfo(list, search);
-		}
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getWebRTCViewerList");
-		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
-	}
-
-	/**
-	 * This is used to delete a WebRTC Viewer Info from datastore 
-	 *
-	 * @param viewerId WebRTC Viewer Id
-	 */
-	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+	
 
 	/**
 	 * This is used to update meta data for a bradcast 
@@ -1625,71 +1363,6 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
-
-	/**
-	 * This is a helper method to remove the ConferenceRoom in later versions
-	 * 
-	 * May 11, 2024 - mekya
-	 * 
-	 * @param broadcast
-	 * @return
-	 */
-	public static ConferenceRoom broadcastToConference(Broadcast broadcast) {
-
-		ConferenceRoom conferenceRoom = new ConferenceRoom();
-
-		conferenceRoom.setRoomId(broadcast.getStreamId());
-		conferenceRoom.setStartDate(broadcast.getPlannedStartDate());
-		conferenceRoom.setEndDate(broadcast.getPlannedEndDate());
-		conferenceRoom.setMode(broadcast.getConferenceMode());
-		conferenceRoom.setZombi(broadcast.isZombi());
-		conferenceRoom.setOriginAdress(broadcast.getOriginAdress());
-		conferenceRoom.setRoomStreamList(broadcast.getSubTrackStreamIds());
-
-
-		return conferenceRoom;
-	}
-
-	/**
-	 * This is a helper method to remove the ConferenceRoom in later versions
-	 * 
-	 * May 11, 2024 - mekya
-	 * 
-	 * @param broadcast
-	 * @return
-	 */
-	public static BroadcastUpdate conferenceUpdateToBroadcastUpdate(ConferenceRoom conferenceRoom) throws Exception {
-		BroadcastUpdate broadcast = new BroadcastUpdate();
-		broadcast.setStreamId(conferenceRoom.getRoomId());
-		broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
-		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
-		broadcast.setZombi(conferenceRoom.isZombi());
-		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
-		broadcast.setConferenceMode(conferenceRoom.getMode());
-		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
-
-		return broadcast;
-
-	}
-
-	public static Broadcast conferenceToBroadcast(ConferenceRoom conferenceRoom) throws Exception {
-		Broadcast broadcast = new Broadcast();
-		broadcast.setStreamId(conferenceRoom.getRoomId());
-		broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
-		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
-		broadcast.setZombi(conferenceRoom.isZombi());
-		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
-		broadcast.setConferenceMode(conferenceRoom.getMode());
-		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
-
-		return broadcast;
-
-	}
-
-	/**
-	 * Move ConferenceRoom to Broadcast
-	 */
-	public abstract void migrateConferenceRoomsToBroadcasts();
 
 	/**
 	 * Get the subtracks of the main track
@@ -1741,6 +1414,15 @@ public abstract class DataStore {
 	 */
 	public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, String role);
 
+	/**
+	 * Get active subtracks with pagination. If subtrack is stucked in broadcasting or preparing, it will not return it.
+	 * @param mainTrackId the main track to get the active subtracks
+	 * @param offset the offset to get the active subtracks
+	 * @param size number of items to get
+	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
+	 * @return list of active subtracks
+	 */
+	public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, int offset, int size, String role);
 
 	/**
 	 * 
@@ -1748,9 +1430,6 @@ public abstract class DataStore {
 	 * @return If the stream has subtracks, it return true. If not, it returns false
 	 */
 	public abstract boolean hasSubtracks(String streamId);
-
-
-	
 
 	/**
 	 *

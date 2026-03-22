@@ -27,10 +27,8 @@ public class MongoStore extends AbstractConsoleDataStore {
 	protected volatile boolean available = false;
 	private com.mongodb.client.MongoClient mongoClient;
 	
-	public MongoStore(String dbHost, String dbUser, String dbPassword) {
+	public MongoStore(String uri) {
 		String dbName = SERVER_STORAGE_MAP_NAME;
-
-		String uri =  io.antmedia.datastore.db.MongoStore.getMongoConnectionUri(dbHost, dbUser, dbPassword);
 
 		mongoClient = MongoClients.create(uri);
 

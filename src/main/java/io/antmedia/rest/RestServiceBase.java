@@ -23,7 +23,6 @@ import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
-import jakarta.servlet.ServletContext;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -45,10 +44,9 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
@@ -70,6 +68,7 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.servlet.ServletContext;
 import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
@@ -603,28 +602,6 @@ public abstract class RestServiceBase {
 		return true;
 	}
 
-
-
-	@Deprecated
-	public Result addEndpoint(String id, String rtmpUrl) {
-		boolean success = false;
-		String message = null;
-		try {
-			if (validateStreamURL(rtmpUrl))
-			{
-				Endpoint endpoint = new Endpoint();
-				endpoint.setEndpointUrl(rtmpUrl);
-				endpoint.setType(ENDPOINT_GENERIC);
-
-				success = getDataStore().addEndpoint(id, endpoint);
-			}
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return new Result(success, message);
-	}
-
 	public Result addEndpoint(String id, Endpoint endpoint) {
 		boolean success = false;
 		String message = null;
@@ -649,17 +626,6 @@ public abstract class RestServiceBase {
 		}
 
 		return new Result(success, endpointServiceId, message);
-	}
-
-	@Deprecated
-	public Result removeEndpoint(String id, String rtmpUrl)
-	{
-		Endpoint endpoint = new Endpoint();
-		endpoint.setEndpointUrl(rtmpUrl);
-		endpoint.setType(ENDPOINT_GENERIC);
-
-		boolean removed = getDataStore().removeEndpoint(id, endpoint, true);
-		return new Result(removed);
 	}
 
 	public Result removeRTMPEndpoint(String id, Endpoint endpoint)
@@ -691,202 +657,6 @@ public abstract class RestServiceBase {
 			result.setSuccess(false);
 		}
 		return result;
-	}
-
-
-	public Result importLiveStreams2Stalker()
-	{
-
-		String stalkerDBServer = getAppSettings().getStalkerDBServer();
-		String stalkerDBUsername = getAppSettings().getStalkerDBUsername();
-		String stalkerDBPassword = getAppSettings().getStalkerDBPassword();
-
-		boolean result = false;
-		String message = "";
-		int errorId = -1;
-		if (stalkerDBServer != null && stalkerDBServer.length() > 0
-				&& stalkerDBUsername != null && stalkerDBUsername.length() > 0
-				&& stalkerDBPassword != null && stalkerDBPassword.length() > 0)
-		{
-
-
-			long broadcastCount = getDataStore().getBroadcastCount();
-			int pageCount = (int) broadcastCount/DataStore.MAX_ITEM_IN_ONE_LIST
-					+ ((broadcastCount % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
-
-			List<Broadcast> broadcastList = new ArrayList<>();
-			for (int i = 0; i < pageCount; i++) {
-				broadcastList.addAll(getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST,null,null,null,null));
-			}
-
-			StringBuilder insertQueryString = new StringBuilder();
-
-			insertQueryString.append("DELETE FROM stalker_db.ch_links;");
-			insertQueryString.append("DELETE FROM stalker_db.itv;");
-
-			String fqdn = getServerSettings().getServerName();
-			if (fqdn == null || fqdn.length() == 0) {
-				fqdn = getServerSettings().getHostAddress();
-			}
-
-			int number = 1;
-			for (Broadcast broadcast : broadcastList) {
-				String cmd = "ffmpeg http://"+ fqdn + ":"+serverSettings.getDefaultHttpPort()+"/"
-						+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
-
-				insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
-						+ " VALUES ('"+broadcast.getName()+"' , "+ number +", 2, 1, '"+ cmd +"', '');");
-
-				insertQueryString.append("SET @last_id=LAST_INSERT_ID();"
-						+ "INSERT INTO stalker_db.ch_links(ch_id, url)"
-						+ " VALUES(@last_id, '"+ cmd +"');");
-				number++;
-			}
-			result = runStalkerImportQuery(insertQueryString.toString(), stalkerDBServer, stalkerDBUsername, stalkerDBPassword);
-		}
-		else {
-			message = "Portal DB info is missing";
-			errorId = 404;
-		}
-
-
-		return new Result(result, message, errorId);
-	}
-
-	private boolean runStalkerImportQuery(String query, String stalkerDBServer, String stalkerDBUsername, String stalkerDBPassword) {
-
-		boolean result = false;
-		try {
-
-			Process p = getProcess(query, stalkerDBServer, stalkerDBUsername, stalkerDBPassword);
-
-			if (p != null) {
-				InputStream is = p.getInputStream();
-				if (is != null) {
-					byte[] data = new byte[1024];
-					int length;
-					while ((length = is.read(data, 0, data.length)) != -1) {
-						if (logger.isInfoEnabled()) {
-							logger.info(new String(data, 0, length));
-						}
-					}
-				}
-
-				int exitWith = p.waitFor();
-
-				if (exitWith == 0) {
-					result = true;
-				}
-			}
-
-		} catch (IOException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-		return result;
-	}
-
-	private Process getProcess(String query, String stalkerDBServer, String stalkerDBUsername, String stalkerDBPassword) {
-		Process process = null;
-		String mysqlClientPath = getAppSettings().getMySqlClientPath();
-		if (processBuilderFactory != null) {
-
-			process = processBuilderFactory.make(mysqlClientPath,
-					"-h", stalkerDBServer,
-					"-u", stalkerDBUsername,
-					"-p"+stalkerDBPassword,
-					"-e",   query);
-		}
-		else {
-			try {
-				process = new ProcessBuilder(
-						mysqlClientPath,
-						"-h", stalkerDBServer,
-						"-u", stalkerDBUsername,
-						"-p"+stalkerDBPassword,
-						"-e",   query
-						).redirectErrorStream(true).start();
-			} catch (IOException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-
-		return process;
-
-	}
-
-	public Result importVoDsToStalker()
-	{
-
-		String stalkerDBServer = getAppSettings().getStalkerDBServer();
-		String stalkerDBUsername = getAppSettings().getStalkerDBUsername();
-		String stalkerDBPassword = getAppSettings().getStalkerDBPassword();
-
-		boolean result = false;
-		String message = "";
-		int errorId = -1;
-		if (stalkerDBServer != null && stalkerDBUsername != null && stalkerDBPassword != null) {
-
-			String vodFolderPath = getAppSettings().getVodFolder();
-			if (vodFolderPath != null && !vodFolderPath.isEmpty()) {
-
-				long totalVodNumber = getDataStore().getTotalVodNumber();
-				int pageCount = (int) totalVodNumber/DataStore.MAX_ITEM_IN_ONE_LIST
-						+ ((totalVodNumber % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
-
-				List<VoD> vodList = new ArrayList<>();
-				for (int i = 0; i < pageCount; i++) {
-					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST, null, null, null, null));
-				}
-
-				String fqdn = getServerSettings().getServerName();
-				if (fqdn == null || fqdn.length() == 0) {
-					fqdn = getServerSettings().getHostAddress();
-				}
-
-				StringBuilder insertQueryString = new StringBuilder();
-
-				//delete all videos in stalker to import new ones
-				insertQueryString.append("DELETE FROM stalker_db.video_series_files;");
-				insertQueryString.append("DELETE FROM stalker_db.video;");
-
-				for (VoD vod : vodList) {
-					if (vod.getType().equals(VoD.USER_VOD)) {
-						insertQueryString.append("INSERT INTO stalker_db.video(name, o_name, protocol, category_id, cat_genre_id_1, status, cost, path, accessed) "
-								+ "values('"+ vod.getVodName() + "', '"+vod.getVodName()+"', '', 1, 1, 1, 0, '"+vod.getVodName()+"', 1);");
-
-						File vodFolder = new File(vodFolderPath);
-						int lastIndexOf = vod.getFilePath().lastIndexOf(vodFolder.getName());
-						String filePath = vod.getFilePath().substring(lastIndexOf);
-						String cmd = "ffmpeg http://"+ fqdn + ":"+serverSettings.getDefaultHttpPort()+"/"
-								+ getScope().getName() + "/streams/" + filePath;
-
-						insertQueryString.append("SET @last_id=LAST_INSERT_ID();");
-
-						insertQueryString.append("INSERT INTO stalker_db.video_series_files"
-								+ "(video_id, file_type, protocol, url, languages, quality, date_add, date_modify, status, accessed)"
-								+ "VALUES(@last_id, 'video', 'custom', '"+cmd+"', 'a:1:{i:0;s:2:\"en\";}', 5, NOW(), NOW(), 1, 1);");
-
-					}
-
-				}
-
-				result = runStalkerImportQuery(insertQueryString.toString(), stalkerDBServer, stalkerDBUsername, stalkerDBPassword );
-			}
-			else {
-				message = "No VoD folder specified";
-				errorId = 500;
-			}
-		}
-		else {
-			message = "Portal DB info is missing";
-			errorId = 404;
-		}
-
-		return new Result(result, message, errorId);
-
 	}
 
 	protected ProcessBuilderFactory getProcessBuilderFactory() {
@@ -1260,7 +1030,7 @@ public abstract class RestServiceBase {
 		String id = null;
 		String appScopeName = getScope().getName();
 		String fileExtension = FilenameUtils.getExtension(fileName);
-		
+
 		String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
 		if (!ArrayUtils.contains(supportedFormats, fileExtension)) {
 			//this message has been used in the frontend(webpanel) pay attention
@@ -1373,28 +1143,6 @@ public abstract class RestServiceBase {
 
 	public Process getProcess(String command) throws IOException {
 		return Runtime.getRuntime().exec(command);
-	}
-
-
-	protected Result synchUserVodList() {
-		boolean result = false;
-		int errorId = -1;
-		String message = "";
-
-		String vodFolder = getAppSettings().getVodFolder();
-
-		logger.info("synch user vod list vod folder is {}", vodFolder);
-
-		if (vodFolder != null && vodFolder.length() > 0) {
-
-			result = getApplication().synchUserVoDFolder(null, vodFolder);
-		}
-		else {
-			errorId = 404;
-			message = "no VodD folder defined";
-		}
-
-		return new Result(result, message, errorId);
 	}
 
 
@@ -1752,20 +1500,6 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	protected List<TensorFlowObject> getDetectionList(String id, int offset, int size) {
-		List<TensorFlowObject> list = null;
-
-		if (id != null) {
-			list = getDataStore().getDetectionList(id, offset, size);
-		}
-
-		if (list == null) {
-			//do not return null in rest service
-			list = new ArrayList<>();
-		}
-		return list;
-	}
-
 	protected ITokenService getTokenService()
 	{
 		ApplicationContext appContext = getAppContext();
@@ -1874,18 +1608,18 @@ public abstract class RestServiceBase {
 
 			version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
 
-			
+
 			version.setBuildNumber(getBuildNumber(manifestPath));
-			
+
 			logger.debug("Version Name:{} Version Type:{} Build Number:{}", version.getVersionName(), version.getVersionType(), version.getBuildNumber());
 
 		}
 
 		return version;
 	}
-	
+
 	public static String getBuildNumber(String manifestPath) {
-		
+
 		String buildNumber = null;
 		try 
 		{
@@ -1901,7 +1635,7 @@ public abstract class RestServiceBase {
 		{
 			logger.error(e.getMessage());
 		}
-		
+
 		return buildNumber;
 	}
 
@@ -1923,23 +1657,17 @@ public abstract class RestServiceBase {
 	 *
 	 * @return null if there is no room recorded in the database, returns map filled with the active streams. Key is the streamId, value is the name
 	 */
-	@Deprecated(forRemoval = true, since = "2.9.1")
 	public static Map<String,String> getRoomInfoFromConference(Broadcast broadcastRoom, String streamId, DataStore store){
-		HashMap<String,String> streamDetailsMap = null;
 
+		Map<String,String> streamDetailsMap = new HashMap<>();
 		if (broadcastRoom != null)
 		{
-			streamDetailsMap = new HashMap<>();
 
-			List<String> tempList = broadcastRoom.getSubTrackStreamIds();
+			List<Broadcast> tempList = store.getActiveSubtracks(broadcastRoom.getStreamId(), null);
 			if(tempList != null) {
-				for (String tmpStreamId : tempList)
+				for (Broadcast tmpBroadcast : tempList)
 				{
-					Broadcast broadcast = store.get(tmpStreamId);
-					if (broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-					{
-						streamDetailsMap.put(tmpStreamId, broadcast.getName());
-					}
+					streamDetailsMap.put(tmpBroadcast.getStreamId(), tmpBroadcast.getName());
 				}
 				//remove the itself from the streamDetailsMap
 				streamDetailsMap.remove(streamId);
@@ -1978,7 +1706,6 @@ public abstract class RestServiceBase {
 			int subtrackLimit = mainTrack.getSubtracksLimit();
 
 
-			List<String> subTrackStreamIds = mainTrack.getSubTrackStreamIds();
 
 			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(mainTrackId, null) >= subtrackLimit) 
 			{
@@ -1988,9 +1715,6 @@ public abstract class RestServiceBase {
 				return result;
 			}
 
-			if (subTrackStreamIds == null) {
-				subTrackStreamIds = new ArrayList<>();
-			}
 
 			subTrack.setMainTrackStreamId(mainTrackId);
 
@@ -2002,9 +1726,7 @@ public abstract class RestServiceBase {
 			boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 			if (success) 
 			{	
-				subTrackStreamIds.add(subTrackId);
 				broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setSubTrackStreamIds(subTrackStreamIds);
 
 				//make sure to set the virtual flag to true because it's mainTrack
 				broadcastUpdate.setVirtual(true);
@@ -2036,39 +1758,33 @@ public abstract class RestServiceBase {
 		{
 			subTrackId = subTrackId.replaceAll(REPLACE_CHARS, "_");
 			id = id.replaceAll(REPLACE_CHARS, "_");
-			boolean success = store.removeSubTrack(id, subTrackId);
 
-			if (success )
-			{
-				Broadcast subTrack = store.get(subTrackId);
 
-				if(subTrack != null && id.equals(subTrack.getMainTrackStreamId())) {
-					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-					broadcastUpdate.setMainTrackStreamId("");
-					success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
-					if (success) 
-					{
-						RestServiceBase.setResultSuccess(result, success, "");
-					}
-					else
-					{
+			Broadcast subTrack = store.get(subTrackId);
 
-						RestServiceBase.setResultSuccess(result, false, MAIN_TRACK_OF_THE_STREAM + subTrackId + " which is " + id +" cannot be removed");
-						logger.info(MAIN_TRACK_OF_THE_STREAM +" {} which is {} cannot be removed", subTrackId, id);
-					}
+			if(subTrack != null && id.equals(subTrack.getMainTrackStreamId())) {
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setMainTrackStreamId("");
+				boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
+				if (success) 
+				{
+					RestServiceBase.setResultSuccess(result, success, "");
 				}
-				else {
-					RestServiceBase.setResultSuccess(result, false, MAIN_TRACK_OF_THE_STREAM + subTrackId + " which is " + id +" cannot be updated");
-					logger.info( MAIN_TRACK_OF_THE_STREAM +"{} which is {} not updated because either subtrack is null or its maintrack does not match with mainTrackId:{}", subTrackId, id, id);
+				else
+				{
 
+					RestServiceBase.setResultSuccess(result, false, MAIN_TRACK_OF_THE_STREAM + subTrackId + " which is " + id +" cannot be removed");
+					logger.info(MAIN_TRACK_OF_THE_STREAM +" {} which is {} cannot be removed", subTrackId, id);
 				}
+			}
+			else {
+				RestServiceBase.setResultSuccess(result, false, MAIN_TRACK_OF_THE_STREAM + subTrackId + " which is " + id +" cannot be updated");
+				logger.info( MAIN_TRACK_OF_THE_STREAM +"{} which is {} not updated because either subtrack is null or its maintrack does not match with mainTrackId:{}", subTrackId, id, id);
 
 			}
-			else
-			{
-				RestServiceBase.setResultSuccess(result, false, "Subtrack(" + subTrackId + ") is not removed from mainTrack:" + id);
-				logger.info("Subtrack({}) is not removed from mainTrack:{}", subTrackId, id);
-			}
+
+
+
 
 		}
 		return result;
@@ -2150,137 +1866,137 @@ public abstract class RestServiceBase {
 	}
 
 
-    public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName)
-    {
-        return enableRecordMuxingInternal(streamId, enableRecording, type, resolutionHeight, fileName);
-    }
+	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName)
+	{
+		return enableRecordMuxingInternal(streamId, enableRecording, type, resolutionHeight, fileName);
+	}
 
-    private Result enableRecordMuxingInternal(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName) {
-        boolean result = false;
-        String message = null;
-        String status = (enableRecording)?"started":"stopped";
-        String vodId = null;
+	private Result enableRecordMuxingInternal(String streamId, boolean enableRecording, String type, int resolutionHeight, String fileName) {
+		boolean result = false;
+		String message = null;
+		String status = (enableRecording)?"started":"stopped";
+		String vodId = null;
 
-        RecordType recordType = null;
-        if (type.equals(RecordType.MP4.toString()))
-        {
-            recordType = RecordType.MP4;
-        }
-        else if (type.equals(RecordType.WEBM.toString()))
-        {
-            recordType = RecordType.WEBM;
-        }
+		RecordType recordType = null;
+		if (type.equals(RecordType.MP4.toString()))
+		{
+			recordType = RecordType.MP4;
+		}
+		else if (type.equals(RecordType.WEBM.toString()))
+		{
+			recordType = RecordType.WEBM;
+		}
 
-        if (streamId != null && recordType != null)
-        {
-            Broadcast broadcast = getDataStore().get(streamId);
-            if (broadcast != null)
-            {
-                if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-                {
-                    if(recordType == RecordType.MP4) {
-                        broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-                    }
-                    else {
-                        broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-                    }
-                    result = true;
-                }
-                else {
-                    boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
-                    if (enableRecording != isAlreadyRecording)
-                    {
-                        result = true;
-                        RecordMuxer muxer = null;
+		if (streamId != null && recordType != null)
+		{
+			Broadcast broadcast = getDataStore().get(streamId);
+			if (broadcast != null)
+			{
+				if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+				{
+					if(recordType == RecordType.MP4) {
+						broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					else {
+						broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					result = true;
+				}
+				else {
+					boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
+					if (enableRecording != isAlreadyRecording)
+					{
+						result = true;
+						RecordMuxer muxer = null;
 
-                        if (isInSameNodeInCluster(broadcast.getOriginAdress()))
-                        {
-                            if (enableRecording)
-                            {
-                                String sanitizedBaseName = sanitizeAndStripExtension(fileName, recordType);
-                                muxer = (sanitizedBaseName != null) ?
-                                        startRecord(streamId, recordType, resolutionHeight, sanitizedBaseName) :
-                                        startRecord(streamId, recordType, resolutionHeight);
-                                if (muxer != null) {
-                                    vodId = RandomStringUtils.secure().nextAlphanumeric(24);
-                                    muxer.setVodId(vodId);
-                                    message = Long.toString(muxer.getCurrentVoDTimeStamp());
-                                    logger.warn("{} recording is {} for stream: {}", type,status,streamId);
-                                }
+						if (isInSameNodeInCluster(broadcast.getOriginAdress()))
+						{
+							if (enableRecording)
+							{
+								String sanitizedBaseName = sanitizeAndStripExtension(fileName, recordType);
+								muxer = (sanitizedBaseName != null) ?
+										startRecord(streamId, recordType, resolutionHeight, sanitizedBaseName) :
+											startRecord(streamId, recordType, resolutionHeight);
+								if (muxer != null) {
+									vodId = RandomStringUtils.secure().nextAlphanumeric(24);
+									muxer.setVodId(vodId);
+									message = Long.toString(muxer.getCurrentVoDTimeStamp());
+									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+								}
 
-                            }
-                            else
-                            {
-                                muxer = stopRecord(streamId, recordType, resolutionHeight);
-                                if (muxer != null) {
-                                    vodId = muxer.getVodId();
-                                    message = Long.toString(muxer.getCurrentVoDTimeStamp());
-                                }
-                            }
+							}
+							else
+							{
+								muxer = stopRecord(streamId, recordType, resolutionHeight);
+								if (muxer != null) {
+									vodId = muxer.getVodId();
+									message = Long.toString(muxer.getCurrentVoDTimeStamp());
+								}
+							}
 
-                            if (muxer == null)
-                            {
-                                result = false;
-                                logFailedOperation(enableRecording, streamId, recordType);
-                                message= recordType +" recording couldn't be " + status;
-                            }
-                        }
-                        else
-                        {
-                            message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
-                            result = false;
-                        }
-                    }
-                    else {
-                        if(enableRecording) {
-                            message = type+" recording couldn't be started";
-                        }
-                        else {
-                            message = type+" recording couldn't be stopped";
-                        }
-                        result = false;
-                    }
+							if (muxer == null)
+							{
+								result = false;
+								logFailedOperation(enableRecording, streamId, recordType);
+								message= recordType +" recording couldn't be " + status;
+							}
+						}
+						else
+						{
+							message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
+							result = false;
+						}
+					}
+					else {
+						if(enableRecording) {
+							message = type+" recording couldn't be started";
+						}
+						else {
+							message = type+" recording couldn't be stopped";
+						}
+						result = false;
+					}
 
-                }
-                if (result)
-                {
-                    if (recordType == RecordType.WEBM)
-                    {
-                        result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-                    }
-                    else if (recordType == RecordType.MP4)
-                    {
-                        result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-                    }
-                }
-            }
-        }
-        else
-        {
-            message = "No stream for this id: " + streamId + " or unexpected record type. Record type is "+ recordType;
-        }
+				}
+				if (result)
+				{
+					if (recordType == RecordType.WEBM)
+					{
+						result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					else if (recordType == RecordType.MP4)
+					{
+						result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+				}
+			}
+		}
+		else
+		{
+			message = "No stream for this id: " + streamId + " or unexpected record type. Record type is "+ recordType;
+		}
 
-        return new Result(result, vodId, message);
-    }
+		return new Result(result, vodId, message);
+	}
 
-    protected String sanitizeAndStripExtension(String fileName, RecordType recordType) {
-        if (fileName == null) {
-            return null;
-        }
-        String safe = replaceCharsForSecurity(fileName);
-        safe = safe.replaceAll("[\\\\/]+", "_");
-        safe = safe.replaceAll("\r|\n|\t", "_");
-        // remove extension if present
-        if (recordType == RecordType.MP4 && safe.toLowerCase().endsWith(".mp4")) {
-            safe = safe.substring(0, safe.length() - 4);
-        }
-        else if (recordType == RecordType.WEBM && safe.toLowerCase().endsWith(".webm")) {
-            safe = safe.substring(0, safe.length() - 5);
-        }
-        // length cap
-        if (safe.length() > 120) {
-            safe = safe.substring(0, 120);
-        }
-        return safe;
-    }
+	protected String sanitizeAndStripExtension(String fileName, RecordType recordType) {
+		if (fileName == null) {
+			return null;
+		}
+		String safe = replaceCharsForSecurity(fileName);
+		safe = safe.replaceAll("[\\\\/]+", "_");
+		safe = safe.replaceAll("\r|\n|\t", "_");
+		// remove extension if present
+		if (recordType == RecordType.MP4 && safe.toLowerCase().endsWith(".mp4")) {
+			safe = safe.substring(0, safe.length() - 4);
+		}
+		else if (recordType == RecordType.WEBM && safe.toLowerCase().endsWith(".webm")) {
+			safe = safe.substring(0, safe.length() - 5);
+		}
+		// length cap
+		if (safe.length() > 120) {
+			safe = safe.substring(0, 120);
+		}
+		return safe;
+	}
 }
