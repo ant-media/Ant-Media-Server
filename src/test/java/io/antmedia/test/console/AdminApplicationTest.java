@@ -162,8 +162,8 @@ public class AdminApplicationTest {
 		assertTrue(commandCaptor.getValue().contains("-n app"));
 		
 		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
-		assertTrue(commandCaptor.getValue().contains("-u username"));
-		assertTrue(commandCaptor.getValue().contains("-s pass"));
+		assertFalse(commandCaptor.getValue().contains("-u username")); //false because we do not use username and pass anymore
+		assertFalse(commandCaptor.getValue().contains("-s pass")); //false because we do not use username and pass anymore
 		assertFalse(commandCaptor.getValue().contains("-f"));
 		
 		
@@ -174,8 +174,8 @@ public class AdminApplicationTest {
 		assertTrue(commandCaptor.getValue().contains("-n app"));
 		
 		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
-		assertTrue(commandCaptor.getValue().contains("-u username"));
-		assertTrue(commandCaptor.getValue().contains("-s pass"));
+		assertFalse(commandCaptor.getValue().contains("-u username")); //false because we do not use username and pass anymore
+		assertFalse(commandCaptor.getValue().contains("-s pass")); //false because we do not use username and pass anymore
 		assertTrue(commandCaptor.getValue().contains("-f warfile"));
 
 	}
