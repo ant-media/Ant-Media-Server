@@ -62,7 +62,7 @@ check_ams() {
   
     else
     	
-      check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
+      check_license=$(curl -s https://api-v2.antmedia.io/?license="$get_license_key" | tr -d "\"")
             
        if [[ ! $check_license =~ ^http ]]; then
        	

@@ -568,6 +568,10 @@ public class RestServiceV2Test {
 
 
 	public static Result callUploadVod(File file) throws Exception {
+		return callUploadVod(file, null);
+	}
+
+	public static Result callUploadVod(File file, String metadata) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/v2/vods/create?name=" + file.getName();
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -579,6 +583,10 @@ public class RestServiceV2Test {
 		FileBody fileBody = new FileBody(file) ;
 
 		builder.addPart("file", fileBody);
+
+		if (metadata != null) {
+			builder.addTextBody("metadata", metadata);
+		}
 
 		HttpEntity entity = builder.build();
 		post.setEntity(entity);
@@ -1161,7 +1169,21 @@ public class RestServiceV2Test {
 		//file should be deleted
 		assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4"));
 
+		// Test upload with metadata
+		String testMetadata = "{\"customField\":\"testValue\"}";
+		try {
+			result = callUploadVod(file, testMetadata);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		assertTrue(result.isSuccess());
+		String vodIdWithMetadata = result.getMessage();
 
+		VoD vodWithMetadata = callGetVoD(vodIdWithMetadata);
+		assertNotNull(vodWithMetadata);
+		assertEquals(testMetadata, vodWithMetadata.getMetadata());
+
+		deleteVoD(vodIdWithMetadata);
 
 	}
 
@@ -1367,7 +1389,7 @@ public class RestServiceV2Test {
 		return tmp;
 	}
 
-	public static Result addEndpointV2(String broadcastId, Endpoint endpoint) throws Exception 
+	public static Result addEndpointV3(String broadcastId, Endpoint endpoint) throws Exception 
 	{		
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint";
 		
@@ -1492,7 +1514,7 @@ public class RestServiceV2Test {
 			String rtmpUrl = "rtmp://127.0.0.1/LiveApp/" + streamId;
 
 			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
+			endpoint.setEndpointUrl(rtmpUrl);
 
 			//GET SETTINGS
 			result = ConsoleAppRestServiceTest.callisFirstLogin();
@@ -1510,7 +1532,7 @@ public class RestServiceV2Test {
 
 
 			// add generic endpoint
-			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
+			result = addEndpointV3(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1594,11 +1616,11 @@ public class RestServiceV2Test {
 
 
 			//add non existin rtmp url bugfix test - issue #3032
-			String rtmpUrl2 = "rtmp://nonexisting.com/abcdef";
+			String rtmpUrl2 = "rtmp://127.0.0.1/abcdef_not_exist";
 			Endpoint endpoint2 = new Endpoint();
-			endpoint2.setRtmpUrl(rtmpUrl2);
+			endpoint2.setEndpointUrl(rtmpUrl2);
 			// add generic endpoint
-			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint2);
+			result = addEndpointV3(broadcast.getStreamId().toString(), endpoint2);
 			// check that it is successfull
 			assertTrue(result.isSuccess());
 
@@ -1608,7 +1630,7 @@ public class RestServiceV2Test {
 			assertTrue(result.isSuccess());
 
 			//It will be failed since there is no url
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
 				//this is the endpoint running
 				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
 				return IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(tmp2.getEndPointList().get(1).getStatus());
@@ -1653,20 +1675,20 @@ public class RestServiceV2Test {
 			String rtmpUrl = "rtmp://127.0.0.1/LiveApp/" + streamId;
 			
 			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
+			endpoint.setEndpointUrl(rtmpUrl);
 			
 			// add generic endpoint
-			Result result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
+			Result result = addEndpointV3(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
 			
 			//add non existin rtmp url bugfix test - issue #3032
-			String rtmpUrl2 = "rtmp://nonexisting.com/abcdef";
+			String rtmpUrl2 = "rtmp://example.com/abcdef";
 			Endpoint endpoint2 = new Endpoint();
-			endpoint2.setRtmpUrl(rtmpUrl2);
+			endpoint2.setEndpointUrl(rtmpUrl2);
 			// add generic endpoint
-			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint2);
+			result = addEndpointV3(broadcast.getStreamId().toString(), endpoint2);
 			// check that it is successfull
 			assertTrue(result.isSuccess());
 
@@ -1723,10 +1745,10 @@ public class RestServiceV2Test {
 				String dynamicRtmpURL = "rtmp://127.0.0.1/LiveApp/" + streamIdDynamic;
 				 
 				Endpoint dynamicEndpoint = new Endpoint();
-				dynamicEndpoint.setRtmpUrl(dynamicRtmpURL);
+				dynamicEndpoint.setEndpointUrl(dynamicRtmpURL);
 				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 					//if stream is being prepared, it may return false, so try again 
-					Result tmpRes = addEndpointV2(finalBroadcastStreamId, dynamicEndpoint);
+					Result tmpRes = addEndpointV3(finalBroadcastStreamId, dynamicEndpoint);
 					return tmpRes.isSuccess();
 				});
 

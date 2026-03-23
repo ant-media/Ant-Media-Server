@@ -14,17 +14,18 @@ import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -45,7 +46,6 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
-import jakarta.ws.rs.core.UriBuilder;
 
 public class StreamFetcher {
 
@@ -64,11 +64,25 @@ public class StreamFetcher {
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
-	private IScope scope;
+    private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
+    private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
 	private MuxAdaptor muxAdaptor = null;
+
+	/**
+	 * FFMPEG will abort connection, in order not to forever block the thread
+	 * or lock port (EX: in case of udp multicast connection).
+	 * Instead, it will fail properly with timeout error.
+	 */
+	private static final int UDP_TCP_HTTP_TIMEOUT = 15000;
+
+	/**
+	 * When true, bypass the isStreaming status check once at startup.
+	 * It is reset to false after the worker thread reads it.
+	 */
+	private boolean startStreamForce = false;
 
 	/**
 	 * If it is true, it restarts fetching everytime it disconnects
@@ -104,6 +118,8 @@ public class StreamFetcher {
 	public interface IStreamFetcherListener {
 
 		void streamFinished(IStreamFetcherListener listener);
+
+		void streamStarted(IStreamFetcherListener listener);
 
 	}
 
@@ -161,28 +177,56 @@ public class StreamFetcher {
 
 	}
 
-	public void parseRtspUrlParams(AVDictionary optionsDictionary){
+	public void parseRtspUrlParams(AVDictionary optionsDictionary) {
+		if (streamUrl == null) {
+			return;
+		}
 		try {
-		  URI uri = new URI(streamUrl);
-		  UriBuilder uriBuilder = UriBuilder.fromUri(uri);
-		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+			URI.create(streamUrl);
+		} catch (IllegalArgumentException | NullPointerException e) {
+			logger.warn("cannot parse URL parameters incorrect URL format");
+			return;
+		}
 
-		  for (NameValuePair param : params) {
-			String key = param.getName();
-			String value = param.getValue();
+		int questionMarkIndex = streamUrl.indexOf('?');
+		if (questionMarkIndex == -1) {
+			return;
+		}
 
-			if(key == null && value == null)
-			  continue;
+		String query = streamUrl.substring(questionMarkIndex + 1);
+		String[] params = query.split("&");
+		StringBuilder newQuery = new StringBuilder();
+		boolean first = true;
 
-			if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
-			  av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
-			  uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
+		for (String param : params) {
+			String[] keyValue = param.split("=", 2);
+			String key = keyValue[0];
+			String value = keyValue.length > 1 ? keyValue[1] : "";
+
+			if (RTSP_ALLOWED_MEDIA_TYPES.equals(key)) {
+				try {
+					if (value != null && !value.isEmpty()) {
+						String decodedValue = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+						av_dict_set(optionsDictionary, RTSP_ALLOWED_MEDIA_TYPES, decodedValue, 0);
+					}
+				} catch (Exception e) {
+					logger.warn("Cannot decode value for key: {} value: {}", key, value);
+				}
+				continue;
 			}
-		  }
 
-		  streamUrl = uriBuilder.build().toString();
-		} catch (Exception URISyntaxException) {
-		  logger.warn("cannot parse URL parameters incorrect URL format");
+			if (!first) {
+				newQuery.append("&");
+			}
+			newQuery.append(param);
+			first = false;
+		}
+
+		String baseUrl = streamUrl.substring(0, questionMarkIndex);
+		if (newQuery.length() > 0) {
+			streamUrl = baseUrl + "?" + newQuery.toString();
+		} else {
+			streamUrl = baseUrl;
 		}
 	}
 
@@ -229,7 +273,8 @@ public class StreamFetcher {
 
 
 		public Result prepareInput(AVFormatContext inputFormatContext) {
-			int timeout = appSettings.getRtspTimeoutDurationMs();
+			int timeout = appSettings.getRtspTimeoutDurationMs(); 
+			streamUrl = getStreamUrl();
 			setConnectionTimeout(timeout);
 
 			Result result = new Result(false);
@@ -259,6 +304,14 @@ public class StreamFetcher {
 				// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
 				parseRtspUrlParams(optionsDictionary);
 
+			} else if (streamUrl.startsWith("udp://") || streamUrl.startsWith("tcp://") || streamUrl.startsWith("http://")) {
+				// For UDP/HTTP/TCP, use "rw_timeout" (microseconds)
+				// This ensures avformat_open_input throws an error if no packets arrive
+				String timeoutStr = String.valueOf(UDP_TCP_HTTP_TIMEOUT * 1000);
+				av_dict_set(optionsDictionary, "rw_timeout", timeoutStr, 0);
+
+				// Also set "timeout" as a fallback for some protocols (like UDP listener)
+				av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 			}
 
 			//analyze duration is a generic parameter
@@ -314,14 +367,18 @@ public class StreamFetcher {
 				//update broadcast status to preparing
 
 				Broadcast broadcast = getDataStore().get(streamId);
+				// read and reset the force flag so retries use normal checks
+				boolean forceStart = startStreamForce;
+				startStreamForce = false;
 				if (broadcast == null) {
 					//if broadcast null, it means it's deleted
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
+					stopRequestReceived = true; //set stop request to finish the thread
 					return;
 				}
-				else if (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
+				else if (!forceStart && AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
-
+					stopRequestReceived = true; //set stop request to finish the thread
 					return;
 				}
 
@@ -333,6 +390,9 @@ public class StreamFetcher {
 				pkt = avcodec.av_packet_alloc();
 				if(prepareInputContext(broadcast))
 				{
+					if(streamFetcherListener != null){
+						streamFetcherListener.streamStarted(streamFetcherListener);
+					}
 
 					boolean readTheNextFrame = true;
 					//In some odd cases stopRequest is received immediately and status of the stream changed to finished
@@ -360,9 +420,14 @@ public class StreamFetcher {
 			}
 			finally {
 
-				close(pkt);
+            setThreadActive(false);
+            close(pkt);
+            
+            if (isThreadStopedSemaphore.hasQueuedThreads()) {
+            	isThreadStopedSemaphore.release();
+            }
 
-				setThreadActive(false);
+
 			}
 
 		}
@@ -686,6 +751,7 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
+					
 					getInstance().closeBroadcast(streamId, null, null);
 					streamPublished=false;
 					closeCalled = true;
@@ -697,7 +763,7 @@ public class StreamFetcher {
 					stopRequestReceived = true;
 					restartStream = false;
 					logger.info("Calling streamFinished listener for streamId:{} and it will not restart the stream automatically because callback is getting the responsbility", streamId);
-					streamFetcherListener.streamFinished(streamFetcherListener);
+                    streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
 				if(!stopRequestReceived && restartStream) {
@@ -1053,10 +1119,40 @@ public class StreamFetcher {
 		return thread.isInterrupted();
 	}
 
-	public void stopStream()
+    public void stopStream()
+    {
+        logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
+        stopRequestReceived = true;
+    }
+    
+    
+    /*
+     * @stopStream method above works asynchronously.
+     * @stopRequestReceived flag is set and stop operations are done in read loop.
+     * 
+     * This @stopstopStreamBlocking method is blocking one and works synchronously.
+     * It blocks the thread until stop operations are done.
+     * 
+     */
+    public boolean stopStreamBlocking()
 	{
-		logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
-		stopRequestReceived = true;
+        stopRequestReceived = true;
+        logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
+        int streamThreadStopTimeout = 10;
+        try {
+            if(!isThreadActive() || (isThreadStopedSemaphore.availablePermits() > 0 || isThreadStopedSemaphore.tryAcquire(streamThreadStopTimeout, TimeUnit.SECONDS))) {
+                return true;
+            }
+        }
+        catch (Exception e){
+            logger.error(ExceptionUtils.getStackTrace(e));
+            logger.error("Thread was interrupted while waiting for playlist to stop", e);
+            Thread.currentThread().interrupt();
+        }
+
+        logger.warn("Thread did not stop for Stream fetcher. Cannot play next item. StreamId={} Timeout={}",
+                getStreamId(), streamThreadStopTimeout);
+        return false;
 	}
 
 	public void seekTime(long seekTimeInMilliseconds) {
@@ -1070,6 +1166,12 @@ public class StreamFetcher {
 
 	public WorkerThread getThread() {
 		return thread;
+	}
+	public void setStartStreamForce(boolean startStreamForce) {
+		this.startStreamForce = startStreamForce;
+	}
+	public  Broadcast getBroadcast(){
+		return dataStore.get(streamId);
 	}
 
 	public void setThread(WorkerThread thread) {
@@ -1118,6 +1220,10 @@ public class StreamFetcher {
 		return cameraError;
 	}
 
+    public Semaphore getIsThreadStopedSemaphore(){
+        return isThreadStopedSemaphore;
+    }
+
 	public void setCameraError(Result cameraError) {
 		this.cameraError = cameraError;
 	}
@@ -1160,13 +1266,13 @@ public class StreamFetcher {
 		this.bufferTime = bufferTime;
 	}
 
-	private AppSettings getAppSettings() {
+	protected AppSettings getAppSettings() {
 		if (appSettings == null) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
 	}
-
+	
 	/**
 	 * This is for test purposes
 	 * @param stopRequest

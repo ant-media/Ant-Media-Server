@@ -327,6 +327,8 @@ public class AppFunctionalV2Test {
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 			{
 				appSettingsModel.setMaxResolutionAccept(144);
+				appSettingsModel.setDashMuxingEnabled(false);
+
 
 				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 				assertTrue(result.isSuccess());

@@ -19,7 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "The time based token subscriber class. This keeps which subscriber can access to which stream and which TOTP")
 public class Subscriber {
     
-    @JsonIgnore
+	@JsonIgnore
     public static final String PLAY_TYPE = "play";
     
     @JsonIgnore
@@ -117,6 +117,13 @@ public class Subscriber {
      */
     @Schema(description = "Average audio bitrate for a subscriber")
     private long avgAudioBitrate;
+
+    /**
+     * Custom TOTP expiry period in seconds for this subscriber.
+     * If null, falls back to global timeTokenPeriod setting.
+     */
+    @Schema(description = "Custom TOTP expiry period in seconds for this subscriber")
+    private Integer totpExpiryPeriodSeconds;
 
 	
 	public void setSubscriberId(String subscriberId) {
@@ -273,5 +280,21 @@ public class Subscriber {
 	 */
 	public void setAvgAudioBitrate(long avgAudioBitrate) {
 		this.avgAudioBitrate = avgAudioBitrate;
+	}
+
+	/**
+	 * Gets the custom TOTP expiry period in seconds for this subscriber.
+	 * @return the custom TOTP expiry period in seconds, or null if not set
+	 */
+	public Integer getTotpExpiryPeriodSeconds() {
+		return totpExpiryPeriodSeconds;
+	}
+
+	/**
+	 * Sets the custom TOTP expiry period in seconds for this subscriber.
+	 * @param totpExpiryPeriodSeconds the expiry period in seconds configurable by the user
+	 */
+	public void setTotpExpiryPeriodSeconds(Integer totpExpiryPeriodSeconds) {
+		this.totpExpiryPeriodSeconds = totpExpiryPeriodSeconds;
 	}
 }

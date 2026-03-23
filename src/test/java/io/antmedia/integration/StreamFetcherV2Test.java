@@ -22,8 +22,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
-import org.quartz.Scheduler;
-import org.quartz.impl.StdSchedulerFactory;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -51,7 +49,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
 
-	public static final String BIG_BUNNY_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+	public static final String BIG_BUNNY_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
 
 	private static int OS_TYPE;
 
@@ -215,10 +213,10 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		//add rtmp endpoint 
 		Endpoint endpoint = new Endpoint();
 		String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
-		endpoint.setRtmpUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId); 
+		endpoint.setEndpointUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId);
 		try 
 		{
-			result = RestServiceV2Test.addEndpointV2(streamSource.getStreamId(), endpoint);
+			result = RestServiceV2Test.addEndpointV3(streamSource.getStreamId(), endpoint);
 			assertTrue(result.isSuccess());
 			String endpointId = result.getDataId();
 			//check that rtmp endpoint is streaming
@@ -291,7 +289,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		dataStore.save(localStream);
 
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl(endpointStream.getRtmpURL());
+		endpoint.setEndpointUrl(endpointStream.getRtmpURL());
 		//add endpoint to the server
 		dataStore.addEndpoint(localStream.getStreamId(), endpoint);
 
@@ -414,7 +412,9 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		result = restService.callDeleteBroadcast(rtmpPullStreamId);
 		assertTrue(result.isSuccess());
 
-		getAppSettings().resetDefaults();
+		appSettings.resetDefaults();
+		result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+		assertTrue(result.isSuccess());
 
 	}
 

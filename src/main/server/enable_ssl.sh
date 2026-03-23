@@ -104,10 +104,35 @@ get_password() {
   done
 }
 
+# Check if port 80 is in use for Let's Encrypt validation
+check_port_80() {
+    if lsof -i :80 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo -e "Port 80 is currently in use by \e[31m$(lsof -i :80 -sTCP:LISTEN | awk 'NR>1 {print $1}')\e[0m. Please stop the service to proceed with Let's Encrypt (Free SSL)."
+        exit 1
+    fi
+}
+
+
 install_pkgs() {
     if [ -f /etc/debian_version ]; then
-        $SUDO apt update -qq
-        $SUDO apt install -y jq dnsutils iptables
+       
+        REQUIRED_PKG=("jq" "dnsutils" "iptables")
+		MISSING_PKG=()
+		
+		for pkg in "${REQUIRED_PKG[@]}"; do
+		    if ! dpkg -s "$pkg" &> /dev/null; then
+		        MISSING_PKG+=("$pkg")
+		    fi
+		done
+		
+		if [ ${#MISSING_PKG[@]} -ne 0 ]; then
+		    echo "Missing packages: ${MISSING_PKG[*]}"
+		    $SUDO apt update -qq
+		    $SUDO apt install -y "${MISSING_PKG[@]}"
+		else
+		    echo "All required packages are already installed."
+		fi
+
     elif [ -f /etc/redhat-release ]; then
         OS_VERSION=$(rpm -E %rhel)
         pkgs="jq bind-utils iptables"
@@ -209,6 +234,7 @@ get_freedomain(){
   #Refactor: It seems that result_marketplace is not used. On the other hand, JWT_KEY is a variable in generate_jwt
   #it's better to return JWT_KEY in generate_jwt and don't use any variable other script 
   result_marketplace=$(generate_jwt)
+  check_port_80
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
   ip=`curl -s http://checkip.amazonaws.com`
   if [ ! -z $get_license_key ]; then
@@ -245,16 +271,30 @@ get_freedomain(){
 get_new_certificate(){
 
   if [ "$fullChainFileExist" == false ]; then
+      check_port_80
       #  install letsencrypt and get the certificate
       echo "creating new certificate"
       distro
       if [[ "$ID" == "ubuntu" || "$ID" == "debian" ]]; then
 
-        $SUDO apt-get update -qq -y
-        output
-
-        $SUDO apt-get install cron certbot python3-certbot-dns-route53 -qq -y
-        output
+        
+        REQUIRED_PKG=("cron" "certbot" "python3-certbot-dns-route53")
+		MISSING_PKG=()
+		
+		for pkg in "${REQUIRED_PKG[@]}"; do
+		    if ! dpkg -s "$pkg" &> /dev/null; then
+		        MISSING_PKG+=("$pkg")
+		    fi
+		done
+		
+		if [ ${#MISSING_PKG[@]} -ne 0 ]; then
+		    echo "Missing packages: ${MISSING_PKG[*]}"
+		    $SUDO apt update -qq
+		    $SUDO apt install -y "${MISSING_PKG[@]}"
+		else
+		    echo "All required packages are already installed."
+		fi
+		
 
       elif [ "$ID" == "centos" ] || [ "$ID" == "rocky" ] || [ "$ID" == "almalinux" ] || [ "$ID" == "rhel" ]; then
         $SUDO yum -y install epel-release
