@@ -88,6 +88,12 @@ jobs:
           fi
           sudo service mongod status
           sudo service redis-server status
+		  
+	  - name: Dump surefire reports
+	    if: failure()
+	    run: |
+	      find . -name "surefire-reports" -type d -exec sh -c 'for d; do echo "### $d"; ls -la "$d"; find "$d" -type f -maxdepth 1 | xargs -r -I{} sh -c "echo ===== {}; cat {}"; done' sh {} +
+	      find . -name "hs_err_pid*" -type f -exec sh -c 'for f; do echo "### $f"; cat "$f"; done' sh {} +
 
   check-vulnerabilities:
     runs-on: ubuntu-22.04
