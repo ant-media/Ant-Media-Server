@@ -380,7 +380,7 @@ public class TokenFilterTest {
 		ITokenService tokenService = mock(ITokenService.class);
 		AppSettings settings = new AppSettings();
 		settings.resetDefaults();
-		settings.setPlayTokenControlEnabled(true);
+		settings.setEnableTimeTokenForPlay(true);
 
 		
 		when(context.getBean("token.service")).thenReturn(tokenService);
@@ -593,7 +593,7 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p500kbps.mp4"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps.webm"));
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p500kbps.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/live)app/streams/subfolder/"+streamId+"_240p500kbps.webm"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps_1.webm"));
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p500kbps_1.webm"));
