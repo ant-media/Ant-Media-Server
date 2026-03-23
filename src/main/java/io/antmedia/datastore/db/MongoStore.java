@@ -118,7 +118,7 @@ public class MongoStore extends DataStore {
 
 	public MongoStore(String host, String dbName) {
 
-		String uri = host;
+		String uri = MongoStore.getMongoConnectionUri(host);
 
 
 		mongoClient = MongoClients.create(uri);
