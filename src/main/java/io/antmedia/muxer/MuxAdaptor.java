@@ -1862,6 +1862,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		writeTrailer();
+		packetFeeder.close();
 
 		if (videoExtraDataPointer != null) {
 			av_free(videoExtraDataPointer.position(0));
@@ -2980,5 +2981,4 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 }
-
 
