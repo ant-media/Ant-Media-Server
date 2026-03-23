@@ -388,6 +388,7 @@ public abstract class Muxer {
 			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
 			if (ret < 0) {
 				logger.warn("Could not open output url: {} ",  url);
+				pb.close();
 				return false;
 			}
 			getOutputFormatContext().pb(pb);
