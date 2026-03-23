@@ -122,6 +122,7 @@ public class EndpointMuxer extends Muxer {
 			if (ret < 0) {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 				logger.info("Could not create output context for url {}", url);
+				outputFormatContext = null;
 				return null;
 			}
 		}
