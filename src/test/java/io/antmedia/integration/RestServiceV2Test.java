@@ -1296,32 +1296,9 @@ public class RestServiceV2Test {
 
 	}
 	
-	public static Result removeEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+	public static Result removeEndpoint(String broadcastId, String endpointServiceId) throws Exception 
 	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
-		
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		
-		HttpUriRequest request = RequestBuilder.delete().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-	
-		CloseableHttpResponse response = client.execute(request);
-		
-		StringBuffer result = readResponse(response);
-		
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-		
-		Gson gson = new Gson();
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-
-		return tmp;
-	}
-	
-	public static Result removeEndpointV2(String broadcastId, String endpointServiceId) throws Exception 
-	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint?endpointServiceId=" + endpointServiceId;
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?endpointServiceId=" + endpointServiceId;
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		
@@ -1342,9 +1319,9 @@ public class RestServiceV2Test {
 		return tmp;
 	}
 
-	public static Result addEndpointV3(String broadcastId, Endpoint endpoint) throws Exception 
+	public static Result addEndpoint(String broadcastId, Endpoint endpoint) throws Exception 
 	{		
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint";
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint";
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
@@ -1359,29 +1336,6 @@ public class RestServiceV2Test {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-
-		return tmp;
-	}
-
-	public Result addSocialEndpoint(String broadcastId, String serviceId) throws Exception 
-	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/social-endpoints/" + serviceId;
-
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
-		HttpUriRequest post = RequestBuilder.post().setUri(url)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-
-		CloseableHttpResponse response = client.execute(post);
-
-		StringBuffer result = readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-		Gson gson = new Gson();
 		System.out.println("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 
@@ -1485,7 +1439,7 @@ public class RestServiceV2Test {
 
 
 			// add generic endpoint
-			result = addEndpointV3(broadcast.getStreamId().toString(), endpoint);
+			result = addEndpoint(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1573,7 +1527,7 @@ public class RestServiceV2Test {
 			Endpoint endpoint2 = new Endpoint();
 			endpoint2.setEndpointUrl(rtmpUrl2);
 			// add generic endpoint
-			result = addEndpointV3(broadcast.getStreamId().toString(), endpoint2);
+			result = addEndpoint(broadcast.getStreamId().toString(), endpoint2);
 			// check that it is successfull
 			assertTrue(result.isSuccess());
 
@@ -1631,7 +1585,7 @@ public class RestServiceV2Test {
 			endpoint.setEndpointUrl(rtmpUrl);
 			
 			// add generic endpoint
-			Result result = addEndpointV3(broadcast.getStreamId().toString(), endpoint);
+			Result result = addEndpoint(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1641,7 +1595,7 @@ public class RestServiceV2Test {
 			Endpoint endpoint2 = new Endpoint();
 			endpoint2.setEndpointUrl(rtmpUrl2);
 			// add generic endpoint
-			result = addEndpointV3(broadcast.getStreamId().toString(), endpoint2);
+			result = addEndpoint(broadcast.getStreamId().toString(), endpoint2);
 			// check that it is successfull
 			assertTrue(result.isSuccess());
 
@@ -1701,7 +1655,7 @@ public class RestServiceV2Test {
 				dynamicEndpoint.setEndpointUrl(dynamicRtmpURL);
 				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 					//if stream is being prepared, it may return false, so try again 
-					Result tmpRes = addEndpointV3(finalBroadcastStreamId, dynamicEndpoint);
+					Result tmpRes = addEndpoint(finalBroadcastStreamId, dynamicEndpoint);
 					return tmpRes.isSuccess();
 				});
 
@@ -1724,7 +1678,7 @@ public class RestServiceV2Test {
 
 				broadcast = getBroadcast(finalBroadcastStreamId);
 				//remove dynamic endpoint
-				result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(2).getEndpointServiceId());
+				result = removeEndpoint(finalBroadcastStreamId, broadcast.getEndPointList().get(2).getEndpointServiceId());
 				assertTrue(result.isSuccess());
 
 				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -1741,7 +1695,7 @@ public class RestServiceV2Test {
 						|| IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp2.getEndPointList().get(1).getStatus()));
 			});
 			
-			result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(1).getEndpointServiceId());
+			result = removeEndpoint(finalBroadcastStreamId, broadcast.getEndPointList().get(1).getEndpointServiceId());
 			assertTrue(result.isSuccess());
 			
 			execute.destroy();
