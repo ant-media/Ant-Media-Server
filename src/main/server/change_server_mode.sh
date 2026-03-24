@@ -47,7 +47,10 @@ validate_parameters() {
   fi
   
   if [[ -n "$db_connection" ]]; then
-    if [[ ! "$db_connection" =~ ^(mongodb://|mongodb\+srv://|redis://) ]] && [[ ! -f "$db_connection" ]]; then
+    if [[ ! "$db_connection" =~ ^(mongodb://|mongodb\+srv://|redis://) ]] \
+       && [[ "$db_connection" != "127.0.0.1" ]] \
+       && [[ "$db_connection" != "localhost" ]] \
+       && [[ ! -f "$db_connection" ]]; then
       echo -e "${YELLOW}WARNING: DB connection doesn't start with mongodb://, mongodb+srv://, redis:// and is not a file.${NC}"
       echo "Are you sure this is correct? (y/n)"
       read -r confirmation
