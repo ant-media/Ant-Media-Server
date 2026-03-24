@@ -33,6 +33,7 @@ import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import jakarta.annotation.Nonnull;
 
 public abstract class DataStore {
 
@@ -1422,7 +1423,7 @@ public abstract class DataStore {
 	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
 	 * @return list of active subtracks
 	 */
-	public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, int offset, int size, String role);
+	public abstract List<Broadcast> getActiveSubtracks(@Nonnull String mainTrackId, int offset, int size, String role);
 
 	/**
 	 * 

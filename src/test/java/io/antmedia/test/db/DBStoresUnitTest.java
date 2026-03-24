@@ -125,6 +125,7 @@ public class DBStoresUnitTest {
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
 		testRemoveEndpointWithServiceEndpoint(dataStore);
+		testRemoveEndpointComprehensive(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
@@ -158,6 +159,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithStatus(dataStore);
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
+		testGetActiveSubtracksComprehensive(dataStore);
 		testConnectedSubscribers(dataStore);
 		testCustomTotpExpiry(dataStore);
 
@@ -219,6 +221,7 @@ public class DBStoresUnitTest {
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
 		testRemoveEndpointWithServiceEndpoint(dataStore);
+		testRemoveEndpointComprehensive(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
@@ -253,6 +256,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithStatus(dataStore);
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
+		testGetActiveSubtracksComprehensive(dataStore);
 		testConnectedSubscribers(dataStore);
 		testCustomTotpExpiry(dataStore);
 
@@ -296,6 +300,7 @@ public class DBStoresUnitTest {
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
 		testRemoveEndpointWithServiceEndpoint(dataStore);
+		testRemoveEndpointComprehensive(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
@@ -335,6 +340,7 @@ public class DBStoresUnitTest {
 		
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
+		testGetActiveSubtracksComprehensive(dataStore);
 		testConnectedSubscribers(dataStore);
 		testCustomTotpExpiry(dataStore);
 
@@ -369,6 +375,7 @@ public class DBStoresUnitTest {
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
 		testRemoveEndpointWithServiceEndpoint(dataStore);
+		testRemoveEndpointComprehensive(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
@@ -402,6 +409,7 @@ public class DBStoresUnitTest {
 
 		testGetSubtracks(dataStore);
 		testGetSubtracksWithStatus(dataStore);
+		testGetActiveSubtracksComprehensive(dataStore);
 
 		dataStore.close(true);
 	}
@@ -1627,6 +1635,231 @@ public class DBStoresUnitTest {
 
 	}
 
+	public void testRemoveEndpointComprehensive(DataStore dataStore) {
+		// Test Case 1: Remove endpoint when broadcast doesn't exist (null broadcast)
+		Broadcast nonExistentBroadcast = new Broadcast(null, null);
+		Endpoint endpoint = new Endpoint("rtmp://test.com", "generic", "test-service-id", "finished");
+		boolean result = dataStore.removeEndpoint("non-existent-stream-id", endpoint, true);
+		assertFalse("Should return false when broadcast doesn't exist", result);
+
+		result = dataStore.removeEndpoint("non-existent-stream-id", endpoint, false);
+		assertFalse("Should return false when broadcast doesn't exist (checkRTMPUrl=false)", result);
+
+		// Test Case 2: Remove endpoint with null endpoint
+		Broadcast broadcast = new Broadcast(null, null);
+		String streamId = dataStore.save(broadcast);
+		assertNotNull(streamId);
+
+		result = dataStore.removeEndpoint(streamId, null, true);
+		assertFalse("Should return false when endpoint is null (checkRTMPUrl=true)", result);
+
+		result = dataStore.removeEndpoint(streamId, null, false);
+		assertFalse("Should return false when endpoint is null (checkRTMPUrl=false)", result);
+
+		// Test Case 3: Remove endpoint when endPointList is null
+		Broadcast broadcast2 = dataStore.get(streamId);
+		assertTrue("endPointList should be null initially", broadcast2.getEndPointList() == null);
+		
+		endpoint = new Endpoint("rtmp://test.com", "generic", "service-id-1", "finished");
+		result = dataStore.removeEndpoint(streamId, endpoint, true);
+		assertFalse("Should return false when endPointList is null (checkRTMPUrl=true)", result);
+
+		result = dataStore.removeEndpoint(streamId, endpoint, false);
+		assertFalse("Should return false when endPointList is null (checkRTMPUrl=false)", result);
+
+		// Test Case 4: Remove endpoint that doesn't exist (by URL)
+		Endpoint endpoint1 = new Endpoint("rtmp://existing.com", "facebook", "service-id-existing", "finished");
+		assertTrue("Should add endpoint successfully", dataStore.addEndpoint(streamId, endpoint1));
+
+		broadcast2 = dataStore.get(streamId);
+		assertEquals("Should have 1 endpoint", 1, broadcast2.getEndPointList().size());
+
+		Endpoint nonExistentEndpoint = new Endpoint("rtmp://non-existent.com", "generic", "unknown-id", "finished");
+		result = dataStore.removeEndpoint(streamId, nonExistentEndpoint, true);
+		assertFalse("Should return false when endpoint URL doesn't exist", result);
+
+		broadcast2 = dataStore.get(streamId);
+		assertEquals("Endpoint count should remain 1", 1, broadcast2.getEndPointList().size());
+
+		// Test Case 5: Remove endpoint that doesn't exist (by ServiceId)
+		result = dataStore.removeEndpoint(streamId, nonExistentEndpoint, false);
+		assertFalse("Should return false when endpoint ServiceId doesn't exist", result);
+
+		broadcast2 = dataStore.get(streamId);
+		assertEquals("Endpoint count should remain 1", 1, broadcast2.getEndPointList().size());
+
+		// Test Case 6: Successfully remove endpoint by URL
+		Endpoint endpointToRemove = new Endpoint("rtmp://existing.com", "youtube", "any-id", "finished");
+		result = dataStore.removeEndpoint(streamId, endpointToRemove, true);
+		assertTrue("Should successfully remove endpoint by URL", result);
+
+		broadcast2 = dataStore.get(streamId);
+		assertTrue("endPointList should be empty or null after removal", 
+			broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
+
+		// Test Case 7: Successfully remove endpoint by ServiceId
+		Endpoint endpoint2 = new Endpoint("rtmp://service1.com", "facebook", "service-001", "finished");
+		Endpoint endpoint3 = new Endpoint("rtmp://service2.com", "youtube", "service-002", "finished");
+		
+		assertTrue("Should add first endpoint", dataStore.addEndpoint(streamId, endpoint2));
+		assertTrue("Should add second endpoint", dataStore.addEndpoint(streamId, endpoint3));
+
+		broadcast2 = dataStore.get(streamId);
+		assertEquals("Should have 2 endpoints", 2, broadcast2.getEndPointList().size());
+
+		// Remove by ServiceId
+		Endpoint endpointToRemoveByServiceId = new Endpoint("any-url", "any-type", "service-001", "finished");
+		result = dataStore.removeEndpoint(streamId, endpointToRemoveByServiceId, false);
+		assertTrue("Should successfully remove endpoint by ServiceId", result);
+
+		broadcast2 = dataStore.get(streamId);
+		assertEquals("Should have 1 endpoint remaining", 1, broadcast2.getEndPointList().size());
+		assertEquals("Remaining endpoint should have service-002", "service-002", 
+			broadcast2.getEndPointList().get(0).getEndpointServiceId());
+
+		// Test Case 8: Remove last endpoint
+		result = dataStore.removeEndpoint(streamId, endpoint3, false);
+		assertTrue("Should successfully remove last endpoint", result);
+
+		broadcast2 = dataStore.get(streamId);
+		assertTrue("endPointList should be empty or null after removing last endpoint", 
+			broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
+	}
+
+	public void testGetActiveSubtracksComprehensive(DataStore dataStore) {
+		// Clear existing data
+		clear(dataStore);
+
+		// Test Case 1: No main track exists - should return empty list
+		List<Broadcast> result = dataStore.getActiveSubtracks("non-existent-main-track", 0, 10, null);
+		assertNotNull("Result should not be null", result);
+		assertEquals("Should return empty list when main track doesn't exist", 0, result.size());
+
+		// Test Case 2: Main track exists but has no subtracks
+		Broadcast mainTrack = new Broadcast("Main Track", "mainTrack");
+		mainTrack.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		String mainTrackId = dataStore.save(mainTrack);
+		assertNotNull(mainTrackId);
+
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
+		assertNotNull("Result should not be null", result);
+		assertEquals("Should return empty list when no subtracks exist", 0, result.size());
+
+		// Test Case 3: Main track with subtracks but none are active (finished status)
+		Broadcast subtrack1 = new Broadcast("Subtrack 1", "subtrack1");
+		subtrack1.setMainTrackStreamId(mainTrackId);
+		subtrack1.setRole("role1");
+		subtrack1.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		String subtrack1Id = dataStore.save(subtrack1);
+
+		Broadcast subtrack2 = new Broadcast("Subtrack 2", "subtrack2");
+		subtrack2.setMainTrackStreamId(mainTrackId);
+		subtrack2.setRole("role2");
+		subtrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		String subtrack2Id = dataStore.save(subtrack2);
+
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
+		assertEquals("Should return empty list when subtracks are not active", 0, result.size());
+
+		// Test Case 4: Main track with active subtracks, no role filter - should return all active
+		dataStore.updateStatus(subtrack1Id, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		dataStore.updateStatus(subtrack2Id, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
+		assertEquals("Should return 2 active subtracks with no role filter", 2, result.size());
+
+		// Test Case 5: Main track with active subtracks, with specific role filter
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "role1");
+		assertEquals("Should return 1 subtrack with role1", 1, result.size());
+		assertEquals("Returned subtrack should have role1", "role1", result.get(0).getRole());
+
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "role2");
+		assertEquals("Should return 1 subtrack with role2", 1, result.size());
+		assertEquals("Returned subtrack should have role2", "role2", result.get(0).getRole());
+
+		// Test Case 6: Role filter with no matching subtracks
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "non-existent-role");
+		assertEquals("Should return empty list when no subtracks match the role", 0, result.size());
+
+		// Test Case 7: Pagination with offset=0, size varying
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 1, null);
+		assertEquals("Should return 1 item with size=1", 1, result.size());
+
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 2, null);
+		assertEquals("Should return 2 items with size=2", 2, result.size());
+
+		// Test Case 8: Pagination with offset > 0
+		result = dataStore.getActiveSubtracks(mainTrackId, 1, 1, null);
+		assertEquals("Should return 1 item with offset=1, size=1", 1, result.size());
+
+		// Test Case 9: Pagination with offset beyond total items
+		result = dataStore.getActiveSubtracks(mainTrackId, 10, 5, null);
+		assertEquals("Should return empty list when offset exceeds total items", 0, result.size());
+
+		// Test Case 10: Pagination with size=0
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 0, null);
+		assertEquals("Should return empty list when size=0", 0, result.size());
+
+		// Test Case 11: Complex scenario - multiple subtracks with different roles and statuses
+		// Add more subtracks with different combinations
+		Broadcast subtrack3 = new Broadcast("Subtrack 3", "subtrack3");
+		subtrack3.setMainTrackStreamId(mainTrackId);
+		subtrack3.setRole("role1");
+		subtrack3.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subtrack3.setUpdateTime(System.currentTimeMillis());
+		String subtrack3Id = dataStore.save(subtrack3);
+
+		Broadcast subtrack4 = new Broadcast("Subtrack 4", "subtrack4");
+		subtrack4.setMainTrackStreamId(mainTrackId);
+		subtrack4.setRole("role2");
+		subtrack4.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		String subtrack4Id = dataStore.save(subtrack4);
+
+		// Total active subtracks: subtrack1 (role1, broadcasting), subtrack2 (role2, preparing), subtrack3 (role1, broadcasting) = 3
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
+		assertEquals("Should return 3 active subtracks", 3, result.size());
+
+		// With role1 filter: subtrack1 and subtrack3 = 2
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "role1");
+		assertEquals("Should return 2 active subtracks with role1", 2, result.size());
+		for (Broadcast bc : result) {
+			assertEquals("All returned subtracks should have role1", "role1", bc.getRole());
+		}
+
+		// Test Case 12: Pagination with multiple pages
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 2, null);
+		assertEquals("Page 1: should return 2 items", 2, result.size());
+
+		result = dataStore.getActiveSubtracks(mainTrackId, 2, 2, null);
+		assertEquals("Page 2: should return 1 item", 1, result.size());
+
+		result = dataStore.getActiveSubtracks(mainTrackId, 4, 2, null);
+		assertEquals("Page 3: should return empty list (offset beyond total)", 0, result.size());
+
+
+		// Test Case 13: Empty role string should behave like null (include all roles)
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "");
+		assertEquals("Empty role string should return all active subtracks", 3, result.size());
+
+		// Test Case 14: Verify different main tracks don't interfere
+		Broadcast mainTrack2 = new Broadcast("Main Track 2", "mainTrack2");
+		mainTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		
+		String mainTrack2Id = dataStore.save(mainTrack2);
+
+		Broadcast subtrack5 = new Broadcast("Subtrack 5", "subtrack5");
+		subtrack5.setMainTrackStreamId(mainTrack2Id);
+		subtrack5.setRole("role1");
+		subtrack5.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subtrack5.setUpdateTime(System.currentTimeMillis());
+		dataStore.save(subtrack5);
+
+		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
+		assertEquals("First main track should still have 3 active subtracks", 3, result.size());
+
+		result = dataStore.getActiveSubtracks(mainTrack2Id, 0, 10, null);
+		assertEquals("Second main track should have only 1 active subtrack", 1, result.size());
+	}
 
 
 	public void testSimpleOperations(DataStore dataStore) {

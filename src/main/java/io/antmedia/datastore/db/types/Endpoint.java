@@ -43,10 +43,10 @@ public class Endpoint {
         this.status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
     }
 
-    public Endpoint(String rtmpUrl, String type, String endpointServiceId, String status) {
+    public Endpoint(String endpointUrl, String type, String endpointServiceId, String status) {
         this();
         this.status = status;
-        this.endpointUrl = rtmpUrl;
+        this.endpointUrl = endpointUrl;
         this.type = type;
         this.endpointServiceId = endpointServiceId;
     }
