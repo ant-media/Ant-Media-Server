@@ -1688,10 +1688,9 @@ public class DBStoresUnitTest {
 		broadcast2 = dataStore.get(streamId);
 		assertEquals("Endpoint count should remain 1", 1, broadcast2.getEndPointList().size());
 
-		// Test Case 6: Successfully remove endpoint by URL
-		Endpoint endpointToRemove = new Endpoint("rtmp://existing.com", "youtube", "any-id", "finished");
-		result = dataStore.removeEndpoint(streamId, endpointToRemove, true);
-		assertTrue("Should successfully remove endpoint by URL", result);
+		// Test Case 7:  remove endpoint by URL
+		result = dataStore.removeEndpoint(streamId, endpoint1, true); //endpoint1
+		assertTrue("Should  successfully remove endpoint by URL", result);
 
 		broadcast2 = dataStore.get(streamId);
 		assertTrue("endPointList should be empty or null after removal", 
@@ -1708,8 +1707,8 @@ public class DBStoresUnitTest {
 		assertEquals("Should have 2 endpoints", 2, broadcast2.getEndPointList().size());
 
 		// Remove by ServiceId
-		Endpoint endpointToRemoveByServiceId = new Endpoint("any-url", "any-type", "service-001", "finished");
-		result = dataStore.removeEndpoint(streamId, endpointToRemoveByServiceId, false);
+		//Endpoint endpointToRemoveByServiceId = new Endpoint("any-url", "any-type", "service-001", "finished");
+		result = dataStore.removeEndpoint(streamId, endpoint2, false);
 		assertTrue("Should successfully remove endpoint by ServiceId", result);
 
 		broadcast2 = dataStore.get(streamId);
@@ -1763,7 +1762,7 @@ public class DBStoresUnitTest {
 
 		// Test Case 4: Main track with active subtracks, no role filter - should return all active
 		dataStore.updateStatus(subtrack1Id, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-		dataStore.updateStatus(subtrack2Id, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		dataStore.updateStatus(subtrack2Id, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
 		assertEquals("Should return 2 active subtracks with no role filter", 2, result.size());

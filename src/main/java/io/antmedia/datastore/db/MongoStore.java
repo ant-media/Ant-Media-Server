@@ -315,9 +315,10 @@ public class MongoStore extends DataStore {
 					cachedBroadcast.setUpdateTime(System.currentTimeMillis());
 				}
 
+				long now = System.currentTimeMillis();
 				if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 				{
-					long now = System.currentTimeMillis();
+					
 					ops.add(set(START_TIME, now));
 					
 					if(cachedBroadcast != null) {
@@ -338,6 +339,8 @@ public class MongoStore extends DataStore {
 						cachedBroadcast.setDashViewerCount(0);
 					}
 				}
+				
+				ops.add(set(UPDATE_TIME_FIELD, now));
 
 				UpdateResult update = ops.execute();
 				result = update.getMatchedCount() == 1;
@@ -440,9 +443,10 @@ public class MongoStore extends DataStore {
 			
 			if (id != null && endpoint != null) 
 			{
-				if(cachedBroadcast != null) {
+				if(cachedBroadcast != null) 
+				{
 					List<Endpoint> endPointList = cachedBroadcast.getEndPointList();
-					if (endPointList != null) {
+					if (endPointList != null && !endPointList.isEmpty()) {
 						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 							Endpoint endpointItem = iterator.next();
 							if(checkRTMPUrl) {
@@ -465,7 +469,7 @@ public class MongoStore extends DataStore {
 
 				Update<Broadcast> update = query.update(UpdateOperators.pullAll("endPointList", Arrays.asList(endpoint)));
 
-				result = update.execute().getMatchedCount() == 1;
+				result = update.execute().getModifiedCount() == 1;
 				
 				if(result && cachedBroadcast != null) {
 					getBroadcastCache().put(cacheKey, cachedBroadcast);
@@ -2192,6 +2196,11 @@ public class MongoStore extends DataStore {
 	@Override
 	public List<Broadcast> getActiveSubtracks(String mainTrackId, int offset, int size, String role) {
 
+	
+		if (size <= 0) {
+			//return empty list if size is not valid
+			return new ArrayList<>();
+		}
 		long startTime = System.nanoTime();
 
 		LogicalFilter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
