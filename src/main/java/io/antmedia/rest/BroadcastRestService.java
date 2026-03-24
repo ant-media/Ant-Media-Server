@@ -491,7 +491,16 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 
-
+	@Operation(summary = "Removes a third party RTMP or SRT end point from the stream",
+			description = "It supports removing RTMP or SRT restreaming endpoints after broadcast is started. Resolution can be specified if endpoint is added with resolution. If an URL is not added to a stream, trying to remove that Endpoint URL will return false.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Remove Endpoint URL response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
@@ -505,7 +514,8 @@ public class BroadcastRestService extends RestServiceBase{
 		String rtmpUrl = null;
 		Broadcast broadcast = getDataStore().get(id);
 		Result result = new Result(false);
-
+		//check if resolutoonHeight is valid, if it's not valid, set it to 0 to not encounter any problem in remove process. If resolutionHeight is 0, it will remove endpoint without resolution control.
+		resolutionHeight = resolutionHeight > 0 ? resolutionHeight : 0;
 		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty())
 		{
 
@@ -1135,7 +1145,11 @@ public class BroadcastRestService extends RestServiceBase{
 			@Parameter(description = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight,
 			@Parameter(description = "Optional base filename (without extension) for the output VOD.", required = false) @QueryParam("fileName") String fileName
 			) {
-		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;  // It means, if recordType is null, function using Mp4 Record by default
+		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType; // It means, if recordType is null, function using Mp4 Record by default
+		
+		
+		streamId = streamId.replaceAll(REPLACE_CHARS, "_");
+		resolutionHeight = (resolutionHeight < 0) ? 0 : resolutionHeight; // If resolution height is not specified or it's less than or equal to 0, it will record the original resolution of the stream.
 		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight, fileName);
 	}
 

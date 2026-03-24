@@ -35,7 +35,6 @@ import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Muxer;
-import io.antmedia.rest.VoDRestService;
 
 /**
  * Application Settings for each application running in Ant Media Server.
