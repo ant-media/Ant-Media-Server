@@ -252,13 +252,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
 		String streamId = String.valueOf((Math.random() * 100000));
 
-		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		//create a broadcast
-		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		//create a broadcast
-		Broadcast.PlayListItem broadcastItem3 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem3 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		List<Broadcast.PlayListItem> broadcastList = new ArrayList<>();
 
@@ -1807,5 +1807,37 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//doReturn("test").when(mockAppSettings).getClusterCommunicationKey();
 		//assertTrue(internalStreamFetcher.getStreamUrl().startsWith("rtmp://test.com/test?token="));
         //assertEquals("rtmp://test.com/test", internalStreamFetcher.rtmpUrl);
+	}
+
+	@Test
+	public void testRTSPUrlWithSpecialChars() {
+		// This test replicates the issue where special characters like @ in the password 
+		// cause issues when UriComponentsBuilder reconstructs the URL.
+		
+		String streamId = "testStreamSpecialChar";
+		// Password is "pass@word", encoded as "pass%40word"
+		String originalUrl = "rtsp://user:pass@word@127.0.0.1:6554/stream?allowed_media_types=video";
+		
+		// The expected behavior is that the URL is cleaned of allowed_media_types 
+		// AND the password remains correctly encoded so it doesn't break the URL structure.
+		// If the @ is decoded to "pass@word", it breaks standard RTSP parsing (two @ symbols).
+		String expectedUrl = "rtsp://user:pass@word@127.0.0.1:6554/stream";
+
+		StreamFetcher streamFetcher = new StreamFetcher(originalUrl, streamId, "rtsp_source", appScope, Vertx.vertx(), 0);
+		
+		AVDictionary options = new AVDictionary();
+		// This method is expected to fail/corrupt the URL if the bug exists
+		streamFetcher.parseRtspUrlParams(options);
+		
+		logger.info("Original URL: {}", originalUrl);
+		logger.info("Resulting URL: {}", streamFetcher.getStreamUrl());
+		
+		assertEquals("The stream URL should preserve the encoded @ character in the password to avoid ambiguity", 
+					 expectedUrl, streamFetcher.getStreamUrl());
+		
+		// Also verify the parameter was extracted
+		AVDictionaryEntry entry = avutil.av_dict_get(options, "allowed_media_types", null, 0);
+		assertNotNull("allowed_media_types should be extracted to options", entry);
+		assertEquals("video", entry.value().getString());
 	}
 }
