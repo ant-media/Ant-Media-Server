@@ -1503,10 +1503,8 @@ public class BroadcastRestService extends RestServiceBase{
 		String roleParam = role != null ? role : "";
 		long count = getDataStore().getActiveSubtracksCount(id, roleParam);
 		
-		Result result = new Result(true);
-		result.setDataId(Long.toString(count));
-
-		return Response.status(Status.OK).entity(result).build();
+		SimpleStat simpleStat = new SimpleStat(count);
+		return Response.status(Status.OK).entity(simpleStat).build();
 	}
 
 	@Operation(summary = "Get stream information",
