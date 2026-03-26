@@ -192,9 +192,6 @@ public class FrontEndTest {
 		List<EncoderSettings> encoderSettings = null;
 		try {
 
-			Random r = new Random();
-			String streamId = "streamId" + r.nextInt();
-
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
 			encoderSettings = appSettingsModel.getEncoderSettings();
@@ -208,7 +205,8 @@ public class FrontEndTest {
 			this.driver = new ChromeDriver(getChromeOptions());
 			this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
 			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-			this.driver.get(this.url+"audio_publish.html?id=stream1");
+			String streamId = "testAudioOnlyPublishStreamId";
+			this.driver.get(this.url+"audio_publish.html?id="+streamId);
 			WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
 			this.driver.switchTo().frame(0);
@@ -221,7 +219,7 @@ public class FrontEndTest {
 
 			//wait for creating  files
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/"+streamId+".m3u8");
 			});
 
 			assertTrue(MuxingTest.audioExists);
