@@ -1624,6 +1624,7 @@ public class ConsoleAppRestServiceTest{
 			AppSettings appSettings = callGetAppSettings(appName);
 
 			appSettings.setEnableTimeTokenForPublish(true);
+			appSettings.setEnableTimeTokenForPlay(true);
 			appSettings.setMp4MuxingEnabled(true);
 
 			Result result = callSetAppSettings(appName, appSettings);
@@ -1697,6 +1698,7 @@ public class ConsoleAppRestServiceTest{
 
 			// reset to old settings
 			appSettings.setEnableTimeTokenForPublish(false);
+			appSettings.setEnableTimeTokenForPlay(false);
 
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
