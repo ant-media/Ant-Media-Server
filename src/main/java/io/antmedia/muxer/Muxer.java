@@ -385,7 +385,10 @@ public abstract class Muxer {
 			String url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
+			AVDictionary optsCopy = new AVDictionary(null);
+			av_dict_copy(optsCopy, optionDictionary, 0);
+			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, optsCopy);
+			av_dict_free(optsCopy);
 			if (ret < 0) {
 				logger.warn("Could not open output url: {} ",  url);
 				return false;
