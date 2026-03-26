@@ -664,16 +664,23 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(120, appSettings.getAudioLevelThreshold());
 		appSettings.setAudioLevelThreshold(100);
 		assertEquals(100, appSettings.getAudioLevelThreshold());
+		
 		assertEquals("", appSettings.getStreamStartedScript());
 		assertEquals("", appSettings.getStreamEndedScript());
 		assertEquals("", appSettings.getStreamIdleTimeoutScript());
 
+		
+		assertFalse(appSettings.isAv1Enabled());
+		appSettings.setAv1Enabled(true);
+		assertTrue(appSettings.isAv1Enabled());
+		
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				182, numberOfFields);
+
+				183, numberOfFields);
 	}
 
 

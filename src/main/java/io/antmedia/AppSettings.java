@@ -73,6 +73,7 @@ public class AppSettings implements Serializable{
 	 */
 	public static final String BEAN_NAME = "app.settings";
 
+
 	/**
 	 * @hidden
 	 * In data channel, player messages are delivered to nobody,
@@ -962,6 +963,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${vp8Enabled:false}")
 	private boolean vp8Enabled;
+	
+	/**
+	 * Enable/Disable AV1 encoding It's disabled by default
+	 */
+	@Value("${av1Enabled:false}")
+	private boolean av1Enabled;
 
 	/**
 	 * Enable/disable H265 Encoding Disabled by default
@@ -2343,6 +2350,14 @@ public class AppSettings implements Serializable{
 
 	public boolean isVp8Enabled() {
 		return vp8Enabled;
+	}
+
+	public void setAv1Enabled(boolean av1Enabled) {
+		this.av1Enabled = av1Enabled;
+	}
+	
+	public boolean isAv1Enabled() {
+		return av1Enabled;
 	}
 
 	public void setVp8Enabled(boolean vp8Enabled) {
