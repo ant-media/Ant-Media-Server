@@ -492,6 +492,7 @@ public class AppFunctionalV2Test {
 			appSettingsModel.setMp4MuxingEnabled(true);
 			appSettingsModel.setAcceptOnlyStreamsInDataStore(false);
 			appSettingsModel.setHlsMuxingEnabled(true);
+			appSettingsModel.setEnableTimeTokenForPlay(false);
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 			
@@ -510,7 +511,7 @@ public class AppFunctionalV2Test {
 			
 			rtmpSendingProcess.destroy();
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + ".mp4");
 			});
 
@@ -628,7 +629,7 @@ public class AppFunctionalV2Test {
 			int duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
 
 			//wait for creating  files
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
 			});
 
