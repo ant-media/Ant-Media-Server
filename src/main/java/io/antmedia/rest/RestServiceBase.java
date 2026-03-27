@@ -1363,7 +1363,7 @@ public abstract class RestServiceBase {
 					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"), streamFetcherListener.hashCode());
 				}
 
-				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
+				result = getApplication().getStreamFetcherManager().playItemInList(broadcast.getStreamId(), streamFetcherListener, index);
 			}
 			else {
 				result.setMessage("No active playlist for id:" + id + ". Start the playlist first");

@@ -223,7 +223,6 @@ public class AppFunctionalV2Test {
 		assertTrue("This test is moved to RestServiceV2Test#testAddEndpointCrossCheckV2", true);
 	}
 
-
 	@Test
 	public void testPlayList() {
 
