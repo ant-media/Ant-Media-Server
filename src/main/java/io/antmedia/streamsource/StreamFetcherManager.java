@@ -313,7 +313,7 @@ public class StreamFetcherManager {
 
 			} catch (InterruptedException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
-				Thread.interrupted();
+				Thread.currentThread().interrupt();
 			}
 		}
 		
