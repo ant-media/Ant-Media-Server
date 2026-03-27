@@ -75,6 +75,15 @@ public class StreamFetcherManager {
 
 	private ServerSettings serverSettings;
 
+	private int waitForTestMilliseconds = 0;
+
+	public void setWaitForTestMilliseconds(int waitForTestMilliseconds) {
+		this.waitForTestMilliseconds = waitForTestMilliseconds;
+	}
+
+	public int getWaitForTestMilliseconds() {
+		return waitForTestMilliseconds;
+	}
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
@@ -296,14 +305,16 @@ public class StreamFetcherManager {
 
 	
 	private boolean waitForTest(int milliseconds) {
-		try {
-			logger.info("Waiting {}ms for test ", milliseconds);
-			Thread.sleep(milliseconds);
-			logger.info("Proceeding after {}ms for test ", milliseconds);
+		if (milliseconds > 0) {
+			try {
+				logger.info("Waiting {}ms for test ", milliseconds);
+				Thread.sleep(milliseconds);
+				logger.info("Proceeding after {}ms for test ", milliseconds);
 
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.interrupted();
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.interrupted();
+			}
 		}
 		
 		return true;
@@ -328,7 +339,7 @@ public class StreamFetcherManager {
 
 		stopStreaming(streamId, true);
 		
-		assert waitForTest(1000); //just wait for 1000 seconds in testing to reproduce a problem - assert statement just run in testing not in production
+		assert waitForTest(waitForTestMilliseconds); //just wait for 1000 seconds in testing to reproduce a problem - assert statement just run in testing not in production
 		
 		
         if (serverShuttingDown) {

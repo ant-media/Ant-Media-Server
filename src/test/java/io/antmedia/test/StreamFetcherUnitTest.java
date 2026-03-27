@@ -272,6 +272,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		app.getDataStore().save(playlist);
 		
+		manager.setWaitForTestMilliseconds(1000);
 		
 		//start play list
 		Result result = manager.startPlaylist(playlist);
@@ -299,7 +300,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//check the result that it returns true
 		assertTrue(result.isSuccess());
 
-		
+		manager.setWaitForTestMilliseconds(0);	
+
 	}
 	
 	@Test
