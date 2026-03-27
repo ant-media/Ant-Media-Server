@@ -376,7 +376,7 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
-	
+
 
 		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0)
 		{
@@ -385,15 +385,14 @@ public abstract class Muxer {
 			String url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			AVDictionary optsCopy = new AVDictionary(null);
-			av_dict_copy(optsCopy, optionDictionary, 0);
-			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, optsCopy);
-			av_dict_free(optsCopy);
-			if (ret < 0) {
-				logger.warn("Could not open output url: {} ",  url);
-				return false;
+			synchronized (optionDictionary) {
+				int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
+				if (ret < 0) {
+					logger.warn("Could not open output url: {} ",  url);
+					return false;
+				}
+				getOutputFormatContext().pb(pb);
 			}
-			getOutputFormatContext().pb(pb);
 		}
 		return true;
 	}
@@ -524,7 +523,9 @@ public abstract class Muxer {
 			avformat_free_context(outputFormatContext);
 			outputFormatContext = null;
 		}
-		av_dict_free(optionDictionary);
+		synchronized (optionDictionary) {
+			av_dict_free(optionDictionary);	
+		}
 	}
 
 	/**
