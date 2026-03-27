@@ -67,7 +67,25 @@ import io.antmedia.rest.VoDRestService;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings implements Serializable{
 
+    public static enum JwtScope { STREAM, APPLICATION }
+
 	private static final long serialVersionUID = 1L;
+
+    /**
+     * @hidden
+     */
+    private static final String SETTINGS_JWT_SCOPE = "settings.jwtScope";
+
+    @Value( "${jwtScope:${"+SETTINGS_JWT_SCOPE+":STREAM}}" )
+    private JwtScope jwtScope = JwtScope.STREAM;
+
+    public JwtScope getJwtScope() {
+        return jwtScope;
+    }
+
+    public void setJwtScope(JwtScope jwtScope) {
+        this.jwtScope = jwtScope;
+    }
 
 	/**
 	 * @hidden
