@@ -385,12 +385,14 @@ public abstract class Muxer {
 			String url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
-			if (ret < 0) {
-				logger.warn("Could not open output url: {} ",  url);
-				return false;
+			synchronized (optionDictionary) {
+				int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
+				if (ret < 0) {
+					logger.warn("Could not open output url: {} ",  url);
+					return false;
+				}
+				getOutputFormatContext().pb(pb);
 			}
-			getOutputFormatContext().pb(pb);
 		}
 		return true;
 	}
@@ -521,7 +523,9 @@ public abstract class Muxer {
 			avformat_free_context(outputFormatContext);
 			outputFormatContext = null;
 		}
-		av_dict_free(optionDictionary);
+		synchronized (optionDictionary) {
+			av_dict_free(optionDictionary);	
+		}
 	}
 
 	/**
