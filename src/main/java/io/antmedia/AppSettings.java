@@ -866,10 +866,10 @@ public class AppSettings implements Serializable{
 
 
 	/**
-	 * Applicaiton name for the data store which should exist so that no default value
+	 * Application name for the data store which should exist so that no default value
 	 * such as LiveApp, WebRTCApp etc.
 	 */
-	@Value("${appName:}")
+	@Value("${appName:${"+SETTINGS_DB_APP_NAME+":}}")
 	private String appName = "";
 
 	/**
