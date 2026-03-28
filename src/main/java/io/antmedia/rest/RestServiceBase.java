@@ -1726,6 +1726,7 @@ public abstract class RestServiceBase {
 			boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 			if (success) 
 			{	
+				result.setSuccess(success);
 				if (!mainTrack.isVirtual()) { //update the main track if it is not virtual
 					
 					broadcastUpdate = new BroadcastUpdate();
