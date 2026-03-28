@@ -1726,17 +1726,20 @@ public abstract class RestServiceBase {
 			boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 			if (success) 
 			{	
-				broadcastUpdate = new BroadcastUpdate();
+				if (!mainTrack.isVirtual()) { //update the main track if it is not virtual
+					
+					broadcastUpdate = new BroadcastUpdate();
 
-				//make sure to set the virtual flag to true because it's mainTrack
-				broadcastUpdate.setVirtual(true);
+					//make sure to set the virtual flag to true because it's mainTrack
+					broadcastUpdate.setVirtual(true);
 
-
-				success = store.updateBroadcastFields(mainTrackId, broadcastUpdate);
-				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + mainTrackId);
+					success = store.updateBroadcastFields(mainTrackId, broadcastUpdate);
+					String errorMessage = "Subtrack:" + subTrackId + " cannot be added to main track: " + mainTrackId;
+					RestServiceBase.setResultSuccess(result, success, errorMessage);
+					return result; 
+				}
 			}
 			else
-
 			{
 				message = MAIN_TRACK_OF_THE_STREAM + subTrackId + " cannot be updated";
 				logWarning(MAIN_TRACK_OF_THE_STREAM +":{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
