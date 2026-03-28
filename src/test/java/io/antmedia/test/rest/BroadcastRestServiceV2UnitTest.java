@@ -8,14 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.*;
-
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -3826,6 +3819,46 @@ public class BroadcastRestServiceV2UnitTest {
 
 	}
 	@Test
+	public void testNotifyLiveStreamEndedDelete() throws Exception {
+		// if broadcast is streaming and the broadcast object is deleted from the server we should notify liveStreamEnded Webhook
+
+		String streamId = "test";
+		restServiceReal = spy(restServiceReal);
+		Broadcast broadcast = spy(new Broadcast());
+		broadcast.setStreamId(streamId);
+		broadcast.setName("name");
+		broadcast.setCategory("category");
+		broadcast.setMetaData("meta");
+		broadcast.setMainTrackStreamId("track");
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED).when(broadcast).getStatus();
+		DataStore dataStore = mock(DataStore.class);
+		doReturn(broadcast).when(dataStore).get(streamId);
+		restServiceReal.setDataStore(dataStore);
+		restServiceReal.setApplication(mock(AntMediaApplicationAdapter.class));
+
+		restServiceReal.createBroadcast(broadcast,false);
+		assertNotNull(restServiceReal.getBroadcast(streamId));
+		when(restServiceReal.getApplication().stopStreaming(any(),anyBoolean(),any())).thenReturn(new Result(true));
+
+		restServiceReal.deleteBroadcast(streamId,false);
+		verify(restServiceReal.getApplication(),Mockito.times(0)).notifyLiveStreamEnded(broadcast,null);
+
+
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING).when(broadcast).getStatus();
+		restServiceReal.createBroadcast(broadcast,false);
+
+		restServiceReal.deleteBroadcast(streamId,false);
+		verify(restServiceReal.getApplication()).notifyLiveStreamEnded(broadcast,null);
+
+		AntMediaApplicationAdapter adapter = spy(new AntMediaApplicationAdapter());
+		doReturn("test").when(adapter).getListenerHookURL(any());
+		doNothing().when(adapter).notifyHook(anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),any(),any());
+
+		adapter.setVertx(vertx);
+		adapter.notifyLiveStreamEnded(broadcast,"test");
+		verify(adapter).notifyHook(anyString(),anyString(),anyString(),anyString(),anyString(),anyString(),any(),any(),anyString(),any(),any());
+	}
+  @Test
 	public void validateStreamURL(){
 		class TestRestBase extends RestServiceBase {
 			public void testValidateStreamUrl() {
@@ -3841,7 +3874,6 @@ public class BroadcastRestServiceV2UnitTest {
 		TestRestBase testRestBase = new TestRestBase();
 		testRestBase.testValidateStreamUrl();
 	}
-	
 	@Test
 	public void testDeleteLocalHLSFiles() throws IOException {
 		
