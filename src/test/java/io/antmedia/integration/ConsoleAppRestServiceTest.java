@@ -3000,7 +3000,7 @@ public class ConsoleAppRestServiceTest{
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		log.info("result string: " + result.toString());
+		log.info("result string of callIsEnterpriseEdition: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
@@ -3023,9 +3023,10 @@ public class ConsoleAppRestServiceTest{
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			log.info("result string of callGetAppSettings: " + result.toString());
 			throw new Exception(result.toString());
 		}
-		log.info("result string: " + result.toString());
+		log.info("result string of callGetAppSettings: " + result.toString());
 		AppSettings tmp = gson.fromJson(result.toString(), AppSettings.class);
 		assertNotNull(tmp);
 		return tmp;
