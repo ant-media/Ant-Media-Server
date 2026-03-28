@@ -75,7 +75,6 @@ public class StreamFetcherManager {
 
 	private ServerSettings serverSettings;
 
-
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
 		this.datastore = datastore;
@@ -91,7 +90,11 @@ public class StreamFetcherManager {
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
-		return new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
+		return makeStreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
+	}
+	
+	public StreamFetcher makeStreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx, long seekTimeInMs) {
+		 return  new StreamFetcher(streamUrl, streamId, streamType, scope, vertx, seekTimeInMs);
 	}
 
 	public int getStreamCheckerInterval() {
@@ -282,7 +285,7 @@ public class StreamFetcherManager {
 
 		datastore.updateBroadcastFields(playlistBroadcast.getStreamId(), broadcastUpdate);
 
-		StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), playlistBroadcast.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
+		StreamFetcher newStreamScheduler = makeStreamFetcher(fetchedBroadcast.getStreamUrl(), playlistBroadcast.getStreamId(), fetchedBroadcast.getType(), scope, vertx, fetchedBroadcast.getSeekTimeInMs());
 		newStreamScheduler.setRestartStream(false);
 		newStreamScheduler.setStreamFetcherListener(listener);
 
@@ -370,7 +373,7 @@ public class StreamFetcherManager {
 				// Check Stream URL is valid.
 				// If stream URL is not valid, it's trying next broadcast and trying.
 				// Create Stream Fetcher with Playlist Broadcast Item
-				StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem.getStreamUrl(), playlist.getStreamId(), playlistBroadcastItem.getType(), scope, vertx, playlistBroadcastItem.getSeekTimeInMs());
+				StreamFetcher streamScheduler = makeStreamFetcher(playlistBroadcastItem.getStreamUrl(), playlist.getStreamId(), playlistBroadcastItem.getType(), scope, vertx, playlistBroadcastItem.getSeekTimeInMs());
 				// Update Playlist current playing status
 				playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 				
