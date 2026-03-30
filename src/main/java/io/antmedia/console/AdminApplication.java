@@ -172,6 +172,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	/** Unloads plugin beans, deletes JAR from disk, and notifies cluster peers. */
 	public boolean undeployPlugin(String pluginName) {
+		if (!isValidPluginName(pluginName)) {
+			logger.warn("Invalid plugin name rejected: {}", pluginName);
+			return false;
+		}
 		Result result = pluginDeployer.unloadPlugin(pluginName);
 		boolean success = result.isSuccess();
 
@@ -187,9 +191,17 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return success;
 	}
 
+	private static boolean isValidPluginName(String name) {
+		return name != null && name.matches("[a-zA-Z0-9_\\-]+");
+	}
+
 	/** Saves uploaded plugin JAR to {@code plugins/{pluginName}.jar}, returns null on failure. */
 	@Nullable
 	public File savePluginJar(String pluginName, InputStream inputStream) {
+		if (!isValidPluginName(pluginName)) {
+			logger.warn("Invalid plugin name rejected: {}", pluginName);
+			return null;
+		}
 		if (inputStream == null) {
 			logger.warn("Input stream is null for plugin {}", pluginName);
 			return null;

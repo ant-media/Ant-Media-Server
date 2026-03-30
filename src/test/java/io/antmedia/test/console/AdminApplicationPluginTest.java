@@ -6,8 +6,16 @@ import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.impl.client.CloseableHttpClient;
 
 import org.junit.After;
 import org.junit.Before;
@@ -288,5 +296,177 @@ public class AdminApplicationPluginTest {
     public void testSavePluginJar_nullStream() throws Exception {
         File result = app.savePluginJar("nullStreamPlugin", null);
         assertNull(result);
+    }
+
+    // --- isValidPluginName coverage ---
+
+    @Test
+    public void testSavePluginJar_pathTraversalName() throws Exception {
+        InputStream stream = new ByteArrayInputStream(new byte[]{1, 2, 3});
+
+        File result = app.savePluginJar("../evil", stream);
+
+        assertNull(result);
+    }
+
+    @Test
+    public void testSavePluginJar_nameWithSlash() throws Exception {
+        InputStream stream = new ByteArrayInputStream(new byte[]{1});
+
+        File result = app.savePluginJar("foo/bar", stream);
+
+        assertNull(result);
+    }
+
+    @Test
+    public void testUndeployPlugin_pathTraversalName() {
+        boolean result = app.undeployPlugin("../../etc/passwd");
+
+        assertFalse(result);
+        verify(pluginDeployer, never()).unloadPlugin(anyString());
+    }
+
+    @Test
+    public void testUndeployPlugin_nameWithDot() {
+        boolean result = app.undeployPlugin("my.plugin");
+
+        assertFalse(result);
+        verify(pluginDeployer, never()).unloadPlugin(anyString());
+    }
+
+    @Test
+    public void testDeployPlugin_pathTraversalName_rejectedBeforeSave() throws Exception {
+        InputStream stream = new ByteArrayInputStream(new byte[]{1});
+
+        boolean result = app.deployPlugin("../evil", stream);
+
+        assertFalse(result);
+        verify(pluginDeployer, never()).loadPlugin(any());
+    }
+
+    // --- buildPluginDownloadURI ---
+
+    @Test
+    public void testBuildPluginDownloadURI_defaultProperties() {
+        System.clearProperty("red5.host");
+        System.clearProperty("http.port");
+
+        String uri = app.buildPluginDownloadURI("myPlugin");
+
+        assertEquals("http://localhost:5080/rest/v2/plugins/myPlugin/download", uri);
+    }
+
+    @Test
+    public void testBuildPluginDownloadURI_customProperties() {
+        System.setProperty("red5.host", "10.0.0.1");
+        System.setProperty("http.port", "8080");
+        try {
+            String uri = app.buildPluginDownloadURI("myPlugin");
+            assertEquals("http://10.0.0.1:8080/rest/v2/plugins/myPlugin/download", uri);
+        } finally {
+            System.clearProperty("red5.host");
+            System.clearProperty("http.port");
+        }
+    }
+
+    // --- downloadPluginJar ---
+
+    @Test
+    public void testDownloadPluginJar_successResponse_savesFile() throws Exception {
+        File tempRoot = Files.createTempDirectory("red5root-dl-jar").toFile();
+        tempRoot.deleteOnExit();
+        System.setProperty("red5.root", tempRoot.getAbsolutePath());
+
+        byte[] jarBytes = {1, 2, 3, 4, 5};
+
+        CloseableHttpClient mockClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse mockResponse = mock(CloseableHttpResponse.class);
+        StatusLine mockStatusLine = mock(StatusLine.class);
+        HttpEntity mockEntity = mock(HttpEntity.class);
+
+        when(mockStatusLine.getStatusCode()).thenReturn(200);
+        when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+        when(mockEntity.getContent()).thenReturn(new ByteArrayInputStream(jarBytes));
+        when(mockResponse.getEntity()).thenReturn(mockEntity);
+        when(mockClient.execute(any())).thenReturn(mockResponse);
+        doReturn(mockClient).when(app).getHttpClient();
+
+        File result = app.downloadPluginJar("myPlugin", "http://origin/plugins/myPlugin/download", "secret");
+
+        assertNotNull(result);
+        assertEquals(jarBytes.length, result.length());
+    }
+
+    @Test
+    public void testDownloadPluginJar_nonOkResponse_returnsNull() throws Exception {
+        CloseableHttpClient mockClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse mockResponse = mock(CloseableHttpResponse.class);
+        StatusLine mockStatusLine = mock(StatusLine.class);
+
+        when(mockStatusLine.getStatusCode()).thenReturn(403);
+        when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+        when(mockClient.execute(any())).thenReturn(mockResponse);
+        doReturn(mockClient).when(app).getHttpClient();
+
+        File result = app.downloadPluginJar("myPlugin", "http://origin/...", "secret");
+
+        assertNull(result);
+    }
+
+    @Test
+    public void testDownloadPluginJar_ioException_propagates() throws Exception {
+        CloseableHttpClient mockClient = mock(CloseableHttpClient.class);
+        when(mockClient.execute(any())).thenThrow(new IOException("network error"));
+        doReturn(mockClient).when(app).getHttpClient();
+
+        try {
+            app.downloadPluginJar("myPlugin", "http://origin/...", "secret");
+            fail("Expected IOException");
+        } catch (IOException e) {
+            assertEquals("network error", e.getMessage());
+        }
+    }
+
+    // --- getAllPluginNames ---
+
+    @Test
+    public void testGetAllPluginNames_emptyBothSources() {
+        when(pluginDeployer.getSpringPluginNames()).thenReturn(Set.of());
+
+        List<String> names = app.getAllPluginNames();
+
+        assertTrue(names.isEmpty());
+    }
+
+    @Test
+    public void testGetAllPluginNames_springPluginsOnly() {
+        when(pluginDeployer.getSpringPluginNames()).thenReturn(Set.of("spring-plugin"));
+
+        List<String> names = app.getAllPluginNames();
+
+        assertEquals(1, names.size());
+        assertTrue(names.contains("spring-plugin"));
+    }
+
+    @Test
+    public void testGetAllPluginNames_unionOfBothSources() throws Exception {
+        MinimalTestPlugin.PLUGIN_NAME = "legacy-plugin";
+        PluginRegistry.register(new MinimalTestPlugin());
+        when(pluginDeployer.getSpringPluginNames()).thenReturn(Set.of("spring-plugin"));
+
+        List<String> names = app.getAllPluginNames();
+
+        assertTrue(names.contains("legacy-plugin"));
+        assertTrue(names.contains("spring-plugin"));
+        assertEquals(2, names.size());
+    }
+
+    @Test
+    public void testGetAllPluginNames_nullDeployer() {
+        app.setPluginDeployer(null);
+
+        List<String> names = app.getAllPluginNames();
+
+        assertTrue(names.isEmpty());
     }
 }

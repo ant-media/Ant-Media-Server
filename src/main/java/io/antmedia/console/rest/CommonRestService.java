@@ -1557,38 +1557,41 @@ public class CommonRestService {
 		return new Result(getDataStore().isUserBlocked(usermail));
 	}
 
-	// -------------------------------------------------------------------------
-	// Plugin management
-	// -------------------------------------------------------------------------
 
 	public List<String> getPlugins() {
 		return getApplication().getAllPluginNames();
+	}
+
+	private static boolean isValidPluginName(String name) {
+		return name != null && name.matches("[a-zA-Z0-9_\\-]+");
 	}
 
 	public Result deployPlugin(String pluginName, InputStream inputStream) {
 		if (inputStream == null) {
 			return new Result(false, "No file provided");
 		}
-		if (pluginName == null || pluginName.isBlank()) {
-			return new Result(false, "Plugin name is required");
+		if (!isValidPluginName(pluginName)) {
+			return new Result(false, "Plugin name is required and must contain only letters, digits, hyphens, or underscores");
 		}
 		boolean success = getApplication().deployPlugin(pluginName, inputStream);
 		return new Result(success, success ? "" : "Failed to deploy plugin: " + pluginName);
 	}
 
 	public Result undeployPlugin(String pluginName) {
-		if (pluginName == null || pluginName.isBlank()) {
-			return new Result(false, "Plugin name is required");
+		if (!isValidPluginName(pluginName)) {
+			return new Result(false, "Plugin name is required and must contain only letters, digits, hyphens, or underscores");
 		}
 		boolean success = getApplication().undeployPlugin(pluginName);
 		return new Result(success, success ? "" : "Failed to undeploy plugin: " + pluginName);
 	}
 
 	public Response downloadPlugin(String pluginName, String jwtToken) {
-		// Validate JWT
 		String secretKey = getApplication().getClusterCommunicationKey();
 		if (!JWTFilter.isJWTTokenValid(secretKey, jwtToken, "pluginname", pluginName)) {
 			return Response.status(Status.FORBIDDEN).build();
+		}
+		if (!isValidPluginName(pluginName)) {
+			return Response.status(Status.BAD_REQUEST).build();
 		}
 
 		File jarFile = new File(System.getProperty("red5.root"), "plugins/" + pluginName + ".jar");

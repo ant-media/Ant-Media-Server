@@ -134,6 +134,49 @@ public class RestServiceV2PluginTest {
         verify(adminApp, never()).undeployPlugin(anyString());
     }
 
+    // --- isValidPluginName coverage ---
+
+    @Test
+    public void testDeployPlugin_pathTraversalName() {
+        InputStream stream = new ByteArrayInputStream(new byte[]{1});
+
+        Result result = restService.deployPlugin("../evil", stream);
+
+        assertFalse(result.isSuccess());
+        verify(adminApp, never()).deployPlugin(anyString(), any());
+    }
+
+    @Test
+    public void testDeployPlugin_validName_accepted() {
+        InputStream stream = new ByteArrayInputStream(new byte[]{1});
+        when(adminApp.deployPlugin(eq("my-plugin_123"), any())).thenReturn(true);
+
+        Result result = restService.deployPlugin("my-plugin_123", stream);
+
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testUndeployPlugin_pathTraversalName() {
+        Result result = restService.undeployPlugin("../../etc/passwd");
+
+        assertFalse(result.isSuccess());
+        verify(adminApp, never()).undeployPlugin(anyString());
+    }
+
+    @Test
+    public void testDownloadPlugin_pathTraversalName_rejectedAfterValidJwt() throws Exception {
+        String secret = "dl-secret";
+        when(adminApp.getClusterCommunicationKey()).thenReturn(secret);
+        // Generate a valid JWT for the malicious name — server must still reject it
+        String token = JWTFilter.generateJwtToken(
+                secret, System.currentTimeMillis() + 60_000, "pluginname", "../evil");
+
+        Response response = restService.downloadPlugin("../evil", token);
+
+        assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
     @Test
     public void testDownloadPlugin_invalidToken() throws Exception {
         when(adminApp.getClusterCommunicationKey()).thenReturn("real-secret");
