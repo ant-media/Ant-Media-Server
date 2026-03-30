@@ -559,6 +559,11 @@ fi
 
 output
 
+# Install systemd timer for SSL expiry check (run once so installation steps are complete)
+if [ -f "$INSTALL_DIRECTORY/conf/ssl_renewal_check.sh" ]; then
+    $SUDO "$INSTALL_DIRECTORY/conf/ssl_renewal_check.sh" || true
+fi
+
 echo "SSL certificate is installed."
 echo "Https port: 5443"
 echo "You can use this url: https://$domain:5443/"
