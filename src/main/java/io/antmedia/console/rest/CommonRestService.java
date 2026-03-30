@@ -58,6 +58,8 @@ import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
+import io.antmedia.filter.JWTFilter;
+import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
@@ -1559,6 +1561,57 @@ public class CommonRestService {
 
 	public Result getBlockedStatus(String usermail) {
 		return new Result(getDataStore().isUserBlocked(usermail));
+	}
+
+	// -------------------------------------------------------------------------
+	// Plugin management
+	// -------------------------------------------------------------------------
+
+	public List<String> getPlugins() {
+		return getApplication().getAllPluginNames();
+	}
+
+	public Result deployPlugin(String pluginName, InputStream inputStream) {
+		if (inputStream == null) {
+			return new Result(false, "No file provided");
+		}
+		if (pluginName == null || pluginName.isBlank()) {
+			return new Result(false, "Plugin name is required");
+		}
+		boolean success = getApplication().deployPlugin(pluginName, inputStream);
+		return new Result(success, success ? "" : "Failed to deploy plugin: " + pluginName);
+	}
+
+	public Result undeployPlugin(String pluginName) {
+		if (pluginName == null || pluginName.isBlank()) {
+			return new Result(false, "Plugin name is required");
+		}
+		boolean success = getApplication().undeployPlugin(pluginName);
+		return new Result(success, success ? "" : "Failed to undeploy plugin: " + pluginName);
+	}
+
+	public Response downloadPlugin(String pluginName, String jwtToken) {
+		// Validate JWT
+		String secretKey = getApplication().getDataStoreFactory().getDbPassword();
+		if (!JWTFilter.isJWTTokenValid(secretKey, jwtToken, "pluginname", pluginName)) {
+			return Response.status(Status.FORBIDDEN).build();
+		}
+
+		File jarFile = new File(System.getProperty("red5.root"), "plugins/" + pluginName + ".jar");
+		if (!jarFile.exists()) {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+
+		try {
+			InputStream stream = new java.io.FileInputStream(jarFile);
+			return Response.ok(stream)
+					.header("Content-Disposition", "attachment; filename=\"" + pluginName + ".jar\"")
+					.header("Content-Length", jarFile.length())
+					.build();
+		} catch (java.io.FileNotFoundException e) {
+			logger.error("Plugin JAR not found on disk: {}", jarFile.getAbsolutePath());
+			return Response.status(Status.NOT_FOUND).build();
+		}
 	}
 
 }

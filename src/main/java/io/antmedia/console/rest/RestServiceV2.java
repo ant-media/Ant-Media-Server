@@ -619,4 +619,55 @@ public class RestServiceV2 extends CommonRestService {
 		return hostname;
 	}
 
+	@Operation(summary = "Lists all loaded plugins",
+	           responses = {@ApiResponse(responseCode = "200", description = "List of loaded plugin names")})
+	@GET
+	@Path("/plugins")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<String> getPlugins() {
+		return super.getPlugins();
+	}
+
+	@Operation(summary = "Uploads and hot-loads a plugin JAR",
+	           responses = {
+	               @ApiResponse(responseCode = "200", description = "Plugin deployed",
+	                            content = @Content(schema = @Schema(implementation = Result.class)))
+	           })
+	@PUT
+	@Path("/plugins/{pluginName}")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deployPlugin(
+	        @Parameter(description = "Plugin name (used as JAR filename)", required = true) @PathParam("pluginName") String pluginName,
+	        @Parameter(description = "Plugin JAR file", required = true) @FormDataParam("file") InputStream inputStream) {
+		return super.deployPlugin(pluginName, inputStream);
+	}
+
+	@Operation(summary = "Stops and removes a loaded plugin",
+	           responses = {
+	               @ApiResponse(responseCode = "200", description = "Plugin undeployed",
+	                            content = @Content(schema = @Schema(implementation = Result.class)))
+	           })
+	@DELETE
+	@Path("/plugins/{pluginName}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result undeployPlugin(
+	        @Parameter(description = "Plugin name to undeploy", required = true) @PathParam("pluginName") String pluginName) {
+		return super.undeployPlugin(pluginName);
+	}
+
+	@Operation(summary = "Streams the plugin JAR for cluster peer download (JWT-authenticated)",
+	           responses = {
+	               @ApiResponse(responseCode = "200", description = "JAR file stream"),
+	               @ApiResponse(responseCode = "404", description = "Plugin JAR not found")
+	           })
+	@GET
+	@Path("/plugins/{pluginName}/download")
+	@Produces("application/java-archive")
+	public Response downloadPlugin(
+	        @Parameter(description = "Plugin name", required = true) @PathParam("pluginName") String pluginName,
+	        @jakarta.ws.rs.HeaderParam(io.antmedia.filter.TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION) String jwtToken) {
+		return super.downloadPlugin(pluginName, jwtToken);
+	}
+
 }

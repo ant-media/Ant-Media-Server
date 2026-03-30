@@ -50,8 +50,11 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
+import org.red5.server.plugin.PluginDeployer;
+import org.red5.server.plugin.PluginRegistry;
 
 
 /**
@@ -88,6 +91,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	private IScope rootScope;
 	private Vertx vertx;
 	private WarDeployer warDeployer;
+	private PluginDeployer pluginDeployer;
 	private boolean isCluster = false;
 
 
@@ -102,20 +106,196 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		vertx = (Vertx) scope.getContext().getBean("vertxCore");
 		warDeployer = (WarDeployer) app.getContext().getBean("warDeployer");
+		pluginDeployer = (PluginDeployer) app.getContext().getBean("pluginDeployer");
 
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) -> 
+			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) ->
 			createApplicationWithURL(appName, warFileURI, secretKey)
 					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
 			});
-
+			clusterNotifier.registerDeployPluginListener(
+					(pluginName, jarFileURI, secretKey) -> deployPluginWithURL(pluginName, jarFileURI, secretKey)
+			);
+			clusterNotifier.registerUndeployPluginListener(
+					pluginName -> undeployPlugin(pluginName)
+			);
 		}
 
 		return super.appStart(app);
+	}
+
+	/**
+	 * Deploys a plugin JAR on the origin node: saves it to disk and hot-loads it,
+	 * then notifies cluster peers.
+	 *
+	 * @param pluginName  logical plugin name (used as filename)
+	 * @param inputStream JAR bytes from the REST upload
+	 * @return true on success
+	 */
+	public boolean deployPlugin(String pluginName, InputStream inputStream) {
+		// Pre-check before touching disk
+		if (PluginRegistry.getPlugin(pluginName) != null) {
+			logger.warn("Plugin {} is already loaded", pluginName);
+			return false;
+		}
+
+		File jarFile = savePluginJar(pluginName, inputStream);
+		if (jarFile == null) {
+			return false;
+		}
+
+		Result result = pluginDeployer.loadPlugin(jarFile);
+		boolean success = result.isSuccess();
+
+		if (success && clusterNotifier != null) {
+			String jarURI = buildPluginDownloadURI(pluginName);
+			String secretKey = getDataStoreFactory().getDbPassword();
+			clusterNotifier.notifyDeployPlugin(pluginName, jarURI, secretKey);
+		}
+
+		return success;
+	}
+
+	/**
+	 * Called on non-origin cluster nodes: downloads the JAR and hot-loads it.
+	 */
+	public boolean deployPluginWithURL(String pluginName, String jarFileURI, String secretKey) {
+		if (PluginRegistry.getPlugin(pluginName) != null) {
+			return false;
+		}
+		try {
+			File jarFile = downloadPluginJar(pluginName, jarFileURI, secretKey);
+			if (jarFile == null) {
+				return false;
+			}
+			return pluginDeployer.loadPlugin(jarFile).isSuccess();
+		} catch (IOException e) {
+			logger.error("Failed to download plugin JAR from {}", jarFileURI, e);
+			return false;
+		}
+	}
+
+	/**
+	 * Stops and unloads a plugin, deletes its JAR from disk, and notifies cluster peers.
+	 *
+	 * @param pluginName plugin name
+	 * @return true on success
+	 */
+	public boolean undeployPlugin(String pluginName) {
+		Result result = pluginDeployer.unloadPlugin(pluginName);
+		boolean success = result.isSuccess();
+
+		if (success) {
+			File jarFile = new File(getPluginsDir(), pluginName + ".jar");
+			if (jarFile.exists()) {
+				jarFile.delete();
+			}
+			if (clusterNotifier != null) {
+				clusterNotifier.notifyUndeployPlugin(pluginName);
+			}
+		}
+		return success;
+	}
+
+	/**
+	 * Saves an uploaded plugin JAR to {@code {AMS_HOME}/plugins/{pluginName}.jar}.
+	 *
+	 * @return the saved File, or null on failure
+	 */
+	@Nullable
+	public File savePluginJar(String pluginName, InputStream inputStream) {
+		if (inputStream == null) {
+			logger.warn("Input stream is null for plugin {}", pluginName);
+			return null;
+		}
+		File dir = new File(System.getProperty("red5.root"), "plugins");
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		File savedFile = new File(dir, pluginName + ".jar");
+		try (OutputStream out = new FileOutputStream(savedFile)) {
+			byte[] buf = new byte[2048];
+			int read;
+			while ((read = inputStream.read(buf)) != -1) {
+				out.write(buf, 0, read);
+			}
+			out.flush();
+			logger.info("Plugin JAR saved: {} ({} bytes)", savedFile.getPath(), savedFile.length());
+			return savedFile;
+		} catch (Exception e) {
+			logger.error("Error saving plugin JAR for {}: {}", pluginName, e.getMessage());
+			return null;
+		}
+	}
+
+	private File getPluginsDir() {
+		return new File(System.getProperty("red5.root"), "plugins");
+	}
+
+	/**
+	 * Builds the HTTP URL that other cluster nodes use to download the plugin JAR from this node.
+	 */
+	public String buildPluginDownloadURI(String pluginName) {
+		String host = System.getProperty("red5.host", "localhost");
+		String port = System.getProperty("http.port", "5080");
+		return "http://" + host + ":" + port + "/rest/v2/plugins/" + pluginName + "/download";
+	}
+
+	/**
+	 * Downloads a plugin JAR from a cluster peer — mirrors {@link #downloadWarFile}.
+	 */
+	public File downloadPluginJar(String pluginName, String jarFileURI, String secretKey) throws IOException {
+		try (CloseableHttpClient client = getHttpClient()) {
+			RequestConfig requestConfig = RequestConfig.custom()
+					.setConnectTimeout(2 * 1000)
+					.setSocketTimeout(5 * 1000)
+					.build();
+
+			String jwtToken = JWTFilter.generateJwtToken(secretKey,
+					System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "pluginname", pluginName);
+
+			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get()
+					.setUri(jarFileURI)
+					.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken)
+					.build();
+			get.setConfig(requestConfig);
+
+			HttpResponse response = client.execute(get);
+			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+				logger.error("Cannot download plugin JAR from URL: {} Response code: {}",
+						jarFileURI, response.getStatusLine().getStatusCode());
+				return null;
+			}
+
+			try (BufferedInputStream in = new BufferedInputStream(response.getEntity().getContent())) {
+				return savePluginJar(pluginName, in);
+			}
+		}
+	}
+
+	public PluginDeployer getPluginDeployer() {
+		return pluginDeployer;
+	}
+
+	/**
+	 * Returns the names of all currently loaded plugins — both {@link org.red5.server.api.plugin.IRed5Plugin}
+	 * plugins tracked by {@link PluginRegistry} and Spring &#064;Component plugins hot-loaded by
+	 * {@link PluginDeployer}.
+	 */
+	public List<String> getAllPluginNames() {
+		Set<String> names = new java.util.HashSet<>(PluginRegistry.getPluginNames());
+		if (pluginDeployer != null) {
+			names.addAll(pluginDeployer.getSpringPluginNames());
+		}
+		return new ArrayList<>(names);
+	}
+
+	public void setPluginDeployer(PluginDeployer pluginDeployer) {
+		this.pluginDeployer = pluginDeployer;
 	}
 
 	public boolean createApplicationWithURL(String appName, String warFileURI, String secretKey) 
@@ -586,6 +766,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public IClusterNotifier getClusterNotifier() {
 		return clusterNotifier;
+	}
+
+	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
+		this.clusterNotifier = clusterNotifier;
 	}
 
 
