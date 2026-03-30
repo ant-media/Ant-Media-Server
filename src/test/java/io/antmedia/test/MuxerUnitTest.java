@@ -5236,26 +5236,32 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		AVStream stream = new AVStream();
 		AVCodecParameters codecParameters = new AVCodecParameters();
-		stream.codecpar(codecParameters);
-		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
-
 		AVPacket pkt = new AVPacket();
-		pkt.flags(AV_PKT_FLAG_KEY);
+		try {
+			stream.codecpar(codecParameters);
+			codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+			pkt.flags(AV_PKT_FLAG_KEY);
 
-		//inject time base to not encounter nullpointer
-		for (Muxer muxer : muxAdaptor.getMuxerList()) {
-			muxer.getInputTimeBaseMap().put(pkt.stream_index(), MuxAdaptor.TIME_BASE_FOR_MS);
+			//inject time base to not encounter nullpointer
+			for (Muxer muxer : muxAdaptor.getMuxerList()) {
+				muxer.getInputTimeBaseMap().put(pkt.stream_index(), MuxAdaptor.TIME_BASE_FOR_MS);
+			}
+
+
+			muxAdaptor.writePacket(stream, pkt);
+			verify(listener, Mockito.times(1)).onVideoPacket(streamId, pkt);
+
+			codecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
+			muxAdaptor.writePacket(stream, pkt);
+			verify(listener, Mockito.times(1)).onAudioPacket(streamId, pkt);
 		}
-
-
-		muxAdaptor.writePacket(stream, pkt);
-		verify(listener, Mockito.times(1)).onVideoPacket(streamId, pkt);
-
-		codecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
-		muxAdaptor.writePacket(stream, pkt);
-		verify(listener, Mockito.times(1)).onAudioPacket(streamId, pkt);
-
-		muxAdaptor.removePacketListener(listener);
+		finally {
+			muxAdaptor.removePacketListener(listener);
+			muxAdaptor.closeResources();
+			pkt.close();
+			codecParameters.close();
+			stream.close();
+		}
 
 	}
 
@@ -5264,21 +5270,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String streamId = "stream" + RandomUtils.nextInt(1, 1000);
 		PacketFeeder packetFeeder = new PacketFeeder(streamId);
 		IPacketListener listener = mock(IPacketListener.class);
-		packetFeeder.addListener(listener);
+		AVPacket dataPacket = new AVPacket();
+		try {
+			packetFeeder.addListener(listener);
 
-		ByteBuffer encodedVideoFrame = ByteBuffer.allocate(100);
-		packetFeeder.writeVideoBuffer(encodedVideoFrame, 50, 0, 0, false, 0, 50);
-		verify(listener, Mockito.times(1)).onVideoPacket(eq(streamId), any());
+			ByteBuffer encodedVideoFrame = ByteBuffer.allocate(100);
+			packetFeeder.writeVideoBuffer(encodedVideoFrame, 50, 0, 0, false, 0, 50);
+			verify(listener, Mockito.times(1)).onVideoPacket(eq(streamId), any());
 
-		ByteBuffer audioFrame = ByteBuffer.allocate(100);
-		packetFeeder.writeAudioBuffer(audioFrame, 1, 50);
-		verify(listener, Mockito.times(1)).onAudioPacket(eq(streamId), any());
+			ByteBuffer audioFrame = ByteBuffer.allocate(100);
+			packetFeeder.writeAudioBuffer(audioFrame, 1, 50);
+			verify(listener, Mockito.times(1)).onAudioPacket(eq(streamId), any());
 
-		packetFeeder.writePacket(new AVPacket(), AVMEDIA_TYPE_DATA);
-		verify(listener, Mockito.times(1)).onDataPacket(eq(streamId), any());
+			packetFeeder.writePacket(dataPacket, AVMEDIA_TYPE_DATA);
+			verify(listener, Mockito.times(1)).onDataPacket(eq(streamId), any());
 
-		packetFeeder.writeTrailer();
-		verify(listener, Mockito.times(1)).writeTrailer(eq(streamId));
+			packetFeeder.writeTrailer();
+			verify(listener, Mockito.times(1)).writeTrailer(eq(streamId));
+		}
+		finally {
+			dataPacket.close();
+			packetFeeder.close();
+		}
 	}
 
 	@Test
