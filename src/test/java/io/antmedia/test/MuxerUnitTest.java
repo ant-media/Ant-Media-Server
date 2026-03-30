@@ -2223,7 +2223,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		long activeBroadcastCount = appAdaptor.getDataStore().getActiveBroadcastCount();
 
 		logger.info("Active broadcast count: {}", activeBroadcastCount);
-		long broadcastCount = appAdaptor.getDataStore().getBroadcastCount();
+		long broadcastCount = appAdaptor.getDataStore().getTotalBroadcastNumber();
 		logger.info("Total broadcast count: {}", broadcastCount);
 		if (activeBroadcastCount > 0) {
 			long pageSize = broadcastCount / 50 + 1;
@@ -2293,7 +2293,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		.until(() ->
 		appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
 
-		spyAdaptor.stopPublish(stream.getPublishedName());
+		spyAdaptor.stopPublish(stream.getPublishedName(), null);
 
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -5331,7 +5331,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		ArgumentCaptor<Broadcast> argument = ArgumentCaptor.forClass(Broadcast.class);
 		verify(ds1, times(1)).save(argument.capture());
 		assertEquals(mainTrackId, argument.getValue().getStreamId());
-		assertTrue(argument.getValue().getSubTrackStreamIds().contains(sub1));
 
 		String sub2 = "subtrack2" + RandomUtils.nextInt(0, 10000);
 		;
@@ -5347,10 +5346,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		ArgumentCaptor<Broadcast> argument2 = ArgumentCaptor.forClass(Broadcast.class);
 		verify(ds1, times(1)).save(argument2.capture());
 		assertEquals(mainTrackId, argument2.getValue().getStreamId());
-		assertTrue(argument2.getValue().getSubTrackStreamIds().contains(sub1));
 
 		Broadcast mainBroadcast = ds1.get(mainTrackId);
-		assertEquals(2, mainBroadcast.getSubTrackStreamIds().size());
 
 		ClientBroadcastStream clientBroadcastStream3 = new ClientBroadcastStream();
 		clientBroadcastStream3.setCodecInfo(info);
@@ -6362,7 +6359,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testGetSetEndpointURl(){
 		String url = "rtmp://test.antmedia.io/LiveApp/test";
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl(url);
+		endpoint.setEndpointUrl(url);
 		assertEquals(url,endpoint.getEndpointUrl());
 	}
 	@Test

@@ -126,7 +126,7 @@ public class AdminApplicationTest {
 		ConsoleDataStoreFactory consoleDataStoreFactory = Mockito.mock(ConsoleDataStoreFactory.class);
 		app.setDataStoreFactory(consoleDataStoreFactory);
 		
-		app.runCreateAppScript("app", false, null , null, null, null);
+		app.runCreateAppScript("app", false, null, null);
 		
 		ArgumentCaptor<String> commandCaptor = ArgumentCaptor.forClass(String.class);
 		//"/bin/bash create_app.sh -n app -w true -p /Users/mekya/git/Ant-Media-Server -c false -m null -u null -s null"
@@ -142,7 +142,7 @@ public class AdminApplicationTest {
 		assertFalse(commandCaptor.getValue().contains("-f "));
 		
 		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mapdb");
-		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", null);
+		app.runCreateAppScript("app", false, "dbUrl" , null);
 		
 		Mockito.verify(app, Mockito.times(2)).runCommand(commandCaptor.capture());
 		assertTrue(commandCaptor.getValue().contains("-c false"));
@@ -155,27 +155,27 @@ public class AdminApplicationTest {
 		
 		
 		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mongob");
-		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", null);
+		app.runCreateAppScript("app", false, "dbUrl" , null);
 		
 		Mockito.verify(app, Mockito.times(3)).runCommand(commandCaptor.capture());
 		assertTrue(commandCaptor.getValue().contains("-c false"));
 		assertTrue(commandCaptor.getValue().contains("-n app"));
 		
 		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
-		assertTrue(commandCaptor.getValue().contains("-u username"));
-		assertTrue(commandCaptor.getValue().contains("-s pass"));
+		assertFalse(commandCaptor.getValue().contains("-u username")); //false because we do not use username and pass anymore
+		assertFalse(commandCaptor.getValue().contains("-s pass")); //false because we do not use username and pass anymore
 		assertFalse(commandCaptor.getValue().contains("-f"));
 		
 		
-		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", "warfile");
+		app.runCreateAppScript("app", false, "dbUrl" , "warfile");
 		
 		Mockito.verify(app, Mockito.times(4)).runCommand(commandCaptor.capture());
 		assertTrue(commandCaptor.getValue().contains("-c false"));
 		assertTrue(commandCaptor.getValue().contains("-n app"));
 		
 		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
-		assertTrue(commandCaptor.getValue().contains("-u username"));
-		assertTrue(commandCaptor.getValue().contains("-s pass"));
+		assertFalse(commandCaptor.getValue().contains("-u username")); //false because we do not use username and pass anymore
+		assertFalse(commandCaptor.getValue().contains("-s pass")); //false because we do not use username and pass anymore
 		assertTrue(commandCaptor.getValue().contains("-f warfile"));
 
 	}
@@ -241,13 +241,13 @@ public class AdminApplicationTest {
 		app.setWarDeployer(warDeployer);
 		app.createApplication("test", null);
 
-		Mockito.verify(app, Mockito.never()).runCreateAppScript("test", false, null, null, null, null);
+		Mockito.verify(app, Mockito.never()).runCreateAppScript("test", false, null, null);
 
 
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.createApplication("test", null);
 
-		Mockito.verify(app).runCreateAppScript("test", false, null, null, null, null);
+		Mockito.verify(app).runCreateAppScript("test", false, null, null);
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
 
 
@@ -596,15 +596,15 @@ public class AdminApplicationTest {
 			};
 		};
 		app.setWarDeployer(warDeployer);
-		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.anyBoolean(), Mockito.any(), Mockito.any());
 
 		app.createApplication(appName, null);
 
-		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, false, null, null, null, null);
+		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, false, null, null);
 
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.createApplication(appName, null);
-		Mockito.verify(app).runCreateAppScript(appName, false, null, null, null, null);
+		Mockito.verify(app).runCreateAppScript(appName, false, null, null);
 
 		assertFalse(app.createApplicationWithURL(appName, "some_url", null));
 

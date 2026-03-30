@@ -145,7 +145,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected boolean addDateTimeToMp4FileName;
 	protected boolean hlsMuxingEnabled;
 	protected boolean dashMuxingEnabled;
-	protected boolean objectDetectionEnabled;
 
 	protected ConcurrentHashMap<String, Boolean> isHealthCheckStartedMap = new ConcurrentHashMap<>();
 	protected ConcurrentHashMap<String, Integer> errorCountMap = new ConcurrentHashMap<>();
@@ -441,7 +440,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		dashMuxingEnabled = appSettingsLocal.isDashMuxingEnabled();
 		mp4MuxingEnabled = appSettingsLocal.isMp4MuxingEnabled();
 		webMMuxingEnabled = appSettingsLocal.isWebMMuxingEnabled();
-		objectDetectionEnabled = appSettingsLocal.isObjectDetectionEnabled();
 
 		addDateTimeToMp4FileName = appSettingsLocal.isAddDateTimeToMp4FileName();
 		webRTCEnabled = appSettingsLocal.isWebRTCEnabled();
@@ -817,14 +815,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if(mainBroadcast == null)
 			{
 				mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
-			}
-			else
-			{
-				mainBroadcast.getSubTrackStreamIds().add(streamId);
-				BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
-				broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
-
-				getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
 			}
 		}
 	}
@@ -2224,14 +2214,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setStreamSource(boolean isStreamSource) {
 		this.isStreamSource = isStreamSource;
-	}
-
-	public boolean isObjectDetectionEnabled() {
-		return objectDetectionEnabled;
-	}
-
-	public void setObjectDetectionEnabled(Boolean objectDetectionEnabled) {
-		this.objectDetectionEnabled = objectDetectionEnabled;
 	}
 
 	public int getPreviewCreatePeriod() {
