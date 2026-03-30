@@ -181,8 +181,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		if (success) {
 			File jarFile = new File(getPluginsDir(), pluginName + ".jar");
-			if (jarFile.exists()) {
-				jarFile.delete();
+			if (jarFile.exists() && !jarFile.delete()) {
+				logger.warn("Failed to delete plugin jar: {}", jarFile.getAbsolutePath());
 			}
 			if (clusterNotifier != null) {
 				clusterNotifier.notifyUndeployPlugin(pluginName);
