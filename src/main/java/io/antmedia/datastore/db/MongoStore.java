@@ -274,6 +274,25 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public Broadcast getDirectFromDB(String id) {
+		long startTime = System.nanoTime();
+		Broadcast broadcast = null;
+		synchronized(broadcastLock) {
+			try {
+				broadcast = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id)).first();
+				if (broadcast != null) {
+					String cacheKey = getBroadcastCacheKey(id);
+					getBroadcastCache().put(cacheKey, broadcast);
+				}
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		recordQueryDuration(startTime, "getDirectFromDB");
+		return broadcast;
+	}
+
+	@Override
 	public VoD getVoD(String id) {
 		long startTime = System.nanoTime();
 		VoD vod = null;

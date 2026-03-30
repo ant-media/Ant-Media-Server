@@ -259,6 +259,7 @@ public class DBStoresUnitTest {
 		testGetActiveSubtracksComprehensive(dataStore);
 		testConnectedSubscribers(dataStore);
 		testCustomTotpExpiry(dataStore);
+		testGetDirectFromDB(dataStore);
 
 
 		dataStore.close(false);
@@ -337,12 +338,13 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithStatus(dataStore);
 
 		testSubscriberCache(dataStore);
-		
+
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
 		testGetActiveSubtracksComprehensive(dataStore);
 		testConnectedSubscribers(dataStore);
 		testCustomTotpExpiry(dataStore);
+		testGetDirectFromDB(dataStore);
 
 		dataStore.close(true);
 
@@ -4167,10 +4169,51 @@ public class DBStoresUnitTest {
 		// Not setting totpExpiryPeriodSeconds - should remain null
 		
 		assertTrue(dataStore.addSubscriber(streamId, subscriber2));
-		
+
 		Subscriber retrievedSubscriber2 = dataStore.getSubscriber(streamId, "subscriber2");
 		assertNotNull(retrievedSubscriber2);
 		assertNull(retrievedSubscriber2.getTotpExpiryPeriodSeconds());
+	}
+
+	public void testGetDirectFromDB(DataStore dataStore) {
+		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+
+		// non-existent id should return null
+		assertNull(dataStore.getDirectFromDB(streamId));
+
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		dataStore.save(broadcast);
+
+		// should return the saved broadcast
+		Broadcast result = dataStore.getDirectFromDB(streamId);
+		assertNotNull(result);
+		assertEquals(streamId, result.getStreamId());
+
+		if (dataStore instanceof MongoStore) {
+			MongoStore mongoStore = (MongoStore) dataStore;
+			String cacheKey = mongoStore.getBroadcastCacheKey(streamId);
+
+			// evict from cache so we know the next call must go to DB
+			mongoStore.getBroadcastCache().evictIfPresent(cacheKey);
+			assertNull(mongoStore.getBroadcastCache().get(cacheKey, Broadcast.class));
+
+			// getDirectFromDB should still find it in DB and re-populate cache
+			Broadcast resultAfterEvict = dataStore.getDirectFromDB(streamId);
+			assertNotNull(resultAfterEvict);
+			assertEquals(streamId, resultAfterEvict.getStreamId());
+
+			// cache should be populated again
+			Broadcast fromCache = (Broadcast) mongoStore.getBroadcastCache().get(cacheKey, Broadcast.class);
+			assertNotNull(fromCache);
+			assertEquals(streamId, fromCache.getStreamId());
+		}
+
+		dataStore.delete(streamId);
 	}
 
 }
