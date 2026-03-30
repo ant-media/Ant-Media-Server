@@ -95,6 +95,8 @@ public class AppSettings implements Serializable{
 	//use lower case for theses fields because they are used in extension as well
 	public static final String SETTINGS_DB_APP_NAME = "db.app.name";
 
+	public static final String SETTINGS_HW_DECODER_ENABLED = "settings.hwDecoderEnabled";
+
 	/**
 	 * @hidden
 	 * WebRTC SDP Semantics:PLAN B
