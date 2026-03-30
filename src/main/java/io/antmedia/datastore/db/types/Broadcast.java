@@ -214,15 +214,6 @@ public class Broadcast {
 	private long seekTimeInMs = 0;
 	
 	/**
-	 * Conference mode of the stream. 
-	 * @deprecated It's created for backward compatibility. It will be deleted.
-	 */
-	@Schema(description ="Conference mode. It's used if this broadcast has some specific modes. It's created for backward compatibility. It will be deleted.")
-	@Deprecated(forRemoval = true, since = "2.9.1")
-	private String conferenceMode;
-	
-	
-	/**
 	 * The number of subtracks that is allowed to be created for the broadcast.
 	 * It's useful for limiting number of conference attendees. Default value is -1
 	 * and -1 means no limit
@@ -336,18 +327,6 @@ public class Broadcast {
 
 	@Schema(description ="If this broadcast is a track of a WebRTC stream. This variable is Id of that stream.")
 	private String mainTrackStreamId;
-
-	/*
-	 * Refactor: remove this field and store everything as streams in the database.
-	 * On the other hand, we can keep the number of subtracks here
-	 * 
-	 * Lastly, there is also an dependency in the webpanel, it just plays the multitrack by looking at this field.
-	 * 
-	 * @depreated: Get the subtracks from the database
-	 */
-	@Deprecated(forRemoval = true, since="2.10.1")
-	@Schema(description ="If this broadcast is main track. This variable hold sub track ids.")
-	private List<String> subTrackStreamIds = new ArrayList<>();
 
 	@Schema(description ="Absolute start time in milliseconds - unix timestamp. It's used for measuring the absolute latency")
 	private long absoluteStartTimeMs;
@@ -906,24 +885,6 @@ public class Broadcast {
 		this.mainTrackStreamId = mainTrackStreamId;
 	}
 
-	/**
-	 * @deprecated get the subtracks directly from database 
-	 * @return
-	 */
-	@Deprecated(forRemoval = true, since="2.10.1")
-	public List<String> getSubTrackStreamIds() {
-		return subTrackStreamIds;
-	}
-
-	/**
-	 * @deprecated get the subtracks directly from database 
-	 * @param subTrackStreamIds
-	 */
-	@Deprecated(forRemoval = true, since="2.10.1")
-	public void setSubTrackStreamIds(List<String> subTrackStreamIds) {
-		this.subTrackStreamIds = subTrackStreamIds;
-	}
-
 	public void setAbsoluteStartTimeMs(long absoluteStartTimeMs) {
 		this.absoluteStartTimeMs = absoluteStartTimeMs;
 	}
@@ -1051,14 +1012,6 @@ public class Broadcast {
 
 	public void setSeekTimeInMs(long seekTimeInMs) {
 		this.seekTimeInMs = seekTimeInMs;
-	}
-
-	public String getConferenceMode() {
-		return conferenceMode;
-	}
-
-	public void setConferenceMode(String conferenceMode) {
-		this.conferenceMode = conferenceMode;
 	}
 
 	public int getSubtracksLimit() {
