@@ -1,7 +1,7 @@
 package io.antmedia;
 
 import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,8 +14,17 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -47,7 +56,13 @@ import org.json.simple.parser.ParseException;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.*;
+import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IClientBroadcastStream;
+import org.red5.server.api.stream.IPlayItem;
+import org.red5.server.api.stream.IStreamCapableConnection;
+import org.red5.server.api.stream.IStreamPlaybackSecurity;
+import org.red5.server.api.stream.IStreamPublishSecurity;
+import org.red5.server.api.stream.ISubscriberStream;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,9 +89,9 @@ import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.RtmpProvider;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RtmpProvider;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
@@ -91,7 +106,6 @@ import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.statistic.ViewerStats;
-import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -421,7 +435,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					break;
 				}
 
-
 				for (Broadcast broadcast : playlist) 
 				{
 					schedulePlayList(now, broadcast);
@@ -432,7 +445,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			} 
 
 
-			synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
 
 
@@ -531,36 +543,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	/**
-	 * @Deprecated
-	 * This method is deprecated. Use {@link #importVoDFolder(String)} {@link #unlinksVoD(String)}
-	 * @param oldFolderPath
-	 * @param vodFolderPath
-	 * @return
-	 */
-	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath)
-	{
-		boolean result = false;
-		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
-
-		if(oldFolderPath != null && !oldFolderPath.equals("")){
-			deleteSymbolicLink(new File(oldFolderPath), streamsFolder);
-		}
-
-
-		if(vodFolderPath != null && !vodFolderPath.equals(""))
-		{
-			File f = new File(vodFolderPath);
-			createSymbolicLink(streamsFolder, f);
-			//if file does not exists, it means reset the vod
-			getDataStore().fetchUserVodList(f);
-			result = true;
-		}
-
-		return result;
-	}
-
-	public Result createSymbolicLink(File streamsFolder, File vodFolder) {
+	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
 		Result result = null;
 		try {
 			if (!streamsFolder.exists()) {
@@ -715,7 +698,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @return
 	 * @throws IOException
 	 */
-	public boolean deleteSymbolicLink(File vodDirectory, File streamsFolder){
+	private boolean deleteSymbolicLink(File vodDirectory, File streamsFolder){
 		boolean result = false;
 		try {
 			if (vodDirectory != null && streamsFolder != null)
@@ -745,29 +728,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		return listenerHookURL;
 
-	}
-	/**
-	 * This method is used to close the broadcast stream
-	 * @deprecated use {@link #closeBroadcast(String, String)}
-	 *  
-	 * @param streamId
-	 */
-	@Deprecated
-	public void closeBroadcast(String streamId) {
-		closeBroadcast(streamId, null, null);
-	}
-	
-	
-	/**
-	 * 
-	 * @param streamId
-	 * @param subscriberId
-	 * 
-	 * @deprecated use {@link #closeBroadcast(String, String, Map)}
-	 */
-	@Deprecated
-	public void closeBroadcast(String streamId, String subscriberId) {
-		closeBroadcast(streamId, subscriberId, null);
 	}
 
 	/**
@@ -833,7 +793,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				for (IStreamListener listener : streamListeners) {
 					//keep backward compatibility
 					try {
-						listener.streamFinished(broadcast.getStreamId());
 						listener.streamFinished(broadcast);
 					} catch (Throwable t) {
 						logger.error("Error invoking streamFinished method on stream listener {} for stream: {}", listener.getClass().getName(), streamId, t);
@@ -872,7 +831,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		mainBroadcast.setZombi(true);
 		mainBroadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
-		mainBroadcast.getSubTrackStreamIds().add(streamId);
 		mainBroadcast.setVirtual(true);
 		// don't set  setOriginAdress because it's not a real stream and it causes extra delay  -> mainBroadcast.setOriginAdress(serverSettings.getHostAddress()) 
 		mainBroadcast.setStartTime(System.currentTimeMillis());
@@ -938,7 +896,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	
 			if (mainBroadcast != null) {
 	
-				mainBroadcast.getSubTrackStreamIds().remove(finishedBroadcast.getStreamId());
 	
 				long activeSubtracksCount = getDataStore().getActiveSubtracksCount(mainBroadcast.getStreamId(), null);
 	
@@ -960,13 +917,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					if(mainBroadcast.getMaxIdleTime() > 0) {
 						createIdleCheckTimer(mainBroadcast, true);
 					}
-				}
-				else {
-					logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
-					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-					broadcastUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
-	
-					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
 				}
 			}
 			else {
@@ -1032,19 +982,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		});
 	}
 
-	/**
-	 * This method is used to start the publish process
-	 * @deprecated use {@link #startPublish(String, long, String, String)}
-	 * @param streamId
-	 * @param absoluteStartTimeMs
-	 * @param publishType
-	 */
-	@Override
-	@Deprecated
-	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
-		startPublish(streamId, absoluteStartTimeMs, publishType, null, null);
-	}
-
 	@Override
 	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> parameters) {
 		vertx.executeBlocking( () -> {
@@ -1078,7 +1015,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				for (IStreamListener listener : streamListeners) {
 					try {
-						listener.streamStarted(broadcast.getStreamId());
 						listener.streamStarted(broadcast);
 					} catch (Throwable t) { // going for Throwable to catch classpath problems too
 						logger.error("Error invoking streamStarted method on stream listener {} for stream: {}", listener.getClass().getName(), streamId, t);
@@ -1251,15 +1187,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return RestServiceBase.saveBroadcast(broadcast,
 				null, appAdapter.getScope().getName(), appAdapter.getDataStore(),
 				appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), 0);
-	}
-
-
-	@Override
-	@Deprecated
-	public void muxingFinished(String streamId, File File, long startTime, long duration, int resolution,
-			String previewFilePath, String vodId) 
-	{
-		muxingFinished(getDataStore().get(streamId), streamId, File, startTime, duration, resolution, previewFilePath, vodId);
 	}
 
 	@Override
@@ -2062,15 +1989,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
-		PublishStatsEvent stats = new PublishStatsEvent();
-		stats.setSpeed(speed);
-		stats.setInputQueueSize(pendingPacketSize);
-
-		setQualityParameters(id, stats, updateTimeMs);
-	}
-
-	@Override
 	public DataStore getDataStore() {
 		//vertx should be initialized before calling this method
 		if(dataStore == null)
@@ -2578,9 +2496,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		updateAppSettingsBean(appSettings, newSettings, notifyCluster);
 
 		if (notifyCluster && clusterNotifier != null) {
-			//we should set to be deleted because app deletion fully depends on the cluster synch TODO remove the following line because toBeDeleted is deprecated
-			appSettings.setToBeDeleted(newSettings.isToBeDeleted());
-
+			//we should set to the status here because app deletion fully depends on the cluster synch
 			appSettings.setAppStatus(newSettings.getAppStatus());
 
 
@@ -2731,9 +2647,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			//updateTime is true when the app settings is updated from the REST API or it's first updated when the app starts first in the cluster
 			appSettings.setUpdateTime(System.currentTimeMillis());
 		}
-		String oldVodFolder = appSettings.getVodFolder();
-		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
-
 
 		setStorageclientSettings(newSettings);
 
@@ -2783,15 +2696,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void setServerSettings(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
-	}
-
-	/**
-	 * This method is overridden in enterprise edition since RTMP to WebRTC streaming is an enterprise feature.
-	 * @deprecated use the stats on the broadcast object or publish stats
-	 */
-	@Deprecated(forRemoval = true, since = "2.13+")
-	public RTMPToWebRTCStats getRTMPToWebRTCStats(String streamId) {
-		return new RTMPToWebRTCStats(streamId);
 	}
 
 	public boolean isDataChannelEnabled() {
@@ -2929,10 +2833,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		streamListeners.remove(listener);
 	}
 
-	public boolean stopPlaying(String viewerId) {
-		return false;
-	}
-
 	public CompletableFuture<Result> startHttpSignaling(PublishParameters publishParameters, String sdp, String sessionId){
 		//for enterprise
 		return null;
@@ -2948,11 +2848,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean stopPublishingBySubscriberId(String subscriberId, String streamId) {
 		return false;
-	}
-
-	@Override
-	public void stopPublish(String streamId) {
-		stopPublish(streamId, null);
 	}
 
 	@Override
