@@ -395,7 +395,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AppSettings settings = new AppSettings();
 
 		AppSettings newSettings = Mockito.spy(new AppSettings());
-		newSettings.setVodFolder("");
 		newSettings.setListenerHookURL("");
 		newSettings.setHlsflags("delete_segments");
 		newSettings.setTokenHashSecret("");
@@ -439,7 +438,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
 		spyAdapter.setClusterNotifier(clusterNotifier);
 
-		newSettings.setVodFolder(null);
 		newSettings.setHlsPlayListType(null);
 		newSettings.setHlsflags(null);
 		spyAdapter.updateSettings(newSettings, true, false);
@@ -545,7 +543,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.save(broadcast3);
 
 		// Should 3 broadcast in DB
-		assertEquals(3, dataStore.getBroadcastCount());
+		assertEquals(3, dataStore.getTotalBroadcastNumber());
 
 		Result result = new Result(false);
 		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
@@ -558,7 +556,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 
 		// Should 2 broadcast in DB, because delete zombie stream
-		assertEquals(2, dataStore.getBroadcastCount());
+		assertEquals(2, dataStore.getTotalBroadcastNumber());
 
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null, null, null);
 		for (Broadcast testBroadcast : broadcastList) 
@@ -571,118 +569,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}	
 	}
 
-	/**
-	 * Test code for https://github.com/ant-media/Ant-Media-Server/issues/4748
-	 */
-	@Test
-	public void testSyncUserVoDBug() {
-		File streamsFolder = new File("webapps/junit/streams");
-		assertFalse(streamsFolder.exists());	
-
-		//any target
-		Path target = new File("/usr").toPath();
-		try {
-			Files.createSymbolicLink(streamsFolder.toPath(), target);
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-
-		assertTrue(streamsFolder.exists());	
-		assertTrue(Files.isSymbolicLink(streamsFolder.toPath()));
-
-
-		IScope scope = Mockito.mock(IScope.class);
-		Mockito.when(scope.getName()).thenReturn("junit");
-
-		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
-		Mockito.doReturn(scope).when(spyAdapter).getScope();
-
-		DataStore dataStore = new InMemoryDataStore("dbname");
-		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
-		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		spyAdapter.setDataStoreFactory(dsf);
-
-
-		spyAdapter.synchUserVoDFolder(null, null);
-		Mockito.verify(spyAdapter, Mockito.never()).deleteSymbolicLink(any(), any());
-		Mockito.verify(spyAdapter, Mockito.never()).createSymbolicLink(any(), any());
-
-		assertTrue(streamsFolder.exists());
-
-		//Don't delete the file if they are the same files
-		spyAdapter.deleteSymbolicLink(new File(""), streamsFolder);
-
-		assertTrue(streamsFolder.exists());
-
-
-	}
-
-	@Test
-	public void testSynchUserVoD() {
-		File streamsFolder = new File(streamsFolderPath);
-		if (!streamsFolder.exists()) {
-			assertTrue(streamsFolder.mkdirs());
-		}
-		DataStore dataStore = new InMemoryDataStore("dbname");
-		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
-		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		adapter.setDataStoreFactory(dsf);
-
-		IScope scope = Mockito.mock(IScope.class);
-		Mockito.when(scope.getName()).thenReturn("test");
-
-		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
-		Mockito.doReturn(scope).when(spyAdapter).getScope();
-
-
-
-		File realPath = new File("src/test/resources");
-		assertTrue(realPath.exists());
-
-		File[] listFiles = realPath.listFiles();
-		int numberOfFiles = 0;
-		for (File file : listFiles) {
-			String extension = FilenameUtils.getExtension(file.getName());
-			if (file.isFile() && ("mp4".equals(extension) || "flv".equals(extension) || "mkv".equals(extension))) {
-				numberOfFiles++;
-			}
-		}
-
-		String linkFilePath = streamsFolder.getAbsolutePath() + "/resources";
-		File linkFile = new File(linkFilePath);
-		//Files.isSymbolicLink(linkFile.toPath());
-		try {
-			Files.deleteIfExists(linkFile.toPath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-
-		boolean result = spyAdapter.synchUserVoDFolder(null, realPath.getAbsolutePath());
-		assertTrue(result);
-
-		//we know there are files in src/test/resources
-		//test_short.flv
-		//test_video_360p_subtitle.flv
-		//test_Video_360p.flv
-		//test.flv
-		//sample_MP4_480.mp4
-		//high_profile_delayed_video.flv
-		//test_video_360p_pcm_audio.mkv
-		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		assertEquals(numberOfFiles, vodList.size());
-
-		for (VoD voD : vodList) {
-			assertEquals("streams/resources/" + voD.getVodName(), voD.getFilePath());
-		}
-
-		linkFile = new File(streamsFolder, "resources");
-		assertTrue(linkFile.exists());
-
-	}
 
 	@Test
 	public void testMuxingFinishedWithPreview() throws Exception{
@@ -950,7 +836,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.save(broadcast);
 
 		String subscriberId = "subscriberId";
-		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
+		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, null, null);
 
 		broadcast = dataStore.get(broadcast.getStreamId());
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(1)).getListenerHookURL(broadcast);
@@ -1313,7 +1199,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.delete(streamId);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished("streamId", anyFile, 0, 100, 480, null, null);
+		spyAdaptor.muxingFinished(dataStore.get("streamId"), "streamId", anyFile, 0, 100, 480, null, null);
 
 		await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -1370,36 +1256,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 
-	@Test
-	public void testSynchUserVodThrowException() {
-		File f = new File(streamsFolderPath);
-		assertTrue(f.mkdirs());
-
-		File emptyFile = new File(streamsFolderPath, "emptyfile");
-		emptyFile.deleteOnExit();
-		try {
-			assertTrue(emptyFile.createNewFile());
-			boolean synchUserVoDFolder = adapter.deleteSymbolicLink(new File("any_file_not_exist"), f);
-			assertFalse(synchUserVoDFolder);
-
-			synchUserVoDFolder = adapter.deleteSymbolicLink(null, f);
-			assertFalse(synchUserVoDFolder);
-
-
-			File oldDir = new File (streamsFolderPath, "dir");
-			oldDir.mkdirs();
-			Files.deleteIfExists(oldDir.toPath());
-			Files.createSymbolicLink(oldDir.toPath(), emptyFile.toPath());
-			oldDir.deleteOnExit();
-
-			synchUserVoDFolder = adapter.deleteSymbolicLink(oldDir, f);
-			assertTrue(synchUserVoDFolder);
-
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
+	
 
 	@Test
 	public void testWaitUntilLiveStreamsStopped() {
@@ -1700,7 +1557,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setScope(scope);
 		adapter.setVertx(vertx);
 
-		adapter.closeBroadcast(broadcast.getStreamId());
+		adapter.closeBroadcast(broadcast.getStreamId(), null, null);
 
 		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
@@ -1742,7 +1599,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setScope(scope);
 		adapter.setVertx(vertxLocal);
 
-		adapter.closeBroadcast(broadcast.getStreamId(), "subscriberId");
+		adapter.closeBroadcast(broadcast.getStreamId(), "subscriberId", null);
 
 		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
@@ -2567,7 +2424,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(spyAdapter).updateSettings(clusterStoreSettings, false, false);
 
 
-		clusterStoreSettings.setToBeDeleted(true);
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis());
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(3)).registerSettingUpdateListener(any(), any());
@@ -2645,9 +2501,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
 		subTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		subTrack2.setUpdateTime(System.currentTimeMillis());
-
-		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
-		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
 
 
 		dataStore.save(subTrack1);

@@ -1515,11 +1515,6 @@ public class CommonRestService {
 		logger.info("Update Application Status for {} from {} to {}", appName, appSettings.getAppStatus(), status);
 		appSettings.setAppStatus(status);
 
-		//TODO: following if statement will be removed because toBeDeleted is deprecated
-		if(AppSettings.APPLICATION_STATUS_DELETED.equals(status)) {
-			appSettings.setToBeDeleted(true);
-		}
-
 		changeSettings(appName, appSettings);
 	}
 
