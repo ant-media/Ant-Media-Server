@@ -30,16 +30,6 @@ public class Endpoint {
     private String endpointUrl;
 
     /**
-     * RTMP URL of the endpoint
-     *
-     * @deprecated use {@link #endpointUrl}
-     *
-     */
-    @Deprecated(since = "3.0" , forRemoval = true)
-    @Schema(description = "The RTMP URL of the endpoint")
-    private String rtmpUrl;
-
-    /**
      * Endpoint service id, this field holds the id of the endpoint
      */
     @Schema(description = "The endpoint service id, this field holds the id of the endpoint")
@@ -53,30 +43,24 @@ public class Endpoint {
         this.status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
     }
 
-    public Endpoint(String rtmpUrl, String type, String endpointServiceId, String status) {
+    public Endpoint(String endpointUrl, String type, String endpointServiceId, String status) {
         this();
         this.status = status;
-        this.endpointUrl = rtmpUrl;
+        this.endpointUrl = endpointUrl;
         this.type = type;
         this.endpointServiceId = endpointServiceId;
     }
 
     public String getEndpointUrl() {
-        if(endpointUrl==null)
-            return rtmpUrl;
         return endpointUrl;
     }
 
     public void setEndpointUrl(String endpointUrl) {
         this.endpointUrl = endpointUrl;
-        this.rtmpUrl = endpointUrl;
     }
 
     public String getEndpointServiceId() {
         return endpointServiceId;
-    }
-    public void setRtmpUrl(String rtmpUrl){
-        this.rtmpUrl = rtmpUrl;
     }
 
     public void setEndpointServiceId(String endpointServiceId) {

@@ -413,17 +413,11 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isWriteStatsToDatastore());
 		assertEquals(false, appSettings.isDashMuxingEnabled());
 		assertEquals("", appSettings.getListenerHookURL());
-		assertEquals(false, appSettings.isObjectDetectionEnabled());
-		assertEquals("", appSettings.getVodFolder());
 		assertEquals(false, appSettings.isPreviewOverwrite());
-		assertEquals("", appSettings.getStalkerDBServer());
-		assertEquals("", appSettings.getStalkerDBUsername());
-		assertEquals("", appSettings.getStalkerDBPassword());
 		assertEquals(0, appSettings.getStreamFetcherBufferTime());
 		assertEquals("delete_segments+program_date_time", appSettings.getHlsflags());
 		assertEquals("/usr/local/antmedia/mysql", appSettings.getMySqlClientPath());
 		assertEquals(false, appSettings.isPlayTokenControlEnabled());
-		assertEquals(false, appSettings.isTimeTokenSubscriberOnly());
 		assertEquals(false, appSettings.isEnableTimeTokenForPlay());
 		assertEquals("", appSettings.getMuxerFinishScript());
 		assertEquals(30, appSettings.getWebRTCFrameRate());
@@ -431,17 +425,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false, appSettings.isHashControlPlayEnabled());
 		assertEquals(60000, appSettings.getWebRTCPortRangeMax());
 		assertEquals(50000, appSettings.getWebRTCPortRangeMin());
-		assertEquals("", appSettings.getEncoderPreset());
-		assertEquals("", appSettings.getEncoderProfile());
-		assertEquals("", appSettings.getEncoderLevel());
-		assertEquals("", appSettings.getEncoderRc());
-		assertEquals("", appSettings.getEncoderSpecific());
 		assertEquals("", appSettings.getAllowedPublisherCIDR());
 		assertEquals(300000, appSettings.getExcessiveBandwidthValue());
 		assertEquals(0, appSettings.getPortAllocatorFlags());
 		assertEquals(0, appSettings.getUpdateTime());
-		assertEquals(5000, appSettings.getEncodingTimeout());
-		assertEquals(false, appSettings.isDefaultDecodersEnabled());
 		assertEquals("", appSettings.getHttpForwardingExtension());
 		assertEquals("", appSettings.getHttpForwardingBaseURL());
 		assertEquals(1500, appSettings.getMaxAnalyzeDurationMS());
@@ -458,27 +445,18 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("", appSettings.getDataChannelWebHookURL());
 		assertEquals(0, appSettings.getEncoderThreadCount());
 		assertEquals(0, appSettings.getEncoderThreadType());
-		assertEquals(null, appSettings.getH265EncoderProfile());
-		assertEquals(null, appSettings.getH265EncoderPreset());
-		assertEquals(null, appSettings.getH265EncoderLevel());
-		assertEquals(null, appSettings.getH265EncoderSpecific());
-		assertEquals(null, appSettings.getH265EncoderRc());
-		assertEquals(4, appSettings.getVp8EncoderSpeed());
-		assertEquals("realtime", appSettings.getVp8EncoderDeadline());
 		assertEquals(1, appSettings.getVp8EncoderThreadCount());
 		assertEquals("unifiedPlan", appSettings.getWebRTCSdpSemantics());
 		assertEquals(true, appSettings.isDeleteDASHFilesOnEnded());
 		assertEquals(360, appSettings.getHeightRtmpForwarding());
 		assertEquals(96000, appSettings.getAudioBitrateSFU());
 		assertEquals(true, appSettings.isAacEncodingEnabled());
-		assertEquals("23", appSettings.getConstantRateFactor());
 		assertEquals(-1, appSettings.getWebRTCViewerLimit());
 		assertEquals("", appSettings.getJwtSecretKey());
 		assertEquals(false, appSettings.isJwtControlEnabled());
 		assertEquals(true, appSettings.isIpFilterEnabled());
 		assertEquals(-1, appSettings.getIngestingStreamLimit());
 		assertEquals(60, appSettings.getTimeTokenPeriod());
-		assertEquals(false, appSettings.isToBeDeleted());
 		assertEquals(false, appSettings.isPullWarFile());
 		assertEquals("", appSettings.getJwtStreamSecretKey());
 		assertEquals(false, appSettings.isPublishJwtControlEnabled());
@@ -686,16 +664,23 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(120, appSettings.getAudioLevelThreshold());
 		appSettings.setAudioLevelThreshold(100);
 		assertEquals(100, appSettings.getAudioLevelThreshold());
+		
 		assertEquals("", appSettings.getStreamStartedScript());
 		assertEquals("", appSettings.getStreamEndedScript());
 		assertEquals("", appSettings.getStreamIdleTimeoutScript());
 
+		
+		assertFalse(appSettings.isAv1Enabled());
+		appSettings.setAv1Enabled(true);
+		assertTrue(appSettings.isAv1Enabled());
+		
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				204, numberOfFields);
+
+				183, numberOfFields);
 	}
 
 

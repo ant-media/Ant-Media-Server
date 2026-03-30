@@ -14,6 +14,7 @@ import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +26,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -47,7 +46,6 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
-import org.springframework.web.util.UriComponentsBuilder;
 
 public class StreamFetcher {
 
@@ -72,6 +70,13 @@ public class StreamFetcher {
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
 	private MuxAdaptor muxAdaptor = null;
+
+	/**
+	 * FFMPEG will abort connection, in order not to forever block the thread
+	 * or lock port (EX: in case of udp multicast connection).
+	 * Instead, it will fail properly with timeout error.
+	 */
+	private static final int UDP_TCP_HTTP_TIMEOUT = 15000;
 
 	/**
 	 * When true, bypass the isStreaming status check once at startup.
@@ -172,29 +177,56 @@ public class StreamFetcher {
 
 	}
 
-	public void parseRtspUrlParams(AVDictionary optionsDictionary){
+	public void parseRtspUrlParams(AVDictionary optionsDictionary) {
+		if (streamUrl == null) {
+			return;
+		}
 		try {
-		  URI uri = new URI(streamUrl);
-		  UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(streamUrl);
+			URI.create(streamUrl);
+		} catch (IllegalArgumentException | NullPointerException e) {
+			logger.warn("cannot parse URL parameters incorrect URL format");
+			return;
+		}
 
-		  List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+		int questionMarkIndex = streamUrl.indexOf('?');
+		if (questionMarkIndex == -1) {
+			return;
+		}
 
-		  for (NameValuePair param : params) {
-			String key = param.getName();
-			String value = param.getValue();
+		String query = streamUrl.substring(questionMarkIndex + 1);
+		String[] params = query.split("&");
+		StringBuilder newQuery = new StringBuilder();
+		boolean first = true;
 
-			if(key == null && value == null)
-			  continue;
+		for (String param : params) {
+			String[] keyValue = param.split("=", 2);
+			String key = keyValue[0];
+			String value = keyValue.length > 1 ? keyValue[1] : "";
 
-			if(key.equals(RTSP_ALLOWED_MEDIA_TYPES)){
-			  av_dict_set(optionsDictionary,RTSP_ALLOWED_MEDIA_TYPES, value, 0);
-			  uriBuilder.replaceQueryParam(RTSP_ALLOWED_MEDIA_TYPES, (Object[]) null);
+			if (RTSP_ALLOWED_MEDIA_TYPES.equals(key)) {
+				try {
+					if (value != null && !value.isEmpty()) {
+						String decodedValue = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+						av_dict_set(optionsDictionary, RTSP_ALLOWED_MEDIA_TYPES, decodedValue, 0);
+					}
+				} catch (Exception e) {
+					logger.warn("Cannot decode value for key: {} value: {}", key, value);
+				}
+				continue;
 			}
-		  }
 
-		  streamUrl = uriBuilder.build().toString();
-		} catch (Exception URISyntaxException) {
-		  logger.warn("cannot parse URL parameters incorrect URL format");
+			if (!first) {
+				newQuery.append("&");
+			}
+			newQuery.append(param);
+			first = false;
+		}
+
+		String baseUrl = streamUrl.substring(0, questionMarkIndex);
+		if (newQuery.length() > 0) {
+			streamUrl = baseUrl + "?" + newQuery.toString();
+		} else {
+			streamUrl = baseUrl;
 		}
 	}
 
@@ -272,6 +304,14 @@ public class StreamFetcher {
 				// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
 				parseRtspUrlParams(optionsDictionary);
 
+			} else if (streamUrl.startsWith("udp://") || streamUrl.startsWith("tcp://") || streamUrl.startsWith("http://")) {
+				// For UDP/HTTP/TCP, use "rw_timeout" (microseconds)
+				// This ensures avformat_open_input throws an error if no packets arrive
+				String timeoutStr = String.valueOf(UDP_TCP_HTTP_TIMEOUT * 1000);
+				av_dict_set(optionsDictionary, "rw_timeout", timeoutStr, 0);
+
+				// Also set "timeout" as a fallback for some protocols (like UDP listener)
+				av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 			}
 
 			//analyze duration is a generic parameter
