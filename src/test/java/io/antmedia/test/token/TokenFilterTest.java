@@ -678,6 +678,83 @@ public class TokenFilterTest {
 		streamId = "f6867e64-c9a1-a7dd-1d14-6b4312c8c999";
 		requestURI = "/LiveApp/streams/ll-hls/"+streamId+"/"+streamId+"__master.m3u8";
 		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI, "-%s"));
+
+		// Tests for subdirectory-based VoD transcoding (e.g., custom transcoding script)
+		// Pattern: streamid_720p/streamid0000.ts
+		streamId = "923920534160092893366116";
+
+		// Test .ts segments in resolution subdirectories
+		requestURI = "/live/streams/"+streamId+"_720p/"+streamId+"0000.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_480p/"+streamId+"0001.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_240p/"+streamId+"0002.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		// Test .m3u8 playlists in resolution subdirectories
+		requestURI = "/live/streams/"+streamId+"_720p/"+streamId+".m3u8";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_480p/"+streamId+".m3u8";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_240p/"+streamId+".m3u8";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		// Test with bitrate in subdirectory name (e.g., streamid_720p2500kbps/)
+		requestURI = "/live/streams/"+streamId+"_720p2500kbps/"+streamId+"0000.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_480p1500kbps/"+streamId+"0001.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_240p800kbps/"+streamId+".m3u8";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		// Test with only bitrate in subdirectory name (e.g., streamid_2500kbps/)
+		requestURI = "/live/streams/"+streamId+"_2500kbps/"+streamId+"0000.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_1500kbps/"+streamId+".m3u8";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		// Test .m4s segments in resolution subdirectories (fMP4/DASH)
+		requestURI = "/live/streams/"+streamId+"_720p/"+streamId+"0000.m4s";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_480p1500kbps/"+streamId+"0001.m4s";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		// Test with longer segment filenames
+		requestURI = "/live/streams/"+streamId+"_720p/"+streamId+"segment0000.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_480p/"+streamId+"_segment_0001.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		// Test with complex streamId containing underscores
+		streamId = "test_stream_Id_underline_test";
+		requestURI = "/live/streams/"+streamId+"_720p/"+streamId+"0000.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_480p1500kbps/"+streamId+".m3u8";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		// Test with UUID-style streamId
+		streamId = "f6867e64-c9a1-a7dd-1d14-6b4312c8c8ee";
+		requestURI = "/live/streams/"+streamId+"_720p/"+streamId+"0000.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		requestURI = "/live/streams/"+streamId+"_240p800kbps/"+streamId+".m3u8";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+
+		// Negative tests: ensure non-matching patterns don't extract streamId incorrectly
+		// Standard flat file (should still work with existing logic)
+		streamId = "stream_Id";
+		requestURI = "/live/streams/"+streamId+"_720p2500kbps0000.ts";
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
 	}
 	
 
