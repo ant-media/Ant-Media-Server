@@ -17,21 +17,12 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
 /**
- * Builds minimal Spring-plugin JARs on the fly for use in PluginDeployerTest.
- *
- *
- * Directory entries are added for every package level (e.g. {@code io/antmedia/})
- * because Spring's {@code classpath*:} scanner calls
- * {@code ClassLoader.getResources("io/antmedia")} to discover the package root.
- * Without an explicit directory entry for that path the JAR URL is never returned
- * and the scan finds nothing.
+ * Builds minimal Spring-plugin JARs for use in PluginDeployerTest.
+ * Directory entries are required for every package level — Spring's classpath*: scanner
+ * calls getResources("io/antmedia") to discover the package root.
  */
 public class SpringTestPluginJarBuilder {
 
-    /**
-     * Builds a JAR containing {@link MinimalSpringComponent} — a plain {@code @Component}
-     * with no JAX-RS annotations.
-     */
     public static File buildComponentJar(String jarName) throws Exception {
         File jar = tempFile(jarName + ".jar");
         Set<String> addedDirs = new HashSet<>();
@@ -41,10 +32,6 @@ public class SpringTestPluginJarBuilder {
         return jar;
     }
 
-    /**
-     * Builds a JAR containing both {@link MinimalSpringComponent} and
-     * {@link MinimalSpringRestComponent} (a {@code @Component + @Path("/test-plugin")} class).
-     */
     public static File buildRestComponentJar(String jarName) throws Exception {
         File jar = tempFile(jarName + ".jar");
         Set<String> addedDirs = new HashSet<>();
@@ -55,10 +42,6 @@ public class SpringTestPluginJarBuilder {
         return jar;
     }
 
-    /**
-     * Builds an empty JAR (no class entries) — for negative tests where the
-     * Spring path must be reached but no {@code @Component} classes are found.
-     */
     public static File buildEmptyJar(String jarName) throws Exception {
         File jar = tempFile(jarName + ".jar");
         try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), emptyManifest())) {

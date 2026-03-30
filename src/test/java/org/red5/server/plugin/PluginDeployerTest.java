@@ -33,12 +33,7 @@ public class PluginDeployerTest {
     }
 
 
-    /**
-     * Returns a spy where the system-CL check always passes and
-     * addJarToSystemClassLoader is a no-op. The real system classloader is
-     * still used for Class.forName and scanning, so test @Component classes on
-     * the test classpath are discovered and loaded correctly.
-     */
+    /** Spy that bypasses the system-CL check and JAR-adding; scanning still uses the real CL. */
     private PluginDeployer deployerSpy(Map<String, IApplicationContext> contexts) {
         PluginDeployer spy = Mockito.spy(deployer);
         doReturn(true).when(spy).isSystemClassLoaderServerClassLoader();
@@ -47,11 +42,7 @@ public class PluginDeployerTest {
         return spy;
     }
 
-    /**
-     * Builds a mock streaming webapp context at the given Tomcat context path.
-     * The returned TomcatApplicationContext is wired to a mock Spring context
-     * that vends the provided bean factory.
-     */
+    /** Mock TomcatApplicationContext at the given path backed by the given bean factory. */
     private TomcatApplicationContext mockStreamingContext(String path,
             DefaultListableBeanFactory beanFactory) {
         TomcatApplicationContext tomcatCtx = mock(TomcatApplicationContext.class);
@@ -68,15 +59,8 @@ public class PluginDeployerTest {
     }
 
     /**
-     * Builds a mock bean factory that satisfies all three cast targets used in
-     * PluginDeployer: AutowireCapableBeanFactory (createBean),
-     * ConfigurableListableBeanFactory (registerSingleton), and
-     * DefaultSingletonBeanRegistry (destroySingleton).
-     *
-     * DefaultListableBeanFactory is used as the mock type because it extends
-     * DefaultSingletonBeanRegistry (a class, not an interface) and implements
-     * both AutowireCapableBeanFactory and ConfigurableListableBeanFactory.
-     * createBean is stubbed to instantiate the class via its no-arg constructor.
+     * DefaultListableBeanFactory extends DefaultSingletonBeanRegistry and implements
+     * AutowireCapableBeanFactory + ConfigurableListableBeanFactory — all cast targets in PluginDeployer.
      */
     private DefaultListableBeanFactory mockBeanFactory() {
         DefaultListableBeanFactory bf = mock(DefaultListableBeanFactory.class);
@@ -93,8 +77,6 @@ public class PluginDeployerTest {
 
     @Test
     public void testLoadPlugin_systemCLNotServerCL_fails() throws Exception {
-        // In the test JVM the system CL is AppClassLoader, not ServerClassLoader.
-        // The check must fail before reaching the scan or JAR logic.
         File jar = SpringTestPluginJarBuilder.buildComponentJar("sclCheck");
 
         Result result = deployer.loadPlugin(jar);
@@ -105,7 +87,6 @@ public class PluginDeployerTest {
 
     @Test
     public void testLoadSpringPlugin_emptyJar_noComponents() throws Exception {
-        // JAR with no class entries — scanner finds nothing.
         File jar = SpringTestPluginJarBuilder.buildEmptyJar("emptyPlugin");
         PluginDeployer spy = deployerSpy(Collections.emptyMap());
 
@@ -117,7 +98,6 @@ public class PluginDeployerTest {
 
     @Test
     public void testLoadSpringPlugin_noContexts_fails() throws Exception {
-        // @Component classes found but no webapp contexts to register them in.
         File jar = SpringTestPluginJarBuilder.buildComponentJar("noCtx");
         PluginDeployer spy = deployerSpy(Collections.emptyMap());
 
@@ -144,7 +124,6 @@ public class PluginDeployerTest {
 
     @Test
     public void testLoadSpringPlugin_skipsRootContext() throws Exception {
-        // Root context (path = "") hosts the admin console and must be skipped.
         DefaultListableBeanFactory rootBf = mockBeanFactory();
         TomcatApplicationContext rootCtx = mockStreamingContext("", rootBf);
 
@@ -198,7 +177,6 @@ public class PluginDeployerTest {
         TomcatApplicationContext ctx = mockStreamingContext("/LiveApp", bf);
         PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
 
-        // MinimalSpringRestComponent has @Path("/test-plugin") → key "test-plugin"
         File jar = SpringTestPluginJarBuilder.buildRestComponentJar("restPlugin");
         Result result = spy.loadPlugin(jar);
 

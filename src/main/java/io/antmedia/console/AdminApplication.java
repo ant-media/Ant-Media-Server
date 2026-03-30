@@ -128,16 +128,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return super.appStart(app);
 	}
 
-	/**
-	 * Deploys a plugin JAR on the origin node: saves it to disk and hot-loads it,
-	 * then notifies cluster peers.
-	 *
-	 * @param pluginName  logical plugin name (used as filename)
-	 * @param inputStream JAR bytes from the REST upload
-	 * @return true on success
-	 */
+	/** Saves plugin JAR to disk, hot-loads it, and notifies cluster peers. */
 	public boolean deployPlugin(String pluginName, InputStream inputStream) {
-		// Pre-check before touching disk
 		if (PluginRegistry.getPlugin(pluginName) != null) {
 			logger.warn("Plugin {} is already loaded", pluginName);
 			return false;
@@ -153,8 +145,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		if (success && clusterNotifier != null) {
 			String jarURI = buildPluginDownloadURI(pluginName);
-			String secretKey = getDataStoreFactory().getDbPassword();
-			clusterNotifier.notifyDeployPlugin(pluginName, jarURI, secretKey);
+			clusterNotifier.notifyDeployPlugin(pluginName, jarURI, getClusterCommunicationKey());
 		}
 
 		return success;
@@ -179,12 +170,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 	}
 
-	/**
-	 * Stops and unloads a plugin, deletes its JAR from disk, and notifies cluster peers.
-	 *
-	 * @param pluginName plugin name
-	 * @return true on success
-	 */
+	/** Unloads plugin beans, deletes JAR from disk, and notifies cluster peers. */
 	public boolean undeployPlugin(String pluginName) {
 		Result result = pluginDeployer.unloadPlugin(pluginName);
 		boolean success = result.isSuccess();
@@ -201,11 +187,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return success;
 	}
 
-	/**
-	 * Saves an uploaded plugin JAR to {@code {AMS_HOME}/plugins/{pluginName}.jar}.
-	 *
-	 * @return the saved File, or null on failure
-	 */
+	/** Saves uploaded plugin JAR to {@code plugins/{pluginName}.jar}, returns null on failure. */
 	@Nullable
 	public File savePluginJar(String pluginName, InputStream inputStream) {
 		if (inputStream == null) {
@@ -236,9 +218,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return new File(System.getProperty("red5.root"), "plugins");
 	}
 
-	/**
-	 * Builds the HTTP URL that other cluster nodes use to download the plugin JAR from this node.
-	 */
+	/** URL for cluster peers to download the plugin JAR from this node. */
 	public String buildPluginDownloadURI(String pluginName) {
 		String host = System.getProperty("red5.host", "localhost");
 		String port = System.getProperty("http.port", "5080");
@@ -281,11 +261,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return pluginDeployer;
 	}
 
-	/**
-	 * Returns the names of all currently loaded plugins — both {@link org.red5.server.api.plugin.IRed5Plugin}
-	 * plugins tracked by {@link PluginRegistry} and Spring &#064;Component plugins hot-loaded by
-	 * {@link PluginDeployer}.
-	 */
+	/** Union of startup-loaded (PluginRegistry) and hot-loaded (PluginDeployer) plugin names. */
 	public List<String> getAllPluginNames() {
 		Set<String> names = new java.util.HashSet<>(PluginRegistry.getPluginNames());
 		if (pluginDeployer != null) {
@@ -390,9 +366,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return appsInfo;
 	}
 
-	public AntMediaApplicationAdapter getApplicationAdaptor(IScope appScope) 
+	public AntMediaApplicationAdapter getApplicationAdaptor(IScope appScope)
 	{
 		return (AntMediaApplicationAdapter) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+	}
+
+	/** Gets the cluster communication key from the first available streaming app — same secret used by WarDownloadServlet. */
+	public String getClusterCommunicationKey() {
+		for (String appName : getApplications()) {
+			if (APP_NAME.equals(appName)) continue;
+			IScope appScope = getRootScope().getScope(appName);
+			if (appScope != null) {
+				try {
+					AntMediaApplicationAdapter adaptor = getApplicationAdaptor(appScope);
+					if (adaptor != null) {
+						return adaptor.getAppSettings().getClusterCommunicationKey();
+					}
+				} catch (Exception e) {
+					// try next app
+				}
+			}
+		}
+		return null;
 	}
 	
 	public static long getDirectorySize(Path dir) {

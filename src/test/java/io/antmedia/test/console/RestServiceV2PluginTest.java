@@ -18,7 +18,6 @@ import java.io.File;
 import java.nio.file.Files;
 
 import io.antmedia.console.AdminApplication;
-import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.rest.RestServiceV2;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.rest.model.Result;
@@ -137,9 +136,7 @@ public class RestServiceV2PluginTest {
 
     @Test
     public void testDownloadPlugin_invalidToken() throws Exception {
-        ConsoleDataStoreFactory dsFactory = Mockito.mock(ConsoleDataStoreFactory.class);
-        when(dsFactory.getDbPassword()).thenReturn("real-secret");
-        when(adminApp.getDataStoreFactory()).thenReturn(dsFactory);
+        when(adminApp.getClusterCommunicationKey()).thenReturn("real-secret");
 
         Response response = restService.downloadPlugin("somePlugin", "bad-token");
 
@@ -148,20 +145,15 @@ public class RestServiceV2PluginTest {
 
     @Test
     public void testDownloadPlugin_nullToken() throws Exception {
-        ConsoleDataStoreFactory dsFactory = Mockito.mock(ConsoleDataStoreFactory.class);
-        when(dsFactory.getDbPassword()).thenReturn("real-secret");
-        when(adminApp.getDataStoreFactory()).thenReturn(dsFactory);
+        when(adminApp.getClusterCommunicationKey()).thenReturn("real-secret");
 
-        // No ClusterAuthorization header sent — JAX-RS injects null for missing header params.
-        // Must return 403, not NPE.
-        Response response = restService.downloadPlugin("somePlugin", null);
+        Response response = restService.downloadPlugin("somePlugin", null); // must not NPE
 
         assertEquals(Response.Status.FORBIDDEN.getStatusCode(), response.getStatus());
     }
 
     @Test
     public void testDownloadPlugin_validToken_fileExists() throws Exception {
-        // Set up a real JAR file on disk so the streaming path is exercised
         File tempRoot = Files.createTempDirectory("red5root-dl").toFile();
         tempRoot.deleteOnExit();
         System.setProperty("red5.root", tempRoot.getAbsolutePath());
@@ -171,9 +163,7 @@ public class RestServiceV2PluginTest {
         Files.write(jar.toPath(), new byte[]{1, 2, 3, 4, 5});
 
         String secret = "download-secret";
-        ConsoleDataStoreFactory dsFactory = Mockito.mock(ConsoleDataStoreFactory.class);
-        when(dsFactory.getDbPassword()).thenReturn(secret);
-        when(adminApp.getDataStoreFactory()).thenReturn(dsFactory);
+        when(adminApp.getClusterCommunicationKey()).thenReturn(secret);
 
         String validToken = JWTFilter.generateJwtToken(
                 secret, System.currentTimeMillis() + 60_000, "pluginname", "myPlugin");
@@ -189,12 +179,8 @@ public class RestServiceV2PluginTest {
         File tempRoot = Files.createTempDirectory("red5root-dl2").toFile();
         tempRoot.deleteOnExit();
         System.setProperty("red5.root", tempRoot.getAbsolutePath());
-        // No plugins dir, no JAR file
-
         String secret = "download-secret2";
-        ConsoleDataStoreFactory dsFactory = Mockito.mock(ConsoleDataStoreFactory.class);
-        when(dsFactory.getDbPassword()).thenReturn(secret);
-        when(adminApp.getDataStoreFactory()).thenReturn(dsFactory);
+        when(adminApp.getClusterCommunicationKey()).thenReturn(secret);
 
         String validToken = JWTFilter.generateJwtToken(
                 secret, System.currentTimeMillis() + 60_000, "pluginname", "ghostPlugin");

@@ -59,7 +59,6 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.filter.JWTFilter;
-import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
@@ -1587,7 +1586,7 @@ public class CommonRestService {
 
 	public Response downloadPlugin(String pluginName, String jwtToken) {
 		// Validate JWT
-		String secretKey = getApplication().getDataStoreFactory().getDbPassword();
+		String secretKey = getApplication().getClusterCommunicationKey();
 		if (!JWTFilter.isJWTTokenValid(secretKey, jwtToken, "pluginname", pluginName)) {
 			return Response.status(Status.FORBIDDEN).build();
 		}

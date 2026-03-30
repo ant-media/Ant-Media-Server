@@ -20,7 +20,6 @@ import org.red5.server.plugin.PluginRegistry;
 
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.AdminApplication;
-import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 
@@ -31,7 +30,6 @@ public class AdminApplicationPluginTest {
     private AdminApplication app;
     private PluginDeployer pluginDeployer;
     private IClusterNotifier clusterNotifier;
-    private ConsoleDataStoreFactory dataStoreFactory;
 
     @Before
     public void before() throws Exception {
@@ -48,9 +46,7 @@ public class AdminApplicationPluginTest {
         clusterNotifier = Mockito.mock(IClusterNotifier.class);
         app.setClusterNotifier(clusterNotifier);
 
-        dataStoreFactory = Mockito.mock(ConsoleDataStoreFactory.class);
-        when(dataStoreFactory.getDbPassword()).thenReturn("test-secret");
-        app.setDataStoreFactory(dataStoreFactory);
+        doReturn("test-secret").when(app).getClusterCommunicationKey();
     }
 
     @After
@@ -150,12 +146,10 @@ public class AdminApplicationPluginTest {
         String pluginName = "jarPathPlugin";
         InputStream stream = new ByteArrayInputStream(new byte[]{0, 1, 2, 3});
 
-        // Use real savePluginJar with a temp red5.root
         File tempRoot = Files.createTempDirectory("red5root").toFile();
         tempRoot.deleteOnExit();
         System.setProperty("red5.root", tempRoot.getAbsolutePath());
 
-        // Allow real savePluginJar to run (don't stub it)
         doCallRealMethod().when(app).savePluginJar(eq(pluginName), any());
         when(pluginDeployer.loadPlugin(any())).thenReturn(new Result(true));
         doReturn("http://localhost:5080/rest/v2/plugins/jarPathPlugin/download")
@@ -225,7 +219,6 @@ public class AdminApplicationPluginTest {
         String pluginName = "undeployOk";
         when(pluginDeployer.unloadPlugin(pluginName)).thenReturn(new Result(true));
 
-        // Create a dummy JAR file so delete logic is exercised
         File tempRoot = Files.createTempDirectory("red5root2").toFile();
         tempRoot.deleteOnExit();
         System.setProperty("red5.root", tempRoot.getAbsolutePath());
@@ -267,7 +260,6 @@ public class AdminApplicationPluginTest {
     public void testUndeployPlugin_jarFileNotOnDisk() throws Exception {
         when(pluginDeployer.unloadPlugin("noJar")).thenReturn(new Result(true));
 
-        // red5.root has no plugins dir — no exception expected
         File tempRoot = Files.createTempDirectory("red5root3").toFile();
         tempRoot.deleteOnExit();
         System.setProperty("red5.root", tempRoot.getAbsolutePath());
