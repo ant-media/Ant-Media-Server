@@ -2444,7 +2444,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public RecordMuxer stopRecording(RecordType recordType, int resolutionHeight)
 	{
-		logger.info("stopRecording is called for streamId:{} and resolution:{}", streamId, resolutionHeight);
+		logger.info("stopRecording is called for streamId:{}", streamId);
 		Muxer muxer = findDynamicRecordMuxer(recordType);
 		if (muxer != null && recordType == RecordType.MP4)
 		{
@@ -2471,7 +2471,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			result.setMessage("Start endpoint streaming return false for stream:"+ streamId +" because stream is being prepared. Try again");
 			return result;
 		}
-		logger.info("start endpoint streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, endpointUrl, resolutionHeight, height);
+		logger.info("start endpoint streaming for stream id:{} to {} with requested", streamId, endpointUrl);
 
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
