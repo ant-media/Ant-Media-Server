@@ -411,8 +411,6 @@ public abstract class MapBasedDataStore extends DataStore
 				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) 
 						&& (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-					broadcastArray[i].setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-					broadcastArray[i].setUpdateTime(now);
 					setBroadcastToMap(broadcastArray[i], broadcastArray[i].getStreamId());
 				}
 			}
@@ -1163,7 +1161,7 @@ public abstract class MapBasedDataStore extends DataStore
 						}
 						else
 						{
-							broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+							broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 							broadcast.setWebRTCViewerCount(0);
 							broadcast.setHlsViewerCount(0);
 							broadcast.setRtmpViewerCount(0);

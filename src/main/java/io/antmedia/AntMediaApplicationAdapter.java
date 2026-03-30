@@ -181,8 +181,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	
-	public static final String NOT_ASSIGNED = "NOT_ASSIGNED";
-
 	/**
 	 * Timeout value that stream is considered as finished or stuck
 	 */
@@ -799,7 +797,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 					if(serverShuttingDown) {
-						broadcastUpdate.setOriginAdress(NOT_ASSIGNED);
+						broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 					}
 					broadcastUpdate.setHlsViewerCount(0);
 					broadcastUpdate.setDashViewerCount(0);

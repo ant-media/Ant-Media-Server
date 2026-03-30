@@ -720,13 +720,6 @@ public class MongoStore extends DataStore {
 						);
 
 				streamList = query.iterator().toList();
-				final UpdateResult results = query.update(new UpdateOptions().multi(true), 
-						set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING),
-						set(UPDATE_TIME_FIELD, now));
-				long updatedCount = results.getModifiedCount();
-				if(updatedCount != streamList.size()) {
-					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
-				}
 			} catch (Exception e) {
 
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -2197,7 +2190,7 @@ public class MongoStore extends DataStore {
 							set(WEBRTC_VIEWER_COUNT, 0),
 							set(HLS_VIEWER_COUNT, 0),
 							set(RTMP_VIEWER_COUNT, 0),
-							set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)
+							set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY)
 							)
 					.execute(new UpdateOptions().multi(true))
 					.getModifiedCount();

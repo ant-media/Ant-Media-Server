@@ -254,8 +254,6 @@ public class InMemoryDataStore extends DataStore {
 
 			if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 				streamsList.add(broadcast);
-				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-				broadcast.setUpdateTime(now);
 				broadcastMap.replace(broadcast.getStreamId(), broadcast);
 			}
 		}
@@ -1030,7 +1028,7 @@ public class InMemoryDataStore extends DataStore {
 			if (next.getValue().getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) ||
 					next.getValue().getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING))
 			{
-				next.getValue().setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				next.getValue().setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 				next.getValue().setWebRTCViewerCount(0);
 				next.getValue().setHlsViewerCount(0);
 				next.getValue().setRtmpViewerCount(0);
