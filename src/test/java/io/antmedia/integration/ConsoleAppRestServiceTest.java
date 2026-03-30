@@ -776,17 +776,13 @@ public class ConsoleAppRestServiceTest{
 		}
 
 		AppSettings appSettingsModel = callGetAppSettings(appName);
-		assertEquals("", appSettingsModel.getVodFolder());
 
 		appSettingsModel = callGetAppSettings("LiveApp");
 
 		// change app settings - change vod folder
-		String new_vod_folder = "vod_folder";
-		assertNotEquals(new_vod_folder, appSettingsModel.getVodFolder());
-		String defaultValue = appSettingsModel.getVodFolder();
 
 
-		appSettingsModel.setVodFolder(new_vod_folder);
+		appSettingsModel.setApnKeyId("keyId");
 		result = callSetAppSettings("LiveApp", appSettingsModel);
 		assertTrue(result.isSuccess());
 
@@ -795,17 +791,8 @@ public class ConsoleAppRestServiceTest{
 		//for some odd cases, it may be updated via cluster in second turn
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(5, TimeUnit.SECONDS).until(()-> {
 			AppSettings local = callGetAppSettings("LiveApp");
-			return new_vod_folder.equals(local.getVodFolder());
+			return "keyId".equals(local.getApnKeyId());
 		});
-
-
-		// check the related file to make sure settings changed for restart
-		// return back to default values
-		appSettingsModel.setVodFolder(defaultValue);
-		result = callSetAppSettings("LiveApp", appSettingsModel);
-		assertTrue(result.isSuccess());
-
-
 
 	}
 
@@ -1330,7 +1317,6 @@ public class ConsoleAppRestServiceTest{
 			appSettingsModel.setAcceptOnlyStreamsInDataStore(true);
 			//Reset time token settings because some previous test make them enable
 			appSettingsModel.setEnableTimeTokenForPublish(false);
-			appSettingsModel.setTimeTokenSubscriberOnly(false);
 
 			Result result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
@@ -1637,14 +1623,15 @@ public class ConsoleAppRestServiceTest{
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings(appName);
 
-			appSettings.setTimeTokenSubscriberOnly(true);
+			appSettings.setEnableTimeTokenForPublish(true);
+			appSettings.setEnableTimeTokenForPlay(true);
 			appSettings.setMp4MuxingEnabled(true);
 
 			Result result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 
 			appSettings = callGetAppSettings(appName);
-			assertTrue(appSettings.isTimeTokenSubscriberOnly());
+			assertTrue(appSettings.isEnableTimeTokenForPublish());
 
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
 
@@ -1710,7 +1697,8 @@ public class ConsoleAppRestServiceTest{
 					+ broadcast.getStreamId() + ".mp4", false));
 
 			// reset to old settings
-			appSettings.setTimeTokenSubscriberOnly(false);
+			appSettings.setEnableTimeTokenForPublish(false);
+			appSettings.setEnableTimeTokenForPlay(false);
 
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
@@ -3012,7 +3000,7 @@ public class ConsoleAppRestServiceTest{
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		log.info("result string: " + result.toString());
+		log.info("result string of callIsEnterpriseEdition: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
@@ -3035,9 +3023,10 @@ public class ConsoleAppRestServiceTest{
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			log.info("result string of callGetAppSettings: " + result.toString());
 			throw new Exception(result.toString());
 		}
-		log.info("result string: " + result.toString());
+		log.info("result string of callGetAppSettings: " + result.toString());
 		AppSettings tmp = gson.fromJson(result.toString(), AppSettings.class);
 		assertNotNull(tmp);
 		return tmp;
