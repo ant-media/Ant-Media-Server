@@ -107,7 +107,8 @@ get_password() {
 # Check if port 80 is in use for Let's Encrypt validation
 check_port_80() {
     if lsof -i :80 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        echo -e "Port 80 is currently in use by \e[31m$(lsof -i :80 -sTCP:LISTEN | awk 'NR>1 {print $1}')\e[0m. Please stop the service to proceed with Let's Encrypt (Free SSL)."
+        SERVICE=$(lsof -i :80 -sTCP:LISTEN -nP | awk 'NR==2 {print $1}')
+        echo -e "Port 80 is currently in use by \e[31m${SERVICE}\e[0m. Please stop the service to proceed with Let's Encrypt (Free SSL)."
         exit 1
     fi
 }
@@ -557,6 +558,11 @@ else
 fi
 
 output
+
+# Install systemd timer for SSL expiry check (run once so installation steps are complete)
+if [ -f "$INSTALL_DIRECTORY/conf/ssl_renewal_check.sh" ]; then
+    $SUDO "$INSTALL_DIRECTORY/conf/ssl_renewal_check.sh" || true
+fi
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"
