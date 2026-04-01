@@ -75,6 +75,15 @@ public class StreamFetcherManager {
 
 	private ServerSettings serverSettings;
 
+	private int waitForTestMilliseconds = 0;
+
+	public void setWaitForTestMilliseconds(int waitForTestMilliseconds) {
+		this.waitForTestMilliseconds = waitForTestMilliseconds;
+	}
+
+	public int getWaitForTestMilliseconds() {
+		return waitForTestMilliseconds;
+	}
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
@@ -202,8 +211,21 @@ public class StreamFetcherManager {
 
 		return result;
 	}
-
-	public Result stopStreaming(String streamId, boolean stopBlocking)
+	
+	
+	/**
+	 * Stop streaming for the streamId. If stopBlocking is true, it will wait until the stream is stopped and return the result. 
+	 * Otherwise, it will call stopStream and return immediately with success true.
+	 * 
+	 * Pay attention that stopStreaming and playItemInList are synchronized because they can be called at the same time for the same streamId 
+	 * and it can cause a problem if they are not synchronized. 
+	 * We are testing this behavior with a test case that reproduces the problem on StreamFetcherUnitTest#testPlayListSynch
+	 * 
+	 * @param streamId
+	 * @param stopBlocking
+	 * @return
+	 */
+	public synchronized Result stopStreaming(String streamId, boolean stopBlocking)
 	{
 		logger.warn("inside of stopStreaming for {}", streamId);
 		Result result = new Result(false);
@@ -265,14 +287,6 @@ public class StreamFetcherManager {
 		return result;		
 	}
 
-	public void playNextItemInList(String streamId, IStreamFetcherListener listener) {
-		// Get current playlist in database, it may be updated
-		Broadcast playlist = datastore.get(streamId);
-		if (playlist != null) {
-			playItemInList(playlist, listener, -1);
-		}
-	}
-
 	public Result createAndStartNextPlaylistItem(Broadcast playlistBroadcast, IStreamFetcherListener listener,int currentStreamIndex){
 		PlayListItem fetchedBroadcast = playlistBroadcast.getPlayListItemList().get(currentStreamIndex);
 
@@ -289,19 +303,45 @@ public class StreamFetcherManager {
 		return startStreamScheduler(newStreamScheduler);
 	}
 
+	
+	private boolean waitForTest(int milliseconds) {
+		if (milliseconds > 0) {
+			try {
+				logger.info("Waiting {}ms for test ", milliseconds);
+				Thread.sleep(milliseconds);
+				logger.info("Proceeding after {}ms for test ", milliseconds);
+
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			}
+		}
+		
+		return true;
+	}
 
 	/**
+	 * Plays the next item in the playlist if index is -1, otherwise it plays the item in the index. 
+	 * It checks the stream url with http before playing and if it's not valid, it tries to play the next item. 
+	 * If there is no item to play, it will set playlist status to finished.
 	 * 
-	 * @param playlist
+	 * Pay attention that stopStreaming and playItemInList are synchronized because they can be called at the same time for the same streamId 
+	 * and it can cause a problem if they are not synchronized. 
+	 * We are testing this behavior with a test case that reproduces the problem on StreamFetcherUnitTest#testPlayListSynch
+	 *
+	 * @param streamId
 	 * @param listener
 	 * @param index if it's -1, it plays the next item, if it's zero or bigger, it skips that item to play
 	 */
-	public Result playItemInList(Broadcast playlist, IStreamFetcherListener listener, int index) 
+	public synchronized Result playItemInList(String streamId, IStreamFetcherListener listener, int index) 
 	{
 		Result result = new Result(false);
 
-		stopStreaming(playlist.getStreamId(), true);
-
+		stopStreaming(streamId, true);
+		
+		assert waitForTest(waitForTestMilliseconds); //just wait for 1000 seconds in testing to reproduce a problem - assert statement just run in testing not in production
+		
+		
         if (serverShuttingDown) {
 			logger.info("Playlist will not try to play the next item because server is shutting down");
 			result.setMessage("Playlist will not try to play the next item because server is shutting down");
@@ -309,8 +349,13 @@ public class StreamFetcherManager {
 		}
 
 		//Check playlist is not stopped and there is an item to play
-
-		if(!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
+        
+        //get fresh playList because this method can be called after stopStreaming
+        Broadcast playlist = getDatastore().get(streamId);
+        if (playlist == null) {
+        	result.setMessage("Playlist is deleted for streamId " + streamId);
+        }
+        else if(!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
 				&& skipNextPlaylistQueue(playlist, index) != null)
 		{
 
@@ -387,7 +432,7 @@ public class StreamFetcherManager {
 				streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
 					@Override
 					public void streamFinished(IStreamFetcherListener listener) {
-						playNextItemInList(streamId, listener);
+						playItemInList(streamId, listener, -1);
 					}
 
 					@Override
