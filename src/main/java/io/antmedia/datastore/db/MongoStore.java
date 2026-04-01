@@ -2250,23 +2250,6 @@ public class MongoStore extends DataStore {
 
 		return result;
 	}
-	
-	@Override
-	public List<Broadcast> getBroadcastListByHost(String hostAddress) {
-		long startTime = System.nanoTime();
-
-		List<Broadcast> broadcastList = new ArrayList<>();
-		synchronized(this) {
-			broadcastList = datastore.find(Broadcast.class).filter(Filters.eq(ORIGIN_ADDRESS, hostAddress))
-					.iterator().toList();
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getActiveSubtracks");
-
-		return broadcastList;
-	}
 
 	public CaffeineCacheManager getCacheManager(){
 		return cacheManager;
