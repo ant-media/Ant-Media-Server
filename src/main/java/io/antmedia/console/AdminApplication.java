@@ -387,9 +387,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 
 		String dbConnectionURL = getDataStoreFactory().getDbHost();
-		String mongoUser = getDataStoreFactory().getDbUser();
-		String mongoPass = getDataStoreFactory().getDbPassword();
-		success = runCreateAppScript(appName, isCluster, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
+		success = runCreateAppScript(appName, isCluster, dbConnectionURL, warFileFullPath);
 
 
 		vertx.executeBlocking(() -> {
@@ -537,11 +535,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean runCreateAppScript(String appName) {
-		return runCreateAppScript(appName, false, null, null, null, null);
+		return runCreateAppScript(appName, false, null, null);
 	}
 
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String dbConnectionUrl, String dbUser, String dbPass, String warFileName) {
+			String dbConnectionUrl, String warFileName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
@@ -556,12 +554,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			//add db connection url, user and pass if it's not mapdb
 			if (StringUtils.isNotBlank(dbConnectionUrl)) {
 				command +=  " -m " + dbConnectionUrl;
-			}
-			if (StringUtils.isNotBlank(dbUser)) {
-				command += " -u " + dbUser;
-			}
-			if (StringUtils.isNotBlank(dbPass)) {
-				command += " -s " + dbPass;
 			}
 		}
 
