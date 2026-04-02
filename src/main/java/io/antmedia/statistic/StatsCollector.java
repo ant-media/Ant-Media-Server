@@ -32,6 +32,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.message.DescribeUserScramCredentialsRequestData.UserName;
 import org.bytedeco.javacpp.Pointer;
 import org.red5.server.Launcher;
 import org.red5.server.api.IServer;
@@ -238,7 +239,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String EXPORTER_PROMETHEUS = "prometheus";
 
 	private String statsExporterType = "" ;
-	private int prometheusPort = 9090;
+	private String prometheusPushGatewayAddress;
+	private String prometheusPushJob;
+	private String prometheusPushInstanceId;
 	private IStatsExporter statsExporter = null;
 
 	public static final String UP_TIME = "up-time";
@@ -387,7 +390,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			}
 			time2Log++;
 		});
-		startStatsExporter();
 
 		if (heartBeatEnabled) {
 
@@ -434,13 +436,27 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				return;
 			}
 			statsExporter = new KafkaStatsExporter(kafkaBrokers);
+
+			logger.info("starting Kafka StatsExporter");
 		} else if (EXPORTER_PROMETHEUS.equalsIgnoreCase(statsExporterType)) {
-			statsExporter = new PrometheusStatsExporter(prometheusPort);
+				String address = prometheusPushGatewayAddress;
+				if (address == null || address.isEmpty()) {
+					logger.warn("Prometheus exporter selected but no Pushgateway address configured. Stats export disabled.");
+					return;
+				}
+				String instanceId = prometheusPushInstanceId;
+				if (instanceId == null || instanceId.isEmpty()) {
+					instanceId = hostAddress;
+				}
+
+				String emailLabel = getUserEmail();
+
+				statsExporter = new PrometheusStatsExporter(address, instanceId, emailLabel);
+				logger.info("starting Prometheus PushGateway StatsExporter with address={} job={} instance={} user={}",
+						address,  instanceId, emailLabel);
 		} else {
-			if (statsExporterType != null && !statsExporterType.isEmpty()) {
-				logger.warn("Stats export disabled.");
-			}
-			return;
+				logger.info("Stats export disabled.");
+				return;
 		}
 
 		try {
@@ -1110,6 +1126,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			@Override
 			public void notifyScopeCreated(IScope scope) {
 				scopes.add(scope);
+				if(scope.getName().equals("root")){
+					startStatsExporter();
+				}
 			}
 		});
 
@@ -1146,13 +1165,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public void setKafkaBrokers(String kafkaBrokers) {
 		this.kafkaBrokers = kafkaBrokers;
 	}
-	//used for testing
 	public void setKafkaProducer(Producer<Long, String> producers) {
 		if(this.statsExporter != null) {
 			((KafkaStatsExporter) this.statsExporter).setKafkaProducer(producers);
 		}
 	}
-	//used for testing
 	public  Producer<Long, String>  getKafkaProducer() {
 		return ((KafkaStatsExporter)this.statsExporter).getKafkaProducer();
 	}
@@ -1166,13 +1183,30 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		this.statsExporterType = statsExporterType;
 	}
 
-	public int getPrometheusPort() {
-		return prometheusPort;
+	public String getPrometheusPushGatewayAddress() {
+		return prometheusPushGatewayAddress;
 	}
 
-	public void setPrometheusPort(int prometheusPort) {
-		this.prometheusPort = prometheusPort;
+	public void setPrometheusPushGatewayAddress(String prometheusPushGatewayAddress) {
+		this.prometheusPushGatewayAddress = prometheusPushGatewayAddress;
 	}
+
+	public String getPrometheusPushJob() {
+		return prometheusPushJob;
+	}
+
+	public void setPrometheusPushJob(String prometheusPushJob) {
+		this.prometheusPushJob = prometheusPushJob;
+	}
+
+	public String getPrometheusPushInstanceId() {
+		return prometheusPushInstanceId;
+	}
+
+	public void setPrometheusPushInstanceId(String prometheusPushInstanceId) {
+		this.prometheusPushInstanceId = prometheusPushInstanceId;
+	}
+
 
 	public IStatsExporter getStatsExporter() {
 		return statsExporter;

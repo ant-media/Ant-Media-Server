@@ -11,7 +11,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.prometheus.metrics.core.metrics.Gauge;
-import io.prometheus.metrics.exporter.httpserver.HTTPServer;
+import io.prometheus.metrics.exporter.pushgateway.PushGateway;
 import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 
@@ -19,13 +19,21 @@ public class PrometheusStatsExporter implements IStatsExporter {
 
 	private static final Logger logger = LoggerFactory.getLogger(PrometheusStatsExporter.class);
 
-	private final int port;
+	private final String pushGatewayAddress;
+	private static final String job = "AntMedia";
+	private final String instance;
+	private final String userEmail;
+
 	private PrometheusRegistry registry;
-	private HTTPServer httpServer;
+	private PushGateway pushGateway;
 	private final Map<String, Gauge> gauges = new HashMap<>();
 
-	public PrometheusStatsExporter(int port) {
-		this.port = port;
+	public PrometheusStatsExporter(String pushGatewayAddress, String instance, String userEmail) {
+
+		this.pushGatewayAddress = (pushGatewayAddress == null || pushGatewayAddress.isEmpty()) ? "localhost:9091"
+				: pushGatewayAddress;
+		this.instance = instance;
+		this.userEmail = userEmail;
 	}
 
 	@Override
@@ -34,11 +42,21 @@ public class PrometheusStatsExporter implements IStatsExporter {
 		JvmMetrics.builder().register(registry);
 		registerGauges();
 
-		httpServer = HTTPServer.builder()
-				.port(port)
-				.registry(registry)
-				.buildAndStart();
-		logger.info("Prometheus stats exporter started on port {}", port);
+		PushGateway.Builder builder = PushGateway.builder()
+				.address(pushGatewayAddress)
+				.job(job)
+				.registry(registry);
+
+		if (instance != null && !instance.isEmpty()) {
+			builder = builder.groupingKey("instance", instance);
+		}
+		if (userEmail != null && !userEmail.isEmpty()) {
+			builder = builder.groupingKey("user", userEmail);
+		}
+
+		pushGateway = builder.build();
+		logger.info("Prometheus PushGateway exporter initialized for job={} address={} instance={} user={}",
+				job, pushGatewayAddress, instance, userEmail);
 	}
 
 	@Override
@@ -54,13 +72,26 @@ public class PrometheusStatsExporter implements IStatsExporter {
 				updateFromNested(entry.getKey(), value.getAsJsonObject());
 			}
 		}
+
+		if (pushGateway != null) {
+			try {
+				pushGateway.pushAdd();
+			} catch (IOException e) {
+				logger.warn("Failed to push metrics to PushGateway at {}: {}", pushGatewayAddress, e.getMessage());
+			}
+		}
 	}
 
 	@Override
 	public void stop() {
-		if (httpServer != null) {
-			httpServer.close();
-			logger.info("Prometheus HTTP server stopped");
+		if (pushGateway != null) {
+			try {
+				pushGateway.delete();
+				logger.info("Deleted metrics for job={} instance={} user={} from PushGateway at {}",
+						job, instance, userEmail, pushGatewayAddress);
+			} catch (IOException e) {
+				logger.warn("Failed to delete metrics from PushGateway at {}: {}", pushGatewayAddress, e.getMessage());
+			}
 		}
 	}
 

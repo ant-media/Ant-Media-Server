@@ -645,7 +645,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
-            <artifactId>prometheus-metrics-exporter-httpserver</artifactId>
+            <artifactId>prometheus-metrics-exporter-pushgateway</artifactId>
             <version>1.5.0</version>
         </dependency>
         <dependency>
