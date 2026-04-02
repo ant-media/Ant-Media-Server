@@ -122,8 +122,22 @@ public class PluginRegistry {
     }
 
     /**
+     * Returns the names of all registered plug-ins.
+     *
+     * @return unmodifiable set of plug-in names
+     */
+    public static java.util.Set<String> getPluginNames() {
+        pluginReadLock.lock();
+        try {
+            return java.util.Collections.unmodifiableSet(new java.util.HashSet<>(plugins.keySet()));
+        } finally {
+            pluginReadLock.unlock();
+        }
+    }
+
+    /**
      * Returns a plug-in.
-     * 
+     *
      * @param pluginName
      *            plugin name
      * @return requested plug-in matching the name given or null if not found

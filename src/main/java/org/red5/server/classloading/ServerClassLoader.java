@@ -66,7 +66,17 @@ public class ServerClassLoader extends URLClassLoader {
 
 	public ServerClassLoader(java.lang.ClassLoader parent) {
 		super(getJars(), parent);
-		
+
+	}
+
+	/**
+	 * Dynamically adds a plugin JAR to this classloader's URL search path.
+	 * Called at runtime by {@code PluginDeployer} for hot-loaded plugins.
+	 *
+	 * @param url the JAR URL to add
+	 */
+	public void addPluginJar(URL url) {
+		addURL(url);
 	}
 	
 	public static URL[] getJars() {

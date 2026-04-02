@@ -50,8 +50,11 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
+import org.red5.server.plugin.PluginDeployer;
+import org.red5.server.plugin.PluginRegistry;
 
 
 /**
@@ -88,6 +91,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	private IScope rootScope;
 	private Vertx vertx;
 	private WarDeployer warDeployer;
+	private PluginDeployer pluginDeployer;
 	private boolean isCluster = false;
 
 
@@ -102,20 +106,190 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		vertx = (Vertx) scope.getContext().getBean("vertxCore");
 		warDeployer = (WarDeployer) app.getContext().getBean("warDeployer");
+		pluginDeployer = (PluginDeployer) app.getContext().getBean("pluginDeployer");
 
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) -> 
+			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) ->
 			createApplicationWithURL(appName, warFileURI, secretKey)
 					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
 			});
-
+			clusterNotifier.registerDeployPluginListener(
+					(pluginName, jarFileURI, secretKey) -> deployPluginWithURL(pluginName, jarFileURI, secretKey)
+			);
+			clusterNotifier.registerUndeployPluginListener(
+					pluginName -> undeployPlugin(pluginName)
+			);
 		}
 
 		return super.appStart(app);
+	}
+
+	/**
+	 * Saves plugin ZIP to disk, extracts and hot-loads it, notifies cluster peers.
+	 */
+	public boolean deployPlugin(String pluginName, InputStream inputStream) {
+		if (!isValidPluginName(pluginName)) {
+			logger.warn("Invalid plugin name rejected: {}", pluginName);
+			return false;
+		}
+
+		File zipFile = savePluginZip(pluginName, inputStream);
+		if (zipFile == null) {
+			return false;
+		}
+
+		Result result = pluginDeployer.loadPluginFromZip(zipFile, getPluginsDir());
+		boolean success = result.isSuccess();
+
+		if (success && clusterNotifier != null) {
+			String zipURI = buildPluginDownloadURI(pluginName);
+			clusterNotifier.notifyDeployPlugin(pluginName, zipURI, getClusterCommunicationKey());
+		}
+
+		return success;
+	}
+
+	/**
+	 * Called on non-origin cluster nodes: downloads the ZIP and deploys it.
+	 */
+	public boolean deployPluginWithURL(String pluginName, String zipFileURI, String secretKey) {
+		try {
+			File zipFile = downloadPluginZip(pluginName, zipFileURI, secretKey);
+			if (zipFile == null) {
+				return false;
+			}
+			return pluginDeployer.loadPluginFromZip(zipFile, getPluginsDir()).isSuccess();
+		} catch (IOException e) {
+			logger.error("Failed to download plugin ZIP from {}", zipFileURI, e);
+			return false;
+		}
+	}
+
+	/**
+	 * Unloads plugin, runs uninstall script, removes artifacts, notifies cluster.
+	 */
+	public boolean undeployPlugin(String pluginName) {
+		if (!isValidPluginName(pluginName)) {
+			logger.warn("Invalid plugin name rejected: {}", pluginName);
+			return false;
+		}
+
+		// Unload listeners and REST handlers
+		Result unloadResult = pluginDeployer.unloadPlugin(pluginName);
+
+		// Run uninstall script and remove canonical dir
+		pluginDeployer.runUninstallScript(pluginName, getPluginsDir());
+
+		// Remove the uploaded ZIP
+		File zipFile = new File(getPluginsDir(), pluginName + ".zip");
+		if (zipFile.exists() && !zipFile.delete()) {
+			logger.warn("Failed to delete plugin ZIP: {}", zipFile.getAbsolutePath());
+		}
+
+		if (unloadResult.isSuccess() && clusterNotifier != null) {
+			clusterNotifier.notifyUndeployPlugin(pluginName);
+		}
+
+		return unloadResult.isSuccess();
+	}
+
+	private static boolean isValidPluginName(String name) {
+		return name != null && name.matches("[a-zA-Z0-9_\\-]+");
+	}
+
+	/**
+	 * Saves uploaded plugin ZIP to {@code plugins/{pluginName}.zip}.
+	 */
+	@Nullable
+	public File savePluginZip(String pluginName, InputStream inputStream) {
+		if (!isValidPluginName(pluginName)) {
+			logger.warn("Invalid plugin name rejected: {}", pluginName);
+			return null;
+		}
+		if (inputStream == null) {
+			logger.warn("Input stream is null for plugin {}", pluginName);
+			return null;
+		}
+		File dir = getPluginsDir();
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		File savedFile = new File(dir, pluginName + ".zip");
+		try (OutputStream out = new FileOutputStream(savedFile)) {
+			byte[] buf = new byte[2048];
+			int read;
+			while ((read = inputStream.read(buf)) != -1) {
+				out.write(buf, 0, read);
+			}
+			out.flush();
+			logger.info("Plugin ZIP saved: {} ({} bytes)", savedFile.getPath(), savedFile.length());
+			return savedFile;
+		} catch (Exception e) {
+			logger.error("Error saving plugin ZIP for {}: {}", pluginName, e.getMessage());
+			return null;
+		}
+	}
+
+	private File getPluginsDir() {
+		return new File(System.getProperty("red5.root"), "plugins");
+	}
+
+	/** URL for cluster peers to download the plugin ZIP from this node. */
+	public String buildPluginDownloadURI(String pluginName) {
+		String host = System.getProperty("red5.host", "localhost");
+		String port = System.getProperty("http.port", "5080");
+		return "http://" + host + ":" + port + "/rest/v2/plugins/" + pluginName + "/download";
+	}
+
+	/**
+	 * Downloads a plugin ZIP from a cluster peer.
+	 */
+	public File downloadPluginZip(String pluginName, String zipFileURI, String secretKey) throws IOException {
+		try (CloseableHttpClient client = getHttpClient()) {
+			RequestConfig requestConfig = RequestConfig.custom()
+					.setConnectTimeout(2 * 1000)
+					.setSocketTimeout(5 * 1000)
+					.build();
+
+			String jwtToken = JWTFilter.generateJwtToken(secretKey,
+					System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "pluginname", pluginName);
+
+			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get()
+					.setUri(zipFileURI)
+					.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken)
+					.build();
+			get.setConfig(requestConfig);
+
+			HttpResponse response = client.execute(get);
+			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+				logger.error("Cannot download plugin ZIP from URL: {} Response code: {}",
+						zipFileURI, response.getStatusLine().getStatusCode());
+				return null;
+			}
+
+			try (BufferedInputStream in = new BufferedInputStream(response.getEntity().getContent())) {
+				return savePluginZip(pluginName, in);
+			}
+		}
+	}
+
+	public PluginDeployer getPluginDeployer() {
+		return pluginDeployer;
+	}
+
+	public List<String> getAllPluginNames() {
+		if (pluginDeployer != null) {
+			return new ArrayList<>(pluginDeployer.getPluginNames());
+		}
+		return new ArrayList<>();
+	}
+
+	public void setPluginDeployer(PluginDeployer pluginDeployer) {
+		this.pluginDeployer = pluginDeployer;
 	}
 
 	public boolean createApplicationWithURL(String appName, String warFileURI, String secretKey) 
@@ -210,9 +384,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return appsInfo;
 	}
 
-	public AntMediaApplicationAdapter getApplicationAdaptor(IScope appScope) 
+	public AntMediaApplicationAdapter getApplicationAdaptor(IScope appScope)
 	{
 		return (AntMediaApplicationAdapter) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+	}
+
+	/** Gets the cluster communication key from the first available streaming app — same secret used by WarDownloadServlet. */
+	public String getClusterCommunicationKey() {
+		for (String appName : getApplications()) {
+			if (APP_NAME.equals(appName)) continue;
+			IScope appScope = getRootScope().getScope(appName);
+			if (appScope != null) {
+				try {
+					AntMediaApplicationAdapter adaptor = getApplicationAdaptor(appScope);
+					if (adaptor != null) {
+						return adaptor.getAppSettings().getClusterCommunicationKey();
+					}
+				} catch (Exception e) {
+					// try next app
+				}
+			}
+		}
+		return null;
 	}
 	
 	public static long getDirectorySize(Path dir) {
@@ -578,6 +771,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public IClusterNotifier getClusterNotifier() {
 		return clusterNotifier;
+	}
+
+	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
+		this.clusterNotifier = clusterNotifier;
 	}
 
 

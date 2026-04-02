@@ -58,6 +58,7 @@ import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
@@ -1554,6 +1555,60 @@ public class CommonRestService {
 
 	public Result getBlockedStatus(String usermail) {
 		return new Result(getDataStore().isUserBlocked(usermail));
+	}
+
+
+	public List<String> getPlugins() {
+		return getApplication().getAllPluginNames();
+	}
+
+	private static boolean isValidPluginName(String name) {
+		return name != null && name.matches("[a-zA-Z0-9_\\-]+");
+	}
+
+	public Result deployPlugin(String pluginName, InputStream inputStream) {
+		if (inputStream == null) {
+			return new Result(false, "No file provided");
+		}
+		if (!isValidPluginName(pluginName)) {
+			return new Result(false, "Plugin name is required and must contain only letters, digits, hyphens, or underscores");
+		}
+		boolean success = getApplication().deployPlugin(pluginName, inputStream);
+		return new Result(success, success ? "" : "Failed to deploy plugin: " + pluginName);
+	}
+
+	public Result undeployPlugin(String pluginName) {
+		if (!isValidPluginName(pluginName)) {
+			return new Result(false, "Plugin name is required and must contain only letters, digits, hyphens, or underscores");
+		}
+		boolean success = getApplication().undeployPlugin(pluginName);
+		return new Result(success, success ? "" : "Failed to undeploy plugin: " + pluginName);
+	}
+
+	public Response downloadPlugin(String pluginName, String jwtToken) {
+		String secretKey = getApplication().getClusterCommunicationKey();
+		if (!JWTFilter.isJWTTokenValid(secretKey, jwtToken, "pluginname", pluginName)) {
+			return Response.status(Status.FORBIDDEN).build();
+		}
+		if (!isValidPluginName(pluginName)) {
+			return Response.status(Status.BAD_REQUEST).build();
+		}
+
+		File zipFile = new File(System.getProperty("red5.root"), "plugins/" + pluginName + ".zip");
+		if (!zipFile.exists()) {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+
+		try {
+			InputStream stream = new java.io.FileInputStream(zipFile);
+			return Response.ok(stream)
+					.header("Content-Disposition", "attachment; filename=\"" + pluginName + ".zip\"")
+					.header("Content-Length", zipFile.length())
+					.build();
+		} catch (java.io.FileNotFoundException e) {
+			logger.error("Plugin ZIP not found on disk: {}", zipFile.getAbsolutePath());
+			return Response.status(Status.NOT_FOUND).build();
+		}
 	}
 
 }
