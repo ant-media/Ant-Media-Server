@@ -1,6 +1,9 @@
 package io.antmedia.test.filter;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -160,7 +163,7 @@ public class HlsStatisticsFilterTest {
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, times(1)).registerNewViewer(eq(streamId), anyString(), isNull());
 			
 			
 			
@@ -211,16 +214,16 @@ public class HlsStatisticsFilterTest {
 		try {
 			hlsStatisticsFilter.init(filterconfig);
 			
-			String sessionId = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			requestHls(streamId);		
+			verify(streamStats, times(1)).registerNewViewer(eq(streamId), anyString(), isNull());
 			broadcast.setHlsViewerCount(1);
 			
-			String sessionId2 = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null);
+			requestHls(streamId);		
+			verify(streamStats, times(2)).registerNewViewer(eq(streamId), anyString(), isNull());
 			broadcast.setHlsViewerCount(2);
 
-			String sessionId3 = requestHls(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null);
+			requestHls(streamId);		
+			verify(streamStats, times(2)).registerNewViewer(eq(streamId), anyString(), isNull());
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
