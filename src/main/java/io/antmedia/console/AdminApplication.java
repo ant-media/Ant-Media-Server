@@ -128,76 +128,84 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return super.appStart(app);
 	}
 
-	/** Saves plugin JAR to disk, hot-loads it, and notifies cluster peers. */
+	/**
+	 * Saves plugin ZIP to disk, extracts and hot-loads it, notifies cluster peers.
+	 */
 	public boolean deployPlugin(String pluginName, InputStream inputStream) {
-		if (PluginRegistry.getPlugin(pluginName) != null) {
-			logger.warn("Plugin {} is already loaded", pluginName);
+		if (!isValidPluginName(pluginName)) {
+			logger.warn("Invalid plugin name rejected: {}", pluginName);
 			return false;
 		}
 
-		File jarFile = savePluginJar(pluginName, inputStream);
-		if (jarFile == null) {
+		File zipFile = savePluginZip(pluginName, inputStream);
+		if (zipFile == null) {
 			return false;
 		}
 
-		Result result = pluginDeployer.loadPlugin(jarFile);
+		Result result = pluginDeployer.loadPluginFromZip(zipFile, getPluginsDir());
 		boolean success = result.isSuccess();
 
 		if (success && clusterNotifier != null) {
-			String jarURI = buildPluginDownloadURI(pluginName);
-			clusterNotifier.notifyDeployPlugin(pluginName, jarURI, getClusterCommunicationKey());
+			String zipURI = buildPluginDownloadURI(pluginName);
+			clusterNotifier.notifyDeployPlugin(pluginName, zipURI, getClusterCommunicationKey());
 		}
 
 		return success;
 	}
 
 	/**
-	 * Called on non-origin cluster nodes: downloads the JAR and hot-loads it.
+	 * Called on non-origin cluster nodes: downloads the ZIP and deploys it.
 	 */
-	public boolean deployPluginWithURL(String pluginName, String jarFileURI, String secretKey) {
-		if (PluginRegistry.getPlugin(pluginName) != null) {
-			return false;
-		}
+	public boolean deployPluginWithURL(String pluginName, String zipFileURI, String secretKey) {
 		try {
-			File jarFile = downloadPluginJar(pluginName, jarFileURI, secretKey);
-			if (jarFile == null) {
+			File zipFile = downloadPluginZip(pluginName, zipFileURI, secretKey);
+			if (zipFile == null) {
 				return false;
 			}
-			return pluginDeployer.loadPlugin(jarFile).isSuccess();
+			return pluginDeployer.loadPluginFromZip(zipFile, getPluginsDir()).isSuccess();
 		} catch (IOException e) {
-			logger.error("Failed to download plugin JAR from {}", jarFileURI, e);
+			logger.error("Failed to download plugin ZIP from {}", zipFileURI, e);
 			return false;
 		}
 	}
 
-	/** Unloads plugin beans, deletes JAR from disk, and notifies cluster peers. */
+	/**
+	 * Unloads plugin, runs uninstall script, removes artifacts, notifies cluster.
+	 */
 	public boolean undeployPlugin(String pluginName) {
 		if (!isValidPluginName(pluginName)) {
 			logger.warn("Invalid plugin name rejected: {}", pluginName);
 			return false;
 		}
-		Result result = pluginDeployer.unloadPlugin(pluginName);
-		boolean success = result.isSuccess();
 
-		if (success) {
-			File jarFile = new File(getPluginsDir(), pluginName + ".jar");
-			if (jarFile.exists() && !jarFile.delete()) {
-				logger.warn("Failed to delete plugin jar: {}", jarFile.getAbsolutePath());
-			}
-			if (clusterNotifier != null) {
-				clusterNotifier.notifyUndeployPlugin(pluginName);
-			}
+		// Unload listeners and REST handlers
+		Result unloadResult = pluginDeployer.unloadPlugin(pluginName);
+
+		// Run uninstall script and remove canonical dir
+		pluginDeployer.runUninstallScript(pluginName, getPluginsDir());
+
+		// Remove the uploaded ZIP
+		File zipFile = new File(getPluginsDir(), pluginName + ".zip");
+		if (zipFile.exists() && !zipFile.delete()) {
+			logger.warn("Failed to delete plugin ZIP: {}", zipFile.getAbsolutePath());
 		}
-		return success;
+
+		if (unloadResult.isSuccess() && clusterNotifier != null) {
+			clusterNotifier.notifyUndeployPlugin(pluginName);
+		}
+
+		return unloadResult.isSuccess();
 	}
 
 	private static boolean isValidPluginName(String name) {
 		return name != null && name.matches("[a-zA-Z0-9_\\-]+");
 	}
 
-	/** Saves uploaded plugin JAR to {@code plugins/{pluginName}.jar}, returns null on failure. */
+	/**
+	 * Saves uploaded plugin ZIP to {@code plugins/{pluginName}.zip}.
+	 */
 	@Nullable
-	public File savePluginJar(String pluginName, InputStream inputStream) {
+	public File savePluginZip(String pluginName, InputStream inputStream) {
 		if (!isValidPluginName(pluginName)) {
 			logger.warn("Invalid plugin name rejected: {}", pluginName);
 			return null;
@@ -206,11 +214,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			logger.warn("Input stream is null for plugin {}", pluginName);
 			return null;
 		}
-		File dir = new File(System.getProperty("red5.root"), "plugins");
+		File dir = getPluginsDir();
 		if (!dir.exists()) {
 			dir.mkdirs();
 		}
-		File savedFile = new File(dir, pluginName + ".jar");
+		File savedFile = new File(dir, pluginName + ".zip");
 		try (OutputStream out = new FileOutputStream(savedFile)) {
 			byte[] buf = new byte[2048];
 			int read;
@@ -218,10 +226,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				out.write(buf, 0, read);
 			}
 			out.flush();
-			logger.info("Plugin JAR saved: {} ({} bytes)", savedFile.getPath(), savedFile.length());
+			logger.info("Plugin ZIP saved: {} ({} bytes)", savedFile.getPath(), savedFile.length());
 			return savedFile;
 		} catch (Exception e) {
-			logger.error("Error saving plugin JAR for {}: {}", pluginName, e.getMessage());
+			logger.error("Error saving plugin ZIP for {}: {}", pluginName, e.getMessage());
 			return null;
 		}
 	}
@@ -230,7 +238,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return new File(System.getProperty("red5.root"), "plugins");
 	}
 
-	/** URL for cluster peers to download the plugin JAR from this node. */
+	/** URL for cluster peers to download the plugin ZIP from this node. */
 	public String buildPluginDownloadURI(String pluginName) {
 		String host = System.getProperty("red5.host", "localhost");
 		String port = System.getProperty("http.port", "5080");
@@ -238,9 +246,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	/**
-	 * Downloads a plugin JAR from a cluster peer — mirrors {@link #downloadWarFile}.
+	 * Downloads a plugin ZIP from a cluster peer.
 	 */
-	public File downloadPluginJar(String pluginName, String jarFileURI, String secretKey) throws IOException {
+	public File downloadPluginZip(String pluginName, String zipFileURI, String secretKey) throws IOException {
 		try (CloseableHttpClient client = getHttpClient()) {
 			RequestConfig requestConfig = RequestConfig.custom()
 					.setConnectTimeout(2 * 1000)
@@ -251,20 +259,20 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 					System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "pluginname", pluginName);
 
 			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get()
-					.setUri(jarFileURI)
+					.setUri(zipFileURI)
 					.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken)
 					.build();
 			get.setConfig(requestConfig);
 
 			HttpResponse response = client.execute(get);
 			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-				logger.error("Cannot download plugin JAR from URL: {} Response code: {}",
-						jarFileURI, response.getStatusLine().getStatusCode());
+				logger.error("Cannot download plugin ZIP from URL: {} Response code: {}",
+						zipFileURI, response.getStatusLine().getStatusCode());
 				return null;
 			}
 
 			try (BufferedInputStream in = new BufferedInputStream(response.getEntity().getContent())) {
-				return savePluginJar(pluginName, in);
+				return savePluginZip(pluginName, in);
 			}
 		}
 	}
@@ -273,13 +281,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return pluginDeployer;
 	}
 
-	/** Union of startup-loaded (PluginRegistry) and hot-loaded (PluginDeployer) plugin names. */
 	public List<String> getAllPluginNames() {
-		Set<String> names = new java.util.HashSet<>(PluginRegistry.getPluginNames());
 		if (pluginDeployer != null) {
-			names.addAll(pluginDeployer.getSpringPluginNames());
+			return new ArrayList<>(pluginDeployer.getPluginNames());
 		}
-		return new ArrayList<>(names);
+		return new ArrayList<>();
 	}
 
 	public void setPluginDeployer(PluginDeployer pluginDeployer) {

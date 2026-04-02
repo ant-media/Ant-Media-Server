@@ -1594,19 +1594,19 @@ public class CommonRestService {
 			return Response.status(Status.BAD_REQUEST).build();
 		}
 
-		File jarFile = new File(System.getProperty("red5.root"), "plugins/" + pluginName + ".jar");
-		if (!jarFile.exists()) {
+		File zipFile = new File(System.getProperty("red5.root"), "plugins/" + pluginName + ".zip");
+		if (!zipFile.exists()) {
 			return Response.status(Status.NOT_FOUND).build();
 		}
 
 		try {
-			InputStream stream = new java.io.FileInputStream(jarFile);
+			InputStream stream = new java.io.FileInputStream(zipFile);
 			return Response.ok(stream)
-					.header("Content-Disposition", "attachment; filename=\"" + pluginName + ".jar\"")
-					.header("Content-Length", jarFile.length())
+					.header("Content-Disposition", "attachment; filename=\"" + pluginName + ".zip\"")
+					.header("Content-Length", zipFile.length())
 					.build();
 		} catch (java.io.FileNotFoundException e) {
-			logger.error("Plugin JAR not found on disk: {}", jarFile.getAbsolutePath());
+			logger.error("Plugin ZIP not found on disk: {}", zipFile.getAbsolutePath());
 			return Response.status(Status.NOT_FOUND).build();
 		}
 	}
