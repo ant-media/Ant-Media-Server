@@ -6,7 +6,6 @@ import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.catalina.Context;
@@ -15,244 +14,454 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.red5.server.api.IApplicationContext;
 import org.red5.server.tomcat.TomcatApplicationContext;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
-import org.springframework.beans.factory.support.DefaultSingletonBeanRegistry;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.ApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.plugin.api.IStreamListener;
+import io.antmedia.plugin.api.PluginRecord;
+import io.antmedia.plugin.api.PluginState;
 import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
+import io.vertx.core.Vertx;
 
-@SuppressWarnings("unchecked")
 public class PluginDeployerTest {
 
-    private PluginDeployer deployer;
+	private PluginDeployer deployer;
+	private static Vertx vertx;
 
-    @Before
-    public void before() {
-        deployer = new PluginDeployer();
-    }
+	@Before
+	public void before() {
+		deployer = new PluginDeployer();
+		vertx = Vertx.vertx();
+	}
 
+	/** Spy that bypasses system-CL check and JAR-adding; provides mock webapp contexts. */
+	private PluginDeployer deployerSpy(Map<String, IApplicationContext> contexts) {
+		PluginDeployer spy = Mockito.spy(deployer);
+		doReturn(true).when(spy).isSystemClassLoaderServerClassLoader();
+		doNothing().when(spy).addJarToSystemClassLoader(any());
+		doReturn(contexts).when(spy).getApplicationContexts();
+		return spy;
+	}
 
-    /** Spy that bypasses the system-CL check and JAR-adding; scanning still uses the real CL. */
-    private PluginDeployer deployerSpy(Map<String, IApplicationContext> contexts) {
-        PluginDeployer spy = Mockito.spy(deployer);
-        doReturn(true).when(spy).isSystemClassLoaderServerClassLoader();
-        doNothing().when(spy).addJarToSystemClassLoader(any());
-        doReturn(contexts).when(spy).getApplicationContexts();
-        return spy;
-    }
+	/** Creates a mock streaming webapp context with beans for DI injection. */
+	private TomcatApplicationContext mockStreamingContext(String path) {
+		TomcatApplicationContext tomcatCtx = mock(TomcatApplicationContext.class);
+		Context catalinaCtx = mock(Context.class);
+		when(tomcatCtx.getContext()).thenReturn(catalinaCtx);
+		when(catalinaCtx.getPath()).thenReturn(path);
 
-    /** Mock TomcatApplicationContext at the given path backed by the given bean factory. */
-    private TomcatApplicationContext mockStreamingContext(String path,
-            DefaultListableBeanFactory beanFactory) {
-        TomcatApplicationContext tomcatCtx = mock(TomcatApplicationContext.class);
-        Context catalinaCtx = mock(Context.class);
-        when(tomcatCtx.getContext()).thenReturn(catalinaCtx);
-        when(catalinaCtx.getPath()).thenReturn(path);
+		ApplicationContext springCtx = mock(ApplicationContext.class);
+		when(tomcatCtx.getSpringContext()).thenReturn(springCtx);
+		lenient().when(springCtx.getId()).thenReturn(path);
 
-        ConfigurableApplicationContext springCtx = mock(ConfigurableApplicationContext.class);
-        lenient().when(springCtx.getId()).thenReturn(path);
-        when(tomcatCtx.getSpringContext()).thenReturn(springCtx);
-        when(springCtx.getAutowireCapableBeanFactory()).thenReturn(beanFactory);
+		// Provide beans for @Inject resolution
+		IAntMediaStreamHandler app = mock(AntMediaApplicationAdapter.class);
+		when(springCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(springCtx.getBean(AppSettings.BEAN_NAME)).thenReturn(mock(AppSettings.class));
+		when(springCtx.getBean(ServerSettings.BEAN_NAME)).thenReturn(mock(ServerSettings.class));
+		when(springCtx.getBean("vertxCore")).thenReturn(vertx);
 
-        return tomcatCtx;
-    }
+		return tomcatCtx;
+	}
+	
+	@Test
+	public void testLoadPlugin_systemCLNotServerCL_fails() throws Exception {
+		File jar = TestPluginJarBuilder.buildPluginJar("sclCheck");
+		Result result = deployer.loadPlugin(jar);
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("ServerClassLoader"));
+	}
 
-    /**
-     * DefaultListableBeanFactory extends DefaultSingletonBeanRegistry and implements
-     * AutowireCapableBeanFactory + ConfigurableListableBeanFactory — all cast targets in PluginDeployer.
-     */
-    private DefaultListableBeanFactory mockBeanFactory() {
-        DefaultListableBeanFactory bf = mock(DefaultListableBeanFactory.class);
-        try {
-            when(bf.createBean(any(Class.class))).thenAnswer(inv -> {
-                Class<?> clazz = inv.getArgument(0);
-                return clazz.getDeclaredConstructor().newInstance();
-            });
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return bf;
-    }
+	@Test
+	public void testLoadPlugin_noAmsPluginAnnotation_fails() throws Exception {
+		File jar = TestPluginJarBuilder.buildJarNoAmsPlugin();
+		PluginDeployer spy = deployerSpy(Collections.emptyMap());
+		Result result = spy.loadPlugin(jar);
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("No @AmsPlugin"));
+	}
 
-    @Test
-    public void testLoadPlugin_systemCLNotServerCL_fails() throws Exception {
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("sclCheck");
+	@Test
+	public void testLoadPlugin_success() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
 
-        Result result = deployer.loadPlugin(jar);
+		File jar = TestPluginJarBuilder.buildPluginJar("loadOk");
+		Result result = spy.loadPlugin(jar);
 
-        assertFalse(result.isSuccess());
-        assertTrue(result.getMessage().contains("ServerClassLoader"));
-    }
+		assertTrue(result.isSuccess());
+		assertTrue(spy.getPluginNames().contains("loadOk"));
 
-    @Test
-    public void testLoadSpringPlugin_emptyJar_noComponents() throws Exception {
-        File jar = SpringTestPluginJarBuilder.buildEmptyJar("emptyPlugin");
-        PluginDeployer spy = deployerSpy(Collections.emptyMap());
+		// Verify stream listener was registered
+		ApplicationContext springCtx = ctx.getSpringContext();
+		IAntMediaStreamHandler app = (IAntMediaStreamHandler) springCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		verify(app).addStreamListener(any(IStreamListener.class));
+	}
 
-        Result result = spy.loadPlugin(jar);
+	@Test
+	public void testLoadPlugin_withRest_registersRestKey() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
 
-        assertFalse(result.isSuccess());
-        assertTrue(result.getMessage().contains("No @Component"));
-    }
+		File jar = TestPluginJarBuilder.buildPluginWithRestJar("restV2");
+		Result result = spy.loadPlugin(jar);
 
-    @Test
-    public void testLoadSpringPlugin_noContexts_fails() throws Exception {
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("noCtx");
-        PluginDeployer spy = deployerSpy(Collections.emptyMap());
+		assertTrue(result.isSuccess());
+		assertTrue(spy.getPluginRestKeys().containsKey("restV2"));
+		assertTrue(spy.getPluginRestKeys().get("restV2").contains("test-v2-plugin"));
+	}
 
-        Result result = spy.loadPlugin(jar);
+	@Test
+	public void testLoadPlugin_skipsRootContext() throws Exception {
+		TomcatApplicationContext rootCtx = mockStreamingContext("");
+		TomcatApplicationContext liveCtx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("", rootCtx, "/LiveApp", liveCtx));
 
-        assertFalse(result.isSuccess());
-        assertTrue(result.getMessage().contains("none could be registered"));
-    }
+		File jar = TestPluginJarBuilder.buildPluginJar("skipRoot");
+		Result result = spy.loadPlugin(jar);
 
-    @Test
-    public void testLoadSpringPlugin_success() throws Exception {
-        DefaultListableBeanFactory bf = mockBeanFactory();
-        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp", bf);
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+		assertTrue(result.isSuccess());
+		// Root context app should not have addStreamListener called
+		ApplicationContext rootSpring = rootCtx.getSpringContext();
+		verify(rootSpring, never()).getBean(AntMediaApplicationAdapter.BEAN_NAME);
+	}
 
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("loadOk");
-        Result result = spy.loadPlugin(jar);
+	@Test
+	public void testLoadPlugin_multipleContexts() throws Exception {
+		TomcatApplicationContext ctx1 = mockStreamingContext("/LiveApp");
+		TomcatApplicationContext ctx2 = mockStreamingContext("/WebRTCAppEE");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx1, "/WebRTCAppEE", ctx2));
 
-        assertTrue(result.isSuccess());
-        assertTrue(spy.getSpringPluginNames().contains("loadOk"));
-        verify(bf).createBean(any(Class.class));
-        verify((ConfigurableListableBeanFactory) bf).registerSingleton(anyString(), any());
-    }
+		File jar = TestPluginJarBuilder.buildPluginJar("multiCtx");
+		Result result = spy.loadPlugin(jar);
 
-    @Test
-    public void testLoadSpringPlugin_skipsRootContext() throws Exception {
-        DefaultListableBeanFactory rootBf = mockBeanFactory();
-        TomcatApplicationContext rootCtx = mockStreamingContext("", rootBf);
+		assertTrue(result.isSuccess());
+		// Both contexts should have listeners registered
+		IAntMediaStreamHandler app1 = (IAntMediaStreamHandler) ctx1.getSpringContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		IAntMediaStreamHandler app2 = (IAntMediaStreamHandler) ctx2.getSpringContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		verify(app1).addStreamListener(any(IStreamListener.class));
+		verify(app2).addStreamListener(any(IStreamListener.class));
+	}
 
-        DefaultListableBeanFactory liveAppBf = mockBeanFactory();
-        TomcatApplicationContext liveAppCtx = mockStreamingContext("/LiveApp", liveAppBf);
+	@Test
+	public void testLoadPlugin_injectsFields() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
 
-        PluginDeployer spy = deployerSpy(Map.of("", rootCtx, "/LiveApp", liveAppCtx));
+		File jar = TestPluginJarBuilder.buildPluginJar("injectTest");
+		Result result = spy.loadPlugin(jar);
 
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("skipRoot");
-        Result result = spy.loadPlugin(jar);
+		assertTrue(result.isSuccess());
+	}
 
-        assertTrue(result.isSuccess());
-        verify(rootBf, never()).createBean(any(Class.class));
-        verify(liveAppBf).createBean(any(Class.class));
-    }
+	// ========================================================================
+	// unloadPlugin
+	// ========================================================================
 
-    @Test
-    public void testLoadSpringPlugin_multipleContexts() throws Exception {
-        DefaultListableBeanFactory bf1 = mockBeanFactory();
-        DefaultListableBeanFactory bf2 = mockBeanFactory();
-        TomcatApplicationContext ctx1 = mockStreamingContext("/LiveApp", bf1);
-        TomcatApplicationContext ctx2 = mockStreamingContext("/live", bf2);
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx1, "/live", ctx2));
+	@Test
+	public void testUnloadPlugin_notFound() {
+		Result result = deployer.unloadPlugin("doesNotExist");
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("not found"));
+	}
 
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("multiCtx");
-        Result result = spy.loadPlugin(jar);
+	@Test
+	public void testUnloadPlugin_success() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
 
-        assertTrue(result.isSuccess());
-        verify(bf1).createBean(any(Class.class));
-        verify(bf2).createBean(any(Class.class));
-    }
+		File jar = TestPluginJarBuilder.buildPluginJar("unloadMe");
+		spy.loadPlugin(jar);
+		assertTrue(spy.getPluginNames().contains("unloadMe"));
 
-    @Test
-    public void testLoadSpringPlugin_duplicate() throws Exception {
-        DefaultListableBeanFactory bf = mockBeanFactory();
-        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp", bf);
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+		Result result = spy.unloadPlugin("unloadMe");
 
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("dupSpring");
-        spy.loadPlugin(jar);
+		assertTrue(result.isSuccess());
+		assertFalse(spy.getPluginNames().contains("unloadMe"));
+	}
 
-        Result second = spy.loadPlugin(jar);
+	@Test
+	public void testUnloadPlugin_removesStreamListeners() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
 
-        assertFalse(second.isSuccess());
-        assertTrue(second.getMessage().contains("already loaded"));
-    }
+		File jar = TestPluginJarBuilder.buildPluginJar("unloadListeners");
+		spy.loadPlugin(jar);
+		spy.unloadPlugin("unloadListeners");
 
-    @Test
-    public void testLoadSpringPlugin_restComponent_derivesKey() throws Exception {
-        DefaultListableBeanFactory bf = mockBeanFactory();
-        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp", bf);
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+		IAntMediaStreamHandler app = (IAntMediaStreamHandler) ctx.getSpringContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		verify(app).removeStreamListener(any(IStreamListener.class));
+	}
 
-        File jar = SpringTestPluginJarBuilder.buildRestComponentJar("restPlugin");
-        Result result = spy.loadPlugin(jar);
+	@Test
+	public void testUnloadPlugin_removesRestKeys() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
 
-        assertTrue(result.isSuccess());
-        List<String> restKeys = spy.getSpringPluginRestKeys().get("restPlugin");
-        assertNotNull(restKeys);
-        assertTrue(restKeys.contains("test-plugin"));
-    }
+		File jar = TestPluginJarBuilder.buildPluginWithRestJar("restUnload");
+		spy.loadPlugin(jar);
+		assertNotNull(spy.getPluginRestKeys().get("restUnload"));
 
-    @Test
-    public void testUnloadPlugin_notFound() {
-        Result result = deployer.unloadPlugin("doesNotExist");
+		spy.unloadPlugin("restUnload");
+		assertNull(spy.getPluginRestKeys().get("restUnload"));
+	}
 
-        assertFalse(result.isSuccess());
-        assertTrue(result.getMessage().contains("not found"));
-    }
+	// ========================================================================
+	// Manifest validation
+	// ========================================================================
 
-    @Test
-    public void testUnloadPlugin_success() throws Exception {
-        DefaultListableBeanFactory bf = mockBeanFactory();
-        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp", bf);
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+	@Test
+	public void testValidateManifest_missingName() throws Exception {
+		File jar = TestPluginJarBuilder.buildJarMissingName();
+		Result result = deployer.validateManifest(jar);
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("AMS-Plugin-Name"));
+	}
 
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("unloadMe");
-        spy.loadPlugin(jar);
-        assertTrue(spy.getSpringPluginNames().contains("unloadMe"));
+	@Test
+	public void testValidateManifest_missingVersion() throws Exception {
+		File jar = TestPluginJarBuilder.buildJarMissingVersion();
+		Result result = deployer.validateManifest(jar);
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("AMS-Plugin-Version"));
+	}
 
-        Result result = spy.unloadPlugin("unloadMe");
+	@Test
+	public void testValidateManifest_missingAuthor() throws Exception {
+		File jar = TestPluginJarBuilder.buildJarMissingAuthor();
+		Result result = deployer.validateManifest(jar);
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("AMS-Plugin-Author"));
+	}
 
-        assertTrue(result.isSuccess());
-        assertFalse(spy.getSpringPluginNames().contains("unloadMe"));
-        verify((DefaultSingletonBeanRegistry) bf).destroySingleton(anyString());
-    }
+	@Test
+	public void testValidateManifest_valid() throws Exception {
+		File jar = TestPluginJarBuilder.buildPluginJar("validManifest");
+		Result result = deployer.validateManifest(jar);
+		assertTrue(result.isSuccess());
+	}
 
-    @Test
-    public void testUnloadPlugin_removesRestKeys() throws Exception {
-        DefaultListableBeanFactory bf = mockBeanFactory();
-        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp", bf);
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+	// ========================================================================
+	// Version compatibility
+	// ========================================================================
 
-        File jar = SpringTestPluginJarBuilder.buildRestComponentJar("restUnload");
-        spy.loadPlugin(jar);
-        assertNotNull(spy.getSpringPluginRestKeys().get("restUnload"));
+	@Test
+	public void testVersionCompatible_sameVersion() {
+		assertTrue(PluginDeployer.isVersionCompatible("2.11.0", "2.11.0"));
+	}
 
-        spy.unloadPlugin("restUnload");
+	@Test
+	public void testVersionCompatible_newerAms() {
+		assertTrue(PluginDeployer.isVersionCompatible("2.12.0", "2.11.0"));
+	}
 
-        assertNull(spy.getSpringPluginRestKeys().get("restUnload"));
-    }
+	@Test
+	public void testVersionCompatible_olderAms() {
+		assertFalse(PluginDeployer.isVersionCompatible("2.10.0", "2.11.0"));
+	}
 
-    @Test
-    public void testGetSpringPluginNames_emptyInitially() {
-        assertTrue(deployer.getSpringPluginNames().isEmpty());
-    }
+	@Test
+	public void testVersionCompatible_snapshotVersion() {
+		assertTrue(PluginDeployer.isVersionCompatible("3.0.0-SNAPSHOT", "2.11.0"));
+	}
 
-    @Test
-    public void testGetSpringPluginNames_afterLoad() throws Exception {
-        DefaultListableBeanFactory bf = mockBeanFactory();
-        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp", bf);
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+	@Test
+	public void testVersionCompatible_nulls() {
+		assertTrue(PluginDeployer.isVersionCompatible(null, "2.11.0"));
+		assertTrue(PluginDeployer.isVersionCompatible("2.11.0", null));
+	}
 
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("nameCheck");
-        spy.loadPlugin(jar);
+	// ========================================================================
+	// ZIP extraction and loadPluginFromZip
+	// ========================================================================
 
-        assertTrue(spy.getSpringPluginNames().contains("nameCheck"));
-    }
+	@Test
+	public void testExtractZip_validZip() throws Exception {
+		File jar = TestPluginJarBuilder.buildPluginJar("zipExtract");
+		File zip = TestPluginJarBuilder.wrapJarAsZip(jar, "zipExtract");
+		File extractDir = deployer.extractZip(zip);
 
-    @Test
-    public void testGetSpringPluginNames_afterUnload() throws Exception {
-        DefaultListableBeanFactory bf = mockBeanFactory();
-        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp", bf);
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+		assertNotNull(extractDir);
+		assertTrue(new File(extractDir, "plugin.jar").exists());
 
-        File jar = SpringTestPluginJarBuilder.buildComponentJar("loadUnload");
-        spy.loadPlugin(jar);
-        spy.unloadPlugin("loadUnload");
+		// cleanup
+		deleteDir(extractDir);
+	}
 
-        assertFalse(spy.getSpringPluginNames().contains("loadUnload"));
-    }
+	@Test
+	public void testLoadPluginFromZip_noPluginJar_fails() throws Exception {
+		File zip = TestPluginJarBuilder.buildZipNoPluginJar();
+		File pluginsDir = createTempPluginsDir();
+
+		Result result = deployer.loadPluginFromZip(zip, pluginsDir);
+
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("plugin.jar not found"));
+
+		deleteDir(pluginsDir);
+	}
+
+	@Test
+	public void testLoadPluginFromZip_success() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+		File jar = TestPluginJarBuilder.buildPluginJar("zipSuccess");
+		File zip = TestPluginJarBuilder.wrapJarAsZip(jar, "zipSuccess");
+		File pluginsDir = createTempPluginsDir();
+
+		Result result = spy.loadPluginFromZip(zip, pluginsDir);
+
+		assertTrue(result.isSuccess());
+		PluginRecord record = spy.getPluginRecord("zipSuccess");
+		assertNotNull(record);
+		assertEquals(PluginState.ACTIVE, record.getState());
+
+		deleteDir(pluginsDir);
+	}
+
+	@Test
+	public void testLoadPluginFromZip_manifestValidationFails() throws Exception {
+		File jar = TestPluginJarBuilder.buildJarMissingName();
+		File zip = TestPluginJarBuilder.wrapJarAsZip(jar, "badManifest");
+		File pluginsDir = createTempPluginsDir();
+
+		Result result = deployer.loadPluginFromZip(zip, pluginsDir);
+
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("AMS-Plugin-Name"));
+
+		deleteDir(pluginsDir);
+	}
+
+	@Test
+	public void testLoadPluginFromZip_duplicate() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+		File pluginsDir = createTempPluginsDir();
+
+		File jar = TestPluginJarBuilder.buildPluginJar("dupZip");
+		File zip = TestPluginJarBuilder.wrapJarAsZip(jar, "dupZip");
+
+		spy.loadPluginFromZip(zip, pluginsDir);
+		Result second = spy.loadPluginFromZip(zip, pluginsDir);
+
+		assertFalse(second.isSuccess());
+		assertTrue(second.getMessage().contains("already loaded"));
+
+		deleteDir(pluginsDir);
+	}
+
+	@Test
+	public void testLoadPluginFromZip_installScriptSuccess() throws Exception {
+		TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+		PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+		File pluginsDir = createTempPluginsDir();
+
+		File zip = TestPluginJarBuilder.buildZipWithInstallScript("scriptOk", "#!/bin/bash\nexit 0\n");
+		Result result = spy.loadPluginFromZip(zip, pluginsDir);
+
+		assertTrue(result.isSuccess());
+
+		deleteDir(pluginsDir);
+	}
+
+	@Test
+	public void testLoadPluginFromZip_installScriptFails() throws Exception {
+		File pluginsDir = createTempPluginsDir();
+
+		File zip = TestPluginJarBuilder.buildZipWithInstallScript("scriptFail", "#!/bin/bash\nexit 1\n");
+		Result result = deployer.loadPluginFromZip(zip, pluginsDir);
+
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("install.sh failed"));
+
+		PluginRecord record = deployer.getPluginRecord("scriptFail");
+		assertNotNull(record);
+		assertEquals(PluginState.FAILED, record.getState());
+
+		deleteDir(pluginsDir);
+	}
+
+	// ========================================================================
+	// Uninstall script
+	// ========================================================================
+
+	@Test
+	public void testRunUninstallScript_noRecord() {
+		File pluginsDir = createTempPluginsDir();
+		// Should not throw
+		deployer.runUninstallScript("nonexistent", pluginsDir);
+		deleteDir(pluginsDir);
+	}
+
+	// ========================================================================
+	// buildPluginRecord
+	// ========================================================================
+
+	@Test
+	public void testBuildPluginRecord() throws Exception {
+		File jar = TestPluginJarBuilder.buildPluginJar("recordTest", "My Plugin", "2.0.0", "Author", "2.11.0");
+		java.util.jar.Attributes attrs = PluginDeployer.readManifestAttributes(jar);
+
+		PluginRecord record = deployer.buildPluginRecord(attrs);
+
+		assertEquals("My Plugin", record.getName());
+		assertEquals("2.0.0", record.getVersion());
+		assertEquals("Author", record.getAuthor());
+		assertEquals("2.11.0", record.getRequiresVersion());
+		assertEquals("HOTLOAD", record.getLoadingMode());
+		assertFalse(record.isRequiresRestart());
+		assertEquals("my-plugin-2.0.0", record.getPluginId());
+	}
+
+	// ========================================================================
+	// Slugify
+	// ========================================================================
+
+	@Test
+	public void testSlugify() {
+		assertEquals("clip-creator-plugin", PluginDeployer.slugify("Clip Creator Plugin"));
+		assertEquals("my-plugin", PluginDeployer.slugify("My Plugin"));
+		assertEquals("simple", PluginDeployer.slugify("simple"));
+	}
+
+	// ========================================================================
+	// Plugin name listing
+	// ========================================================================
+
+	@Test
+	public void testGetPluginNames_emptyInitially() {
+		assertTrue(deployer.getPluginNames().isEmpty());
+	}
+
+	@Test
+	public void testGetAllPluginRecords_emptyInitially() {
+		assertTrue(deployer.getAllPluginRecords().isEmpty());
+	}
+
+	// ========================================================================
+	// Helpers
+	// ========================================================================
+
+	private File createTempPluginsDir() {
+		File dir = new File(System.getProperty("java.io.tmpdir"), "ams-test-plugins-" + System.nanoTime());
+		dir.mkdirs();
+		return dir;
+	}
+
+	private void deleteDir(File dir) {
+		if (dir == null || !dir.exists()) return;
+		File[] files = dir.listFiles();
+		if (files != null) {
+			for (File f : files) {
+				if (f.isDirectory()) deleteDir(f);
+				else f.delete();
+			}
+		}
+		dir.delete();
+	}
 }
