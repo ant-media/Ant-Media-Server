@@ -411,45 +411,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		}
 
-		vertx.setTimer(1000, l -> {
-
-			getStreamFetcherManager();
-			if(appSettings.isStartStreamFetcherAutomatically()) {
-				List<Broadcast> streams = getDataStore().getExternalStreamsList();
-				logger.info("Stream source size: {}", streams.size());
-				for (Broadcast broadcast : streams)
-				{
-					if (!broadcast.isAutoStartStopEnabled()) {
-						//start streaming is auto/stop is not enabled
-						streamFetcherManager.startStreaming(broadcast, true);
-					}
-				}
-			}
-
-			//Schedule Playlist items 
-			int offset = 0;
-			int batch = 50;
-			List<Broadcast> playlist;
-			long now = System.currentTimeMillis();
-			while ((playlist = getDataStore().getBroadcastList(offset, batch, AntMediaApplicationAdapter.PLAY_LIST, null, null, null)) != null ) {
-
-				if (playlist.isEmpty()) {
-					break;
-				}
-
-				for (Broadcast broadcast : playlist) 
-				{
-					schedulePlayList(now, broadcast);
-				}
-
-				offset += batch;
-
-			} 
-
-
-		});
-
-
 		AMSShutdownManager.getInstance().subscribe(this);
 
 		//With the common app structure, we won't need to null check for WebRTCAdaptor
