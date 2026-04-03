@@ -24,7 +24,7 @@ public class ClusterNode implements Serializable {
 	private long lastUpdateTime;
 	private String memory;
 	private String cpu;
-	private boolean master;
+	private boolean master; //master node monitors and distributes the unexpectedly closed stream sources
 	
 	private int dbQueryAveargeTimeMs;
 	
