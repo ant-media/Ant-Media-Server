@@ -27,7 +27,7 @@ public class PrometheusStatsExporterTest {
 	@Test
 	public void testStartAndStop() throws Exception {
 		int port = getAvailablePort();
-		PrometheusStatsExporter exporter = new PrometheusStatsExporter("localhost:" + port, "testjob", "node-1", "user@example.com");
+		PrometheusStatsExporter exporter = new PrometheusStatsExporter("localhost:" + port, "node-1", "user@example.com");
 
 		exporter.start();
 		assertNotNull(exporter.getRegistry());
@@ -38,7 +38,7 @@ public class PrometheusStatsExporterTest {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testSendStatsUpdatesOnlyInstanceStatsGauges() throws Exception {
-		PrometheusStatsExporter exporter = new PrometheusStatsExporter("localhost:9091", "testjob", "node-1", "user@example.com");
+		PrometheusStatsExporter exporter = new PrometheusStatsExporter("localhost:9091", "node-1", "user@example.com");
 
 		PrometheusRegistry registry = new PrometheusRegistry();
 		Field registryField = PrometheusStatsExporter.class.getDeclaredField("registry");
