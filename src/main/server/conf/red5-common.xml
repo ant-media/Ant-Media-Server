@@ -159,6 +159,10 @@
        <property name="minFreeRamSize" value="${server.min_free_ram}"/>
 
        <property name="memoryLimit" value="${server.memory_limit_percentage:75}" />
+       <property name="statsExporterType" value="${server.stats_exporter_type:}" />
+       <property name="prometheusPushGatewayAddress" value="${server.prometheus_pushgateway_address:}" />
+       <property name="prometheusPushJob" value="${server.prometheus_push_job:}" />
+       <property name="prometheusPushInstanceId" value="${server.prometheus_push_instance_id:}" />
    	</bean>
    	
     <bean id="srtAdaptor" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.srt.SRTAdaptor' : 'io.antmedia.srt.SRTAdaptor' }">
