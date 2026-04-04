@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
@@ -209,6 +210,15 @@ public abstract class DataStore {
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 
 	public abstract List<Broadcast> getExternalStreamsList();
+
+	protected boolean isAvailableExternalStream(Broadcast broadcast) {
+		String type = broadcast.getType();
+		String status = broadcast.getStatus();
+
+		return (AntMediaApplicationAdapter.IP_CAMERA.equals(type) || AntMediaApplicationAdapter.STREAM_SOURCE.equals(type))
+				&& !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)
+				&& !IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status);
+	}
 
 	/**
 	 * Closes the database

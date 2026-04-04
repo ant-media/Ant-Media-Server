@@ -237,13 +237,9 @@ public class InMemoryDataStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		Collection<Broadcast> values = broadcastMap.values();
 
-		long now = System.currentTimeMillis();
 		List<Broadcast> streamsList = new ArrayList<>();
 		for (Broadcast broadcast : values) {
-			String type = broadcast.getType();
-			String status = broadcast.getStatus();
-
-			if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
+			if (isAvailableExternalStream(broadcast)) {
 				streamsList.add(broadcast);
 				broadcastMap.replace(broadcast.getStreamId(), broadcast);
 			}

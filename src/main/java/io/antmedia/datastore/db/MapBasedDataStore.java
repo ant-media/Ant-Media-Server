@@ -386,18 +386,13 @@ public abstract class MapBasedDataStore extends DataStore
 
 		List<Broadcast> streamsList = new ArrayList<>();
 		synchronized (this) {
-			long now = System.currentTimeMillis();
 			Object[] objectArray = map.values().toArray();
 			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 			for (int i = 0; i < objectArray.length; i++) {
 				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
 			}
 			for (int i = 0; i < broadcastArray.length; i++) {
-				String type = broadcastArray[i].getType();
-				String status = broadcastArray[i].getStatus();
-
-				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) 
-						&& (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
+				if (isAvailableExternalStream(broadcastArray[i])) {
 					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 					setBroadcastToMap(broadcastArray[i], broadcastArray[i].getStreamId());
 				}

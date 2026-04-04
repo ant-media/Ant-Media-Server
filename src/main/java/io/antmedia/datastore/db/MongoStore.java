@@ -634,7 +634,7 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		long startTime = System.nanoTime();
 		List<Broadcast> streamList = Arrays.asList();
-		long now = System.currentTimeMillis();
+		long streamTimeoutThreshold = System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS;
 		synchronized(broadcastLock) {
 			try {
 
@@ -643,7 +643,16 @@ public class MongoStore extends DataStore {
 				query.filter(
 						Filters.and(
 								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
-								Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)))
+								Filters.or(
+										Filters.and(
+												Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING),
+												Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)),
+										Filters.and(
+												Filters.ne("virtual", true),
+												Filters.in(STATUS, Arrays.asList(
+														IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING,
+														IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)),
+												Filters.lte(UPDATE_TIME_FIELD, streamTimeoutThreshold))))
 						);
 
 				streamList = query.iterator().toList();
