@@ -565,7 +565,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			assertEquals(0, testBroadcast.getHlsViewerCount());
 			assertEquals(0, testBroadcast.getRtmpViewerCount());
 
-			assertEquals(spyAdapter.BROADCAST_STATUS_FINISHED, testBroadcast.getStatus());
+			assertEquals(spyAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, testBroadcast.getStatus());
 		}	
 	}
 

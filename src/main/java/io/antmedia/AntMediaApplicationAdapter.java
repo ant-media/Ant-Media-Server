@@ -130,6 +130,7 @@ import jakarta.ws.rs.core.MediaType;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
+
 	public final class RTMPClusterStreamFetcherListener implements StreamFetcher.IStreamFetcherListener {
 		private final RTMPClusterStreamFetcher rtmpClusterStreamFetcher;
 		private final String rtmpUrl;
@@ -193,6 +194,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
+	
 	/**
 	 * Timeout value that stream is considered as finished or stuck
 	 */
@@ -408,45 +410,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			updateSettings(storedSettings, updateClusterSettings, false);
 
 		}
-
-		vertx.setTimer(1000, l -> {
-
-			getStreamFetcherManager();
-			if(appSettings.isStartStreamFetcherAutomatically()) {
-				List<Broadcast> streams = getDataStore().getExternalStreamsList();
-				logger.info("Stream source size: {}", streams.size());
-				for (Broadcast broadcast : streams)
-				{
-					if (!broadcast.isAutoStartStopEnabled()) {
-						//start streaming is auto/stop is not enabled
-						streamFetcherManager.startStreaming(broadcast, true);
-					}
-				}
-			}
-
-			//Schedule Playlist items 
-			int offset = 0;
-			int batch = 50;
-			List<Broadcast> playlist;
-			long now = System.currentTimeMillis();
-			while ((playlist = getDataStore().getBroadcastList(offset, batch, AntMediaApplicationAdapter.PLAY_LIST, null, null, null)) != null ) {
-
-				if (playlist.isEmpty()) {
-					break;
-				}
-
-				for (Broadcast broadcast : playlist) 
-				{
-					schedulePlayList(now, broadcast);
-				}
-
-				offset += batch;
-
-			} 
-
-
-		});
-
 
 		AMSShutdownManager.getInstance().subscribe(this);
 
@@ -754,6 +717,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					if(serverShuttingDown) {
+						broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+					}
 					broadcastUpdate.setHlsViewerCount(0);
 					broadcastUpdate.setDashViewerCount(0);
 					broadcastUpdate.setWebRTCViewerCount(0);
