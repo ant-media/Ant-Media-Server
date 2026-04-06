@@ -36,6 +36,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.IServer;
+import org.red5.server.api.listeners.IScopeListener;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
@@ -52,6 +53,7 @@ import io.antmedia.datastore.db.types.User;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.datastore.db.types.UserType;
+import io.antmedia.licence.ILicenceService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
@@ -82,6 +84,43 @@ public class StatsCollectorTest {
 	public static void afterClass() {
 		vertx.close();
 		webRTCVertx.close();
+	}
+
+	/**
+	 * Mirrors production: {@code StatsCollector} starts the stats exporter only from
+	 * {@link IScopeListener#notifyScopeCreated} when the scope name is {@code "root"}.
+	 */
+	private static void setApplicationContextAndNotifyRootScopeCreated(StatsCollector statsCollector) {
+		ServerSettings serverSettings = new ServerSettings();
+		// Defaults on ServerSettings leave cpuMeasurementPeriodMs at 0; start() uses it for Vertx timers.
+		serverSettings.setCpuMeasurementPeriodMs(1000);
+		IServer server = Mockito.mock(IServer.class);
+		final IScopeListener[] listenerHolder = new IScopeListener[1];
+		Mockito.doAnswer(invocation -> {
+			listenerHolder[0] = invocation.getArgument(0);
+			return null;
+		}).when(server).addListener(Mockito.any(IScopeListener.class));
+
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IServer.ID)).thenReturn(server);
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString()))
+				.thenReturn(Mockito.mock(ILicenceService.class));
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
+
+		statsCollector.setApplicationContext(context);
+
+		IScope rootScope = Mockito.mock(IScope.class);
+		Mockito.when(rootScope.getName()).thenReturn("root");
+		// Production root scopes have a context chain; getUserEmail() walks scopes and must not NPE.
+		IContext scopeRed5Context = Mockito.mock(IContext.class);
+		ApplicationContext scopeAppContext = Mockito.mock(ApplicationContext.class);
+		Mockito.when(rootScope.getContext()).thenReturn(scopeRed5Context);
+		Mockito.when(scopeRed5Context.getApplicationContext()).thenReturn(scopeAppContext);
+		Mockito.when(scopeAppContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(false);
+
+		listenerHolder[0].notifyScopeCreated(rootScope);
 	}
 
 	@Test
@@ -433,10 +472,9 @@ public class StatsCollectorTest {
 	public void testSendInstanceKafkaStats() {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		
-		resMonitor.setVertx(vertx);
-		resMonitor.setWebRTCVertx(webRTCVertx);
 		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
 		resMonitor.setKafkaBrokers("9900");
+		setApplicationContextAndNotifyRootScopeCreated(resMonitor);
 		resMonitor.start();
 		
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
@@ -476,9 +514,9 @@ public class StatsCollectorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
-		resMonitor.setVertx(Vertx.vertx());
 		resMonitor.setKafkaBrokers("9000");
 		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		setApplicationContextAndNotifyRootScopeCreated(resMonitor);
 		resMonitor.start();
 		resMonitor.setKafkaProducer(kafkaProducer);
 
@@ -508,7 +546,7 @@ public class StatsCollectorTest {
 		
 		resMonitor.setKafkaBrokers("localhost:9092");
 		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
-		resMonitor.setVertx(Vertx.vertx());
+		setApplicationContextAndNotifyRootScopeCreated(resMonitor);
 		resMonitor.start();
 		Producer<Long, String> kafkaProducer = resMonitor.getKafkaProducer();
 		assertNotNull(kafkaProducer);
@@ -519,8 +557,8 @@ public class StatsCollectorTest {
 	public void testCollectAndSendWebRTCStats() {
 		StatsCollector resMonitor = new StatsCollector();
 		resMonitor.setKafkaBrokers("9000");
-		resMonitor.setVertx(Vertx.vertx());
 		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		setApplicationContextAndNotifyRootScopeCreated(resMonitor);
 		resMonitor.start();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);
@@ -573,6 +611,8 @@ public class StatsCollectorTest {
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
 		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString()))
+				.thenReturn(Mockito.mock(ILicenceService.class));
 		
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
@@ -634,6 +674,8 @@ public class StatsCollectorTest {
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
 		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString()))
+				.thenReturn(Mockito.mock(ILicenceService.class));
 		
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
