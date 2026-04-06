@@ -19,6 +19,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
@@ -1802,15 +1803,20 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		spyAdapter.appStart(scope);
 
-		await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
+		await().pollInterval(10,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastInDb = dataStore.get(broadcast.getStreamId());
 
-		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
-		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture(), anyBoolean());
 
-		broadcast = dataStore.get(broadcast.getStreamId());
-		assertNotNull(broadcastListCaptor.getValue());
-		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().getStreamId());
-		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().getStatus());
+			int callCount = mockingDetails(streamFetcherManager)
+				.getInvocations()
+				.stream()
+				.filter(invocation -> invocation.getMethod().getName().equals("startStreaming"))
+				.filter(invocation -> invocation.getArguments()[0].equals(broadcastInDb))
+				.toList()
+				.size();
+
+			return callCount == 1;			
+		});
 	}
 
 	@Test

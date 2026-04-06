@@ -76,6 +76,7 @@ import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.analytic.model.ViewerCountEvent;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -127,6 +128,8 @@ import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import io.antmedia.streamsource.StreamSourceMonitor;
+
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -326,6 +329,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	        Caffeine.newBuilder()
 	                .expireAfterAccess(10, TimeUnit.MINUTES)
 	                .build(key -> new Object());
+	
+	private StreamSourceMonitor streamSourceMonitor;
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -430,10 +435,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 		logger.info("{} started", app.getName());
+		
+		streamSourceMonitor = new StreamSourceMonitor(this, clusterNotifier);
 
 		return true;
 	}
-
+	
 	public void schedulePlayList(long now, Broadcast broadcast) 
 	{
 		if (broadcast.getPlannedStartDate() != 0) 
@@ -2166,6 +2173,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void stopApplication(boolean deleteDB) {
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
+		
+		if(streamSourceMonitor != null) {
+			streamSourceMonitor.stop();
+			streamSourceMonitor = null;
+		}
+		
 		closeStreamFetchers();
 		closeRTMPStreams();
 
@@ -2933,6 +2946,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		getDataStore().addSubscriber(streamId, subscriber);
 		
 	}
-
-
+	
+	public StreamSourceMonitor getStreamSourceMonitor() {
+		return streamSourceMonitor;
+	}
 }
