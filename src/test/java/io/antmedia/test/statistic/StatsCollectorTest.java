@@ -59,6 +59,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
+import io.antmedia.statistic.KafkaStatsExporter;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
@@ -470,34 +471,29 @@ public class StatsCollectorTest {
 		
 	}
 	
-	/**
-	 * Stats export startup: {@link StatsCollector} uses private {@code startKafkaProducer()} (same role as
-	 * {@code startStatsExporter} in Prometheus-oriented variants).
-	 */
 	@Test
 	public void testStartStatsExporter() throws Exception {
 		StatsCollector collector = new StatsCollector();
 		collector.setVertx(vertx);
 		collector.setWebRTCVertx(webRTCVertx);
+		collector.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
 		collector.setKafkaBrokers("localhost:9092");
 
-		Method startStatsExport = StatsCollector.class.getDeclaredMethod("startKafkaProducer");
+		Method startStatsExport = StatsCollector.class.getDeclaredMethod("startStatsExporter");
 		startStatsExport.setAccessible(true);
 		startStatsExport.invoke(collector);
 
-		Field kafkaProducerField = StatsCollector.class.getDeclaredField("kafkaProducer");
-		kafkaProducerField.setAccessible(true);
-		@SuppressWarnings("unchecked")
-		Producer<Long, String> producer = (Producer<Long, String>) kafkaProducerField.get(collector);
-		assertNotNull(producer);
+		assertNotNull(collector.getStatsExporter());
+		assertTrue(collector.getStatsExporter() instanceof KafkaStatsExporter);
+		assertNotNull(((KafkaStatsExporter) collector.getStatsExporter()).getKafkaProducer());
 
-		Field kafkaTimerIdField = StatsCollector.class.getDeclaredField("kafkaTimerId");
-		kafkaTimerIdField.setAccessible(true);
-		long timerId = kafkaTimerIdField.getLong(collector);
+		Field statsTimerIdField = StatsCollector.class.getDeclaredField("statsTimerId");
+		statsTimerIdField.setAccessible(true);
+		long timerId = statsTimerIdField.getLong(collector);
 		if (timerId >= 0) {
 			vertx.cancelTimer(timerId);
 		}
-		producer.close();
+		collector.getStatsExporter().stop();
 	}
 
 	@Test
