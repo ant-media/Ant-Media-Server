@@ -718,7 +718,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 					if(serverShuttingDown) {
-						broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+						broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED_ON_SHUTDOWN);
 					}
 					broadcastUpdate.setHlsViewerCount(0);
 					broadcastUpdate.setDashViewerCount(0);

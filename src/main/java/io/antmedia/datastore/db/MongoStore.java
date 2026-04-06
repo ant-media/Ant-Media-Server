@@ -644,9 +644,9 @@ public class MongoStore extends DataStore {
 						Filters.and(
 								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
 								Filters.or(
-										Filters.and(
-												Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING),
-												Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)),
+										Filters.or(
+												Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED_ON_SHUTDOWN),
+												Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY)),
 										Filters.and(
 												Filters.ne("virtual", true),
 												Filters.in(STATUS, Arrays.asList(

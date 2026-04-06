@@ -214,10 +214,15 @@ public abstract class DataStore {
 	protected boolean isAvailableExternalStream(Broadcast broadcast) {
 		String type = broadcast.getType();
 		String status = broadcast.getStatus();
+		boolean finishedOnShutdownOrTerminatedUnexpectedly = IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED_ON_SHUTDOWN.equals(status)
+				|| IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(status);
+		boolean preparingOrBroadcasting = IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status)
+				|| IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status);
+		long streamTimeoutThreshold = System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS;
 
 		return (AntMediaApplicationAdapter.IP_CAMERA.equals(type) || AntMediaApplicationAdapter.STREAM_SOURCE.equals(type))
-				&& !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)
-				&& !IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status);
+				&& (finishedOnShutdownOrTerminatedUnexpectedly
+						|| (!broadcast.isVirtual() && preparingOrBroadcasting && broadcast.getUpdateTime() <= streamTimeoutThreshold));
 	}
 
 	/**
