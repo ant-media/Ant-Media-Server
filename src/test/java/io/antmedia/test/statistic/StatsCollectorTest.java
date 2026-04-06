@@ -494,6 +494,37 @@ public class StatsCollectorTest {
 			vertx.cancelTimer(timerId);
 		}
 		collector.getStatsExporter().stop();
+
+		collector = new StatsCollector();
+		collector.setVertx(vertx);
+		collector.setWebRTCVertx(webRTCVertx);
+		collector.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		collector.setKafkaBrokers("");
+
+		startStatsExport = StatsCollector.class.getDeclaredMethod("startStatsExporter");
+		startStatsExport.setAccessible(true);
+		startStatsExport.invoke(collector);
+
+		assertNull(collector.getStatsExporter());
+
+		 startStatsExport = StatsCollector.class.getDeclaredMethod("startStatsExporter");
+		startStatsExport.setAccessible(true);
+
+		StatsCollector nullAddress = new StatsCollector();
+		nullAddress.setVertx(vertx);
+		nullAddress.setWebRTCVertx(webRTCVertx);
+		nullAddress.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		nullAddress.setPrometheusPushGatewayAddress(null);
+		startStatsExport.invoke(nullAddress);
+		assertNull(nullAddress.getStatsExporter());
+
+		StatsCollector emptyAddress = new StatsCollector();
+		emptyAddress.setVertx(vertx);
+		emptyAddress.setWebRTCVertx(webRTCVertx);
+		emptyAddress.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		emptyAddress.setPrometheusPushGatewayAddress("");
+		startStatsExport.invoke(emptyAddress);
+		assertNull(emptyAddress.getStatsExporter());
 	}
 
 	@Test
