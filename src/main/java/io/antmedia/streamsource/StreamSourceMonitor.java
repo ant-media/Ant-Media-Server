@@ -30,7 +30,9 @@ public class StreamSourceMonitor {
 	
 	public StreamSourceMonitor(AntMediaApplicationAdapter application, IClusterNotifier clusterNotifier) {
 		this.app = application;
-		this.clusterDataStore = clusterNotifier.getClusterStore();
+		if(clusterNotifier != null) {
+			this.clusterDataStore = clusterNotifier.getClusterStore();
+		}
 		vertx = application.getVertx();
 		dataStore = application.getDataStore();
 		monitorTask = vertx.setPeriodic(MONITORING_PERIOD, id -> monitorStreamSources());
