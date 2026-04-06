@@ -10,6 +10,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.net.NetworkInterface;
@@ -468,6 +470,36 @@ public class StatsCollectorTest {
 		
 	}
 	
+	/**
+	 * Stats export startup: {@link StatsCollector} uses private {@code startKafkaProducer()} (same role as
+	 * {@code startStatsExporter} in Prometheus-oriented variants).
+	 */
+	@Test
+	public void testStartStatsExporter() throws Exception {
+		StatsCollector collector = new StatsCollector();
+		collector.setVertx(vertx);
+		collector.setWebRTCVertx(webRTCVertx);
+		collector.setKafkaBrokers("localhost:9092");
+
+		Method startStatsExport = StatsCollector.class.getDeclaredMethod("startKafkaProducer");
+		startStatsExport.setAccessible(true);
+		startStatsExport.invoke(collector);
+
+		Field kafkaProducerField = StatsCollector.class.getDeclaredField("kafkaProducer");
+		kafkaProducerField.setAccessible(true);
+		@SuppressWarnings("unchecked")
+		Producer<Long, String> producer = (Producer<Long, String>) kafkaProducerField.get(collector);
+		assertNotNull(producer);
+
+		Field kafkaTimerIdField = StatsCollector.class.getDeclaredField("kafkaTimerId");
+		kafkaTimerIdField.setAccessible(true);
+		long timerId = kafkaTimerIdField.getLong(collector);
+		if (timerId >= 0) {
+			vertx.cancelTimer(timerId);
+		}
+		producer.close();
+	}
+
 	@Test
 	public void testSendInstanceKafkaStats() {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
