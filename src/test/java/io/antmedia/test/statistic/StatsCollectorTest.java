@@ -60,6 +60,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.statistic.KafkaStatsExporter;
+import io.antmedia.statistic.PrometheusStatsExporter;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
@@ -473,58 +474,109 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testStartStatsExporter() throws Exception {
-		StatsCollector collector = new StatsCollector();
-		collector.setVertx(vertx);
-		collector.setWebRTCVertx(webRTCVertx);
-		collector.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
-		collector.setKafkaBrokers("localhost:9092");
+		StatsCollector kafkaOk = new StatsCollector();
+		kafkaOk.setVertx(vertx);
+		kafkaOk.setWebRTCVertx(webRTCVertx);
+		kafkaOk.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		kafkaOk.setKafkaBrokers("localhost:9092");
+		invokeStartStatsExporter(kafkaOk);
+		assertNotNull(kafkaOk.getStatsExporter());
+		assertTrue(kafkaOk.getStatsExporter() instanceof KafkaStatsExporter);
+		assertNotNull(((KafkaStatsExporter) kafkaOk.getStatsExporter()).getKafkaProducer());
+		cancelStatsTimerAndStopExporter(kafkaOk);
 
-		Method startStatsExport = StatsCollector.class.getDeclaredMethod("startStatsExporter");
-		startStatsExport.setAccessible(true);
-		startStatsExport.invoke(collector);
+		StatsCollector kafkaNoBrokers = new StatsCollector();
+		kafkaNoBrokers.setVertx(vertx);
+		kafkaNoBrokers.setWebRTCVertx(webRTCVertx);
+		kafkaNoBrokers.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		kafkaNoBrokers.setKafkaBrokers("");
+		invokeStartStatsExporter(kafkaNoBrokers);
+		assertNull(kafkaNoBrokers.getStatsExporter());
 
-		assertNotNull(collector.getStatsExporter());
-		assertTrue(collector.getStatsExporter() instanceof KafkaStatsExporter);
-		assertNotNull(((KafkaStatsExporter) collector.getStatsExporter()).getKafkaProducer());
+		StatsCollector promNoAddressNull = new StatsCollector();
+		promNoAddressNull.setVertx(vertx);
+		promNoAddressNull.setWebRTCVertx(webRTCVertx);
+		promNoAddressNull.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promNoAddressNull.setPrometheusPushGatewayAddress(null);
+		invokeStartStatsExporter(promNoAddressNull);
+		assertNull(promNoAddressNull.getStatsExporter());
 
+		StatsCollector promNoAddressEmpty = new StatsCollector();
+		promNoAddressEmpty.setVertx(vertx);
+		promNoAddressEmpty.setWebRTCVertx(webRTCVertx);
+		promNoAddressEmpty.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promNoAddressEmpty.setPrometheusPushGatewayAddress("");
+		invokeStartStatsExporter(promNoAddressEmpty);
+		assertNull(promNoAddressEmpty.getStatsExporter());
+
+		StatsCollector promConfigured = new StatsCollector();
+		promConfigured.setVertx(vertx);
+		promConfigured.setWebRTCVertx(webRTCVertx);
+		promConfigured.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promConfigured.setPrometheusPushGatewayAddress("127.0.0.1:9091");
+		promConfigured.setPrometheusPushInstanceId("ams-node-7");
+		promConfigured.setUserEmail("metrics-owner@example.com");
+		invokeStartStatsExporter(promConfigured);
+		assertTrue(promConfigured.getStatsExporter() instanceof PrometheusStatsExporter);
+		PrometheusStatsExporter promEx = (PrometheusStatsExporter) promConfigured.getStatsExporter();
+		assertEquals("ams-node-7", prometheusExporterStringField(promEx, "instance"));
+		assertEquals("metrics-owner@example.com", prometheusExporterStringField(promEx, "userEmail"));
+		assertEquals("127.0.0.1:9091", prometheusExporterStringField(promEx, "pushGatewayAddress"));
+		cancelStatsTimerAndStopExporter(promConfigured);
+
+		Field hostAddressField = StatsCollector.class.getDeclaredField("hostAddress");
+		hostAddressField.setAccessible(true);
+
+		StatsCollector promInstanceNull = new StatsCollector();
+		promInstanceNull.setVertx(vertx);
+		promInstanceNull.setWebRTCVertx(webRTCVertx);
+		promInstanceNull.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promInstanceNull.setPrometheusPushGatewayAddress("127.0.0.1:9091");
+		promInstanceNull.setPrometheusPushInstanceId(null);
+		promInstanceNull.setUserEmail("u@example.org");
+		hostAddressField.set(promInstanceNull, "10.20.30.40");
+		invokeStartStatsExporter(promInstanceNull);
+		assertEquals("10.20.30.40",
+				prometheusExporterStringField((PrometheusStatsExporter) promInstanceNull.getStatsExporter(), "instance"));
+		cancelStatsTimerAndStopExporter(promInstanceNull);
+
+		StatsCollector promInstanceEmpty = new StatsCollector();
+		promInstanceEmpty.setVertx(vertx);
+		promInstanceEmpty.setWebRTCVertx(webRTCVertx);
+		promInstanceEmpty.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promInstanceEmpty.setPrometheusPushGatewayAddress("127.0.0.1:9091");
+		promInstanceEmpty.setPrometheusPushInstanceId("");
+		promInstanceEmpty.setUserEmail("u@example.org");
+		hostAddressField.set(promInstanceEmpty, "192.168.0.99");
+		invokeStartStatsExporter(promInstanceEmpty);
+		assertEquals("192.168.0.99",
+				prometheusExporterStringField((PrometheusStatsExporter) promInstanceEmpty.getStatsExporter(), "instance"));
+		cancelStatsTimerAndStopExporter(promInstanceEmpty);
+	}
+
+	private static void invokeStartStatsExporter(StatsCollector collector) throws Exception {
+		Method m = StatsCollector.class.getDeclaredMethod("startStatsExporter");
+		m.setAccessible(true);
+		m.invoke(collector);
+	}
+
+	private static void cancelStatsTimerAndStopExporter(StatsCollector collector) throws Exception {
 		Field statsTimerIdField = StatsCollector.class.getDeclaredField("statsTimerId");
 		statsTimerIdField.setAccessible(true);
 		long timerId = statsTimerIdField.getLong(collector);
 		if (timerId >= 0) {
 			vertx.cancelTimer(timerId);
 		}
-		collector.getStatsExporter().stop();
+		if (collector.getStatsExporter() != null) {
+			collector.getStatsExporter().stop();
+		}
+	}
 
-		collector = new StatsCollector();
-		collector.setVertx(vertx);
-		collector.setWebRTCVertx(webRTCVertx);
-		collector.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
-		collector.setKafkaBrokers("");
-
-		startStatsExport = StatsCollector.class.getDeclaredMethod("startStatsExporter");
-		startStatsExport.setAccessible(true);
-		startStatsExport.invoke(collector);
-
-		assertNull(collector.getStatsExporter());
-
-		 startStatsExport = StatsCollector.class.getDeclaredMethod("startStatsExporter");
-		startStatsExport.setAccessible(true);
-
-		StatsCollector nullAddress = new StatsCollector();
-		nullAddress.setVertx(vertx);
-		nullAddress.setWebRTCVertx(webRTCVertx);
-		nullAddress.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
-		nullAddress.setPrometheusPushGatewayAddress(null);
-		startStatsExport.invoke(nullAddress);
-		assertNull(nullAddress.getStatsExporter());
-
-		StatsCollector emptyAddress = new StatsCollector();
-		emptyAddress.setVertx(vertx);
-		emptyAddress.setWebRTCVertx(webRTCVertx);
-		emptyAddress.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
-		emptyAddress.setPrometheusPushGatewayAddress("");
-		startStatsExport.invoke(emptyAddress);
-		assertNull(emptyAddress.getStatsExporter());
+	private static String prometheusExporterStringField(PrometheusStatsExporter exporter, String fieldName)
+			throws Exception {
+		Field f = PrometheusStatsExporter.class.getDeclaredField(fieldName);
+		f.setAccessible(true);
+		return (String) f.get(exporter);
 	}
 
 	@Test
