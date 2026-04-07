@@ -456,7 +456,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 						address,  instanceId, emailLabel);
 		} else {
 				logger.info("Stats export disabled.");
-				logger.info("Stats exporter type set to", statsExporterType);
+				logger.info("Stats exporter type set to {}", statsExporterType);
 				return;
 		}
 
