@@ -1,6 +1,7 @@
 package org.red5.server.plugin;
 
 import io.antmedia.test.plugin.MinimalAmsPlugin;
+import io.antmedia.test.plugin.MinimalLifecyclePlugin;
 import io.antmedia.test.plugin.MinimalPluginRest;
 
 import java.io.File;
@@ -28,6 +29,20 @@ public class TestPluginJarBuilder {
 	 */
 	public static File buildPluginJar(String pluginName) throws Exception {
 		return buildPluginJar(pluginName, pluginName, "1.0.0", "Test Author", null);
+	}
+
+	/**
+	 * Builds a JAR with the {@link MinimalLifecyclePlugin} class — used by tests that exercise
+	 * {@code IPluginLifecycle.onActivated/onDeactivated}.
+	 */
+	public static File buildLifecyclePluginJar(String pluginName) throws Exception {
+		File jar = tempFile(pluginName + ".jar");
+		Manifest manifest = pluginManifest(pluginName, "1.0.0", "Test Author", null);
+		Set<String> addedDirs = new HashSet<>();
+		try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), manifest)) {
+			addClass(out, MinimalLifecyclePlugin.class, addedDirs);
+		}
+		return jar;
 	}
 
 	/**
@@ -111,6 +126,46 @@ public class TestPluginJarBuilder {
 	 */
 	public static File buildJarIncompatibleVersion() throws Exception {
 		return buildPluginJar("incompatible", "Incompat Plugin", "1.0.0", "Test", "99.0.0");
+	}
+
+	/**
+	 * Builds a JAR with the obsolete {@code AMS-Plugin-Loading-Mode} manifest entry.
+	 * Used to assert that {@code PluginDeployer.validateManifest} rejects it.
+	 */
+	public static File buildJarWithObsoleteLoadingMode() throws Exception {
+		File jar = tempFile("obsolete-loading-mode.jar");
+		Manifest m = new Manifest();
+		Attributes attrs = m.getMainAttributes();
+		attrs.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+		attrs.putValue("AMS-Plugin-Name", "Obsolete Mode Plugin");
+		attrs.putValue("AMS-Plugin-Version", "1.0.0");
+		attrs.putValue("AMS-Plugin-Author", "Test");
+		attrs.putValue("AMS-Plugin-Loading-Mode", "HOTLOAD");
+		Set<String> addedDirs = new HashSet<>();
+		try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), m)) {
+			addClass(out, MinimalAmsPlugin.class, addedDirs);
+		}
+		return jar;
+	}
+
+	/**
+	 * Builds a JAR with the obsolete {@code AMS-Plugin-Requires-Restart} manifest entry.
+	 * Used to assert that {@code PluginDeployer.validateManifest} rejects it.
+	 */
+	public static File buildJarWithObsoleteRequiresRestart() throws Exception {
+		File jar = tempFile("obsolete-requires-restart.jar");
+		Manifest m = new Manifest();
+		Attributes attrs = m.getMainAttributes();
+		attrs.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+		attrs.putValue("AMS-Plugin-Name", "Obsolete Restart Plugin");
+		attrs.putValue("AMS-Plugin-Version", "1.0.0");
+		attrs.putValue("AMS-Plugin-Author", "Test");
+		attrs.putValue("AMS-Plugin-Requires-Restart", "false");
+		Set<String> addedDirs = new HashSet<>();
+		try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), m)) {
+			addClass(out, MinimalAmsPlugin.class, addedDirs);
+		}
+		return jar;
 	}
 
 	/**

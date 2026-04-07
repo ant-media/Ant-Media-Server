@@ -16,8 +16,6 @@ public class PluginRecord {
 	private String author;
 	private String description;
 	private String requiresVersion;
-	private String loadingMode;  // HOTLOAD or WEBAPP_LIB
-	private boolean requiresRestart;
 	private PluginState state;
 	private String lastError;
 	private String pluginId;
@@ -65,22 +63,6 @@ public class PluginRecord {
 
 	public void setRequiresVersion(String requiresVersion) {
 		this.requiresVersion = requiresVersion;
-	}
-
-	public String getLoadingMode() {
-		return loadingMode;
-	}
-
-	public void setLoadingMode(String loadingMode) {
-		this.loadingMode = loadingMode;
-	}
-
-	public boolean isRequiresRestart() {
-		return requiresRestart;
-	}
-
-	public void setRequiresRestart(boolean requiresRestart) {
-		this.requiresRestart = requiresRestart;
 	}
 
 	public PluginState getState() {

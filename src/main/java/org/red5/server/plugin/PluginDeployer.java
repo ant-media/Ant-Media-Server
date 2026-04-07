@@ -37,6 +37,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.plugin.api.AmsPlugin;
+import io.antmedia.plugin.api.IPluginLifecycle;
 import io.antmedia.plugin.api.IServerListener;
 import io.antmedia.plugin.api.IStreamListener;
 import io.antmedia.plugin.api.Inject;
@@ -70,12 +71,13 @@ public class PluginDeployer {
     public static final String MANIFEST_PLUGIN_AUTHOR = "AMS-Plugin-Author";
     public static final String MANIFEST_PLUGIN_REQUIRES_VERSION = "AMS-Plugin-Requires-Version";
     public static final String MANIFEST_PLUGIN_DESCRIPTION = "AMS-Plugin-Description";
-    public static final String MANIFEST_PLUGIN_LOADING_MODE = "AMS-Plugin-Loading-Mode";
-    public static final String MANIFEST_PLUGIN_REQUIRES_RESTART = "AMS-Plugin-Requires-Restart";
     public static final String MANIFEST_PLUGIN_INSTALL_SCRIPT = "AMS-Plugin-Install-Script";
 
-    public static final String LOADING_MODE_HOTLOAD = "HOTLOAD";
-    public static final String LOADING_MODE_WEBAPP_LIB = "WEBAPP_LIB";
+    // Obsolete manifest entries from earlier V2 drafts. V2 plugins are always hot-loaded;
+    // there is no mode field and no restart-required flag. AMS rejects manifests that try
+    // to declare these entries with a clear error message — see validateManifest below.
+    private static final String OBSOLETE_MANIFEST_LOADING_MODE = "AMS-Plugin-Loading-Mode";
+    private static final String OBSOLETE_MANIFEST_REQUIRES_RESTART = "AMS-Plugin-Requires-Restart";
 
     private final ConcurrentHashMap<String, PluginRecord> pluginRecords = new ConcurrentHashMap<>();
 
@@ -84,6 +86,20 @@ public class PluginDeployer {
 
     // pluginName → list of instantiated listener/rest objects per webapp context (for cleanup)
     private final ConcurrentHashMap<String, List<Object>> pluginInstances = new ConcurrentHashMap<>();
+
+    // pluginId → ordered list of (instance, contextPath) pairs for which IPluginLifecycle.onActivated
+    // was called. unloadPlugin walks this in reverse to call onDeactivated symmetrically.
+    private final ConcurrentHashMap<String, List<LifecycleActivation>> pluginLifecycleActivations = new ConcurrentHashMap<>();
+
+    /** Bookkeeping record so unloadPlugin can call IPluginLifecycle.onDeactivated symmetrically. */
+    private static final class LifecycleActivation {
+        final IPluginLifecycle instance;
+        final String contextPath;
+        LifecycleActivation(IPluginLifecycle instance, String contextPath) {
+            this.instance = instance;
+            this.contextPath = contextPath;
+        }
+    }
 
     /**
      * Hot-loads a plugin JAR using V2 annotations.
@@ -157,6 +173,7 @@ public class PluginDeployer {
         // Instantiate and register in every active webapp context
         List<Object> allInstances = new ArrayList<>();
         List<String> registeredRestKeys = new ArrayList<>();
+        List<LifecycleActivation> activations = new ArrayList<>();
 
         for (IApplicationContext appCtx : getApplicationContexts().values()) {
             if (!(appCtx instanceof TomcatApplicationContext)) {
@@ -184,6 +201,19 @@ public class PluginDeployer {
                     // by the plugin in its streamStarted() — we just need to keep the instance alive
 
                     allInstances.add(instance);
+
+                    // Per-app activation hook for plugins that need to react to context creation
+                    // (e.g. registering a PluginServletDispatcher handler keyed by ctxPath).
+                    if (instance instanceof IPluginLifecycle) {
+                        try {
+                            ((IPluginLifecycle) instance).onActivated(ctxPath);
+                            activations.add(new LifecycleActivation((IPluginLifecycle) instance, ctxPath));
+                        } catch (Exception e) {
+                            log.error("Failed onActivated('{}') on '{}': {}",
+                                    ctxPath, listenerClass.getSimpleName(), e.getMessage(), e);
+                        }
+                    }
+
                     log.info("Registered @Listener '{}' in context '{}'", listenerClass.getSimpleName(), ctxPath);
                 } catch (Exception e) {
                     log.error("Failed to instantiate @Listener '{}' in context '{}'",
@@ -237,6 +267,9 @@ public class PluginDeployer {
         if (!registeredRestKeys.isEmpty()) {
             pluginRestKeys.put(pluginId, registeredRestKeys);
         }
+        if (!activations.isEmpty()) {
+            pluginLifecycleActivations.put(pluginId, activations);
+        }
 
         log.info("Loaded plugin '{}': {} listeners, {} REST endpoints",
                 pluginId, listenerClasses.size(), restClasses.size());
@@ -256,6 +289,23 @@ public class PluginDeployer {
                 return new Result(false, "Plugin not found: " + pluginName);
             }
             pluginId = pluginName;
+        }
+
+        // Per-app deactivation hook — fires before the server-level onPluginDisabled so plugins
+        // can release per-app resources (e.g. unregister PluginServletDispatcher handlers) while
+        // their main instance is still alive. Walk in reverse order so deactivation mirrors
+        // activation order.
+        List<LifecycleActivation> activations = pluginLifecycleActivations.get(pluginId);
+        if (activations != null) {
+            for (int i = activations.size() - 1; i >= 0; i--) {
+                LifecycleActivation activation = activations.get(i);
+                try {
+                    activation.instance.onDeactivated(activation.contextPath);
+                } catch (Exception e) {
+                    log.warn("Error calling onDeactivated('{}') on {}: {}",
+                            activation.contextPath, activation.instance.getClass().getSimpleName(), e.getMessage(), e);
+                }
+            }
         }
 
         // Call onPluginDisabled
@@ -308,6 +358,7 @@ public class PluginDeployer {
 
         pluginInstances.remove(pluginId);
         pluginRestKeys.remove(pluginId);
+        pluginLifecycleActivations.remove(pluginId);
         log.info("Unloaded plugin: {}", pluginId);
         return new Result(true);
     }
@@ -412,6 +463,31 @@ public class PluginDeployer {
         return Collections.unmodifiableSet(pluginInstances.keySet());
     }
 
+    /**
+     * Returns the context paths of all currently active streaming application contexts.
+     * Skips the admin console (root context, empty path) and any non-Tomcat contexts.
+     *
+     * <p>Used by V2 plugins that need to register per-app handlers (for example, plugin
+     * servlet handlers via {@code PluginServletDispatcher.register}). Snapshots the
+     * currently active contexts at the moment of the call — applications created after
+     * this returns will not appear in the list.</p>
+     */
+    public List<String> getActiveAppContextPaths() {
+        List<String> paths = new ArrayList<>();
+        for (IApplicationContext appCtx : getApplicationContexts().values()) {
+            if (!(appCtx instanceof TomcatApplicationContext)) {
+                continue;
+            }
+            TomcatApplicationContext tomcatCtx = (TomcatApplicationContext) appCtx;
+            String path = tomcatCtx.getContext().getPath();
+            if (path == null || path.isEmpty()) {
+                continue; // skip admin console (root)
+            }
+            paths.add(path);
+        }
+        return paths;
+    }
+
     /** Returns the REST dispatcher keys tracked per plugin. Visible for testing. */
     public Map<String, List<String>> getPluginRestKeys() {
         return Collections.unmodifiableMap(pluginRestKeys);
@@ -449,28 +525,18 @@ public class PluginDeployer {
             Attributes attrs = readManifestAttributes(pluginJar);
             String pluginName = attrs.getValue(MANIFEST_PLUGIN_NAME);
             String pluginVersion = attrs.getValue(MANIFEST_PLUGIN_VERSION);
-            String loadingMode = attrs.getValue(MANIFEST_PLUGIN_LOADING_MODE);
-            if (loadingMode == null) {
-                loadingMode = LOADING_MODE_HOTLOAD;
-            }
-            boolean requiresRestart = "true".equalsIgnoreCase(attrs.getValue(MANIFEST_PLUGIN_REQUIRES_RESTART));
 
-            // 4. WEBAPP_LIB must require restart
-            if (LOADING_MODE_WEBAPP_LIB.equals(loadingMode) && !requiresRestart) {
-                return new Result(false, "WEBAPP_LIB loading mode requires AMS-Plugin-Requires-Restart=true");
-            }
-
-            // 5. Duplicate check
+            // 4. Duplicate check
             if (pluginRecords.containsKey(pluginName) || pluginInstances.containsKey(slugify(pluginName))) {
                 return new Result(false, "Plugin already loaded: " + pluginName);
             }
 
-            // 6. Build record
+            // 5. Build record
             PluginRecord record = buildPluginRecord(attrs);
             record.setState(PluginState.INSTALLING);
             pluginRecords.put(pluginName, record);
 
-            // 7. Run install script if present
+            // 6. Run install script if present (OS-level work only — must NOT touch plugin.jar)
             File installScript = new File(extractDir, "install.sh");
             if (installScript.exists()) {
                 int exitCode = runInstallScript(installScript, extractDir, pluginName, pluginVersion, pluginJar);
@@ -481,7 +547,7 @@ public class PluginDeployer {
                 }
             }
 
-            // 8. Copy artifacts to canonical plugin directory
+            // 7. Copy artifacts to canonical plugin directory
             String pluginId = record.getPluginId();
             File canonicalDir = new File(pluginsDir, pluginId);
             canonicalDir.mkdirs();
@@ -497,14 +563,8 @@ public class PluginDeployer {
                 copyDirectory(assetsDir, new File(canonicalDir, "assets"));
             }
 
-            // 9. If restart required, stop here
-            if (requiresRestart) {
-                record.setState(PluginState.INSTALLED_PENDING_RESTART);
-                log.info("Plugin {} installed. Server restart required to activate.", pluginName);
-                return new Result(true, "Plugin installed. Server restart required to activate.");
-            }
-
-            // 10. Hot-load the JAR using existing V1 mechanism
+            // 8. Hot-load the JAR. V2 plugins are always hot-loaded — there is no
+            //    restart-required path.
             File jarInCanonical = new File(canonicalDir, "plugin.jar");
             Result loadResult = loadPlugin(jarInCanonical);
             if (loadResult.isSuccess()) {
@@ -596,6 +656,19 @@ public class PluginDeployer {
             return new Result(false, "Missing " + MANIFEST_PLUGIN_AUTHOR + " in MANIFEST.MF");
         }
 
+        // Reject obsolete manifest entries from earlier V2 drafts. V2 plugins are always
+        // hot-loaded; there is no mode field and no restart-required flag. A manifest that
+        // tries to declare these is a packaging error and the install must fail loudly so
+        // the plugin author updates the manifest before shipping.
+        if (attrs.getValue(OBSOLETE_MANIFEST_LOADING_MODE) != null) {
+            return new Result(false, OBSOLETE_MANIFEST_LOADING_MODE + " is no longer supported. "
+                    + "V2 plugins are always hot-loaded. Remove this entry from MANIFEST.MF.");
+        }
+        if (attrs.getValue(OBSOLETE_MANIFEST_REQUIRES_RESTART) != null) {
+            return new Result(false, OBSOLETE_MANIFEST_REQUIRES_RESTART + " is no longer supported. "
+                    + "V2 plugins never require restart. Remove this entry from MANIFEST.MF.");
+        }
+
         String requiresVersion = attrs.getValue(MANIFEST_PLUGIN_REQUIRES_VERSION);
         if (requiresVersion != null && !requiresVersion.isEmpty()) {
             Version amsVersion = RestServiceBase.getSoftwareVersion();
@@ -615,13 +688,6 @@ public class PluginDeployer {
         record.setAuthor(attrs.getValue(MANIFEST_PLUGIN_AUTHOR));
         record.setDescription(attrs.getValue(MANIFEST_PLUGIN_DESCRIPTION));
         record.setRequiresVersion(attrs.getValue(MANIFEST_PLUGIN_REQUIRES_VERSION));
-
-        String loadingMode = attrs.getValue(MANIFEST_PLUGIN_LOADING_MODE);
-        record.setLoadingMode(loadingMode != null ? loadingMode : LOADING_MODE_HOTLOAD);
-
-        boolean requiresRestart = "true".equalsIgnoreCase(attrs.getValue(MANIFEST_PLUGIN_REQUIRES_RESTART));
-        record.setRequiresRestart(requiresRestart);
-
         record.setPluginId(slugify(record.getName()) + "-" + record.getVersion());
         return record;
     }
