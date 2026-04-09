@@ -580,6 +580,52 @@ public class StatsCollectorTest {
 	}
 
 	@Test
+	public void testSendInstanceStatsIncludesEmailAndHashes() throws Exception {
+		StatsCollector statsCollector = new StatsCollector();
+		statsCollector.setVertx(vertx);
+		statsCollector.setWebRTCVertx(webRTCVertx);
+		statsCollector.setUserEmail("user@test.com");
+
+		Field licenceKeyField = StatsCollector.class.getDeclaredField("licenceKey");
+		licenceKeyField.setAccessible(true);
+		licenceKeyField.set(statsCollector, "my-license-key");
+
+		CapturingStatsExporter exporter = new CapturingStatsExporter();
+		statsCollector.setStatsExporter(exporter);
+
+		statsCollector.sendInstanceStats(new ConcurrentLinkedQueue<>());
+
+		JsonObject payload = exporter.payload;
+		assertTrue(payload.has(StatsCollector.USER_EMAIL));
+		assertTrue(payload.has(StatsCollector.USER_EMAIL_HASH));
+		assertTrue(payload.has(StatsCollector.LICENSE_KEY_HASH));
+		assertTrue(payload.get(StatsCollector.USER_EMAIL_HASH).getAsLong() > 0);
+		assertTrue(payload.get(StatsCollector.LICENSE_KEY_HASH).getAsLong() > 0);
+		assertTrue(IStatsExporter.INSTANCE_STATS.equals(exporter.type));
+	}
+
+	private static class CapturingStatsExporter implements IStatsExporter {
+		private JsonObject payload;
+		private String type;
+
+		@Override
+		public void start() {
+			// no-op
+		}
+
+		@Override
+		public void sendStats(JsonObject jsonObject, String type) {
+			this.payload = jsonObject;
+			this.type = type;
+		}
+
+		@Override
+		public void stop() {
+			// no-op
+		}
+	}
+
+	@Test
 	public void testSendInstanceKafkaStats() {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		
