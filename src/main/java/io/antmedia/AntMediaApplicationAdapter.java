@@ -2174,10 +2174,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
 		
-		if(streamSourceMonitor != null) {
-			streamSourceMonitor.stop();
-			streamSourceMonitor = null;
-		}
+		closeStreamSourceMonitor();
 		
 		closeStreamFetchers();
 		closeRTMPStreams();
@@ -2190,6 +2187,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		closeDB(deleteDB);
 
+	}
+
+	protected void closeStreamSourceMonitor() {
+		if(streamSourceMonitor != null) {
+			streamSourceMonitor.stop();
+			streamSourceMonitor = null;
+		}
 	}
 
 	public void closeDB(boolean deleteDB) {
