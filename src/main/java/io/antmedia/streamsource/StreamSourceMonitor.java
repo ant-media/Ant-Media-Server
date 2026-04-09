@@ -16,7 +16,7 @@ import io.vertx.core.Vertx;
 
 public class StreamSourceMonitor {
 
-	private static final int MONITORING_PERIOD = 10000;
+	public static final int MONITORING_PERIOD = 10000;
 	public static final String BEAN_NAME = "web.handler";
 	protected static Logger logger = LoggerFactory.getLogger(StreamSourceMonitor.class);
 	

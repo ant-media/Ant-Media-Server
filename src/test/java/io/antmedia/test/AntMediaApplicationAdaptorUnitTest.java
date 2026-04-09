@@ -132,6 +132,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.streamsource.StreamSourceMonitor;
 import io.antmedia.track.ISubtrackPoller;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
@@ -1785,6 +1786,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 		dataStore.save(broadcast);
 
 		Result result = new Result(false);
@@ -1802,21 +1804,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setStreamPlaySecurityList(new ArrayList<>());
 
 		spyAdapter.appStart(scope);
-
-		await().pollInterval(10,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> {
-			Broadcast broadcastInDb = dataStore.get(broadcast.getStreamId());
-
-
-			int callCount = mockingDetails(streamFetcherManager)
-				.getInvocations()
-				.stream()
-				.filter(invocation -> invocation.getMethod().getName().equals("startStreaming"))
-				.filter(invocation -> invocation.getArguments()[0].equals(broadcastInDb))
-				.toList()
-				.size();
-
-			return callCount == 1;			
-		});
+		
+		verify(spyAdapter, timeout(StreamSourceMonitor.MONITORING_PERIOD*2)).startStreaming(broadcast);
 	}
 
 	@Test
