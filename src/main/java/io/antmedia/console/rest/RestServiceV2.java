@@ -30,6 +30,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -617,6 +618,58 @@ public class RestServiceV2 extends CommonRestService {
 		}
 
 		return hostname;
+	}
+
+	@Operation(summary = "List all installed plugins (V1 startup-loaded + hot-loaded)",
+			responses = {@ApiResponse(responseCode = "200", description = "Plugin names returned")})
+	@GET
+	@Path("/plugins")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<String> getPlugins() {
+		return super.getPlugins();
+	}
+
+	@Operation(summary = "Deploy a plugin from an uploaded ZIP",
+			responses = {@ApiResponse(responseCode = "200", description = "Plugin deployed")})
+	@PUT
+	@Consumes({MediaType.MULTIPART_FORM_DATA})
+	@Path("/plugins/{pluginName}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deployPlugin(
+			@Parameter(description = "Slugified plugin name (alphanumeric, dashes, underscores)", required = true)
+			@PathParam("pluginName") String pluginName,
+			@Parameter(description = "Plugin ZIP file", required = true)
+			@FormDataParam("file") InputStream inputStream) {
+		logger.info("Plugin deploy request received for {}",
+				pluginName != null ? pluginName.replaceAll("[\\r\\n]", "_") : "null");
+		return super.deployPlugin(pluginName, inputStream);
+	}
+
+	@Operation(summary = "Undeploy a plugin",
+			responses = {@ApiResponse(responseCode = "200", description = "Plugin undeployed")})
+	@DELETE
+	@Path("/plugins/{pluginName}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result undeployPlugin(
+			@Parameter(description = "Slugified plugin name", required = true)
+			@PathParam("pluginName") String pluginName) {
+		logger.info("Plugin undeploy request received for {}",
+				pluginName != null ? pluginName.replaceAll("[\\r\\n]", "_") : "null");
+		return super.undeployPlugin(pluginName);
+	}
+
+	@Operation(summary = "Stream a plugin ZIP for cluster-to-cluster download (JWT-authenticated)",
+			responses = {@ApiResponse(responseCode = "200", description = "Plugin ZIP returned"),
+					@ApiResponse(responseCode = "403", description = "Invalid or missing JWT"),
+					@ApiResponse(responseCode = "404", description = "Plugin not found")})
+	@GET
+	@Path("/plugins/{pluginName}/download")
+	public Response downloadPlugin(
+			@Parameter(description = "Slugified plugin name", required = true)
+			@PathParam("pluginName") String pluginName,
+			@Parameter(description = "Cluster authorization JWT", required = true)
+			@HeaderParam(io.antmedia.filter.TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION) String authToken) {
+		return super.downloadPlugin(pluginName, authToken);
 	}
 
 }
