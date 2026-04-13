@@ -41,8 +41,6 @@ public class DataStoreFactoryUnitTest {
 		dsf =  new DataStoreFactory();
 		dsf.setDbName("myDB");
 		dsf.setDbHost("127.0.0.1");
-		dsf.setDbUser(null);
-		dsf.setDbPassword("myPass");
 		dsf.setDbType("memorydb");
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);

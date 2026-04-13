@@ -32,7 +32,6 @@ public class User {
     /**
      * The type of the user.
      */
-	@Deprecated
 	@Schema(description = "The type of the user", allowableValues = {"ADMIN", "READ-ONLY", "USER"})
     private UserType userType;
 
@@ -40,7 +39,6 @@ public class User {
     /**
      * The scope of the user. It can be 'system' or the name of the application.
      */
-	@Deprecated
     @Schema(description = "The scope of the user. If it's 'system', it can access system-level stuff. If it's an application name, it can access application-level stuff.")
     private String scope;
 
@@ -66,7 +64,6 @@ public class User {
     @Schema(description = "The last name of the user")
     private String lastName;
     
-    @Deprecated
     @Schema(description = "The full name of the user")
     private String fullName;
 

@@ -1,33 +1,10 @@
 package io.antmedia.integration;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.EncoderSettings;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.SubscriberStats;
-import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.model.Result;
-import io.antmedia.settings.ServerSettings;
-import io.antmedia.test.StreamFetcherUnitTest;
-
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.awaitility.Awaitility;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.logging.LogEntries;
-import org.openqa.selenium.logging.LogEntry;
-import org.openqa.selenium.logging.LogType;
-import io.github.bonigarcia.wdm.WebDriverManager;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.logging.LoggingPreferences;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,8 +15,9 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.openqa.selenium.NoAlertPresentException;
-import org.openqa.selenium.StaleElementReferenceException;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -48,8 +26,31 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.openqa.selenium.By;
+import org.openqa.selenium.NoAlertPresentException;
+import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.logging.LogEntries;
+import org.openqa.selenium.logging.LogEntry;
+import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.logging.LoggingPreferences;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.*;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
+import io.antmedia.test.StreamFetcherUnitTest;
+import io.github.bonigarcia.wdm.WebDriverManager;
 
 public class FrontEndTest {
 
@@ -191,9 +192,6 @@ public class FrontEndTest {
 		List<EncoderSettings> encoderSettings = null;
 		try {
 
-			Random r = new Random();
-			String streamId = "streamId" + r.nextInt();
-
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
 			encoderSettings = appSettingsModel.getEncoderSettings();
@@ -207,7 +205,8 @@ public class FrontEndTest {
 			this.driver = new ChromeDriver(getChromeOptions());
 			this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
 			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-			this.driver.get(this.url+"audio_publish.html?id=stream1");
+			String streamId = "testAudioOnlyPublishStreamId";
+			this.driver.get(this.url+"audio_publish.html?id="+streamId);
 			WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
 			this.driver.switchTo().frame(0);
@@ -220,7 +219,7 @@ public class FrontEndTest {
 
 			//wait for creating  files
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/"+streamId+".m3u8");
 			});
 
 			assertTrue(MuxingTest.audioExists);
@@ -371,9 +370,6 @@ public class FrontEndTest {
 
 		assertTrue(checkAlert());
 		
-		//check if there is any subscriber
-		List<SubscriberStats> subscriberStats = restServiceTest.getSubscriberStats(streamId);
-		assertEquals(0, subscriberStats.size());
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='stop_publish_button']")));
 

@@ -76,9 +76,6 @@ public class BroadcastUpdate {
 
     private Integer seekTimeInMs = null;
 
-    @Deprecated(forRemoval = true, since = "2.9.1")
-    private String conferenceMode = null;
-
     private Integer subtracksLimit = null;
 
     private Integer expireDurationMS = null;
@@ -132,9 +129,6 @@ public class BroadcastUpdate {
     private String altitude = null;
 
     private String mainTrackStreamId = null;
-
-    @Deprecated(forRemoval = true, since = "2.10.1")
-    private List<String> subTrackStreamIds = null;
 
     private Long absoluteStartTimeMs = null;
 
@@ -395,14 +389,6 @@ public class BroadcastUpdate {
 		this.seekTimeInMs = seekTimeInMs;
 	}
 
-	public String getConferenceMode() {
-		return conferenceMode;
-	}
-
-	public void setConferenceMode(String conferenceMode) {
-		this.conferenceMode = conferenceMode;
-	}
-
 	public Integer getSubtracksLimit() {
 		return subtracksLimit;
 	}
@@ -537,14 +523,6 @@ public class BroadcastUpdate {
 
 	public void setMainTrackStreamId(String mainTrackStreamId) {
 		this.mainTrackStreamId = mainTrackStreamId;
-	}
-
-	public List<String> getSubTrackStreamIds() {
-		return subTrackStreamIds;
-	}
-
-	public void setSubTrackStreamIds(List<String> subTrackStreamIds) {
-		this.subTrackStreamIds = subTrackStreamIds;
 	}
 
 	public Long getAbsoluteStartTimeMs() {

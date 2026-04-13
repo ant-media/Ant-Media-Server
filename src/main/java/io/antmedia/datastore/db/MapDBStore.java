@@ -4,12 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.Map.Entry;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
@@ -19,11 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.ConferenceRoom;
-import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
-import io.antmedia.datastore.db.types.SubscriberMetadata;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
 
 
@@ -117,13 +109,6 @@ public class MapDBStore extends MapBasedDataStore {
 			false));
 
 		available = true;
-		
-		
-		//migrate from conferenceRoomMap to Broadcast
-		// May 11, 2024
-		// we may remove this code after some time and ConferenceRoom class
-		// mekya
-		migrateConferenceRoomsToBroadcasts();
 		
 	}
 

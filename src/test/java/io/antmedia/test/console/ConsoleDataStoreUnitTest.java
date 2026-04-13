@@ -19,7 +19,7 @@ public class ConsoleDataStoreUnitTest {
 	
 	@Test
 	public void testMongoStore() {
-		AbstractConsoleDataStore dt = new MongoStore("127.0.0.1", "", "");
+		AbstractConsoleDataStore dt = new MongoStore("127.0.0.1");
 		simpleDBOperations(dt);
 	}
 	

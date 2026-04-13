@@ -275,7 +275,7 @@ public class TokenFilterTest {
 		ITokenService tokenService = mock(ITokenService.class);
 		AppSettings settings = new AppSettings();
 		settings.resetDefaults();
-		settings.setTimeTokenSubscriberOnly(true);
+		settings.setEnableTimeTokenForPlay(true);
 
 
 		when(context.getBean("token.service")).thenReturn(tokenService);
@@ -329,9 +329,8 @@ public class TokenFilterTest {
 		}
 	}	
 
-	private AppSettings mockAppSettings(boolean timeTokenSubscriberOnly, boolean playJwtControlEnabled, boolean enableTimeTokenForPlay, boolean playTokenControlEnabled, boolean hashControlPlayEnabled) {
+	private AppSettings mockAppSettings(boolean playJwtControlEnabled, boolean enableTimeTokenForPlay, boolean playTokenControlEnabled, boolean hashControlPlayEnabled) {
 		AppSettings appSettings = mock(AppSettings.class);
-		when(appSettings.isTimeTokenSubscriberOnly()).thenReturn(timeTokenSubscriberOnly);
 		when(appSettings.isPlayJwtControlEnabled()).thenReturn(playJwtControlEnabled);
 		when(appSettings.isEnableTimeTokenForPlay()).thenReturn(enableTimeTokenForPlay);
 		when(appSettings.isPlayTokenControlEnabled()).thenReturn(playTokenControlEnabled);
@@ -342,32 +341,32 @@ public class TokenFilterTest {
 	@Test
 	public void testIsAnySecurityEnabled() {
 
-		AppSettings appSettings = mockAppSettings(false, false, false, false, false);
+		AppSettings appSettings = mockAppSettings(false, false, false, false);
 
 		boolean result = TokenFilterManager.isAnySecurityEnabled(appSettings);
 		assertFalse(result);
 		
-		appSettings = mockAppSettings(true, false, false, false, false);
+		appSettings = mockAppSettings(false, false, false, false);
+        result = TokenFilterManager.isAnySecurityEnabled(appSettings);
+        assertFalse(result);
+        
+        appSettings = mockAppSettings(true, false, false, false);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
         
-        appSettings = mockAppSettings(false, true, false, false, false);
+        appSettings = mockAppSettings(false, true, false, false);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
         
-        appSettings = mockAppSettings(false, false, true, false, false);
+        appSettings = mockAppSettings(false, false, true, false);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
         
-        appSettings = mockAppSettings(false, false, false, true, false);
+        appSettings = mockAppSettings(false, false, false, true);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
         
-        appSettings = mockAppSettings(false, false, false, false, true);
-        result = TokenFilterManager.isAnySecurityEnabled(appSettings);
-        assertTrue(result);
-        
-        appSettings = mockAppSettings(true, true, true, true, true);
+        appSettings = mockAppSettings(true, true, true, true);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
 

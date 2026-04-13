@@ -187,6 +187,10 @@ public abstract class Muxer {
 		avRationalTimeBase.den(1);
 	}
 
+	public void setFormat(String format) {
+		this.format = format;
+	}
+
 	protected String subFolder = null;
 
 	/**
@@ -235,7 +239,7 @@ public abstract class Muxer {
 		public void setKeyFrame(boolean isKeyFrame) {
 			this.keyFrame = isKeyFrame;
 		}
-		
+
 		public ByteBuffer getEncodedVideoFrame() {
 			return encodedVideoFrame;
 		}
@@ -294,6 +298,10 @@ public abstract class Muxer {
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
 		logger = LoggerFactory.getLogger(this.getClass());
+	}
+
+	public List<AVBSFContext> getBsfFilterContextList() {
+		return bsfFilterContextList;
 	}
 
 	public static File getPreviewFile(IScope scope, String name, String extension) {
@@ -377,12 +385,14 @@ public abstract class Muxer {
 			String url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
-			if (ret < 0) {
-				logger.warn("Could not open output url: {} ",  url);
-				return false;
+			synchronized (optionDictionary) {
+				int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
+				if (ret < 0) {
+					logger.warn("Could not open output url: {} ",  url);
+					return false;
+				}
+				getOutputFormatContext().pb(pb);
 			}
-			getOutputFormatContext().pb(pb);
 		}
 		return true;
 	}
@@ -513,7 +523,9 @@ public abstract class Muxer {
 			avformat_free_context(outputFormatContext);
 			outputFormatContext = null;
 		}
-		av_dict_free(optionDictionary);
+		synchronized (optionDictionary) {
+			av_dict_free(optionDictionary);	
+		}
 	}
 
 	/**
