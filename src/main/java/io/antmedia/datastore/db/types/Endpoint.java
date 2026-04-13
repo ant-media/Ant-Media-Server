@@ -24,10 +24,10 @@ public class Endpoint {
     private String type;
 
     /**
-     * RTMP URL of the endpoint
+     * RTMP Or SRT URL of the endpoint
      */
-    @Schema(description = "The RTMP URL of the endpoint")
-    private String rtmpUrl;
+    @Schema(description = "RTMP or SRT URL of the endpoint")
+    private String endpointUrl;
 
     /**
      * Endpoint service id, this field holds the id of the endpoint
@@ -43,20 +43,20 @@ public class Endpoint {
         this.status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
     }
 
-    public Endpoint(String rtmpUrl, String type, String endpointServiceId, String status) {
+    public Endpoint(String endpointUrl, String type, String endpointServiceId, String status) {
         this();
         this.status = status;
-        this.rtmpUrl = rtmpUrl;
+        this.endpointUrl = endpointUrl;
         this.type = type;
         this.endpointServiceId = endpointServiceId;
     }
 
-    public String getRtmpUrl() {
-        return rtmpUrl;
+    public String getEndpointUrl() {
+        return endpointUrl;
     }
 
-    public void setRtmpUrl(String rtmpUrl) {
-        this.rtmpUrl = rtmpUrl;
+    public void setEndpointUrl(String endpointUrl) {
+        this.endpointUrl = endpointUrl;
     }
 
     public String getEndpointServiceId() {

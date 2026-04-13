@@ -37,24 +37,6 @@ public interface IAntMediaStreamHandler {
 	
 	
 	public static final String WEBAPPS_PATH = "webapps/";
-
-	
-	/**
-	 * Called by some muxer like MP4Muxer
-	 * 
-	 * id actually is the name of the file however in some cases file name and the id may be different
-	 * in some cases like there is already a file with that name
-	 * 
-	 * @param id is the name of the stream published 
-	 * @param file video file that muxed is finished
-	 * @param duration of the video in milliseconds
-	 * @param resolution height of the video 
-	 * 
-	 * @Deprecated use {@link #muxingFinished(Broadcast, File, long, long, int, String, String)} because Broadcast object may be deleted when this method is called
-	 */
-	@Deprecated
-	public void muxingFinished(String id, File file, long startTime, long duration , int resolution, String path, String vodId);
-	
 	
 	/**
 	 * Called by some muxer like MP4Muxer
@@ -71,30 +53,6 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 */
 	public void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration , int resolution, String previewFilePath, String vodId);
-	
-	/**
-	 * Update stream quality, speed and number of pending packet size and update time
-	 * in datastore
-	 * 
-	 * @param id this is the id of the stream
-	 * 
-	 * @param quality, quality of the stream values can be 
-	 * {@link MuxAdaptor#QUALITY_GOOD, MuxAdaptor#QUALITY_AVERAGE, MuxAdaptor#QUALITY_POOR, MuxAdaptor#QUALITY_NA}
-	 * 
-	 * @param speed
-	 * Speed of the stream. It should 1x
-	 * 
-	 * @param pendingPacketSize
-	 * Number of packets pending to be processed
-	 * 
-	 * @param totalByteReceived
-	 * @param byteTransferred 
-	 * @param currentTimeMillis
-	 * 
-	 * @Deprecated {@link #setQualityParameters(String, PublishStatsEvent, long)} should be used instead of this method
-	 */
-	@Deprecated
-	public void setQualityParameters(String streamId, String quality, double speed, int inputQueueSize, long currentTimeMillis);
 	
 	
 	/**
@@ -136,19 +94,7 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @return true if server is shutting down
 	 */
-	public boolean isServerShuttingDown();
-
-	/**
-	 * Notify the handler that stream is started to publish
-	 * @deprecated use {@link #startPublish(String, long, String, String)} instead of this method
-	 * 
-	 * @param streamName
-	 * @param absoluteStartTimeMs
-	 * @param publishType
-	 */
-	@Deprecated
-	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType);
-	
+	public boolean isServerShuttingDown();	
 	
 	/**
 	 * Notify the handler that stream is started to publish
@@ -160,14 +106,6 @@ public interface IAntMediaStreamHandler {
 	 */
 	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> publishParameters);
 
-	
-	/**
-	 * Notify the handler that is stream is stopped
-	 * @deprecated use {@link #stopPublish(String, String)} instead of this method
-	 * @param streamId
-	 */
-	@Deprecated
-	public void stopPublish(String streamId);
 	
 	/**
 	 * Notify the handler that is stream is stopped
@@ -190,7 +128,7 @@ public interface IAntMediaStreamHandler {
 	 * Update broadcast status to BROADCASTING
 	 * 
 	 * @param streamId is the id of the stream.
-	 * @param absoluteStartTimeMs: @deprecated It's not used anymore. It's the absolute start time if available 
+	 * @param absoluteStartTimeMs: It's the absolute start time if available 
 	 * @param publishType: It's RTMP, WebRTC, StreamSource
 	 * @param broadcast: It's the broadcast object. If it's null, a new record will be created
 	 * 

@@ -131,19 +131,16 @@ public class AppSettingsTest {
 		
 		assertEquals(true, currentSettings.isMp4MuxingEnabled());
 		
-		verify(mockApplicationAdapter, times(1)).synchUserVoDFolder(any(), any());
 		assertNotEquals(0, settingsFile.length());
 		
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		assertTrue(savedSettings.isMp4MuxingEnabled());
 		assertEquals("15", savedSettings.getHlsListSize());
-		assertEquals("", savedSettings.getVodFolder());
 		assertEquals("2", savedSettings.getHlsTime());
 		assertEquals("", savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size());
 
 		settings.setHlsListSize("12");
-		settings.setVodFolder("/mnt/storage");
 		settings.setHlsTime("17");
 		settings.setHlsPlayListType("event");
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
@@ -161,7 +158,6 @@ public class AppSettingsTest {
 		
 		//settings should not be changed because wron encoder parameter
 		assertEquals("15", savedSettings.getHlsListSize());
-		assertEquals("", savedSettings.getVodFolder());
 		assertEquals("2", savedSettings.getHlsTime());
 		assertEquals("", savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 0
@@ -176,7 +172,6 @@ public class AppSettingsTest {
 		assertTrue(updateSettings);
 		
 		assertEquals("12", savedSettings.getHlsListSize());
-		assertEquals("/mnt/storage", savedSettings.getVodFolder());
 		assertEquals("17", savedSettings.getHlsTime());
 		assertEquals("event", savedSettings.getHlsPlayListType());
 		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1

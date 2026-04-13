@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
@@ -723,6 +724,13 @@ public class StreamService implements IStreamService {
         }
         else if(action.equals(StreamAction.PLAY))
         {
+            AppSettings appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+            if (!appSettings.isRtmpPlaybackEnabled()) {
+                sendNSFailed(streamConn, StatusCodes.NS_FAILED, "RTMP playback is disabled.", name, streamId);
+                log.info("RTMP playback is disabled for stream {}", name);
+                return false;
+            }
+
             AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 
               //if it is already blocked in database, do not get started

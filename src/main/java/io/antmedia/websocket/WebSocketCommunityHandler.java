@@ -153,7 +153,7 @@ public class WebSocketCommunityHandler {
 			else if (cmd.equals(WebSocketConstants.PING_COMMAND)) {
 				sendPongMessage(session);
 			}
-			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND) || cmd.equals(WebSocketConstants.PLAY_COMMAND)) 
+			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND) || cmd.equals(WebSocketConstants.PLAY_COMMAND))
 			{
 				sendNotFoundJSON(streamId, session);
 			}
@@ -166,7 +166,6 @@ public class WebSocketCommunityHandler {
 		}
 
 	}
-		
 
 	private void startRTMPAdaptor(Session session, final String streamId, boolean enableVideo) {
 		int rtmpPort = appAdaptor.getServerSettings().getRtmpPort();

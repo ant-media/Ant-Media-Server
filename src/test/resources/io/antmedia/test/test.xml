@@ -82,9 +82,7 @@
     <bean id="dataStoreFactory" class="io.antmedia.datastore.db.DataStoreFactory">
 		<property name="dbName" value="junit.db" />
 		<property name="dbType" value="memorydb" />
-		<property name="dbHost" value="" />
-		<property name="dbUser" value="" />
-		<property name="dbPassword" value="" />
+	
 	</bean>
 	
 	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>

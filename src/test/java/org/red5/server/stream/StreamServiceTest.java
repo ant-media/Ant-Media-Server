@@ -16,17 +16,20 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.service.IStreamSecurityService;
 import org.red5.server.api.stream.*;
 import org.red5.server.scope.BasicScope;
+import org.red5.server.net.rtmp.status.StatusCodes;
 import org.red5.server.scope.Scope;
 import org.red5.server.util.ScopeUtils;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.websocket.WebSocketConstants;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.internal.util.MockUtil.resetMock;
@@ -192,20 +195,71 @@ public class StreamServiceTest {
         AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
         IContext context = Mockito.mock(IContext.class);
         when(scope.getContext()).thenReturn(context);
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setRtmpPlaybackEnabled(true);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+
 		when(scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
-		
+
 		DataStore dataStore = new InMemoryDataStore("junit");
 		when(adaptor.getDataStore()).thenReturn(dataStore);
 		dataStore.blockSubscriber(streamIdText, subscriberId, Subscriber.PUBLISH_AND_PLAY_TYPE, 10000);
-		
+
 		Mockito.doNothing().when(streamService).sendNSFailed(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
-		
+
 		boolean result = streamService.verifySecurity(scope, streamConn, streamIdText, streamId, params, mode, action);
 		assertFalse(result);
-		
+
 		Mockito.verify(streamService, Mockito.times(1)).sendNSFailed(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
-		
-		
+	}
+
+	@Test
+	public void testVerifySecurityRTMPPlaybackDisabled() {
+		StreamService streamService = Mockito.spy(new StreamService());
+
+		IScope scope = Mockito.mock(Scope.class);
+		IStreamCapableConnection streamConn = Mockito.mock(IStreamCapableConnection.class);
+		String streamIdText = "stream123";
+		Number streamId = 123132;
+
+		Map<String, String> params = new HashMap<String, String>();
+		String mode = "mode";
+		StreamAction action = StreamAction.PLAY;
+
+		Mockito.doReturn(Mockito.mock(IStreamSecurityService.class)).when(streamService).getSecurityService(scope);
+
+		IContext context = Mockito.mock(IContext.class);
+		when(scope.getContext()).thenReturn(context);
+
+		// rtmpPlaybackEnabled = false
+		AppSettings appSettings = new AppSettings();
+		appSettings.setRtmpPlaybackEnabled(false);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+
+		Mockito.doNothing().when(streamService).sendNSFailed(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+
+		boolean result = streamService.verifySecurity(scope, streamConn, streamIdText, streamId, params, mode, action);
+		assertFalse(result);
+
+		Mockito.verify(streamService, Mockito.times(1)).sendNSFailed(Mockito.any(), Mockito.eq(StatusCodes.NS_FAILED), Mockito.eq("RTMP playback is disabled."), Mockito.eq(streamIdText), Mockito.eq(streamId));
+
+		// now enable rtmpPlaybackEnabled and verify it passes through
+		Mockito.reset(streamService);
+		Mockito.doReturn(Mockito.mock(IStreamSecurityService.class)).when(streamService).getSecurityService(scope);
+		Mockito.doNothing().when(streamService).sendNSFailed(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+
+		appSettings.setRtmpPlaybackEnabled(true);
+
+		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
+		DataStore dataStore = new InMemoryDataStore("junit");
+		when(adaptor.getDataStore()).thenReturn(dataStore);
+
+		result = streamService.verifySecurity(scope, streamConn, streamIdText, streamId, params, mode, action);
+		assertTrue(result);
+
+		Mockito.verify(streamService, Mockito.never()).sendNSFailed(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
 	}
 
 	@Test
@@ -310,6 +364,10 @@ public class StreamServiceTest {
 		Red5.setConnectionLocal(conn);
 		
 		when(scope.getContext()).thenReturn(mock(IContext.class));
+		AppSettings appSettings = new AppSettings();
+		appSettings.setRtmpPlaybackEnabled(true);
+		when(scope.getContext().getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+
 		AntMediaApplicationAdapter adaptor = mock(AntMediaApplicationAdapter.class);
 		when(scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
 		when(adaptor.getDataStore()).thenReturn(new InMemoryDataStore("junit"));

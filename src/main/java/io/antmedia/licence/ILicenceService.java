@@ -9,6 +9,7 @@ public interface ILicenceService {
 	public static final String LICENCE_TYPE_STANDARD = "standard";
 	public static final String LICENCE_TYPE_OFFLINE = "offline";
 	public static final String LICENCE_TYPE_MARKETPLACE = "marketplace";
+	public static final String LICENCE_TYPE_LOCAL_SERVER = "local_server";
 
 	
 	public enum BeanName {
