@@ -413,8 +413,12 @@ public class PluginDeployerTest {
         Result result = spy.unloadPluginFromZip("Removable Plugin", pluginsDir);
         assertTrue(result.isSuccess());
 
-        // Record should be gone
-        assertNull(spy.getPluginRecord("Removable Plugin"));
+        // Record should still exist but in INSTALLED_PENDING_RESTART state
+        // (restart needed to fully clean up — Vert.x timers etc.)
+        PluginRecord afterUninstall = spy.getPluginRecord("Removable Plugin");
+        assertNotNull(afterUninstall);
+        assertEquals(PluginState.INSTALLED_PENDING_RESTART, afterUninstall.getState());
+
         // Flat jar should be deleted
         assertFalse(flatJar.exists());
 
