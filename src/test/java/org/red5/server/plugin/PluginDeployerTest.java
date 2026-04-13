@@ -16,6 +16,8 @@ import org.red5.server.api.IApplicationContext;
 import org.red5.server.tomcat.TomcatApplicationContext;
 import org.springframework.context.ApplicationContext;
 
+import java.util.jar.Attributes;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -447,6 +449,381 @@ public class PluginDeployerTest {
         assertTrue("Jar should exist for restart-required plugin without install.sh",
                 flatJar.exists());
 
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testScanInstalledPlugins_findsJarInPluginsDir() throws Exception {
+        String oldRoot = System.getProperty("red5.root");
+        try {
+            File amsHome = createTempPluginsDir();
+            File amsPlugins = new File(amsHome, "plugins");
+            amsPlugins.mkdirs();
+
+            File jar = SpringTestPluginJarBuilder.buildPluginJar("scan-test", "Scan Plugin", "1.0.0", "Author", null);
+            java.nio.file.Files.copy(jar.toPath(),
+                    new File(amsPlugins, "scan-plugin-1.0.0.jar").toPath());
+
+            System.setProperty("red5.root", amsHome.getAbsolutePath());
+            PluginDeployer d = new PluginDeployer();
+            d.scanInstalledPlugins();
+
+            PluginRecord record = d.getPluginRecord("Scan Plugin");
+            assertNotNull("Scan should find the plugin jar", record);
+            assertEquals("Scan Plugin", record.getName());
+            assertEquals("1.0.0", record.getVersion());
+            assertEquals(PluginState.ACTIVE, record.getState());
+            assertNotNull("jarPath should be set", record.getJarPath());
+            assertTrue("jarPath should point to the actual file",
+                    new File(record.getJarPath()).exists());
+
+            deleteDir(amsHome);
+        } finally {
+            if (oldRoot != null) System.setProperty("red5.root", oldRoot);
+            else System.clearProperty("red5.root");
+        }
+    }
+
+    @Test
+    public void testScanInstalledPlugins_skipsJarsWithoutManifest() throws Exception {
+        String oldRoot = System.getProperty("red5.root");
+        try {
+            File amsHome = createTempPluginsDir();
+            File amsPlugins = new File(amsHome, "plugins");
+            amsPlugins.mkdirs();
+
+            File emptyJar = SpringTestPluginJarBuilder.buildEmptyJar("no-manifest");
+            java.nio.file.Files.copy(emptyJar.toPath(),
+                    new File(amsPlugins, "no-manifest.jar").toPath());
+
+            System.setProperty("red5.root", amsHome.getAbsolutePath());
+            PluginDeployer d = new PluginDeployer();
+            d.scanInstalledPlugins();
+
+            assertTrue("Empty jars should be skipped", d.getAllPluginRecords().isEmpty());
+            deleteDir(amsHome);
+        } finally {
+            if (oldRoot != null) System.setProperty("red5.root", oldRoot);
+            else System.clearProperty("red5.root");
+        }
+    }
+
+    @Test
+    public void testScanInstalledPlugins_skipsAlreadyKnownPlugins() throws Exception {
+        String oldRoot = System.getProperty("red5.root");
+        try {
+            File amsHome = createTempPluginsDir();
+            File amsPlugins = new File(amsHome, "plugins");
+            amsPlugins.mkdirs();
+
+            File jar = SpringTestPluginJarBuilder.buildPluginJar("dup-scan", "Dup Scan", "1.0.0", "Author", null);
+            java.nio.file.Files.copy(jar.toPath(),
+                    new File(amsPlugins, "dup-scan-1.0.0.jar").toPath());
+
+            System.setProperty("red5.root", amsHome.getAbsolutePath());
+            PluginDeployer d = new PluginDeployer();
+
+            d.scanInstalledPlugins();
+            int firstCount = d.getAllPluginRecords().size();
+            assertEquals("First scan should find exactly 1 plugin", 1, firstCount);
+
+            d.scanInstalledPlugins();
+            int secondCount = d.getAllPluginRecords().size();
+            assertEquals("Second scan should not duplicate", firstCount, secondCount);
+
+            deleteDir(amsHome);
+        } finally {
+            if (oldRoot != null) System.setProperty("red5.root", oldRoot);
+            else System.clearProperty("red5.root");
+        }
+    }
+
+    @Test
+    public void testFindPluginRecord_byName() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Find By Name");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "find-by-name");
+        File pluginsDir = createTempPluginsDir();
+        spy.loadPluginFromZip(zip, pluginsDir);
+
+        assertNotNull(spy.findPluginRecord("Find By Name"));
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testFindPluginRecord_byPluginId() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Find By Id");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "find-by-id");
+        File pluginsDir = createTempPluginsDir();
+        spy.loadPluginFromZip(zip, pluginsDir);
+
+        PluginRecord record = spy.getPluginRecord("Find By Id");
+        assertNotNull(record);
+        assertNotNull(spy.findPluginRecord(record.getPluginId()));
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testFindPluginRecord_notFound() {
+        assertNull(deployer.findPluginRecord("nonexistent"));
+        assertNull(deployer.findPluginRecord(null));
+    }
+
+    @Test
+    public void testExtractZip_valid() throws Exception {
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("extract-test");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "extract-test");
+
+        File extracted = deployer.extractZip(zip);
+        assertNotNull(extracted);
+        assertTrue(extracted.isDirectory());
+        assertTrue(new File(extracted, "plugin.jar").exists());
+        deleteDir(extracted);
+    }
+
+    @Test
+    public void testExtractZip_invalidFile() throws Exception {
+        File notAZip = new File("/tmp/not-a-zip-" + System.nanoTime() + ".txt");
+        try {
+            java.nio.file.Files.write(notAZip.toPath(), "not a zip".getBytes());
+            File result = deployer.extractZip(notAZip);
+            // Invalid zip should return a directory (ZipInputStream reads empty)
+            // or null — either way no exception thrown
+            if (result != null) {
+                deleteDir(result);
+            }
+        } finally {
+            notAZip.delete();
+        }
+    }
+
+    @Test
+    public void testLoadPluginFromZip_withInstallScript() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        // Build a ZIP with plugin.jar + install.sh
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Script Plugin");
+        File zipDir = createTempPluginsDir();
+        File pluginJar = new File(zipDir, "plugin.jar");
+        java.nio.file.Files.copy(jar.toPath(), pluginJar.toPath());
+
+        // Create a simple install.sh that just exits 0
+        File installSh = new File(zipDir, "install.sh");
+        java.nio.file.Files.write(installSh.toPath(), "#!/bin/bash\nexit 0\n".getBytes());
+        installSh.setExecutable(true);
+
+        File uninstallSh = new File(zipDir, "uninstall.sh");
+        java.nio.file.Files.write(uninstallSh.toPath(), "#!/bin/bash\nexit 0\n".getBytes());
+
+        // Create the ZIP manually
+        File zip = new File(zipDir, "script-plugin.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zip))) {
+            for (String name : new String[]{"plugin.jar", "install.sh", "uninstall.sh"}) {
+                File f = new File(zipDir, name);
+                zos.putNextEntry(new java.util.zip.ZipEntry(name));
+                java.nio.file.Files.copy(f.toPath(), zos);
+                zos.closeEntry();
+            }
+        }
+
+        File pluginsDir = createTempPluginsDir();
+        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        assertTrue("Install with script should succeed: " + result.getMessage(), result.isSuccess());
+
+        // Verify uninstall.sh was copied to canonical dir
+        PluginRecord record = spy.getPluginRecord("Script Plugin");
+        assertNotNull(record);
+        File canonicalDir = new File(pluginsDir, record.getPluginId());
+        assertTrue(new File(canonicalDir, "uninstall.sh").exists());
+
+        deleteDir(zipDir);
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testLoadPluginFromZip_installScriptFails() throws Exception {
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", mockStreamingContext("/LiveApp")));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Fail Script");
+        File zipDir = createTempPluginsDir();
+        File pluginJar = new File(zipDir, "plugin.jar");
+        java.nio.file.Files.copy(jar.toPath(), pluginJar.toPath());
+
+        File installSh = new File(zipDir, "install.sh");
+        java.nio.file.Files.write(installSh.toPath(), "#!/bin/bash\nexit 1\n".getBytes());
+        installSh.setExecutable(true);
+
+        File uninstallSh = new File(zipDir, "uninstall.sh");
+        java.nio.file.Files.write(uninstallSh.toPath(), "#!/bin/bash\nexit 0\n".getBytes());
+
+        File zip = new File(zipDir, "fail-script.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zip))) {
+            for (String name : new String[]{"plugin.jar", "install.sh", "uninstall.sh"}) {
+                zos.putNextEntry(new java.util.zip.ZipEntry(name));
+                java.nio.file.Files.copy(new File(zipDir, name).toPath(), zos);
+                zos.closeEntry();
+            }
+        }
+
+        File pluginsDir = createTempPluginsDir();
+        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        assertFalse(result.isSuccess());
+        assertTrue(result.getMessage().contains("install.sh failed"));
+
+        PluginRecord record = spy.getPluginRecord("Fail Script");
+        assertNotNull(record);
+        assertEquals(PluginState.FAILED, record.getState());
+
+        deleteDir(zipDir);
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testUnloadPluginFromZip_withUninstallScript() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Uninstall Script");
+        File zipDir = createTempPluginsDir();
+        File pluginJar = new File(zipDir, "plugin.jar");
+        java.nio.file.Files.copy(jar.toPath(), pluginJar.toPath());
+
+        File uninstallSh = new File(zipDir, "uninstall.sh");
+        java.nio.file.Files.write(uninstallSh.toPath(), "#!/bin/bash\nexit 0\n".getBytes());
+
+        File zip = new File(zipDir, "uninstall-test.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zip))) {
+            for (String name : new String[]{"plugin.jar", "uninstall.sh"}) {
+                zos.putNextEntry(new java.util.zip.ZipEntry(name));
+                java.nio.file.Files.copy(new File(zipDir, name).toPath(), zos);
+                zos.closeEntry();
+            }
+        }
+
+        File pluginsDir = createTempPluginsDir();
+        spy.loadPluginFromZip(zip, pluginsDir);
+
+        PluginRecord record = spy.getPluginRecord("Uninstall Script");
+        assertNotNull(record);
+
+        // Verify uninstall.sh exists in canonical dir
+        File canonicalDir = new File(pluginsDir, record.getPluginId());
+        assertTrue(new File(canonicalDir, "uninstall.sh").exists());
+
+        Result result = spy.unloadPluginFromZip("Uninstall Script", pluginsDir);
+        assertTrue(result.isSuccess());
+
+        // Canonical dir should be deleted
+        assertFalse(canonicalDir.exists());
+
+        deleteDir(zipDir);
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testLoadPlugin_multipleContexts() throws Exception {
+        TomcatApplicationContext liveCtx = mockStreamingContext("/LiveApp");
+        TomcatApplicationContext webrtcCtx = mockStreamingContext("/WebRTCAppEE");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", liveCtx, "/WebRTCAppEE", webrtcCtx));
+
+        File jar = SpringTestPluginJarBuilder.buildComponentJar("multiCtx");
+        Result result = spy.loadPlugin(jar);
+        assertTrue(result.isSuccess());
+
+        // Verify bean registered in both contexts
+        ApplicationContext liveSpring = liveCtx.getSpringContext();
+        ApplicationContext webrtcSpring = webrtcCtx.getSpringContext();
+
+        IAntMediaStreamHandler liveApp = (IAntMediaStreamHandler) liveSpring.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+        IAntMediaStreamHandler webrtcApp = (IAntMediaStreamHandler) webrtcSpring.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+
+        verify(liveApp).addStreamListener(any(IStreamListener.class));
+        verify(webrtcApp).addStreamListener(any(IStreamListener.class));
+    }
+
+    @Test
+    public void testReadManifestAttributes_validJar() throws Exception {
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("manifest-read", "Test Plugin", "2.0.0", "Author", "2.16.0");
+        Attributes attrs = PluginDeployer.readManifestAttributes(jar);
+        assertNotNull(attrs);
+        assertEquals("Test Plugin", attrs.getValue("AMS-Plugin-Name"));
+        assertEquals("2.0.0", attrs.getValue("AMS-Plugin-Version"));
+    }
+
+    @Test
+    public void testReadManifestAttributes_nonExistentFile() {
+        Attributes attrs = PluginDeployer.readManifestAttributes(new File("/nonexistent.jar"));
+        assertNull(attrs);
+    }
+
+    @Test
+    public void testIsDuplicateInstall_noRecord() {
+        assertFalse(deployer.isDuplicateInstall("nonexistent"));
+    }
+
+    @Test
+    public void testIsDuplicateInstall_activeState() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Active Plugin");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "active-plugin");
+        File pluginsDir = createTempPluginsDir();
+        spy.loadPluginFromZip(zip, pluginsDir);
+
+        // ACTIVE state should block reinstall
+        assertTrue(spy.isDuplicateInstall("Active Plugin"));
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testIsDuplicateInstall_failedStateAllowsReinstall() throws Exception {
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", mockStreamingContext("/LiveApp")));
+
+        // Use a failing install script to get FAILED state directly
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Will Fail");
+        File zipDir = createTempPluginsDir();
+        File pluginJar = new File(zipDir, "plugin.jar");
+        java.nio.file.Files.copy(jar.toPath(), pluginJar.toPath());
+
+        File installSh = new File(zipDir, "install.sh");
+        java.nio.file.Files.write(installSh.toPath(), "#!/bin/bash\nexit 1\n".getBytes());
+        installSh.setExecutable(true);
+
+        File uninstallSh = new File(zipDir, "uninstall.sh");
+        java.nio.file.Files.write(uninstallSh.toPath(), "#!/bin/bash\nexit 0\n".getBytes());
+
+        File zip = new File(zipDir, "will-fail.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zip))) {
+            for (String name : new String[]{"plugin.jar", "install.sh", "uninstall.sh"}) {
+                zos.putNextEntry(new java.util.zip.ZipEntry(name));
+                java.nio.file.Files.copy(new File(zipDir, name).toPath(), zos);
+                zos.closeEntry();
+            }
+        }
+
+        File pluginsDir = createTempPluginsDir();
+        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        assertFalse("Install should fail due to script", result.isSuccess());
+
+        PluginRecord record = spy.getPluginRecord("Will Fail");
+        assertNotNull(record);
+        assertEquals(PluginState.FAILED, record.getState());
+
+        // FAILED state should allow reinstall
+        assertFalse(spy.isDuplicateInstall("Will Fail"));
+
+        deleteDir(zipDir);
         deleteDir(pluginsDir);
     }
 
