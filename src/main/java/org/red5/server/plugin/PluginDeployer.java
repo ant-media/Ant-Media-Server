@@ -170,36 +170,51 @@ public class PluginDeployer {
      * the jar and the metadata subdirectory.
      */
     public Result unloadPluginFromZip(String pluginName, File pluginsDir) {
-        PluginRecord record = pluginRecords.get(pluginName);
+        PluginRecord record = findPluginRecord(pluginName);
         String pluginId = record != null ? record.getPluginId() : slugify(pluginName);
 
-        Result unloadResult = unloadPlugin(pluginId);
+        // Try to unload beans — will fail silently if plugin was loaded by Spring
+        // component scan (after restart) rather than by PluginDeployer
+        unloadPlugin(pluginId);
 
         if (record != null) {
             String pid = record.getPluginId();
             File canonicalDir = new File(pluginsDir, pid);
             File uninstallSh = new File(canonicalDir, "uninstall.sh");
-            File flatJar = new File(pluginsDir, pid + ".jar");
 
+            // Run uninstall.sh if present — handles WEB-INF/lib cleanup for
+            // restart-required plugins
             if (uninstallSh.exists()) {
+                File jarFile = record.getJarPath() != null
+                        ? new File(record.getJarPath())
+                        : new File(pluginsDir, pid + ".jar");
                 int exitCode = runInstallScript(uninstallSh, canonicalDir, record.getName(),
-                        record.getVersion(), flatJar, pid);
+                        record.getVersion(), jarFile, pid);
                 if (exitCode != 0) {
                     log.warn("uninstall.sh for {} exited with code {}", pluginName, exitCode);
                 }
             }
 
+            // Delete the jar wherever it is — plugins/ or WEB-INF/lib/
+            if (record.getJarPath() != null) {
+                File jarFile = new File(record.getJarPath());
+                if (jarFile.exists() && !jarFile.delete()) {
+                    log.warn("Failed to delete plugin jar: {}", jarFile.getAbsolutePath());
+                }
+            }
+
+            // Also try the flat jar in plugins/ in case jarPath wasn't set
+            File flatJar = new File(pluginsDir, pid + ".jar");
             if (flatJar.exists() && !flatJar.delete()) {
                 log.warn("Failed to delete plugin jar: {}", flatJar.getAbsolutePath());
             }
+
             deleteDirectory(canonicalDir);
-            record.setState(PluginState.UNINSTALLED);
+            record.setState(PluginState.INSTALLED_PENDING_RESTART);
+            record.setLastError("Uninstalled — restart server to fully clean up");
         }
 
-        pluginRecords.remove(pluginName);
-        return new Result(true, unloadResult.isSuccess()
-                ? "Plugin removed: " + pluginName
-                : "Plugin removed (was not active): " + pluginName);
+        return new Result(true, "Plugin removed. Restart server to fully clean up.");
     }
 
     /**
@@ -323,11 +338,50 @@ public class PluginDeployer {
     }
 
     /**
-     * Destroys singleton beans for a plugin in each webapp context.
+     * Destroys plugin beans, removes stream listeners, and reloads Jersey
+     * without the plugin's REST classes. Works for both hot-loaded plugins
+     * (tracked in springPluginBeanNames) and startup-loaded plugins (found
+     * by scanning Spring context bean names).
      */
     Result unloadPlugin(String pluginId) {
+        // Find bean names — either from our tracking map (hot-loaded) or by
+        // scanning the record's jar to find what @Component classes it has
         List<String> beanNames = springPluginBeanNames.get(pluginId);
-        if (beanNames == null) {
+
+        // For startup-loaded plugins, scan the jar to find bean names
+        PluginRecord record = findPluginRecord(pluginId);
+        List<Class<?>> restClassesToRemove = new ArrayList<>();
+
+        if (beanNames == null && record != null && record.getJarPath() != null) {
+            beanNames = new ArrayList<>();
+            try {
+                File jarFile = new File(record.getJarPath());
+                if (jarFile.exists()) {
+                    try (JarFile jar = new JarFile(jarFile)) {
+                        java.util.Enumeration<java.util.jar.JarEntry> entries = jar.entries();
+                        while (entries.hasMoreElements()) {
+                            java.util.jar.JarEntry entry = entries.nextElement();
+                            String name = entry.getName();
+                            if (!name.endsWith(".class") || name.contains("$")) continue;
+                            String className = name.replace('/', '.').replace(".class", "");
+                            try {
+                                Class<?> cls = Class.forName(className, false, ClassLoader.getSystemClassLoader());
+                                if (cls.isAnnotationPresent(Component.class)) {
+                                    beanNames.add(resolveBeanName(cls));
+                                    if (cls.isAnnotationPresent(Path.class)) {
+                                        restClassesToRemove.add(cls);
+                                    }
+                                }
+                            } catch (ClassNotFoundException | NoClassDefFoundError ignored) {}
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not scan jar for bean names: {}", e.getMessage());
+            }
+        }
+
+        if (beanNames == null || beanNames.isEmpty()) {
             return new Result(false, "Plugin not found: " + pluginId);
         }
 
@@ -341,14 +395,30 @@ public class PluginDeployer {
 
             try {
                 AutowireCapableBeanFactory bf = springCtx.getAutowireCapableBeanFactory();
-                if (bf instanceof SingletonBeanRegistry) {
-                    for (String beanName : beanNames) {
-                        try {
-                            ((org.springframework.beans.factory.support.DefaultSingletonBeanRegistry) bf)
-                                    .destroySingleton(beanName);
-                        } catch (Exception e) {
-                            log.warn("Failed to destroy bean {} in {}: {}", beanName, ctxPath, e.getMessage());
+                if (!(bf instanceof org.springframework.beans.factory.support.DefaultSingletonBeanRegistry)) continue;
+
+                org.springframework.beans.factory.support.DefaultSingletonBeanRegistry registry =
+                        (org.springframework.beans.factory.support.DefaultSingletonBeanRegistry) bf;
+
+                for (String beanName : beanNames) {
+                    try {
+                        // Remove stream listener if the bean is one
+                        Object bean = ((org.springframework.beans.factory.BeanFactory) bf).getBean(beanName);
+                        if (bean instanceof io.antmedia.plugin.api.IStreamListener) {
+                            try {
+                                io.antmedia.muxer.IAntMediaStreamHandler app =
+                                        (io.antmedia.muxer.IAntMediaStreamHandler) springCtx.getBean(
+                                                io.antmedia.AntMediaApplicationAdapter.BEAN_NAME);
+                                app.removeStreamListener((io.antmedia.plugin.api.IStreamListener) bean);
+                                log.info("Removed stream listener '{}' from context '{}'", beanName, ctxPath);
+                            } catch (Exception e) {
+                                log.debug("Could not remove stream listener: {}", e.getMessage());
+                            }
                         }
+                        registry.destroySingleton(beanName);
+                        log.info("Destroyed bean '{}' in context '{}'", beanName, ctxPath);
+                    } catch (Exception e) {
+                        log.warn("Failed to destroy bean {} in {}: {}", beanName, ctxPath, e.getMessage());
                     }
                 }
             } catch (Exception e) {
@@ -357,8 +427,51 @@ public class PluginDeployer {
         }
 
         springPluginBeanNames.remove(pluginId);
+
+        // Reload Jersey without the plugin's REST classes
+        if (!restClassesToRemove.isEmpty()) {
+            reloadJerseyWithout(restClassesToRemove);
+        }
+
         log.info("Unloaded plugin: {}", pluginId);
         return new Result(true);
+    }
+
+    private void reloadJerseyWithout(List<Class<?>> classesToRemove) {
+        for (IApplicationContext appCtx : getApplicationContexts().values()) {
+            if (!(appCtx instanceof TomcatApplicationContext)) continue;
+            TomcatApplicationContext tomcatCtx = (TomcatApplicationContext) appCtx;
+            org.apache.catalina.Context catalinaCtx = tomcatCtx.getContext();
+            String ctxPath = catalinaCtx.getPath();
+            if (ctxPath == null || ctxPath.isEmpty()) continue;
+
+            try {
+                if (!(catalinaCtx instanceof StandardContext)) continue;
+                Container wrapper = ((StandardContext) catalinaCtx).findChild("jersey-serlvet");
+                if (!(wrapper instanceof Wrapper)) continue;
+                Servlet servlet = ((Wrapper) wrapper).getServlet();
+                if (!(servlet instanceof ServletContainer)) continue;
+
+                ServletContainer jerseyContainer = (ServletContainer) servlet;
+                ResourceConfig oldConfig = jerseyContainer.getConfiguration();
+
+                ResourceConfig newConfig = new ResourceConfig();
+                // Copy all classes except the ones being removed
+                for (Class<?> cls : oldConfig.getClasses()) {
+                    if (!classesToRemove.contains(cls)) {
+                        newConfig.register(cls);
+                    }
+                }
+                newConfig.registerInstances(oldConfig.getSingletons());
+                newConfig.registerResources(oldConfig.getResources());
+                newConfig.addProperties(oldConfig.getProperties());
+
+                jerseyContainer.reload(newConfig);
+                log.info("Reloaded Jersey in '{}' without {} removed classes", ctxPath, classesToRemove.size());
+            } catch (Exception e) {
+                log.error("Failed to reload Jersey in '{}': {}", ctxPath, e.getMessage(), e);
+            }
+        }
     }
 
     /**
@@ -494,8 +607,89 @@ public class PluginDeployer {
         return pluginRecords.get(pluginName);
     }
 
+    /**
+     * Finds a plugin record by exact name, pluginId, or slug match.
+     * Needed because REST calls use the URL slug (e.g. "clip-creator")
+     * while pluginRecords is keyed by the manifest name (e.g. "Clip Creator Plugin").
+     */
+    PluginRecord findPluginRecord(String query) {
+        if (query == null) return null;
+
+        // Exact match by manifest name
+        PluginRecord record = pluginRecords.get(query);
+        if (record != null) return record;
+
+        // Match by pluginId (what the UI sends for uninstall)
+        for (PluginRecord r : pluginRecords.values()) {
+            if (query.equals(r.getPluginId())) {
+                return r;
+            }
+        }
+        return null;
+    }
+
     public List<PluginRecord> getAllPluginRecords() {
         return new ArrayList<>(pluginRecords.values());
+    }
+
+    /**
+     * Scans plugins/ directory and each webapp's WEB-INF/lib/ for jars with
+     * AMS-Plugin-Name manifest entries. Builds PluginRecord for each and
+     * populates the in-memory pluginRecords map. Called once at startup.
+     */
+    public void scanInstalledPlugins() {
+        String amsHome = System.getProperty("red5.root", "/usr/local/antmedia");
+
+        // Scan plugins/*.jar
+        File pluginsDir = new File(amsHome, "plugins");
+        if (pluginsDir.exists()) {
+            scanDirectoryForPluginJars(pluginsDir);
+        }
+
+        // Scan each webapp's WEB-INF/lib/
+        File webappsDir = new File(amsHome, "webapps");
+        if (webappsDir.exists()) {
+            File[] apps = webappsDir.listFiles();
+            if (apps != null) {
+                for (File app : apps) {
+                    if (!app.isDirectory() || "root".equals(app.getName())) continue;
+                    File libDir = new File(app, "WEB-INF/lib");
+                    if (libDir.exists()) {
+                        scanDirectoryForPluginJars(libDir);
+                    }
+                }
+            }
+        }
+
+        log.info("Startup scan found {} installed plugins", pluginRecords.size());
+    }
+
+    private void scanDirectoryForPluginJars(File dir) {
+        File[] jars = dir.listFiles((d, name) -> name.endsWith(".jar"));
+        if (jars == null) return;
+
+        for (File jar : jars) {
+            try {
+                Attributes attrs = readManifestAttributes(jar);
+                if (attrs == null) continue;
+
+                String pluginName = attrs.getValue(MANIFEST_PLUGIN_NAME);
+                if (pluginName == null || pluginName.isEmpty()) continue;
+
+                // Skip if we already have a record for this plugin
+                if (pluginRecords.containsKey(pluginName)) continue;
+
+                PluginRecord record = buildPluginRecord(attrs);
+                record.setState(PluginState.ACTIVE);
+                record.setJarPath(jar.getAbsolutePath());
+                pluginRecords.put(pluginName, record);
+
+                log.info("Found installed plugin: {} v{} in {}", pluginName,
+                        record.getVersion(), jar.getAbsolutePath());
+            } catch (Exception e) {
+                log.debug("Skipping jar {}: {}", jar.getName(), e.getMessage());
+            }
+        }
     }
 
     protected boolean isSystemClassLoaderServerClassLoader() {

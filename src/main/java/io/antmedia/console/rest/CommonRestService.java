@@ -1256,7 +1256,7 @@ public class CommonRestService {
 
 	public Result deployPlugin(String pluginName, InputStream inputStream) {
 		if (!AdminApplication.isValidPluginName(pluginName)) {
-			return new Result(false, "Plugin name must match [a-zA-Z0-9_-]+");
+			return new Result(false, "Plugin name must match [a-zA-Z0-9_.-]+");
 		}
 		if (inputStream == null) {
 			return new Result(false, "No plugin ZIP uploaded");
@@ -1288,7 +1288,7 @@ public class CommonRestService {
 
 	public Result undeployPlugin(String pluginName) {
 		if (!AdminApplication.isValidPluginName(pluginName)) {
-			return new Result(false, "Plugin name must match [a-zA-Z0-9_-]+");
+			return new Result(false, "Plugin name must match [a-zA-Z0-9_.-]+");
 		}
 		AdminApplication adminApp = getApplication();
 		if (adminApp == null) {

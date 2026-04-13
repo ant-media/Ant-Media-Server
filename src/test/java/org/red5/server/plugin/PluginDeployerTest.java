@@ -183,6 +183,12 @@ public class PluginDeployerTest {
         Result result = spy.unloadPlugin("toUnload");
         assertTrue(result.isSuccess());
         assertFalse(spy.getPluginNames().contains("toUnload"));
+
+        // Verify destroySingleton was called on the bean factory
+        org.springframework.beans.factory.support.DefaultListableBeanFactory bf =
+                (org.springframework.beans.factory.support.DefaultListableBeanFactory)
+                        ctx.getSpringContext().getAutowireCapableBeanFactory();
+        verify(bf).destroySingleton("plugin.minimal-component");
     }
 
 

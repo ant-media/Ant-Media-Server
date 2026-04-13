@@ -104,7 +104,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	 *  path traversal (`..`, `/`, `\`) and any non-alphanumeric character that could be
 	 *  abused to escape {@code {AMS_HOME}/plugins/}. */
 	private static final java.util.regex.Pattern PLUGIN_NAME_PATTERN =
-			java.util.regex.Pattern.compile("[a-zA-Z0-9_\\-]+");
+			java.util.regex.Pattern.compile("[a-zA-Z0-9_.\\-]+");
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -113,12 +113,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		vertx = (Vertx) scope.getContext().getBean("vertxCore");
 		warDeployer = (WarDeployer) app.getContext().getBean("warDeployer");
 
-		// Plugin hot-load engine — registered as a singleton in red5-common.xml.
 		try {
 			pluginDeployer = (PluginDeployer) app.getContext().getBean("pluginDeployer");
+			pluginDeployer.scanInstalledPlugins();
 		} catch (Exception e) {
-			log.warn("PluginDeployer bean not found; plugin REST install endpoints will be inactive: {}",
-					e.getMessage());
+			log.warn("PluginDeployer bean not found: {}", e.getMessage());
 		}
 
 		if(isCluster) {

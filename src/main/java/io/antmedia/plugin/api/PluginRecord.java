@@ -11,6 +11,7 @@ public class PluginRecord {
     private PluginState state;
     private String lastError;
     private String pluginId;
+    private String jarPath;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -38,4 +39,7 @@ public class PluginRecord {
 
     public String getPluginId() { return pluginId; }
     public void setPluginId(String pluginId) { this.pluginId = pluginId; }
+
+    public String getJarPath() { return jarPath; }
+    public void setJarPath(String jarPath) { this.jarPath = jarPath; }
 }
