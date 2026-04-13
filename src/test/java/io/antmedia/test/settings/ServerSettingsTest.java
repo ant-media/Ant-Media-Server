@@ -193,6 +193,18 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	@Test
+	public void testPluginRegistryUrl() {
+		ServerSettings settings = new ServerSettings();
+		assertEquals("http://localhost:8888/catalog.json", settings.getPluginRegistryUrl());
+
+		settings.setPluginRegistryUrl("https://plugins.antmedia.io/catalog.json");
+		assertEquals("https://plugins.antmedia.io/catalog.json", settings.getPluginRegistryUrl());
+
+		settings.setPluginRegistryUrl(null);
+		assertNull(settings.getPluginRegistryUrl());
+	}
+
+	@Test
 	public void testNoneLoopbackHostAddress() {
 		
 		String localHostAddress = ServerSettings.getLocalHostAddress();

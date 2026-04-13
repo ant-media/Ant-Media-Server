@@ -172,4 +172,109 @@ public class AdminApplicationPluginTest {
         assertTrue(uri.contains("/rest/v2/plugins/"));
         assertTrue(uri.contains("/download"));
     }
+
+    @Test
+    public void testDeployPlugin_saveReturnsNull() {
+        when(pluginDeployer.getPluginNames()).thenReturn(java.util.Collections.emptySet());
+        doReturn(null).when(adminApp).savePluginZip(anyString(), any(InputStream.class));
+
+        boolean result = adminApp.deployPlugin("test-plugin", new ByteArrayInputStream(new byte[]{1}));
+        assertFalse(result);
+    }
+
+    @Test
+    public void testUndeployPlugin_deletesZipFile() throws Exception {
+        when(pluginDeployer.unloadPluginFromZip(eq("test-plugin"), any(File.class)))
+                .thenReturn(new Result(true, "removed"));
+
+        // Create a fake zip so the delete path is exercised
+        File pluginsDir = adminApp.getPluginsDir();
+        File fakeZip = new File(pluginsDir, "test-plugin.zip");
+        fakeZip.createNewFile();
+        assertTrue(fakeZip.exists());
+
+        boolean result = adminApp.undeployPlugin("test-plugin");
+        assertTrue(result);
+
+        // The zip should be deleted
+        assertFalse("ZIP file should be deleted after undeploy", fakeZip.exists());
+    }
+
+    @Test
+    public void testGetAllPluginNames_combinesRegistryAndDeployer() {
+        when(pluginDeployer.getPluginNames()).thenReturn(
+                new java.util.HashSet<>(java.util.Arrays.asList("hot-loaded-plugin")));
+
+        java.util.List<String> names = adminApp.getAllPluginNames();
+        assertNotNull(names);
+        assertTrue(names.contains("hot-loaded-plugin"));
+    }
+
+    @Test
+    public void testGetAllPluginNames_noDeployer() {
+        adminApp.setPluginDeployer(null);
+        java.util.List<String> names = adminApp.getAllPluginNames();
+        assertNotNull(names);
+    }
+
+    @Test
+    public void testGetPluginsDir_createsIfNotExists() {
+        // Reset spy to use real getPluginsDir
+        AdminApplication realApp = new AdminApplication();
+        System.setProperty("red5.root", System.getProperty("java.io.tmpdir") + "/ams-dir-test-" + System.nanoTime());
+        File dir = realApp.getPluginsDir();
+        assertNotNull(dir);
+        assertTrue(dir.exists());
+        assertTrue(dir.isDirectory());
+        dir.delete();
+        new File(System.getProperty("red5.root")).delete();
+    }
+
+    @Test
+    public void testDeployPluginWithURL_invalidName() {
+        boolean result = adminApp.deployPluginWithURL("../bad", "http://example.com/test.zip", "key");
+        assertFalse(result);
+    }
+
+    @Test
+    public void testDeployPluginWithURL_downloadFails() throws Exception {
+        doReturn(null).when(adminApp).downloadPluginZip(anyString(), anyString(), anyString());
+        boolean result = adminApp.deployPluginWithURL("test-plugin", "http://example.com/test.zip", "key");
+        assertFalse(result);
+    }
+
+    @Test
+    public void testDeployPluginWithURL_loadFails() throws Exception {
+        File fakeZip = new File(adminApp.getPluginsDir(), "test.zip");
+        fakeZip.createNewFile();
+        doReturn(fakeZip).when(adminApp).downloadPluginZip(anyString(), anyString(), anyString());
+        when(pluginDeployer.loadPluginFromZip(any(File.class), any(File.class)))
+                .thenReturn(new Result(false, "bad manifest"));
+
+        boolean result = adminApp.deployPluginWithURL("test-plugin", "http://example.com/test.zip", "key");
+        assertFalse(result);
+        fakeZip.delete();
+    }
+
+    @Test
+    public void testDeployPluginWithURL_success() throws Exception {
+        File fakeZip = new File(adminApp.getPluginsDir(), "test.zip");
+        fakeZip.createNewFile();
+        doReturn(fakeZip).when(adminApp).downloadPluginZip(anyString(), anyString(), anyString());
+        when(pluginDeployer.loadPluginFromZip(any(File.class), any(File.class)))
+                .thenReturn(new Result(true, "ok"));
+
+        boolean result = adminApp.deployPluginWithURL("test-plugin", "http://example.com/test.zip", "key");
+        assertTrue(result);
+        fakeZip.delete();
+    }
+
+    @Test
+    public void testDeployPluginWithURL_exceptionHandled() throws Exception {
+        doThrow(new RuntimeException("network error")).when(adminApp)
+                .downloadPluginZip(anyString(), anyString(), anyString());
+
+        boolean result = adminApp.deployPluginWithURL("test-plugin", "http://example.com/test.zip", "key");
+        assertFalse(result);
+    }
 }

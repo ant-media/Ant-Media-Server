@@ -714,12 +714,27 @@ public class PluginDeployer {
         }
     }
 
+    // Zip bomb protection limits
+    static final long MAX_TOTAL_EXTRACT_SIZE = 500 * 1024 * 1024; // 500 MB
+    static final int MAX_ENTRY_COUNT = 500;
+    static final long MAX_SINGLE_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
+
     File extractZip(File zipFile) {
         try {
             java.nio.file.Path tempDir = Files.createTempDirectory("ams-plugin-");
+            long totalSize = 0;
+            int entryCount = 0;
+
             try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile)))) {
                 ZipEntry entry;
                 while ((entry = zis.getNextEntry()) != null) {
+                    entryCount++;
+                    if (entryCount > MAX_ENTRY_COUNT) {
+                        log.error("Zip bomb suspected: too many entries (>{})", MAX_ENTRY_COUNT);
+                        deleteDirectory(tempDir.toFile());
+                        return null;
+                    }
+
                     File outFile = new File(tempDir.toFile(), entry.getName());
                     if (!outFile.getCanonicalPath().startsWith(tempDir.toFile().getCanonicalPath())) {
                         log.error("Zip slip detected: {}", entry.getName());
@@ -730,10 +745,23 @@ public class PluginDeployer {
                         outFile.mkdirs();
                     } else {
                         outFile.getParentFile().mkdirs();
+                        long fileSize = 0;
                         try (OutputStream os = new FileOutputStream(outFile)) {
                             byte[] buf = new byte[4096];
                             int len;
                             while ((len = zis.read(buf)) > 0) {
+                                fileSize += len;
+                                totalSize += len;
+                                if (fileSize > MAX_SINGLE_FILE_SIZE) {
+                                    log.error("Zip bomb suspected: single file exceeds {} bytes", MAX_SINGLE_FILE_SIZE);
+                                    deleteDirectory(tempDir.toFile());
+                                    return null;
+                                }
+                                if (totalSize > MAX_TOTAL_EXTRACT_SIZE) {
+                                    log.error("Zip bomb suspected: total extracted size exceeds {} bytes", MAX_TOTAL_EXTRACT_SIZE);
+                                    deleteDirectory(tempDir.toFile());
+                                    return null;
+                                }
                                 os.write(buf, 0, len);
                             }
                         }
