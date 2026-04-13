@@ -301,37 +301,36 @@ public class MongoStore extends DataStore {
 
 		synchronized(broadcastLock) {
 			try {
-				
+
 				String cacheKey = getBroadcastCacheKey(id);
-				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-				getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
+				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
 
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 
 				Update<Broadcast> ops = query.update(set(STATUS, status));
-				
+
 				if(cachedBroadcast != null) {
 					cachedBroadcast.setStatus(status);
 					cachedBroadcast.setUpdateTime(System.currentTimeMillis());
 				}
 
 				long now = System.currentTimeMillis();
-				if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
+				if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 				{
-					
+
 					ops.add(set(START_TIME, now));
-					
+
 					if(cachedBroadcast != null) {
 						cachedBroadcast.setStartTime(now);
 					}
 				}
-				else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) 
+				else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED))
 				{
 					ops.add(set(WEBRTC_VIEWER_COUNT, 0));
 					ops.add(set(HLS_VIEWER_COUNT, 0));
 					ops.add(set(RTMP_VIEWER_COUNT, 0));
 					ops.add(set(DASH_VIEWER_COUNT, 0));
-					
+
 					if(cachedBroadcast != null) {
 						cachedBroadcast.setWebRTCViewerCount(0);
 						cachedBroadcast.setHlsViewerCount(0);
@@ -339,16 +338,12 @@ public class MongoStore extends DataStore {
 						cachedBroadcast.setDashViewerCount(0);
 					}
 				}
-				
+
 				ops.add(set(UPDATE_TIME_FIELD, now));
 
 				UpdateResult update = ops.execute();
 				result = update.getMatchedCount() == 1;
-				
-				if(result && cachedBroadcast != null) {
-					getBroadcastCache().put(cacheKey, cachedBroadcast);
-				}
-				
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -399,13 +394,11 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(broadcastLock) {
 			String cacheKey = getBroadcastCacheKey(id);
-			Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-			getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
+			Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
 
-			
 			if (id != null && endpoint != null) {
 				try {
-					
+
 					if(cachedBroadcast != null) {
 						List<Endpoint> endPointList = cachedBroadcast.getEndPointList();
 						if (endPointList == null) {
@@ -417,10 +410,7 @@ public class MongoStore extends DataStore {
 					Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 
 					result = query.update(UpdateOperators.push("endPointList", endpoint)).execute().getMatchedCount() == 1;
-				
-					if(result && cachedBroadcast != null) {
-						getBroadcastCache().put(cacheKey, cachedBroadcast);
-					}
+
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
@@ -437,13 +427,11 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(broadcastLock) {
 			String cacheKey = getBroadcastCacheKey(id);
-			Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-			getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
+			Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
 
-			
-			if (id != null && endpoint != null) 
+			if (id != null && endpoint != null)
 			{
-				if(cachedBroadcast != null) 
+				if(cachedBroadcast != null)
 				{
 					List<Endpoint> endPointList = cachedBroadcast.getEndPointList();
 					if (endPointList != null && !endPointList.isEmpty()) {
@@ -464,16 +452,12 @@ public class MongoStore extends DataStore {
 						}
 					}
 				}
-				
+
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 
 				Update<Broadcast> update = query.update(UpdateOperators.pullAll("endPointList", Arrays.asList(endpoint)));
 
 				result = update.execute().getModifiedCount() == 1;
-				
-				if(result && cachedBroadcast != null) {
-					getBroadcastCache().put(cacheKey, cachedBroadcast);
-				}
 			}
 		}
 		recordQueryDuration(startTime, "removeEndpoint");
@@ -487,20 +471,15 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(broadcastLock) {
 			String cacheKey = getBroadcastCacheKey(id);
-			Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-			getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
+			Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
 
 			if (id != null) {
-				
+
 				if(cachedBroadcast != null) {
 					cachedBroadcast.setEndPointList(null);
 				}
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 				result = query.update(UpdateOperators.unset("endPointList")).execute().getMatchedCount() == 1;
-				
-				if(result && cachedBroadcast != null) {
-					getBroadcastCache().put(cacheKey, cachedBroadcast);
-				}
 			}
 		}
 		recordQueryDuration(startTime, "removeAllEndpoints");
@@ -959,9 +938,8 @@ public class MongoStore extends DataStore {
 		synchronized(broadcastLock) {
 			try {
 				String cacheKey = getBroadcastCacheKey(streamId);
-				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-				getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
-				
+				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
+
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 
 				if(cachedBroadcast != null) {
@@ -1118,13 +1096,9 @@ public class MongoStore extends DataStore {
 				prepareFields(broadcast, updates, cachedBroadcast);
 
 				UpdateResult updateResult = query.update(updates).execute();
-				
+
 				result = updateResult.getModifiedCount() == 1;
-				
-				if(result && cachedBroadcast != null) {
-					getBroadcastCache().put(cacheKey, cachedBroadcast);
-				}
-				
+
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -1214,21 +1188,17 @@ public class MongoStore extends DataStore {
 		synchronized(broadcastLock) {
 			try {
 				String cacheKey = getBroadcastCacheKey(streamId);
-				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-				getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
-				
+				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
+
 				if(cachedBroadcast != null) {
 					cachedBroadcast.setHlsViewerCount(cachedBroadcast.getHlsViewerCount() + diffCount);
 				}
-				
+
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 				UpdateResult queryResult = query.update(inc(HLS_VIEWER_COUNT, diffCount)).execute();
 
 				result = queryResult.getMatchedCount() == 1;
-				
-				if(result && cachedBroadcast != null) {
-					getBroadcastCache().put(cacheKey, cachedBroadcast);
-				}
+
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -1247,20 +1217,16 @@ public class MongoStore extends DataStore {
 		synchronized(broadcastLock) {
 			try {
 				String cacheKey = getBroadcastCacheKey(streamId);
-				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-				getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
-				
+				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
+
 				if(cachedBroadcast != null) {
 					cachedBroadcast.setDashViewerCount(cachedBroadcast.getDashViewerCount() + diffCount);
 				}
-				
+
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 				UpdateResult queryResult = query.update(inc(DASH_VIEWER_COUNT, diffCount)).execute();
 				result = queryResult.getMatchedCount() == 1;
-				
-				if(result && cachedBroadcast != null) {
-					getBroadcastCache().put(cacheKey, cachedBroadcast);
-				}
+
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -1288,18 +1254,8 @@ public class MongoStore extends DataStore {
 		synchronized(broadcastLock) {
 			try {
 				String cacheKey = getBroadcastCacheKey(streamId);
-				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-				getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
-				
-				if(cachedBroadcast != null) {
-					if(fieldName.equals(WEBRTC_VIEWER_COUNT)) {
-						cachedBroadcast.setWebRTCViewerCount(cachedBroadcast.getWebRTCViewerCount() + (increment ? 1 : -1));
-					}
-					else if(fieldName.equals(RTMP_VIEWER_COUNT)) {
-						cachedBroadcast.setRtmpViewerCount(cachedBroadcast.getRtmpViewerCount() + (increment ? 1 : -1));
-					}
-				}
-				
+				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
+
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 
 				if(!increment) {
@@ -1315,10 +1271,16 @@ public class MongoStore extends DataStore {
 				}
 
 				result = updateResult.getModifiedCount() == 1;
-				
+
 				if(result && cachedBroadcast != null) {
-					getBroadcastCache().put(cacheKey, cachedBroadcast);
+					if(fieldName.equals(WEBRTC_VIEWER_COUNT)) {
+						cachedBroadcast.setWebRTCViewerCount(cachedBroadcast.getWebRTCViewerCount() + (increment ? 1 : -1));
+					}
+					else if(fieldName.equals(RTMP_VIEWER_COUNT)) {
+						cachedBroadcast.setRtmpViewerCount(cachedBroadcast.getRtmpViewerCount() + (increment ? 1 : -1));
+					}
 				}
+
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -1741,9 +1703,8 @@ public class MongoStore extends DataStore {
 		boolean methodResult = false;
 		synchronized(broadcastLock) {
 			String cacheKey = getBroadcastCacheKey(streamId);
-			Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-			getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
-			
+			Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
+
 			try {
 				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 
@@ -1761,10 +1722,6 @@ public class MongoStore extends DataStore {
 							.update(set(field, enabled))
 							.execute();
 					methodResult = result.getMatchedCount() == 1;
-					
-					if(methodResult && cachedBroadcast != null) {
-						getBroadcastCache().put(cacheKey, cachedBroadcast);
-					}
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -2031,19 +1988,15 @@ public class MongoStore extends DataStore {
 		synchronized(broadcastLock) {
 			try {
 				String cacheKey = getBroadcastCacheKey(streamId);
-				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);	
-				getBroadcastCache().evictIfPresent(cacheKey); //if it can be updated in mongo successfully, will put it back
-				
+				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
+
 				if(cachedBroadcast != null) {
 					cachedBroadcast.setMetaData(metaData);
 				}
 
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 				result = query.update(set(META_DATA, metaData)).execute().getMatchedCount() == 1;
-				
-				if(result && cachedBroadcast != null) {
-					getBroadcastCache().put(cacheKey, cachedBroadcast);
-				}
+
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
