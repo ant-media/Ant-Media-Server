@@ -1248,10 +1248,10 @@ public class CommonRestService {
 		return null;
 	}
 
-	public List<String> getPlugins() {
+	public List<io.antmedia.plugin.api.PluginRecord> getPlugins() {
 		AdminApplication adminApp = getApplication();
 		if (adminApp == null) return new ArrayList<>();
-		return adminApp.getAllPluginNames();
+		return adminApp.getAllPluginRecords();
 	}
 
 	public Result deployPlugin(String pluginName, InputStream inputStream) {
@@ -1268,6 +1268,22 @@ public class CommonRestService {
 		boolean ok = adminApp.deployPlugin(pluginName, inputStream);
 		return new Result(ok, ok ? "Plugin deployed: " + pluginName
 				: "Failed to deploy plugin: " + pluginName);
+	}
+
+	public Result installPluginFromUrl(String pluginId, String downloadUrl) {
+		if (!AdminApplication.isValidPluginName(pluginId)) {
+			return new Result(false, "Plugin ID must match [a-zA-Z0-9_-]+");
+		}
+		if (downloadUrl == null || downloadUrl.isEmpty()) {
+			return new Result(false, "Download URL is required");
+		}
+		AdminApplication adminApp = getApplication();
+		if (adminApp == null) {
+			return new Result(false, "AdminApplication not available");
+		}
+		boolean ok = adminApp.installPluginFromUrl(pluginId, downloadUrl);
+		return new Result(ok, ok ? "Plugin installed: " + pluginId
+				: "Failed to install plugin: " + pluginId);
 	}
 
 	public Result undeployPlugin(String pluginName) {

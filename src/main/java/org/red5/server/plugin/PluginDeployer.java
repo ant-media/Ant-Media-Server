@@ -375,6 +375,7 @@ public class PluginDeployer {
             if (ctxPath == null || ctxPath.isEmpty()) continue;
 
             try {
+                if (!(catalinaCtx instanceof StandardContext)) continue;
                 Container wrapper = ((StandardContext) catalinaCtx).findChild("jersey-serlvet");
                 if (!(wrapper instanceof Wrapper)) continue;
 

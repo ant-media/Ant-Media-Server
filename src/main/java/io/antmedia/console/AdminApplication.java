@@ -744,6 +744,58 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 	}
 
+	public synchronized boolean installPluginFromUrl(String pluginId, String downloadUrl) {
+		if (pluginDeployer == null) {
+			log.error("PluginDeployer not initialized");
+			return false;
+		}
+
+		try {
+			File pluginsDir = getPluginsDir();
+			File zipFile = new File(pluginsDir, pluginId + ".zip");
+
+			// Download the ZIP from the registry
+			try (CloseableHttpClient client = getHttpClient()) {
+				RequestConfig config = RequestConfig.custom()
+						.setConnectTimeout(5000).setSocketTimeout(30000).build();
+				HttpRequestBase get = (HttpRequestBase) RequestBuilder.get()
+						.setUri(downloadUrl).build();
+				get.setConfig(config);
+
+				HttpResponse response = client.execute(get);
+				if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+					log.error("Failed to download plugin from {}. Status: {}",
+							downloadUrl, response.getStatusLine().getStatusCode());
+					return false;
+				}
+
+				try (InputStream in = response.getEntity().getContent();
+					 OutputStream out = new FileOutputStream(zipFile)) {
+					byte[] buf = new byte[4096];
+					int len;
+					while ((len = in.read(buf)) != -1) {
+						out.write(buf, 0, len);
+					}
+				}
+			}
+
+			log.info("Downloaded plugin ZIP from {} ({} bytes)", downloadUrl, zipFile.length());
+
+			Result loadResult = pluginDeployer.loadPluginFromZip(zipFile, pluginsDir);
+			if (!loadResult.isSuccess()) {
+				log.error("Failed to load plugin {}: {}", pluginId, loadResult.getMessage());
+				return false;
+			}
+
+			log.info("Plugin {} installed from URL successfully", pluginId);
+			return true;
+
+		} catch (Exception e) {
+			log.error("Error installing plugin {} from {}: {}", pluginId, downloadUrl, e.getMessage(), e);
+			return false;
+		}
+	}
+
 	public synchronized boolean undeployPlugin(String pluginName) {
 		if (pluginDeployer == null) {
 			log.error("PluginDeployer not initialized");
@@ -773,6 +825,25 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			all.addAll(pluginDeployer.getPluginNames());
 		}
 		return new ArrayList<>(all);
+	}
+
+	public List<io.antmedia.plugin.api.PluginRecord> getAllPluginRecords() {
+		List<io.antmedia.plugin.api.PluginRecord> records = new ArrayList<>();
+
+		// V1 startup-loaded plugins — minimal records with name and ACTIVE state
+		for (String name : PluginRegistry.getPluginNames()) {
+			io.antmedia.plugin.api.PluginRecord r = new io.antmedia.plugin.api.PluginRecord();
+			r.setName(name);
+			r.setState(io.antmedia.plugin.api.PluginState.ACTIVE);
+			records.add(r);
+		}
+
+		// ZIP-installed plugins — full records from PluginDeployer
+		if (pluginDeployer != null) {
+			records.addAll(pluginDeployer.getAllPluginRecords());
+		}
+
+		return records;
 	}
 
 	public File getPluginsDir() {

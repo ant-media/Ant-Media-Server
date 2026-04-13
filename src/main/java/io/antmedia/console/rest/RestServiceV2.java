@@ -620,12 +620,12 @@ public class RestServiceV2 extends CommonRestService {
 		return hostname;
 	}
 
-	@Operation(summary = "List all installed plugins (V1 startup-loaded + hot-loaded)",
-			responses = {@ApiResponse(responseCode = "200", description = "Plugin names returned")})
+	@Operation(summary = "List all installed plugins",
+			responses = {@ApiResponse(responseCode = "200", description = "Plugin records returned")})
 	@GET
 	@Path("/plugins")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<String> getPlugins() {
+	public List<io.antmedia.plugin.api.PluginRecord> getPlugins() {
 		return super.getPlugins();
 	}
 
@@ -643,6 +643,20 @@ public class RestServiceV2 extends CommonRestService {
 		logger.info("Plugin deploy request received for {}",
 				pluginName != null ? pluginName.replaceAll("[\\r\\n]", "_") : "null");
 		return super.deployPlugin(pluginName, inputStream);
+	}
+
+	@Operation(summary = "Install a plugin from a remote URL",
+			responses = {@ApiResponse(responseCode = "200", description = "Plugin installed")})
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/plugins/install-from-url")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result installPluginFromUrl(java.util.Map<String, String> body) {
+		String pluginId = body != null ? body.get("id") : null;
+		String downloadUrl = body != null ? body.get("downloadUrl") : null;
+		logger.info("Plugin install-from-url request: id={}",
+				pluginId != null ? pluginId.replaceAll("[\\r\\n]", "_") : "null");
+		return super.installPluginFromUrl(pluginId, downloadUrl);
 	}
 
 	@Operation(summary = "Undeploy a plugin",

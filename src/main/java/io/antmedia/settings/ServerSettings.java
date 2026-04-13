@@ -285,6 +285,15 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	@Value( "${"+LOCAL_LICENCE_SERVER_IP+":#{null}}" )
 	private String localLicenceServerIps;
 
+	private String pluginRegistryUrl = "http://localhost:8888/catalog.json";
+
+	public String getPluginRegistryUrl() {
+		return pluginRegistryUrl;
+	}
+
+	public void setPluginRegistryUrl(String pluginRegistryUrl) {
+		this.pluginRegistryUrl = pluginRegistryUrl;
+	}
 
 	public String getJwksURL() {
 		return jwksURL;

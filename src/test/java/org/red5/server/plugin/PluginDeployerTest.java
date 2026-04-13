@@ -104,7 +104,7 @@ public class PluginDeployerTest {
         File jar = SpringTestPluginJarBuilder.buildComponentJar("noCtx");
         Result result = spy.loadPlugin(jar);
         assertFalse(result.isSuccess());
-        assertTrue(result.getMessage().contains("none of its beans"));
+        assertTrue(result.getMessage().contains("No beans could be registered"));
     }
 
     @Test
@@ -339,6 +339,105 @@ public class PluginDeployerTest {
     public void testSlugify() {
         assertEquals("clip-creator-plugin", PluginDeployer.slugify("Clip Creator Plugin"));
         assertEquals("my-plugin", PluginDeployer.slugify("My Plugin"));
+    }
+
+    @Test
+    public void testGetAllPluginRecords_includesZipInstalledPlugins() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Record Plugin");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "record-plugin");
+        File pluginsDir = createTempPluginsDir();
+
+        spy.loadPluginFromZip(zip, pluginsDir);
+
+        java.util.List<PluginRecord> records = spy.getAllPluginRecords();
+        assertFalse(records.isEmpty());
+
+        PluginRecord found = records.stream()
+                .filter(r -> "Record Plugin".equals(r.getName()))
+                .findFirst().orElse(null);
+        assertNotNull(found);
+        assertEquals(PluginState.ACTIVE, found.getState());
+        assertEquals("1.0.0", found.getVersion());
+        assertEquals("Test Author", found.getAuthor());
+
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testIsDuplicateInstall_activePluginBlocked() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Dup Plugin");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "dup-plugin");
+        File pluginsDir = createTempPluginsDir();
+
+        Result first = spy.loadPluginFromZip(zip, pluginsDir);
+        assertTrue(first.isSuccess());
+
+        // Second install of the same plugin should fail
+        File zip2 = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "dup-plugin2");
+        Result second = spy.loadPluginFromZip(zip2, pluginsDir);
+        assertFalse(second.isSuccess());
+        assertTrue(second.getMessage().contains("already installed"));
+
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testUnloadPluginFromZip_removesJarAndRecord() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Removable Plugin");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "removable-plugin");
+        File pluginsDir = createTempPluginsDir();
+
+        spy.loadPluginFromZip(zip, pluginsDir);
+        assertNotNull(spy.getPluginRecord("Removable Plugin"));
+
+        // Verify the flat jar exists
+        String pluginId = spy.getPluginRecord("Removable Plugin").getPluginId();
+        File flatJar = new File(pluginsDir, pluginId + ".jar");
+        assertTrue(flatJar.exists());
+
+        Result result = spy.unloadPluginFromZip("Removable Plugin", pluginsDir);
+        assertTrue(result.isSuccess());
+
+        // Record should be gone
+        assertNull(spy.getPluginRecord("Removable Plugin"));
+        // Flat jar should be deleted
+        assertFalse(flatJar.exists());
+
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testLoadPluginFromZip_requiresRestart_jarStaysForInstallScript() throws Exception {
+        // When requiresRestart=true, the deployer still copies the jar to plugins/{id}.jar
+        // before running install.sh. If there's no install.sh, the jar stays there so
+        // ServerClassLoader finds it on next restart.
+        File jar = SpringTestPluginJarBuilder.buildPluginJarRequiresRestart("Restart NoScript");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "restart-noscript");
+
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", mockStreamingContext("/LiveApp")));
+        File pluginsDir = createTempPluginsDir();
+
+        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        assertTrue(result.isSuccess());
+
+        PluginRecord record = spy.getPluginRecord("Restart NoScript");
+        assertEquals(PluginState.INSTALLED_PENDING_RESTART, record.getState());
+
+        // Jar should still be at plugins/{id}.jar (no install.sh to move it)
+        File flatJar = new File(pluginsDir, record.getPluginId() + ".jar");
+        assertTrue("Jar should exist for restart-required plugin without install.sh",
+                flatJar.exists());
+
+        deleteDir(pluginsDir);
     }
 
     // ---- helpers ----
