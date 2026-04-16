@@ -2601,7 +2601,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 	private void updateBroadcastRecord() {
-		if (broadcast != null) {
+		if (broadcast != null && broadcast.getEndPointList() != null) {
 			for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
 			{
 				Endpoint endpoint = (Endpoint) iterator.next();
