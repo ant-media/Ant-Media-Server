@@ -359,7 +359,13 @@ public class PluginDeployer {
                 if (jarFile.exists()) {
                     try (JarFile jar = new JarFile(jarFile)) {
                         java.util.Enumeration<java.util.jar.JarEntry> entries = jar.entries();
+                        int entryCount = 0;
                         while (entries.hasMoreElements()) {
+                            if (++entryCount > MAX_ENTRY_COUNT) {
+                                log.warn("Jar {} has too many entries (>{}), stopping scan",
+                                        jarFile.getName(), MAX_ENTRY_COUNT);
+                                break;
+                            }
                             java.util.jar.JarEntry entry = entries.nextElement();
                             String name = entry.getName();
                             if (!name.endsWith(".class") || name.contains("$")) continue;
