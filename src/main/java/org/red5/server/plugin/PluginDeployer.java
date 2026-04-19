@@ -811,6 +811,10 @@ public class PluginDeployer {
             int exitCode = process.waitFor();
             log.info("{} exited with code {}", script.getName(), exitCode);
             return exitCode;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while running {}", script.getName(), e);
+            return -1;
         } catch (Exception e) {
             log.error("Error running {}", script.getName(), e);
             return -1;
