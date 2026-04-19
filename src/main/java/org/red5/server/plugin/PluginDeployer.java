@@ -115,7 +115,9 @@ public class PluginDeployer {
             copyFile(pluginJar, jarInPluginsDir);
 
             File canonicalDir = new File(pluginsDir, pluginId);
-            canonicalDir.mkdirs();
+            if (!canonicalDir.exists() && !canonicalDir.mkdirs()) {
+                log.warn("Failed to create plugin canonical directory: {}", canonicalDir.getAbsolutePath());
+            }
 
             File uninstallScript = new File(extractDir, "uninstall.sh");
             if (uninstallScript.exists()) {
@@ -721,9 +723,9 @@ public class PluginDeployer {
     }
 
     // Zip bomb protection limits
-    static final long MAX_TOTAL_EXTRACT_SIZE = 500 * 1024 * 1024; // 500 MB
+    static final long MAX_TOTAL_EXTRACT_SIZE = 500L * 1024 * 1024; // 500 MB
     static final int MAX_ENTRY_COUNT = 500;
-    static final long MAX_SINGLE_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
+    static final long MAX_SINGLE_FILE_SIZE = 200L * 1024 * 1024; // 200 MB
 
     File extractZip(File zipFile) {
         try {
@@ -748,9 +750,14 @@ public class PluginDeployer {
                         return null;
                     }
                     if (entry.isDirectory()) {
-                        outFile.mkdirs();
+                        if (!outFile.exists() && !outFile.mkdirs()) {
+                            log.warn("Failed to create directory while extracting: {}", outFile.getAbsolutePath());
+                        }
                     } else {
-                        outFile.getParentFile().mkdirs();
+                        File parent = outFile.getParentFile();
+                        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                            log.warn("Failed to create parent directory while extracting: {}", parent.getAbsolutePath());
+                        }
                         long fileSize = 0;
                         try (OutputStream os = new FileOutputStream(outFile)) {
                             byte[] buf = new byte[4096];
@@ -787,7 +794,9 @@ public class PluginDeployer {
         String amsHome = System.getProperty("red5.root", "/usr/local/antmedia");
         File assetsDir = new File(workDir, "assets");
 
-        script.setExecutable(true);
+        if (!script.setExecutable(true)) {
+            log.warn("Could not mark {} as executable", script.getAbsolutePath());
+        }
         ProcessBuilder pb = new ProcessBuilder("/bin/bash", script.getAbsolutePath());
         pb.directory(workDir);
         pb.redirectErrorStream(true);
@@ -842,7 +851,9 @@ public class PluginDeployer {
     }
 
     private void copyDirectory(File srcDir, File destDir) throws IOException {
-        destDir.mkdirs();
+        if (!destDir.exists() && !destDir.mkdirs()) {
+            log.warn("Failed to create destination directory: {}", destDir.getAbsolutePath());
+        }
         File[] files = srcDir.listFiles();
         if (files != null) {
             for (File f : files) {
@@ -861,11 +872,16 @@ public class PluginDeployer {
         File[] files = dir.listFiles();
         if (files != null) {
             for (File f : files) {
-                if (f.isDirectory()) deleteDirectory(f);
-                else f.delete();
+                if (f.isDirectory()) {
+                    deleteDirectory(f);
+                } else if (!f.delete()) {
+                    log.warn("Failed to delete file {}", f.getAbsolutePath());
+                }
             }
         }
-        dir.delete();
+        if (!dir.delete()) {
+            log.warn("Failed to delete directory {}", dir.getAbsolutePath());
+        }
     }
 
     private void closeSilently(URLClassLoader cl) {
