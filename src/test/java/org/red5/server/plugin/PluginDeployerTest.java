@@ -9,6 +9,10 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.catalina.Context;
+import org.apache.catalina.Wrapper;
+import org.apache.catalina.core.StandardContext;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.servlet.ServletContainer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -1160,6 +1164,398 @@ public class PluginDeployerTest {
         assertEquals("err", r.getLastError());
         assertEquals("test-1.0", r.getPluginId());
         assertEquals("/tmp/test.jar", r.getJarPath());
+    }
+
+    /**
+     * Builds a {@link TomcatApplicationContext} whose underlying catalina context is a
+     * {@link StandardContext} with a {@code jersey-serlvet} child wrapper exposing a
+     * {@link ServletContainer} — required to exercise {@code reloadJersey} and
+     * {@code reloadJerseyWithout}.
+     */
+    private TomcatApplicationContext mockContextWithJerseyWrapper(String path, ServletContainer[] captured) {
+        TomcatApplicationContext tomcatCtx = mock(TomcatApplicationContext.class);
+        StandardContext stdCtx = mock(StandardContext.class);
+        when(tomcatCtx.getContext()).thenReturn(stdCtx);
+        when(stdCtx.getPath()).thenReturn(path);
+
+        Wrapper wrapper = mock(Wrapper.class);
+        when(stdCtx.findChild("jersey-serlvet")).thenReturn(wrapper);
+
+        ServletContainer servletContainer = mock(ServletContainer.class);
+        when(wrapper.getServlet()).thenReturn(servletContainer);
+        when(servletContainer.getConfiguration()).thenReturn(new ResourceConfig());
+        if (captured != null && captured.length > 0) captured[0] = servletContainer;
+
+        ApplicationContext springCtx = mock(ApplicationContext.class);
+        when(tomcatCtx.getSpringContext()).thenReturn(springCtx);
+        IAntMediaStreamHandler app = mock(AntMediaApplicationAdapter.class);
+        when(springCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+        org.springframework.beans.factory.support.DefaultListableBeanFactory bf =
+                mock(org.springframework.beans.factory.support.DefaultListableBeanFactory.class);
+        when(springCtx.getAutowireCapableBeanFactory()).thenReturn(bf);
+        try {
+            when(bf.createBean(any(Class.class))).thenAnswer(inv -> {
+                Class<?> cls = inv.getArgument(0);
+                Object instance = cls.getDeclaredConstructor().newInstance();
+                if (instance instanceof org.springframework.context.ApplicationContextAware) {
+                    ((org.springframework.context.ApplicationContextAware) instance)
+                            .setApplicationContext(springCtx);
+                }
+                return instance;
+            });
+        } catch (Exception e) { throw new RuntimeException(e); }
+        return tomcatCtx;
+    }
+
+    @Test
+    public void testLoadPlugin_withRestClass_triggersReloadJersey() throws Exception {
+        ServletContainer[] captured = new ServletContainer[1];
+        TomcatApplicationContext ctx = mockContextWithJerseyWrapper("/LiveApp", captured);
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildComponentWithRestJar("reloadJersey");
+        Result result = spy.loadPlugin(jar);
+
+        assertTrue(result.isSuccess());
+        // Jersey reload should fire because the jar contains a @Path component
+        verify(captured[0]).reload(any(ResourceConfig.class));
+    }
+
+    @Test
+    public void testReloadJersey_skipsNonStandardContext() throws Exception {
+        // Use a plain Context mock (not StandardContext). reloadJersey should skip it
+        // entirely and the plugin still loads.
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+        File jar = SpringTestPluginJarBuilder.buildComponentWithRestJar("skipNonStd");
+        Result result = spy.loadPlugin(jar);
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testReloadJersey_skipsNonWrapperChild() throws Exception {
+        TomcatApplicationContext tomcatCtx = mock(TomcatApplicationContext.class);
+        StandardContext stdCtx = mock(StandardContext.class);
+        when(tomcatCtx.getContext()).thenReturn(stdCtx);
+        when(stdCtx.getPath()).thenReturn("/LiveApp");
+        // findChild returns something that isn't a Wrapper
+        when(stdCtx.findChild("jersey-serlvet")).thenReturn(null);
+
+        ApplicationContext springCtx = mock(ApplicationContext.class);
+        when(tomcatCtx.getSpringContext()).thenReturn(springCtx);
+        IAntMediaStreamHandler app = mock(AntMediaApplicationAdapter.class);
+        when(springCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+        org.springframework.beans.factory.support.DefaultListableBeanFactory bf =
+                mock(org.springframework.beans.factory.support.DefaultListableBeanFactory.class);
+        when(springCtx.getAutowireCapableBeanFactory()).thenReturn(bf);
+        when(bf.createBean(any(Class.class))).thenAnswer(inv ->
+                ((Class<?>) inv.getArgument(0)).getDeclaredConstructor().newInstance());
+
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", tomcatCtx));
+        File jar = SpringTestPluginJarBuilder.buildComponentWithRestJar("nullWrapper");
+        Result result = spy.loadPlugin(jar);
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testReloadJersey_servletNotServletContainer() throws Exception {
+        TomcatApplicationContext tomcatCtx = mock(TomcatApplicationContext.class);
+        StandardContext stdCtx = mock(StandardContext.class);
+        when(tomcatCtx.getContext()).thenReturn(stdCtx);
+        when(stdCtx.getPath()).thenReturn("/LiveApp");
+        Wrapper wrapper = mock(Wrapper.class);
+        when(stdCtx.findChild("jersey-serlvet")).thenReturn(wrapper);
+        // servlet is some other impl, not ServletContainer
+        when(wrapper.getServlet()).thenReturn(mock(jakarta.servlet.Servlet.class));
+
+        ApplicationContext springCtx = mock(ApplicationContext.class);
+        when(tomcatCtx.getSpringContext()).thenReturn(springCtx);
+        IAntMediaStreamHandler app = mock(AntMediaApplicationAdapter.class);
+        when(springCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+        org.springframework.beans.factory.support.DefaultListableBeanFactory bf =
+                mock(org.springframework.beans.factory.support.DefaultListableBeanFactory.class);
+        when(springCtx.getAutowireCapableBeanFactory()).thenReturn(bf);
+        when(bf.createBean(any(Class.class))).thenAnswer(inv ->
+                ((Class<?>) inv.getArgument(0)).getDeclaredConstructor().newInstance());
+
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", tomcatCtx));
+        File jar = SpringTestPluginJarBuilder.buildComponentWithRestJar("otherServlet");
+        Result result = spy.loadPlugin(jar);
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testUnloadPlugin_removesStreamListener() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        ApplicationContext springCtx = ctx.getSpringContext();
+        // Make the bean factory return the real instance for getBean(beanName),
+        // so instanceof IStreamListener evaluates true inside unloadPlugin.
+        org.springframework.beans.factory.support.DefaultListableBeanFactory bf =
+                (org.springframework.beans.factory.support.DefaultListableBeanFactory)
+                        springCtx.getAutowireCapableBeanFactory();
+        MinimalSpringComponent instance = new MinimalSpringComponent();
+        when(bf.getBean("plugin.minimal-component")).thenReturn(instance);
+
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+        File jar = SpringTestPluginJarBuilder.buildComponentJar("listenerUnload");
+        spy.loadPlugin(jar);
+
+        Result result = spy.unloadPlugin("listenerUnload");
+        assertTrue(result.isSuccess());
+
+        IAntMediaStreamHandler app = (IAntMediaStreamHandler)
+                springCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+        verify(app).removeStreamListener(instance);
+        verify(bf).destroySingleton("plugin.minimal-component");
+    }
+
+    @Test
+    public void testUnloadPlugin_startupLoaded_scansJarForBeans() throws Exception {
+        // A scanned (startup-loaded) plugin is not in springPluginBeanNames, but has a
+        // record with jarPath. unloadPlugin should scan the jar, find @Component
+        // classes, and destroy matching beans.
+        String oldRoot = System.getProperty("red5.root");
+        try {
+            File amsHome = createTempPluginsDir();
+            File pluginsDir = new File(amsHome, "plugins");
+            pluginsDir.mkdirs();
+
+            File jar = SpringTestPluginJarBuilder.buildPluginJar("startup-scan",
+                    "Startup Plugin", "1.0.0", "Author", null);
+            java.nio.file.Files.copy(jar.toPath(),
+                    new File(pluginsDir, "startup-plugin-1.0.0.jar").toPath());
+
+            System.setProperty("red5.root", amsHome.getAbsolutePath());
+            TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+            PluginDeployer d = Mockito.spy(new PluginDeployer());
+            doReturn(Map.of("/LiveApp", ctx)).when(d).getApplicationContexts();
+            d.scanInstalledPlugins();
+
+            PluginRecord record = d.getPluginRecord("Startup Plugin");
+            assertNotNull(record);
+            assertNotNull(record.getJarPath());
+
+            // Unloading by the record's pluginId triggers the jar-scan branch
+            Result result = d.unloadPlugin(record.getPluginId());
+            assertTrue("Startup-loaded plugin should be removable: " + result.getMessage(),
+                    result.isSuccess());
+
+            deleteDir(amsHome);
+        } finally {
+            if (oldRoot != null) System.setProperty("red5.root", oldRoot);
+            else System.clearProperty("red5.root");
+        }
+    }
+
+    @Test
+    public void testUnloadPlugin_startupLoaded_withRestClass_triggersReloadJerseyWithout() throws Exception {
+        // Create a jar with both @Component and @Path classes, register it as a
+        // startup-loaded record, then unload — the jar scan should find the REST class
+        // and fire reloadJerseyWithout.
+        File jar = SpringTestPluginJarBuilder.buildPluginWithRestJar("Startup Rest Plugin");
+        File copiedJar = new File(System.getProperty("java.io.tmpdir"),
+                "startup-rest-" + System.nanoTime() + ".jar");
+        java.nio.file.Files.copy(jar.toPath(), copiedJar.toPath());
+
+        ServletContainer[] captured = new ServletContainer[1];
+        TomcatApplicationContext ctx = mockContextWithJerseyWrapper("/LiveApp", captured);
+
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        // Simulate startup scan result by registering the record directly
+        Attributes attrs = PluginDeployer.readManifestAttributes(jar);
+        PluginRecord record = spy.buildPluginRecord(attrs);
+        record.setState(PluginState.ACTIVE);
+        record.setJarPath(copiedJar.getAbsolutePath());
+        // Use reflection-free path: insert via public map getter? no — expose via getPluginRecord
+        // Workaround: use scanInstalledPlugins with a controlled dir
+        String oldRoot = System.getProperty("red5.root");
+        try {
+            File amsHome = createTempPluginsDir();
+            File pluginsDir = new File(amsHome, "plugins");
+            pluginsDir.mkdirs();
+            java.nio.file.Files.copy(jar.toPath(),
+                    new File(pluginsDir, "startup-rest-1.0.0.jar").toPath());
+
+            System.setProperty("red5.root", amsHome.getAbsolutePath());
+            PluginDeployer d = Mockito.spy(new PluginDeployer());
+            doReturn(Map.of("/LiveApp", ctx)).when(d).getApplicationContexts();
+            d.scanInstalledPlugins();
+
+            PluginRecord r = d.getPluginRecord("Startup Rest Plugin");
+            assertNotNull(r);
+
+            Result result = d.unloadPlugin(r.getPluginId());
+            assertTrue(result.isSuccess());
+            // reloadJerseyWithout called because the jar contains a @Path class
+            verify(captured[0]).reload(any(ResourceConfig.class));
+            deleteDir(amsHome);
+        } finally {
+            copiedJar.delete();
+            if (oldRoot != null) System.setProperty("red5.root", oldRoot);
+            else System.clearProperty("red5.root");
+        }
+    }
+
+    @Test
+    public void testExtractZip_zipSlip_rejected() throws Exception {
+        File zip = new File(System.getProperty("java.io.tmpdir"), "slip-" + System.nanoTime() + ".zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zip))) {
+            // Path traversal attempt — should be rejected
+            zos.putNextEntry(new java.util.zip.ZipEntry("../escape.txt"));
+            zos.write("bad".getBytes());
+            zos.closeEntry();
+        }
+
+        File result = deployer.extractZip(zip);
+        assertNull("Zip-slip entries must be rejected", result);
+        zip.delete();
+    }
+
+    @Test
+    public void testExtractZip_ioException_returnsNull() {
+        // Pass a non-existent file — FileInputStream throws FileNotFoundException (IOException)
+        File result = deployer.extractZip(new File("/does-not-exist-" + System.nanoTime() + ".zip"));
+        assertNull(result);
+    }
+
+    @Test
+    public void testExtractZip_withDirectoryEntry() throws Exception {
+        File zip = new File(System.getProperty("java.io.tmpdir"), "dir-" + System.nanoTime() + ".zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zip))) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("assets/"));
+            zos.closeEntry();
+            zos.putNextEntry(new java.util.zip.ZipEntry("assets/file.txt"));
+            zos.write("x".getBytes());
+            zos.closeEntry();
+        }
+
+        File extracted = deployer.extractZip(zip);
+        assertNotNull(extracted);
+        assertTrue(new File(extracted, "assets").isDirectory());
+        assertTrue(new File(extracted, "assets/file.txt").exists());
+        deleteDir(extracted);
+        zip.delete();
+    }
+
+    @Test
+    public void testIsVersionCompatible_malformed_returnsTrue() {
+        // A version with a number too large for int triggers NumberFormatException
+        assertTrue(PluginDeployer.isVersionCompatible(
+                "99999999999999999.0.0", "2.11.0"));
+    }
+
+    @Test
+    public void testIsVersionCompatible_differentLengths() {
+        // current length < required length → must fail
+        assertFalse(PluginDeployer.isVersionCompatible("2.11", "2.11.1"));
+        // current length > required length → must pass
+        assertTrue(PluginDeployer.isVersionCompatible("2.11.0", "2.11"));
+    }
+
+    @Test
+    public void testResolveBeanName_defaultFromSimpleName() {
+        // A class with @Component() no value → default camelCase name from simple name
+        @org.springframework.stereotype.Component
+        class NoValueComponent { }
+        assertEquals("noValueComponent", PluginDeployer.resolveBeanName(NoValueComponent.class));
+    }
+
+    @Test
+    public void testSlugify_nullAndEmpty() {
+        assertEquals("", PluginDeployer.slugify(null));
+        assertEquals("", PluginDeployer.slugify("!!!"));
+        assertEquals("abc", PluginDeployer.slugify("  --abc--  "));
+    }
+
+    @Test
+    public void testResolveRestKey_multiSegment() {
+        @jakarta.ws.rs.Path("/a/b/last") class C { }
+        assertEquals("last", PluginDeployer.resolveRestKey(C.class));
+    }
+
+    @Test
+    public void testResolveRestKey_emptyPath() {
+        @jakarta.ws.rs.Path("/") class C { }
+        assertNull(PluginDeployer.resolveRestKey(C.class));
+    }
+
+    @Test
+    public void testLoadPluginFromZip_exceptionDuringLoad_wrappedInResult() throws Exception {
+        // Feed a zip that extracts but has a plugin.jar that's actually malformed —
+        // the jar manifest read should fail → validateManifest returns false.
+        File pluginsDir = createTempPluginsDir();
+        File zipDir = createTempPluginsDir();
+        File fakePluginJar = new File(zipDir, "plugin.jar");
+        java.nio.file.Files.write(fakePluginJar.toPath(), new byte[]{0, 1, 2, 3});
+
+        File zip = new File(zipDir, "malformed.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zip))) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("plugin.jar"));
+            java.nio.file.Files.copy(fakePluginJar.toPath(), zos);
+            zos.closeEntry();
+        }
+
+        Result result = deployer.loadPluginFromZip(zip, pluginsDir);
+        assertFalse(result.isSuccess());
+        deleteDir(pluginsDir);
+        deleteDir(zipDir);
+    }
+
+    @Test
+    public void testUnloadPluginFromZip_runsUninstallScriptWithNonZeroExit() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Noisy Uninstall");
+        File zipDir = createTempPluginsDir();
+        File pluginJar = new File(zipDir, "plugin.jar");
+        java.nio.file.Files.copy(jar.toPath(), pluginJar.toPath());
+
+        // uninstall.sh exits non-zero — should be logged but not fail the result
+        File uninstallSh = new File(zipDir, "uninstall.sh");
+        java.nio.file.Files.write(uninstallSh.toPath(), "#!/bin/bash\nexit 7\n".getBytes());
+
+        File zip = new File(zipDir, "noisy.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zip))) {
+            for (String n : new String[]{"plugin.jar", "uninstall.sh"}) {
+                zos.putNextEntry(new java.util.zip.ZipEntry(n));
+                java.nio.file.Files.copy(new File(zipDir, n).toPath(), zos);
+                zos.closeEntry();
+            }
+        }
+
+        File pluginsDir = createTempPluginsDir();
+        spy.loadPluginFromZip(zip, pluginsDir);
+        Result result = spy.unloadPluginFromZip("Noisy Uninstall", pluginsDir);
+        assertTrue(result.isSuccess());
+        deleteDir(zipDir);
+        deleteDir(pluginsDir);
+    }
+
+    @Test
+    public void testUnloadPluginFromZip_missingJarFile_warnsButSucceeds() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Gone Jar");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "gone-jar");
+        File pluginsDir = createTempPluginsDir();
+        spy.loadPluginFromZip(zip, pluginsDir);
+
+        PluginRecord record = spy.getPluginRecord("Gone Jar");
+        assertNotNull(record);
+        // Manually delete the flat jar BEFORE unload — exercise the "jar missing" warn path
+        new File(pluginsDir, record.getPluginId() + ".jar").delete();
+
+        Result result = spy.unloadPluginFromZip("Gone Jar", pluginsDir);
+        assertTrue(result.isSuccess());
+        deleteDir(pluginsDir);
     }
 
     // ---- helpers ----
