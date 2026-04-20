@@ -151,9 +151,18 @@ public class PluginDeployer {
             Result loadResult = loadPlugin(jarInPluginsDir);
             if (loadResult.isSuccess()) {
                 record.setState(PluginState.ACTIVE);
+                record.setJarPath(jarInPluginsDir.getAbsolutePath());
             } else {
                 record.setState(PluginState.FAILED);
                 record.setLastError(loadResult.getMessage());
+                // Roll back file copies so a failed install doesn't leave orphans
+                // that would trip up the next install attempt.
+                if (jarInPluginsDir.exists() && !jarInPluginsDir.delete()) {
+                    log.warn("Failed to clean up jar after failed install: {}",
+                            jarInPluginsDir.getAbsolutePath());
+                }
+                deleteDirectory(canonicalDir);
+                pluginRecords.remove(pluginName);
             }
             return loadResult;
 
@@ -273,6 +282,32 @@ public class PluginDeployer {
 
         if (components.isEmpty()) {
             return new Result(false, "No @Component classes found in " + jarFile.getName());
+        }
+
+        // Bail out if any of the plugin's beans already exist in a Spring context.
+        // Happens when a plugin is bundled with AMS (e.g. filter plugin) and picked
+        // up by Spring's component scan at webapp boot — installing again would
+        // collide with the already-registered singletons.
+        for (BeanDefinition def : components) {
+            String className = def.getBeanClassName();
+            if (className == null) continue;
+            String beanName;
+            try {
+                Class<?> clazz = Class.forName(className, false, ClassLoader.getSystemClassLoader());
+                beanName = resolveBeanName(clazz);
+            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                continue;
+            }
+            for (IApplicationContext appCtx : getApplicationContexts().values()) {
+                if (!(appCtx instanceof TomcatApplicationContext)) continue;
+                ApplicationContext springCtx = ((TomcatApplicationContext) appCtx).getSpringContext();
+                if (springCtx != null && springCtx.containsBean(beanName)) {
+                    return new Result(false,
+                            "Plugin already loaded: bean '" + beanName + "' is registered in "
+                                    + ((TomcatApplicationContext) appCtx).getContext().getPath()
+                                    + ". The plugin may be bundled with the server or already installed.");
+                }
+            }
         }
 
         ClassLoader systemCL = ClassLoader.getSystemClassLoader();
