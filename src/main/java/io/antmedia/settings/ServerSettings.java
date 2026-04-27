@@ -285,7 +285,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	@Value( "${"+LOCAL_LICENCE_SERVER_IP+":#{null}}" )
 	private String localLicenceServerIps;
 
-	private String pluginRegistryUrl = "http://localhost:8888/catalog.json";
+	private String pluginRegistryUrl = "https://antmedia-plugins.s3.eu-west-2.amazonaws.com/catalog.json";
 
 	public String getPluginRegistryUrl() {
 		return pluginRegistryUrl;
