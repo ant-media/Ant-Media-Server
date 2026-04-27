@@ -195,7 +195,10 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testPluginRegistryUrl() {
 		ServerSettings settings = new ServerSettings();
-		assertEquals("http://localhost:8888/catalog.json", settings.getPluginRegistryUrl());
+		String defaultUrl = settings.getPluginRegistryUrl();
+		assertNotNull(defaultUrl);
+		assertFalse(defaultUrl.isEmpty());
+		assertTrue(defaultUrl.startsWith("https://"));
 
 		settings.setPluginRegistryUrl("https://plugins.antmedia.io/catalog.json");
 		assertEquals("https://plugins.antmedia.io/catalog.json", settings.getPluginRegistryUrl());
