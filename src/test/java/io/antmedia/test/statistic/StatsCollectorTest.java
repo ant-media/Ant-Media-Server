@@ -693,7 +693,7 @@ public class StatsCollectorTest {
 		StatsCollector resMonitor = new StatsCollector();
 		try {
 			resMonitor.start();
-			Producer<Long, String> kafkaProducer = resMonitor.getKafkaProducer();
+			resMonitor.getKafkaProducer();
 			//it should throw exception
 			fail("it shold throw exception");
 		}

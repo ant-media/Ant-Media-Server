@@ -20,7 +20,7 @@ public class PrometheusStatsExporter implements IStatsExporter {
 	private static final Logger logger = LoggerFactory.getLogger(PrometheusStatsExporter.class);
 
 	private final String pushGatewayAddress;
-	private static final String job = "AntMedia";
+	private static final String JOB_NAME = "AntMedia";
 	private final String instance;
 	private final String userEmail;
 
@@ -44,7 +44,7 @@ public class PrometheusStatsExporter implements IStatsExporter {
 
 		PushGateway.Builder builder = PushGateway.builder()
 				.address(pushGatewayAddress)
-				.job(job)
+				.job(JOB_NAME)
 				.registry(registry);
 
 		if (instance != null && !instance.isEmpty()) {
@@ -88,7 +88,7 @@ public class PrometheusStatsExporter implements IStatsExporter {
 			try {
 				pushGateway.delete();
 				logger.info("Deleted metrics for job={} instance={} user={} from PushGateway at {}",
-						job, instance, userEmail, pushGatewayAddress);
+						JOB_NAME, instance, userEmail, pushGatewayAddress);
 			} catch (IOException e) {
 				logger.warn("Failed to delete metrics from PushGateway at {}: {}", pushGatewayAddress, e.getMessage());
 			}

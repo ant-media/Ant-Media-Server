@@ -32,7 +32,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.common.message.DescribeUserScramCredentialsRequestData.UserName;
 import org.bytedeco.javacpp.Pointer;
 import org.red5.server.Launcher;
 import org.red5.server.api.IServer;
@@ -238,7 +237,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String EXPORTER_KAFKA = "kafka";
 	public static final String EXPORTER_PROMETHEUS = "prometheus";
 
-	private String statsExporterType = "" ;
+	private String statsExporterType = "";
 	private String prometheusPushGatewayAddress;
 	private String prometheusPushJob;
 	private String prometheusPushInstanceId;
@@ -452,7 +451,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				String emailLabel = getUserEmail();
 
 				statsExporter = new PrometheusStatsExporter(address, instanceId, emailLabel);
-				logger.info("starting Prometheus PushGateway StatsExporter with address={} job={} instance={} user={}",
+				logger.info("starting Prometheus PushGateway StatsExporter with address={}  instance={} user={}",
 						address,  instanceId, emailLabel);
 		} else {
 				logger.info("Stats export disabled.");
