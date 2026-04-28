@@ -56,7 +56,7 @@ public class PrometheusStatsExporter implements IStatsExporter {
 
 		pushGateway = builder.build();
 		logger.info("Prometheus PushGateway exporter initialized for job={} address={} instance={} user={}",
-				job, pushGatewayAddress, instance, userEmail);
+				JOB_NAME, pushGatewayAddress, instance, userEmail);
 	}
 
 	@Override
