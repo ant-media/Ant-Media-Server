@@ -48,9 +48,9 @@ public class EndpointMuxer extends Muxer {
 
 	private BytePointer allocatedExtraDataPointer = null;
 
-	private String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
+	private volatile String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
 
-	boolean keyFrameReceived = false;
+	private volatile boolean keyFrameReceived = false;
 
 	private AtomicBoolean preparedIO = new AtomicBoolean(false);
 	private AtomicBoolean cancelOpenIO = new AtomicBoolean(false);
@@ -75,6 +75,11 @@ public class EndpointMuxer extends Muxer {
 		if(url.startsWith("rtmp")) {
 			format = "flv";
 			muxerType = "rtmp";
+			// Cap FFmpeg AVIO blocking at 10s so a dead/slow remote endpoint can't wedge a
+			// vertx worker thread for the kernel TCP retransmit window (~75s) on open, or
+			// indefinitely on writes.
+			setOption("rw_timeout", "10000000");
+
 			// check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
 			String regex = "rtmp(s)?://[a-zA-Z0-9\\.-]+(:[0-9]+)?/([^/]+)/.*";
 
@@ -127,9 +132,8 @@ public class EndpointMuxer extends Muxer {
 		}
 		return outputFormatContext;
 	}
-	public void setStatus(String status)
+	public synchronized void setStatus(String status)
 	{
-
 		if (!this.status.equals(status) && this.statusListener != null)
 		{
 			this.statusListener.endpointStatusUpdated(this.url, status);
@@ -204,13 +208,13 @@ public class EndpointMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized boolean writeHeader() {
-		if(!trailerWritten) 
+		if(!trailerWritten)
 		{
 			long startTime = System.currentTimeMillis();
 			super.writeHeader();
 			long diff = System.currentTimeMillis() - startTime;
 			logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), getBitStreamFilter());
-			
+
 			headerWritten = true;
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 

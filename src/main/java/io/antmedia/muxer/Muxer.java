@@ -437,10 +437,15 @@ public abstract class Muxer {
 				av_dict_set(optionsDictionary, key, options.get(key), 0);
 			}
 
-		}	
-			
+		}
 
-		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
+		// Always pass a non-null dictionary; some libavformat output muxers misbehave
+		// when the options pointer is null on write_header.
+		if (optionsDictionary == null) {
+			optionsDictionary = new AVDictionary();
+		}
+
+		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);
 		if (ret < 0) {
 			if (logger.isWarnEnabled()) 	{
 				logger.warn("Could not write header. File: {} Error: {}", file.getAbsolutePath(), getErrorDefinition(ret));
