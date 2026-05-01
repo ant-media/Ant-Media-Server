@@ -118,65 +118,73 @@ public class AdminApplicationTest {
 	
 	
 	@Test
-	public void testCreateAppParameters() {
+	public void testCreateAppParameters() throws Exception {
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
 		
-		Mockito.doReturn(false).when(app).runCommand(Mockito.anyString());
+		ProcessBuilder processBuilder = Mockito.mock(ProcessBuilder.class);
+		Process process = Mockito.mock(Process.class);
+		Mockito.doReturn(processBuilder).when(app).getProcessBuilder(Mockito.any(String[].class));
+		Mockito.when(processBuilder.start()).thenReturn(process);
+		Mockito.when(process.waitFor()).thenReturn(1);
 		ConsoleDataStoreFactory consoleDataStoreFactory = Mockito.mock(ConsoleDataStoreFactory.class);
 		app.setDataStoreFactory(consoleDataStoreFactory);
 		
 		app.runCreateAppScript("app", false, null, null);
 		
-		ArgumentCaptor<String> commandCaptor = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String[]> commandCaptor = ArgumentCaptor.forClass(String[].class);
 		//"/bin/bash create_app.sh -n app -w true -p /Users/mekya/git/Ant-Media-Server -c false -m null -u null -s null"
 		
-		Mockito.verify(app).runCommand(commandCaptor.capture());
+		Mockito.verify(app).getProcessBuilder(commandCaptor.capture());
+		String command = String.join(" ", commandCaptor.getValue());
 		
-		assertTrue(commandCaptor.getValue().contains("-c false"));
-		assertTrue(commandCaptor.getValue().contains("-n app"));
+		assertTrue(command.contains("-c false"));
+		assertTrue(command.contains("-n app"));
 		
-		assertFalse(commandCaptor.getValue().contains("-m "));
-		assertFalse(commandCaptor.getValue().contains("-u "));
-		assertFalse(commandCaptor.getValue().contains("-s "));
-		assertFalse(commandCaptor.getValue().contains("-f "));
+		assertFalse(command.contains("-m "));
+		assertFalse(command.contains("-u "));
+		assertFalse(command.contains("-s "));
+		assertFalse(command.contains("-f "));
 		
 		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mapdb");
 		app.runCreateAppScript("app", false, "dbUrl" , null);
 		
-		Mockito.verify(app, Mockito.times(2)).runCommand(commandCaptor.capture());
-		assertTrue(commandCaptor.getValue().contains("-c false"));
-		assertTrue(commandCaptor.getValue().contains("-n app"));
+		Mockito.verify(app, Mockito.times(2)).getProcessBuilder(commandCaptor.capture());
+		command = String.join(" ", commandCaptor.getValue());
+		assertTrue(command.contains("-c false"));
+		assertTrue(command.contains("-n app"));
 		
-		assertFalse(commandCaptor.getValue().contains("-m dbUrl"));
-		assertFalse(commandCaptor.getValue().contains("-u username"));
-		assertFalse(commandCaptor.getValue().contains("-s pass"));
-		assertFalse(commandCaptor.getValue().contains("-f "));
+		assertFalse(command.contains("-m dbUrl"));
+		assertFalse(command.contains("-u username"));
+		assertFalse(command.contains("-s pass"));
+		assertFalse(command.contains("-f "));
 		
 		
 		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mongob");
 		app.runCreateAppScript("app", false, "dbUrl" , null);
 		
-		Mockito.verify(app, Mockito.times(3)).runCommand(commandCaptor.capture());
-		assertTrue(commandCaptor.getValue().contains("-c false"));
-		assertTrue(commandCaptor.getValue().contains("-n app"));
+		Mockito.verify(app, Mockito.times(3)).getProcessBuilder(commandCaptor.capture());
+		command = String.join(" ", commandCaptor.getValue());
+		assertTrue(command.contains("-c false"));
+		assertTrue(command.contains("-n app"));
 		
-		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
-		assertFalse(commandCaptor.getValue().contains("-u username")); //false because we do not use username and pass anymore
-		assertFalse(commandCaptor.getValue().contains("-s pass")); //false because we do not use username and pass anymore
-		assertFalse(commandCaptor.getValue().contains("-f"));
+		assertTrue(command.contains("-m dbUrl"));
+		assertFalse(command.contains("-u username")); //false because we do not use username and pass anymore
+		assertFalse(command.contains("-s pass")); //false because we do not use username and pass anymore
+		assertFalse(command.contains("-f"));
 		
 		
 		app.runCreateAppScript("app", false, "dbUrl" , "warfile");
 		
-		Mockito.verify(app, Mockito.times(4)).runCommand(commandCaptor.capture());
-		assertTrue(commandCaptor.getValue().contains("-c false"));
-		assertTrue(commandCaptor.getValue().contains("-n app"));
+		Mockito.verify(app, Mockito.times(4)).getProcessBuilder(commandCaptor.capture());
+		command = String.join(" ", commandCaptor.getValue());
+		assertTrue(command.contains("-c false"));
+		assertTrue(command.contains("-n app"));
 		
-		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
-		assertFalse(commandCaptor.getValue().contains("-u username")); //false because we do not use username and pass anymore
-		assertFalse(commandCaptor.getValue().contains("-s pass")); //false because we do not use username and pass anymore
-		assertTrue(commandCaptor.getValue().contains("-f warfile"));
+		assertTrue(command.contains("-m dbUrl"));
+		assertFalse(command.contains("-u username")); //false because we do not use username and pass anymore
+		assertFalse(command.contains("-s pass")); //false because we do not use username and pass anymore
+		assertTrue(command.contains("-f warfile"));
 
 	}
 	@Test
@@ -284,118 +292,66 @@ public class AdminApplicationTest {
 
 
 	@Test
-	public void testSpecialChars() {
+	public void testSpecialChars() throws Exception {
 		AdminApplication app = Mockito.spy(new AdminApplication());
 
-		try {
-			String shellCommand = "/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false";
-			Process process = app.getProcess("/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false");
-			assertNotNull(process);
+		ProcessBuilder processBuilder = Mockito.mock(ProcessBuilder.class);
+		Process process = Mockito.mock(Process.class);
+		Mockito.doReturn(processBuilder).when(app).getProcessBuilder(Mockito.any(String[].class));
+		Mockito.when(processBuilder.start()).thenReturn(process);
 
-			String[] originalParameters = shellCommand.split(" ");
+		String[] originalParameters = "/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false".split(" ");
+		boolean result = app.runConfiguredCommand(AdminApplication.CREATE_APP_COMMAND, "-n", "oVs9G24e5BQqbaTNVtjh", "-w", "true", "-p", "/usr/local/antmedia", "-c", "false");
+		assertTrue(result);
 
-			ArgumentCaptor<String[]> parameters = ArgumentCaptor.forClass(String[].class);
-			Mockito.verify(app).getProcessBuilder(parameters.capture());
-			String[] params = parameters.getValue();
+		ArgumentCaptor<String[]> parameters = ArgumentCaptor.forClass(String[].class);
+		Mockito.verify(app).getProcessBuilder(parameters.capture());
+		String[] params = parameters.getValue();
 
-			for (int i = 0; i < params.length; i++) {
-				assertEquals(params[i], originalParameters[i]);
-			}
-
-
-			shellCommand = "/bin/bash create_app.sh -n ProdApp -w true -p /usr/local/antmedia -c true -m mongodb://amsdfasfsadfdfdfpshot:6xNRRsdfsdfafd9NodO8vAFFBEHidfdfdfa87QDKXdCMubACDbhfQH1g==@amssdfafdafdadbsnapshot.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@amssadfasdfdbsnsdfadfapshot@ -u  -s";
-			process = app.getProcess(shellCommand);
-			assertNotNull(process);
-
-			originalParameters = shellCommand.split(" ");
-			parameters = ArgumentCaptor.forClass(String[].class);
-			Mockito.verify(app, Mockito.times(2)).getProcessBuilder(parameters.capture());
-			params = parameters.getValue();
-			for (int i = 0; i < params.length; i++) {
-				if (originalParameters[i].contains("mongodb")) {
-					assertEquals("'" + originalParameters[i] + "'",  params[i]);
-				}
-				else {
-					assertEquals(params[i], originalParameters[i]);
-				}
-			}
-
-			shellCommand = "test & ";
-			process = app.getProcess(shellCommand);
-			assertNotNull(process);
-
-			originalParameters = shellCommand.split(" ");
-			parameters = ArgumentCaptor.forClass(String[].class);
-			Mockito.verify(app, Mockito.times(3)).getProcessBuilder(parameters.capture());
-			params = parameters.getValue();
-			for (int i = 0; i < params.length; i++) {
-				if (originalParameters[i].contains("&")) {
-					assertEquals("'" + originalParameters[i] + "'",  params[i]);
-				}
-				else {
-					assertEquals(params[i], originalParameters[i]);
-				}
-			}
-
-
-			boolean result = app.runCommand("test &");
-			assertTrue(result);
-
-			originalParameters = shellCommand.split(" ");
-			parameters = ArgumentCaptor.forClass(String[].class);
-			Mockito.verify(app, Mockito.times(4)).getProcessBuilder(parameters.capture());
-			params = parameters.getValue();
-			for (int i = 0; i < params.length; i++) {
-				if (originalParameters[i].contains("&")) {
-					assertEquals("'" + originalParameters[i] + "'",  params[i]);
-				}
-				else {
-					assertEquals(params[i], originalParameters[i]);
-				}
-			}
-
-
-
-		} 
-		catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
+		for (int i = 0; i < params.length; i++) {
+			assertEquals(params[i], originalParameters[i]);
 		}
+
+		String mongoDbUrl = "mongodb://amsdfasfsadfdfdfpshot:6xNRRsdfsdfafd9NodO8vAFFBEHidfdfdfa87QDKXdCMubACDbhfQH1g==@amssdfafdafdadbsnapshot.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@amssadfasdfdbsnsdfadfapshot@";
+		originalParameters = new String[] {"/bin/bash", "create_app.sh", "-n", "ProdApp", "-w", "true", "-p", "/usr/local/antmedia", "-c", "true", "-m", mongoDbUrl, "-u", "-s"};
+		result = app.runConfiguredCommand(AdminApplication.CREATE_APP_COMMAND, "-n", "ProdApp", "-w", "true", "-p", "/usr/local/antmedia", "-c", "true", "-m", mongoDbUrl, "-u", "-s");
+		assertTrue(result);
+
+		Mockito.verify(app, Mockito.times(2)).getProcessBuilder(parameters.capture());
+		params = parameters.getValue();
+		for (int i = 0; i < params.length; i++) {
+			assertEquals(params[i], originalParameters[i]);
+		}
+
+		result = app.runConfiguredCommand("test &");
+		assertFalse(result);
+		result = app.runConfiguredCommand("echo x");
+		assertFalse(result);
+		Mockito.verify(app, Mockito.times(2)).getProcessBuilder(Mockito.any(String[].class));
 	}
 
 	@Test
-	public void testRunCommand() {
+	public void testRunConfiguredCommand() throws Exception {
 		AdminApplication app = Mockito.spy(new AdminApplication());
 
+		ProcessBuilder processBuilder = Mockito.mock(ProcessBuilder.class);
 		Process process = Mockito.mock(Process.class);
+		Mockito.doReturn(processBuilder).when(app).getProcessBuilder(Mockito.any(String[].class));
 
+		boolean runCommand = app.runConfiguredCommand("");
+		assertFalse(runCommand);
 
-		try {
-			Mockito.doThrow(new IOException()).when(app).getProcess(Mockito.anyString());
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		runCommand = app.runConfiguredCommand("echo x");
+		assertFalse(runCommand);
 
-		boolean runCommand = app.runCommand("");
+		Mockito.when(processBuilder.start()).thenThrow(new IOException());
+		runCommand = app.runConfiguredCommand(AdminApplication.CREATE_APP_COMMAND);
 		assertFalse(runCommand);
 
 
-		try {
-			Mockito.doReturn(process).when(app).getProcess(Mockito.anyString());
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-		try {
-			Mockito.doThrow(new InterruptedException()).when(process).waitFor();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-		runCommand = app.runCommand("");
+		Mockito.when(processBuilder.start()).thenReturn(process);
+		Mockito.doThrow(new InterruptedException()).when(process).waitFor();
+		runCommand = app.runConfiguredCommand(AdminApplication.CREATE_APP_COMMAND);
 		assertFalse(runCommand);
 
 	}

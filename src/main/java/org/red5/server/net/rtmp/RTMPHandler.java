@@ -341,12 +341,11 @@ public class RTMPHandler extends BaseRTMPHandler {
 					}
 					break;
 				default:
-					log.debug("Defaulting to invoke for: {}", action);
-					invokeCall(conn, call);
+					log.error("Defaulting to invoke for: {}", action);
 				}
 			} else {
 				// handle service calls
-				invokeCall(conn, call);
+				log.error("Defaulting to invoke for: {} for service {}", action, call.getServiceName());
 			}
 		} else if (StreamAction.CONNECT.equalsAction(action)) {
 			// Handle connection

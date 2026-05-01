@@ -61,6 +61,9 @@ import jakarta.annotation.Nullable;
  */
 public class AdminApplication extends MultiThreadedApplicationAdapter {
 	private static final int JWT_TOKEN_TIMEOUT_MS = 60000;
+	public static final String CREATE_APP_COMMAND = "/bin/bash create_app.sh";
+	public static final String DELETE_APP_COMMAND = "/bin/bash delete_app.sh";
+	public static final String ENABLE_SSL_COMMAND = "sudo /bin/bash enable_ssl.sh";
 
 
 	private static final Logger log = LoggerFactory.getLogger(AdminApplication.class);
@@ -544,36 +547,40 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
 		appName = WarDeployer.getApplicationName(appName);
-		String command = "/bin/bash create_app.sh"
-				+ " -n " + appName
-				+ " -w true"
-				+ " -p " + webappsPath
-				+ " -c " + isCluster;
+		List<String> args = new ArrayList<>();
+		args.add("-n");
+		args.add(appName);
+		args.add("-w");
+		args.add("true");
+		args.add("-p");
+		args.add(webappsPath);
+		args.add("-c");
+		args.add(String.valueOf(isCluster));
 
 		if 	(!DataStoreFactory.DB_TYPE_MAPDB.equals(getDataStoreFactory().getDbType())) {
 			//add db connection url, user and pass if it's not mapdb
 			if (StringUtils.isNotBlank(dbConnectionUrl)) {
-				command +=  " -m " + dbConnectionUrl;
+				args.add("-m");
+				args.add(dbConnectionUrl);
 			}
 		}
 
 		if(StringUtils.isNotBlank(warFileName))
 		{
-			command += " -f " + warFileName;
+			args.add("-f");
+			args.add(warFileName);
 
 		}
 
-		log.info("Creating application with command: {}", command);
-		return runCommand(command);
+		log.info("Creating application with command: {} {}", CREATE_APP_COMMAND, args);
+		return runConfiguredCommand(CREATE_APP_COMMAND, args.toArray(new String[0]));
 	}
 
 	public boolean runDeleteAppScript(String appName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
-		String command = "/bin/bash delete_app.sh -n "+appName+" -p "+webappsPath;
-
-		return runCommand(command);
+		return runConfiguredCommand(DELETE_APP_COMMAND, "-n", appName, "-p", webappsPath);
 	}
 
 	public IClusterNotifier getClusterNotifier() {
@@ -582,7 +589,23 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 
-	public boolean runCommand(String command) {
+	public boolean runConfiguredCommand(String configuredCommand, String... args) {
+		boolean isConfiguredCommand = CREATE_APP_COMMAND.equals(configuredCommand) ||
+				DELETE_APP_COMMAND.equals(configuredCommand) ||
+				ENABLE_SSL_COMMAND.equals(configuredCommand);
+
+		if (!isConfiguredCommand) {
+			logger.warn("Discarding command because it is not one of the allowed admin commands: {}", configuredCommand);
+			return false;
+		}
+
+		List<String> command = new ArrayList<>();
+		Collections.addAll(command, configuredCommand.split(" "));
+		if (args != null) {
+			for (String arg : args) {
+				command.add(String.valueOf(arg));
+			}
+		}
 
 		boolean result = false;
 		try {
@@ -624,28 +647,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return result;
 	}
 
-	public Process getProcess(String command) throws IOException {
-		//This code uses a regular expression to check if the command string contains any special characters 
-		// that may cause vulnerabilities, 
-		//such as ;, &, |, <, >, (, ), $, , , \r, \n, \t, *, ?, {, }, [, ], \, ", ', or whitespace characters. 
-		//If the command string contains any of these characters, it is considered unsafe to execute and the code prints an error message."
-
-		String[] parameters = command.split(" ");
-		String[] parametersToRun = new String[parameters.length];
-		for (int i = 0; i < parameters.length; i++) 
-		{
-			String param = parameters[i];
-			if (param.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) 
-			{
-				logger.warn("Command includes special characters. Escaping the special characters. Argument:{} and full command:{}", param, command);
-				param = "'" + param + "'";
-			}
-			parametersToRun[i] = param;	
-		}
-
-
-		ProcessBuilder pb = getProcessBuilder(parametersToRun);
-
+	private Process getProcess(List<String> command) throws IOException {
+		ProcessBuilder pb = getProcessBuilder(command.toArray(new String[0]));
 		return pb.start();
 	}
 
