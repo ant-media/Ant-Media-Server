@@ -609,7 +609,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		boolean result = false;
 		try {
-			Process process = getProcess(command);
+			Process process = new ProcessBuilder(command).start();
 			if (process != null) 
 			{
 				new Thread() 
@@ -645,15 +645,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			Thread.currentThread().interrupt();
 		}
 		return result;
-	}
-
-	private Process getProcess(List<String> command) throws IOException {
-		ProcessBuilder pb = getProcessBuilder(command.toArray(new String[0]));
-		return pb.start();
-	}
-
-	public ProcessBuilder getProcessBuilder(String[] parametersToRun) {
-		return new ProcessBuilder(parametersToRun);
 	}
 
 	public void setVertx(Vertx vertx) {
