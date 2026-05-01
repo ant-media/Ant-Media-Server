@@ -22,7 +22,7 @@ import org.red5.server.api.IConnection;
 import org.red5.server.api.scope.IScopeService;
 
 /**
- * This interface represents the stream methods that can be called throug RTMP.
+ * This interface represents the stream methods that can be called through RTMP.
  */
 public interface IStreamService extends IScopeService {
 

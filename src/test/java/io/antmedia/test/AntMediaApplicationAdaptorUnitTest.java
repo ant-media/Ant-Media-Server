@@ -34,8 +34,8 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,7 +50,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -86,6 +85,7 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.PlaylistSubscriberStream;
 import org.red5.server.stream.SingleItemSubscriberStream;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import com.google.auth.oauth2.GoogleCredentials;
@@ -111,7 +111,6 @@ import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
-import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -146,20 +145,19 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	Vertx vertx = Vertx.vertx();
 	
-	Logger logger = org.slf4j.LoggerFactory.getLogger(AntMediaApplicationAdaptorUnitTest.class);
+	Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdaptorUnitTest.class);
 
 	@Rule
 	public TestRule watcher = new TestWatcher() {
 		protected void starting(Description description) {
 			System.out.println("Starting test: " + description.getMethodName());
 		}
-
 		protected void failed(Throwable e, Description description) {
 			System.out.println("Failed test: " + description.getMethodName());
-		};
+		}
 		protected void finished(Description description) {
 			System.out.println("Finishing test: " + description.getMethodName());
-		};
+		}
 	};
 
 	@Before
@@ -173,7 +171,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		try {
 			AppFunctionalV2Test.delete(f);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 
 		File webApps = new File("webapps");
@@ -199,7 +197,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		try {
 			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 	}
 
@@ -674,7 +672,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertFalse(f.exists());
 
 		adapter.setVertx(vertx);
-		adapter.runScript("src/test/resources/echo.sh");
+		adapter.runScript("testRunMuxer", "src/test/resources/echo.sh");
 
 		await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -3543,6 +3541,30 @@ public class AntMediaApplicationAdaptorUnitTest {
 				.atMost(Duration.ofMillis(200))
 				.untilAtomic(listener2Invoked, is(true));
 
+	}
+
+	@Test
+    public void testNullAndEmptyScriptsAreIgnored() {
+		adapter.runScript("test", null);
+		adapter.runScript("test", "");
+		adapter.runScript("test", "   ");
+	}
+
+	@Test
+	public void testLongRunningScriptsAreAsync() throws IOException {
+		File scriptFile = File.createTempFile("amsLongScript", ".sh");
+		scriptFile.deleteOnExit();
+		Files.write(scriptFile.toPath(),
+				"#!/bin/sh\nsleep 1\n".getBytes(StandardCharsets.UTF_8));
+		assertTrue("Could not mark script executable", scriptFile.setExecutable(true));
+
+		long start = System.currentTimeMillis();
+		adapter.runScript("longRunningTest", scriptFile.getAbsolutePath());
+		long elapsed = System.currentTimeMillis() - start;
+
+		assertTrue("runScript blocked the caller for " + elapsed
+						+ " ms; expected to return in < 500 ms",
+				elapsed < 500);
 	}
 
 }
