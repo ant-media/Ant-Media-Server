@@ -3,15 +3,17 @@ package io.antmedia;
 import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -127,6 +129,8 @@ import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+
+import javax.annotation.Nullable;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -830,10 +834,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private void runStreamEndedScript(Broadcast broadcast) {
 		String streamEndedScript = appSettings.getStreamEndedScript();
-		if (StringUtils.isNotBlank(streamEndedScript)) 
-		{
-			runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
-		}
+		runScript("streamEnded", streamEndedScript, broadcast.getStreamId(), getScope().getName());
 	}
 
 	public static Broadcast saveMainBroadcast(String streamId, String mainTrackId, DataStore dataStore) {
@@ -1040,11 +1041,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				notifyPublishStarted(streamId, role, mainTrackId);
 				
 				String streamStartedScript = appSettings.getStreamStartedScript();
-				if (StringUtils.isNotBlank(streamStartedScript)) 
-				{
-					runScript(streamStartedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
-				}
-
+				runScript("streamStarted", streamStartedScript, broadcast.getStreamId(), getScope().getName());
 
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1278,11 +1275,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
-		if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {
-			runScript(muxerFinishScript + "  " + file.getAbsolutePath() + "  " + getScope().getName());
-		}
-
-
+		runScript("muxerFinished", muxerFinishScript, file.getAbsolutePath(), getScope().getName());
 	}
 
 	public void notifyFirstActiveSubtrackInMainTrack(Broadcast mainTrack, String subtrackId) 
@@ -1313,40 +1306,74 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		notifyPublishStopped(mainTrack.getStreamId(), null, mainTrack.getStreamId());
 
 	}
-	public void runScript(String scriptFile) {
-		vertx.executeBlocking(() -> {
-			try {
-				logger.info("running script: {}", scriptFile);
-				Process exec = Runtime.getRuntime().exec(scriptFile);
-				
-				InputStream errorStream = exec.getErrorStream();
-	            byte[] data = new byte[1024];
-	            int length = 0;
 
-	            while ((length = errorStream.read(data, 0, data.length)) > 0) {
-	                logger.info(new String(data, 0, length));
-	            }
+	/**
+	 * Executes a script file that already exists on the file system with the specified arguments.
+	 * Blank, empty, null script paths are silently ignored, for convenient usage,
+	 * no need to check
+	 *
+	 * @param description describes the script, makes log messages easier to interpret
+	 * @param scriptPath path to an existing, executable script file
+	 * @param arguments  optional arguments passed to the script
+	 */
+	public void runScript(String description, @Nullable String scriptPath, String... arguments) {
+		if (StringUtils.isBlank(scriptPath)) {
+			return;
+		}
 
-	            InputStream inputStream = exec.getInputStream();
+		File scriptFile = new File(scriptPath);
+		if (!scriptFile.isFile()) {
+			logger.error("Cannot run {} script: file does not exist or is not a regular file: {}", description, scriptPath);
+			return;
+		}
+		if (!scriptFile.canRead()) {
+			logger.error("Cannot run {} script: file is not readable: {}", description, scriptPath);
+			return;
+		}
+		if (!scriptFile.canExecute()) {
+			logger.error("Cannot run {} script: file is not executable: {}", description, scriptPath);
+			return;
+		}
 
-	            while ((length = inputStream.read(data, 0, data.length)) > 0) {
-	            	logger.info(new String(data, 0, length));
-	            }
-	            
-	            
-				int result = exec.waitFor();
-
-				logger.info("completing script: {} with return value {}", scriptFile, result);
-			} catch (IOException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			} catch (InterruptedException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-				Thread.currentThread().interrupt();
+		List<String> command = new ArrayList<>();
+		command.add(scriptFile.getAbsolutePath());
+		if (arguments != null) {
+			for (String arg : arguments) {
+				if (arg != null) {
+					command.add(arg);
+				}
 			}
+		}
 
-			return null;
+		try {
+			logger.info("Running {} script: {} with arguments: {}", description, scriptFile.getAbsolutePath(), command.subList(1, command.size()));
 
-		}, false);
+			Process exec = new ProcessBuilder(command)
+					.redirectErrorStream(true)
+					.start();
+
+			CompletableFuture.runAsync(() -> {
+				try (BufferedReader reader = new BufferedReader(
+						new InputStreamReader(exec.getInputStream(), StandardCharsets.UTF_8))) {
+					String line;
+					while ((line = reader.readLine()) != null) {
+						logger.info("{} script output: {}", description, line);
+					}
+				} catch (IOException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			});
+
+			exec.onExit().whenComplete((proc, err) -> {
+				if (err != null) {
+					logger.error("Error executing {} script: {}", description, ExceptionUtils.getStackTrace(err));
+				} else {
+					logger.info("Completed {} script with return value {}", description, proc.exitValue());
+				}
+			});
+		} catch (IOException e) {
+			logger.error("Error occured while executing {} script", description, e);
+		}
 	}
 
 	public static String getRelativePath(String filePath){
@@ -1909,10 +1936,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		
 		String streamIdleTimeoutScript = getAppSettings().getStreamIdleTimeoutScript();
-		if (StringUtils.isNotBlank(streamIdleTimeoutScript)) {
-			runScript(streamIdleTimeoutScript + " " + broadcast.getStreamId() + " " + getScope().getName());
-		}
-		
+		runScript("streamIdleTimeout", streamIdleTimeoutScript, broadcast.getStreamId(), getScope().getName());
+
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {

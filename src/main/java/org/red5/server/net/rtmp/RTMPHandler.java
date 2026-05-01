@@ -227,8 +227,8 @@ public class RTMPHandler extends BaseRTMPHandler {
 		final int transId = command.getTransactionId();
 		// get the call
 		final IServiceCall call = command.getCall();
-		if (log.isTraceEnabled()) {
-			log.trace("call: {}", call);
+		if (log.isDebugEnabled()) {
+			log.debug("call: {}", call);
 		}
 		// get the method name
 		final String action = call.getServiceMethodName();
@@ -245,8 +245,14 @@ public class RTMPHandler extends BaseRTMPHandler {
 			if (call.getServiceName() == null) {
 				StreamAction streamAction = StreamAction.getEnum(action);
 				if (log.isDebugEnabled()) {
-					log.debug("Stream action: {}", streamAction.toString());
+					log.debug("Stream action: {}", streamAction);
 				}
+
+				if(streamAction == StreamAction.UNSUPPORTED) {
+					log.warn("Rejecting unsupported RTMP stream action: {}", action);
+					return;
+				}
+
 				// TODO change this to an application scope parameter and / or change to the listener pattern
 				if (dispatchStreamActions) {
 					// pass the stream action event to the handler
@@ -313,7 +319,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 
 							if(!systemResult)
 							{
-								log.info("There is not enough resource to rtmp ingest stream: {}", streamId);
+								log.error("There are not enough resources to ingest the RTMP stream: {}", streamId);
 								Status status = getStatus(NS_FAILED).asStatus();
 								status.setDescription(HIGH_RESOURCE_USAGE);
 								channel.sendStatus(status);
@@ -323,30 +329,36 @@ public class RTMPHandler extends BaseRTMPHandler {
 							return;
 						}
 
-
-						log.debug("Invoking {} from {} with service: {}", new Object[] { call, conn.getSessionId(), streamService });
+						log.debug("Invoking {} from {} with service: {}", call, conn.getSessionId(), streamService);
 						if (invokeCall(conn, call, streamService)) {
-							log.debug("Stream service invoke {} success", action);
+							log.debug("Stream service invoked {} successfully", action);
 						} else {
 							Status status = getStatus(NS_INVALID_ARGUMENT).asStatus();
 							status.setDescription(String.format("Failed to %s (stream id: %d)", action, source.getStreamId()));
 							channel.sendStatus(status);
 						}
 					} catch (Throwable err) {
-						log.error("Error while invoking {} on stream service. {}", action, err);
+						log.error("Error while invoking {} on stream service", action, err);
 						Status status = getStatus(NS_FAILED).asStatus();
 						status.setDescription(String.format("Error while invoking %s (stream id: %d)", action, source.getStreamId()));
 						status.setDetails(err.getMessage());
 						channel.sendStatus(status);
 					}
 					break;
-				default:
-					log.debug("Defaulting to invoke for: {}", action);
-					invokeCall(conn, call);
+
+					case STOP:
+					case CONNECT:
+					case GET_STREAM_LENGTH:
+						invokeCall(conn, call);
+						break;
+					// 'unsupported' actions are rejected earlier, keeping only for completeness' sake here
+					default:
+						// this code should not be executed if the switch is changed in accordance with the enum
+						// keeping this error logging here as a safety net only
+					    log.error("Unhandled invocation: {}, ", action);
 				}
 			} else {
-				// handle service calls
-				invokeCall(conn, call);
+				log.warn("Rejecting to call into service {} and method name {}", call.getServiceName(), call.getServiceMethodName());
 			}
 		} else if (StreamAction.CONNECT.equalsAction(action)) {
 			// Handle connection
@@ -481,7 +493,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 					IPendingServiceCall pc = (IPendingServiceCall) call;
 					pc.setResult(getStatus(NC_CONNECT_FAILED));
 				}
-				log.error("Error connecting {}", e);
+				log.error("Error connecting {}", e.getMessage(), e);
 				disconnectOnReturn = true;
 			}
 			// Evaluate request for AMF3 encoding
