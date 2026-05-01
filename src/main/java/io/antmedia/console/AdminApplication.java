@@ -603,7 +603,12 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		Collections.addAll(command, configuredCommand.split(" "));
 		if (args != null) {
 			for (String arg : args) {
-				command.add(String.valueOf(arg));
+				String commandArgument = String.valueOf(arg);
+				if (commandArgument.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) {
+					logger.warn("Discarding command because an argument includes special characters. Argument:{} and command:{}", commandArgument, configuredCommand);
+					return false;
+				}
+				command.add(commandArgument);
 			}
 		}
 

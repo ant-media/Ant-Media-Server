@@ -296,6 +296,10 @@ public class AdminApplicationTest {
 		assertFalse(result);
 		result = app.runConfiguredCommand("echo x");
 		assertFalse(result);
+		result = app.runConfiguredCommand(AdminApplication.CREATE_APP_COMMAND, "echo x");
+		assertFalse(result);
+		result = app.runConfiguredCommand(AdminApplication.CREATE_APP_COMMAND, "&echo");
+		assertFalse(result);
 	}
 
 	@Test

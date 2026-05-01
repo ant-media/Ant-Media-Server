@@ -1335,7 +1335,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		command.add(configuredScript);
 		if (args != null) {
 			for (String arg : args) {
-				command.add(String.valueOf(arg));
+				String scriptArgument = String.valueOf(arg);
+				if (scriptArgument.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) {
+					logger.warn("Discarding script because an argument includes special characters. Argument:{} and script:{}", scriptArgument, configuredScript);
+					return;
+				}
+				command.add(scriptArgument);
 			}
 		}
 		vertx.executeBlocking(() -> {

@@ -688,6 +688,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertFalse(f.exists());
 
 		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[] {"echo x"});
+		assertFalse(f.exists());
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[] {"&echo"});
+		assertFalse(f.exists());
+
 		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[0]);
 
 		await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
