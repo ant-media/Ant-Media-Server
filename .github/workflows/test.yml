@@ -155,7 +155,13 @@ jobs:
             echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
       
       - name: Add ffmpeg7 repo
-        run: sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg7 -y
+        run: |
+          source /etc/os-release
+          sudo install -d -m 0755 /etc/apt/keyrings
+          curl -fsSL --retry 5 --retry-delay 10 "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF4E48910A020E77056748B745738AE8480447DDF" \
+            | sudo gpg --dearmor -o /etc/apt/keyrings/ubuntuhandbook1-ffmpeg7.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/ubuntuhandbook1-ffmpeg7.gpg] https://ppa.launchpadcontent.net/ubuntuhandbook1/ffmpeg7/ubuntu ${VERSION_CODENAME} main" \
+            | sudo tee /etc/apt/sources.list.d/ubuntuhandbook1-ffmpeg7.list
             
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
@@ -272,5 +278,3 @@ jobs:
           echo "Deploy to release"
           mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet
           echo "Deploy to release exited with $?"
-
-
