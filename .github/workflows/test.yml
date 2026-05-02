@@ -62,7 +62,7 @@ jobs:
           sudo install -m 0755 /tmp/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
           ffmpeg_version="$(ffmpeg -version | head -n 1)"
           echo "$ffmpeg_version"
-          echo "$ffmpeg_version" | grep -q "ffmpeg version 7\."
+          echo "$ffmpeg_version" | grep -Eq "ffmpeg version n?7\."
           
       - name: Install dependencies
         run: |
@@ -181,7 +181,7 @@ jobs:
           sudo install -m 0755 /tmp/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
           ffmpeg_version="$(ffmpeg -version | head -n 1)"
           echo "$ffmpeg_version"
-          echo "$ffmpeg_version" | grep -q "ffmpeg version 7\."
+          echo "$ffmpeg_version" | grep -Eq "ffmpeg version n?7\."
             
       - name: Install dependencies
         run: |
