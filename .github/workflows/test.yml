@@ -50,9 +50,24 @@ jobs:
             sudo rm -rf /usr/share/keyrings/redis-archive-keyring.gpg
             curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+
+      - name: Add ffmpeg7 repo
+        run: |
+          source /etc/os-release
+          sudo install -d -m 0755 /etc/apt/keyrings
+          curl -fsSL --retry 5 --retry-delay 10 "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF4E48910A020E77056748B745738AE8480447DDF" \
+            | sudo gpg --dearmor -o /etc/apt/keyrings/ubuntuhandbook1-ffmpeg7.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/ubuntuhandbook1-ffmpeg7.gpg] https://ppa.launchpadcontent.net/ubuntuhandbook1/ffmpeg7/ubuntu ${VERSION_CODENAME} main" \
+            | sudo tee /etc/apt/sources.list.d/ubuntuhandbook1-ffmpeg7.list
           
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+        run: |
+          sudo apt-get update
+          apt-cache policy ffmpeg
+          sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+          ffmpeg_version="$(ffmpeg -version | head -n 1)"
+          echo "$ffmpeg_version"
+          echo "$ffmpeg_version" | grep -q "ffmpeg version 7\."
 
       - name: Start Redis
         run: sudo systemctl start redis-server
@@ -164,7 +179,13 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/ubuntuhandbook1-ffmpeg7.list
             
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+        run: |
+          sudo apt-get update
+          apt-cache policy ffmpeg
+          sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+          ffmpeg_version="$(ffmpeg -version | head -n 1)"
+          echo "$ffmpeg_version"
+          echo "$ffmpeg_version" | grep -q "ffmpeg version 7\."
 
       - name: Start Redis
         run: sudo systemctl start redis-server
