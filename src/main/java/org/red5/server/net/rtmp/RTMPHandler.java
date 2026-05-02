@@ -341,7 +341,10 @@ public class RTMPHandler extends BaseRTMPHandler {
 					}
 					break;
 				default:
-					log.error("Defaulting to invoke for: {}", action);
+					log.info("Defaulting to invoke for: {}", action);
+					if(action.equals("FCPublish")) {
+						invokeCall(conn, call);
+					}
 				}
 			} else {
 				// handle service calls
