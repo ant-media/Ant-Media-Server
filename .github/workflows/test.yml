@@ -51,25 +51,24 @@ jobs:
             curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
 
-      - name: Add ffmpeg7 repo
+      - name: Install FFmpeg 7
         run: |
-          source /etc/os-release
-          sudo install -d -m 0755 /etc/apt/keyrings
-          curl -fsSL --retry 5 --retry-delay 10 "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF4E48910A020E77056748B745738AE8480447DDF" \
-            | sudo gpg --dearmor -o /etc/apt/keyrings/ubuntuhandbook1-ffmpeg7.gpg
-          echo "deb [signed-by=/etc/apt/keyrings/ubuntuhandbook1-ffmpeg7.gpg] https://ppa.launchpadcontent.net/ubuntuhandbook1/ffmpeg7/ubuntu ${VERSION_CODENAME} main" \
-            | sudo tee /etc/apt/sources.list.d/ubuntuhandbook1-ffmpeg7.list
-          
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          apt-cache policy ffmpeg
-          ffmpeg_7_version="$(apt-cache madison ffmpeg | awk '/ppa.launchpadcontent.net\/ubuntuhandbook1\/ffmpeg7/ {print $3; exit}')"
-          test -n "$ffmpeg_7_version"
-          sudo apt-get install -y redis redis-tools mongodb-org "ffmpeg=$ffmpeg_7_version" wondershaper
+          curl -L --retry 5 --retry-delay 10 \
+            -o /tmp/ffmpeg.tar.xz \
+            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz
+          mkdir -p /tmp/ffmpeg
+          tar -xf /tmp/ffmpeg.tar.xz -C /tmp/ffmpeg --strip-components=1
+          sudo install -m 0755 /tmp/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
+          sudo install -m 0755 /tmp/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
           ffmpeg_version="$(ffmpeg -version | head -n 1)"
           echo "$ffmpeg_version"
           echo "$ffmpeg_version" | grep -q "ffmpeg version 7\."
+          
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -o Acquire::Retries=5
+          sudo apt-get install -y redis redis-tools mongodb-org wondershaper
+          ffmpeg -version | head -n 1
 
       - name: Start Redis
         run: sudo systemctl start redis-server
@@ -171,25 +170,24 @@ jobs:
             curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
       
-      - name: Add ffmpeg7 repo
+      - name: Install FFmpeg 7
         run: |
-          source /etc/os-release
-          sudo install -d -m 0755 /etc/apt/keyrings
-          curl -fsSL --retry 5 --retry-delay 10 "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF4E48910A020E77056748B745738AE8480447DDF" \
-            | sudo gpg --dearmor -o /etc/apt/keyrings/ubuntuhandbook1-ffmpeg7.gpg
-          echo "deb [signed-by=/etc/apt/keyrings/ubuntuhandbook1-ffmpeg7.gpg] https://ppa.launchpadcontent.net/ubuntuhandbook1/ffmpeg7/ubuntu ${VERSION_CODENAME} main" \
-            | sudo tee /etc/apt/sources.list.d/ubuntuhandbook1-ffmpeg7.list
-            
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          apt-cache policy ffmpeg
-          ffmpeg_7_version="$(apt-cache madison ffmpeg | awk '/ppa.launchpadcontent.net\/ubuntuhandbook1\/ffmpeg7/ {print $3; exit}')"
-          test -n "$ffmpeg_7_version"
-          sudo apt-get install -y redis redis-tools mongodb-org "ffmpeg=$ffmpeg_7_version" wondershaper
+          curl -L --retry 5 --retry-delay 10 \
+            -o /tmp/ffmpeg.tar.xz \
+            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz
+          mkdir -p /tmp/ffmpeg
+          tar -xf /tmp/ffmpeg.tar.xz -C /tmp/ffmpeg --strip-components=1
+          sudo install -m 0755 /tmp/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
+          sudo install -m 0755 /tmp/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
           ffmpeg_version="$(ffmpeg -version | head -n 1)"
           echo "$ffmpeg_version"
           echo "$ffmpeg_version" | grep -q "ffmpeg version 7\."
+            
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -o Acquire::Retries=5
+          sudo apt-get install -y redis redis-tools mongodb-org wondershaper
+          ffmpeg -version | head -n 1
 
       - name: Start Redis
         run: sudo systemctl start redis-server
