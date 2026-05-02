@@ -64,7 +64,9 @@ jobs:
         run: |
           sudo apt-get update
           apt-cache policy ffmpeg
-          sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+          ffmpeg_7_version="$(apt-cache madison ffmpeg | awk '/ppa.launchpadcontent.net\/ubuntuhandbook1\/ffmpeg7/ {print $3; exit}')"
+          test -n "$ffmpeg_7_version"
+          sudo apt-get install -y redis redis-tools mongodb-org "ffmpeg=$ffmpeg_7_version" wondershaper
           ffmpeg_version="$(ffmpeg -version | head -n 1)"
           echo "$ffmpeg_version"
           echo "$ffmpeg_version" | grep -q "ffmpeg version 7\."
@@ -182,7 +184,9 @@ jobs:
         run: |
           sudo apt-get update
           apt-cache policy ffmpeg
-          sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+          ffmpeg_7_version="$(apt-cache madison ffmpeg | awk '/ppa.launchpadcontent.net\/ubuntuhandbook1\/ffmpeg7/ {print $3; exit}')"
+          test -n "$ffmpeg_7_version"
+          sudo apt-get install -y redis redis-tools mongodb-org "ffmpeg=$ffmpeg_7_version" wondershaper
           ffmpeg_version="$(ffmpeg -version | head -n 1)"
           echo "$ffmpeg_version"
           echo "$ffmpeg_version" | grep -q "ffmpeg version 7\."
