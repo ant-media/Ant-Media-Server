@@ -246,6 +246,64 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		workerAfter.run();
 		Mockito.verify(workerAfter, Mockito.never()).prepareInputContext(Mockito.any());
 	}
+	
+	boolean inTheThread = false;
+	@Test
+	public void testPlayListSynch() throws Exception {
+		StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
+		String streamId = String.valueOf((Math.random() * 100000));
+		
+		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
+
+		//create a broadcast
+		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
+
+		List<Broadcast.PlayListItem> broadcastList = new ArrayList<>();
+
+		broadcastList.add(broadcastItem1);
+		broadcastList.add(broadcastItem2);
+		
+		
+		//create broadcast 
+		Broadcast playlist = new Broadcast();
+		playlist.setStreamId(streamId);
+		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		playlist.setPlayListItemList(broadcastList);
+		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		app.getDataStore().save(playlist);
+		
+		manager.setWaitForTestMilliseconds(1000);
+		
+		//start play list
+		Result result = manager.startPlaylist(playlist);
+		assertTrue(result.isSuccess());
+		
+		
+		//call play next item in list
+		inTheThread = false;
+		new Thread() {
+			public void run() {
+				inTheThread = true;
+				manager.playItemInList(playlist.getStreamId(), null, 1);
+				
+			};
+		}.start();
+		
+		Awaitility.await().atMost(2000, TimeUnit.MILLISECONDS).until(() -> {
+			return inTheThread == true;
+		});
+		
+		
+		//call stopBroadcasting immediatelly
+		result = manager.stopStreaming(streamId, false);
+		
+		//check the result that it returns true
+		assertTrue(result.isSuccess());
+
+		manager.setWaitForTestMilliseconds(0);	
+
+	}
+	
 	@Test
 	public void testPlayItemInList() throws Exception {
 
@@ -291,7 +349,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		StreamFetcher.IStreamFetcherListener listener = Mockito.mock(StreamFetcher.IStreamFetcherListener.class);
 		manager.getStreamFetcher(streamId).setStreamFetcherListener(listener);
-		manager.playItemInList(playlist,listener,1);
+		manager.playItemInList(playlist.getStreamId(),listener,1);
 
 		// stream not stoped need to wait for the thread to stop to start next playlist
 		verify(manager,timeout(10000).times(1)).createAndStartNextPlaylistItem(any(),any(),anyInt());
@@ -300,7 +358,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		// thread already start next stream directly
         doReturn(streamFetcher).when(manager).getStreamFetcher(streamId);
-		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
+		manager.playItemInList(playlist.getStreamId(),streamFetcher.getStreamFetcherListener(),1);
 		verify(manager,times(1)).createAndStartNextPlaylistItem(any(),any(),anyInt());
 
 		// invalid url
@@ -308,7 +366,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		broadcastItem1.setStreamUrl("test");
 		playlist.getPlayListItemList().set(playlist.getCurrentPlayIndex(),broadcastItem1);
         doReturn(new Result(true)).when(manager).startPlaylist(playlist);
-		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
+		manager.playItemInList(playlist.getStreamId(),streamFetcher.getStreamFetcherListener(),1);
 		verify(manager,times(1)).stopStreaming(streamId, true);
 		verify(manager).skipNextPlaylistQueue(playlist,1);
 		verify(manager).startPlaylist(playlist);

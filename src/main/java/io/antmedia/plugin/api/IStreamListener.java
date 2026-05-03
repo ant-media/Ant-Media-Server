@@ -6,16 +6,7 @@ import io.antmedia.datastore.db.types.Broadcast;
  * Interface class to inform the plugins with stream start/start event.
  */
 public interface IStreamListener {
-	/**
-	 * AMS inform the plugins when a stream is started with this method.
-	 * @param streamId is the id of the stream
-	 * 
-	 * @deprecated use {@link #streamStarted(Broadcast)} because Broadcast object may be deleted when this method is called
-	 */
-	@Deprecated (since="3.0", forRemoval = true)
-	public default void streamStarted(String streamId) {
-		//do nothing
-	}
+	
 	
 	/**
 	 * AMS inform the plugins when a stream is started with this method.
@@ -23,17 +14,6 @@ public interface IStreamListener {
 	 * 
 	 */
 	public default void streamStarted(Broadcast broadcast) {
-		//do nothing
-	}
-	
-	/**
-	 * AMS inform the plugins when a stream is finished with this method.
-	 * @param streamId is the id of the stream
-	 * 
-	 * @deprecated use {@link #streamFinished(Broadcast)} because Broadcast object may be deleted when this method is called
-	 */
-	@Deprecated (since="3.0", forRemoval = true)
-	public default void streamFinished(String streamId) {
 		//do nothing
 	}
 

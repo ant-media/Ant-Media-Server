@@ -216,7 +216,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		endpoint.setEndpointUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId);
 		try 
 		{
-			result = RestServiceV2Test.addEndpointV3(streamSource.getStreamId(), endpoint);
+			result = RestServiceV2Test.addEndpoint(streamSource.getStreamId(), endpoint);
 			assertTrue(result.isSuccess());
 			String endpointId = result.getDataId();
 			//check that rtmp endpoint is streaming
@@ -230,7 +230,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			});
 
 			//remove rtmp endpoint
-			result = RestServiceV2Test.removeEndpointV2(streamSource.getStreamId(), endpointId);
+			result = RestServiceV2Test.removeEndpoint(streamSource.getStreamId(), endpointId);
 
 			//check that rtmp endpoint is not streaming
 			assertTrue(result.isSuccess());

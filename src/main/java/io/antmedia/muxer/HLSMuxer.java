@@ -93,7 +93,6 @@ public class HLSMuxer extends Muxer  {
 
 	private String segmentFileNameSuffix;
 
-	private boolean uploadMp4ToS3 = true;
 
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
@@ -102,10 +101,6 @@ public class HLSMuxer extends Muxer  {
 
 		if((S3_CONSTANT & uploadExtensionsToS3) == 0){
 			uploadHLSToS3 = false;
-		}
-
-		if((RecordMuxer.S3_CONSTANT & uploadExtensionsToS3) == 0){
-			uploadMp4ToS3  = false;
 		}
 
 		extension = ".m3u8";
