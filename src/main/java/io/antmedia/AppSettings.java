@@ -1516,7 +1516,7 @@ public class AppSettings implements Serializable{
 	 * Disable this if you experience PTS or stuttering issues with h264_cuvid on certain GPU architectures (e.g. Blackwell RTX 5000 series).
 	 * Default value is true.
 	 */
-	@Value("${hwDecoderEnabled:${"+SETTINGS_HW_DECODER_ENABLED+":true}}")
+	@Value("${hwDecoderEnabled:true}")
 	private boolean hwDecoderEnabled = true;
 
 	/**

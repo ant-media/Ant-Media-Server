@@ -683,7 +683,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
 
-				183, numberOfFields);
+				184, numberOfFields);
 	}
 
 
