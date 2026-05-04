@@ -1276,34 +1276,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testAVWriteFrame() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer(null, vertx));
-
-		AVFormatContext context = new AVFormatContext();
-		int ret = avformat_alloc_output_context2(context, null, "flv", "test.flv");
-
-		//rtmpMuxer.set
-		AVPacket pkt = av_packet_alloc();
-
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-
-		endpointMuxer.init(appScope, "", 0, "", 0);
-
-		endpointMuxer.avWriteFrame(pkt, context);
-
-		Mockito.verify(endpointMuxer).addExtradataIfRequired(pkt, false);
-		endpointMuxer.avWriteFrame(pkt, context);
-
-		pkt.flags(AV_PKT_FLAG_KEY);
-		endpointMuxer.addExtradataIfRequired(pkt,true);
-
-		av_packet_free(pkt);
-		avformat_free_context(context);
-	}
-	@Test
 	public void testWriteVideoBuffer(){
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -6419,18 +6391,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		pkt = new AVPacket();
 		pkt.stream_index(0);
 
+		// Reset state so the post-write BROADCASTING assertion proves the worker
+		// dequeued and wrote, not just that prepareIO already set it.
+		endpointMuxer.setStatus("test");
+
 		//writing video packet when header written
 		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,0);
 		verify(endpointMuxer,times(1)).writeFrameInternal(any(),any(),any(),any(),anyInt());
-		verify(endpointMuxer,times(1)).avWriteFrame(any(),any());
 		verify(endpointMuxer,times(1)).addExtradataIfRequired(any(),anyBoolean());
-		assert(endpointMuxer.getStatus().equals(BROADCAST_STATUS_BROADCASTING));
+		// Status returns to BROADCASTING only when the worker dequeues and writes
+		// successfully — proves the producer→queue→worker path is end-to-end live.
+		EndpointMuxer videoMuxer = endpointMuxer;
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() ->
+				BROADCAST_STATUS_BROADCASTING.equals(videoMuxer.getStatus()));
 
 		endpointMuxer.setStatus("test");//reset state
 
 		//writing audio packet when header written
 		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
-		assert(endpointMuxer.getStatus().equals(BROADCAST_STATUS_BROADCASTING));
+		EndpointMuxer audioMuxer = endpointMuxer;
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() ->
+				BROADCAST_STATUS_BROADCASTING.equals(audioMuxer.getStatus()));
 
 		endpointMuxer.setStatus("test");//reset state
 
@@ -6441,12 +6422,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//writing video packet when header written invalid packet
 		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,0);
-		assert(endpointMuxer.getStatus().equals(BROADCAST_STATUS_ERROR));
+		EndpointMuxer invalidVideoMuxer = endpointMuxer;
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() ->
+				BROADCAST_STATUS_ERROR.equals(invalidVideoMuxer.getStatus()));
 
 		//writing audio packet when header written invalid packet
 		endpointMuxer.getOutputFormatContext().streams(0).codecpar().codec_type(1);
+		endpointMuxer.setStatus("test");//reset state
 		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
-		assert(endpointMuxer.getStatus().equals(BROADCAST_STATUS_ERROR));
+		EndpointMuxer invalidAudioMuxer = endpointMuxer;
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() ->
+				BROADCAST_STATUS_ERROR.equals(invalidAudioMuxer.getStatus()));
 
 		//bitstream filter
 		endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
