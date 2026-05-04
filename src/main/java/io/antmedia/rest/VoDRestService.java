@@ -65,17 +65,6 @@ public class VoDRestService extends RestServiceBase{
 		return super.getVoD(id);
 	}
 
-	@Operation(summary = "Import VoDs to Stalker Portal", description = "Imports VoDs to the Stalker Portal.", responses = {
-			@ApiResponse(responseCode = "200", description = "VoDs imported successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
-	})
-	@POST
-	@Path("/import-to-stalker")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result importVoDsToStalker() {
-		return super.importVoDsToStalker();
-	}
-
-
 	@Operation(summary = "Get the VoD list from database", description = "Retrieves the list of VoD files from the database. It returns up to 50 items. You can use offset value to get result page by page.", responses = {
 			@ApiResponse(responseCode = "200", description = "VoD list retrieved successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VoD.class, type = "array")))
 	})
@@ -125,21 +114,6 @@ public class VoDRestService extends RestServiceBase{
 			@PathParam("id") String id) {
 		return super.deleteVoD(id);
 	}
-
-	/**
-	 * Use {@link #deleteVoDsBulk(String)}
-	 */
-	@Deprecated
-    @Hidden
-    @DELETE
-    @Path("/bulk")
-    @Consumes({ MediaType.APPLICATION_JSON })
-    @Produces(MediaType.APPLICATION_JSON)
-    @Override
-    public Result deleteVoDs(
-            @Parameter(description = "IDs of the VoD files", required = true) String[] vodIds) {
-        return super.deleteVoDs(vodIds);
-    }
     
 	
     @Operation(summary = "Delete bulk VoD Files based on Vod Id", description = "Deletes multiple VoD files from the database by their IDs.", responses = {
@@ -201,20 +175,6 @@ public class VoDRestService extends RestServiceBase{
     public Result unlinksVoD(
             @Parameter(description = "The full path of the directory from which imported VoD files will be deleted from the database", required = true) @QueryParam("directory") String directory) {
         return super.unlinksVoD(directory);
-    }
-
-
-
-	@Hidden
-    @Operation(summary = "Deprecated. Use import VoDs.", description = "Synchronizes VoD Folder and adds them to VoD database if any file exist and creates symbolic links to that folder.", deprecated = true, responses = {
-            @ApiResponse(responseCode = "200", description = "VoD files synchronized successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
-    })
-    @POST
-    @Path("/synch-user-vod-list")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Override
-    public Result synchUserVodList() {
-        return super.synchUserVodList();
     }
 
 }

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 
@@ -68,9 +69,9 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	}
 
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTime) {
+	public void setQualityParameters(String id, PublishStatsEvent stats, long updateTime) {
 		if (enableSourceHealthUpdate) {
-			super.setQualityParameters(id, quality, speed, pendingPacketSize, updateTime);
+			super.setQualityParameters(id, stats, updateTime);
 		}
 	}
 	

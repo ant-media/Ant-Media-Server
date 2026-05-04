@@ -145,7 +145,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected boolean addDateTimeToMp4FileName;
 	protected boolean hlsMuxingEnabled;
 	protected boolean dashMuxingEnabled;
-	protected boolean objectDetectionEnabled;
 
 	protected ConcurrentHashMap<String, Boolean> isHealthCheckStartedMap = new ConcurrentHashMap<>();
 	protected ConcurrentHashMap<String, Integer> errorCountMap = new ConcurrentHashMap<>();
@@ -441,7 +440,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		dashMuxingEnabled = appSettingsLocal.isDashMuxingEnabled();
 		mp4MuxingEnabled = appSettingsLocal.isMp4MuxingEnabled();
 		webMMuxingEnabled = appSettingsLocal.isWebMMuxingEnabled();
-		objectDetectionEnabled = appSettingsLocal.isObjectDetectionEnabled();
 
 		addDateTimeToMp4FileName = appSettingsLocal.isAddDateTimeToMp4FileName();
 		webRTCEnabled = appSettingsLocal.isWebRTCEnabled();
@@ -817,14 +815,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if(mainBroadcast == null)
 			{
 				mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
-			}
-			else
-			{
-				mainBroadcast.getSubTrackStreamIds().add(streamId);
-				BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
-				broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
-
-				getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
 			}
 		}
 	}
@@ -2226,14 +2216,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.isStreamSource = isStreamSource;
 	}
 
-	public boolean isObjectDetectionEnabled() {
-		return objectDetectionEnabled;
-	}
-
-	public void setObjectDetectionEnabled(Boolean objectDetectionEnabled) {
-		this.objectDetectionEnabled = objectDetectionEnabled;
-	}
-
 	public int getPreviewCreatePeriod() {
 		return previewCreatePeriod;
 	}
@@ -2444,7 +2426,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public RecordMuxer stopRecording(RecordType recordType, int resolutionHeight)
 	{
-		logger.info("stopRecording is called for streamId:{} and resolution:{}", streamId, resolutionHeight);
+		logger.info("stopRecording is called for streamId:{}", streamId);
 		Muxer muxer = findDynamicRecordMuxer(recordType);
 		if (muxer != null && recordType == RecordType.MP4)
 		{
@@ -2471,7 +2453,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			result.setMessage("Start endpoint streaming return false for stream:"+ streamId +" because stream is being prepared. Try again");
 			return result;
 		}
-		logger.info("start endpoint streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, endpointUrl, resolutionHeight, height);
+		logger.info("start endpoint streaming for stream id:{} to {} with requested", streamId, endpointUrl);
 
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{

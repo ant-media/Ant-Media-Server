@@ -52,13 +52,6 @@ public class Subscriber {
     private String streamId;  
 
     /**
-     * Stats for this subscriber. Get connection events directly instead of SubscriberStats
-     */
-    @Schema(description = "Stats for this subscriber")
-    @Deprecated (forRemoval = true, since = "2.12.0")
-    private SubscriberStats stats = new SubscriberStats();
-
-    /**
      * Secret code of the Subscriber
      */
 	@JsonProperty(access = Access.WRITE_ONLY)
@@ -73,10 +66,7 @@ public class Subscriber {
 
     /**
      * Is subscriber connected
-     * TODO: Write what the recommend way is to get this information? Let's write some comments when we deprecate something 
-     * @mekya
      */
-    @Deprecated(since = "2.4.3", forRemoval = true)
     @Schema(description = "Is subscriber connected")
     private boolean connected;
 
@@ -158,19 +148,6 @@ public class Subscriber {
 		this.b32Secret = b32Secret;
 	}
 
-	public SubscriberStats getStats() {
-		return stats;
-	}
-
-	@JsonIgnore
-	public void setStats(SubscriberStats stats) {
-		if(stats != null)  {
-			stats.setStreamId(streamId);
-			stats.setSubscriberId(subscriberId);
-		}
-		this.stats = stats;
-	}
-
 	// database key of a subscriber consists both the stream id and subscriber id
 	@JsonIgnore
 	public String getSubscriberKey() {
@@ -195,12 +172,10 @@ public class Subscriber {
 		}
 	}
 
-	@Deprecated(since="2.4.3", forRemoval=true)
 	public boolean isConnected() {
 		return connected;
 	}
 
-	@Deprecated(since="2.4.3", forRemoval=true)
 	public void setConnected(boolean connected) {
 		this.connected = connected;
 	}

@@ -32,10 +32,8 @@ import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberMetadata;
-import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -44,12 +42,10 @@ public class InMemoryDataStore extends DataStore {
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 	private Map<String, VoD> vodMap = new LinkedHashMap<>();
-	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
 	private Map<String, Queue<ConnectionEvent>> connectionEvents = new LinkedHashMap<>();
 	private Map<String, SubscriberMetadata> subscriberMetadataMap = new LinkedHashMap<>();
-	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
 
 	public InMemoryDataStore(String dbName) {
@@ -161,11 +157,6 @@ public class InMemoryDataStore extends DataStore {
 			}
 		}
 		return result;
-	}
-
-	@Override
-	public long getBroadcastCount() {
-		return broadcastMap.size();
 	}
 
 	@Override
@@ -420,14 +411,6 @@ public class InMemoryDataStore extends DataStore {
 		return broadcastMap.size();
 	}
 
-	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
-		if (detectedObjects != null) {
-			for (TensorFlowObject tensorFlowObject : detectedObjects) {
-				tensorFlowObject.setDetectionTime(timeElapsed);
-			}
-			detectionMap.put(id, detectedObjects);
-		}
-	}
 
 	@Override
 	public long getPartialBroadcastNumber(String search){
@@ -445,59 +428,6 @@ public class InMemoryDataStore extends DataStore {
 			vods = searchOnServerVod(vods, search);
 		}
 		return vods.size();
-	}
-
-	@Override
-	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
-		int offsetCount=0; 
-		int batchCount=0;
-		List<TensorFlowObject> list = new ArrayList<>();
-		Set<String> keySet = detectionMap.keySet();
-		if (batchSize > MAX_ITEM_IN_ONE_LIST) {
-			batchSize = MAX_ITEM_IN_ONE_LIST;
-		}
-		for(String keyValue: keySet) {
-			if (keyValue.startsWith(idFilter)) 
-			{
-				if (offsetCount < offsetSize) {
-					offsetCount++;
-					continue;
-				}
-				if (batchCount >= batchSize) {
-					break;
-				}
-				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
-				list.addAll(detectedList);
-				batchCount=list.size();
-			}
-		}
-		return list;
-	}
-
-	@Override
-
-	public long getObjectDetectedTotal(String id) {
-
-		List<TensorFlowObject> list = new ArrayList<>();
-		Set<String> keySet = detectionMap.keySet();
-
-		for(String keyValue: keySet) {
-			if (keyValue.startsWith(id)) 
-			{
-				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
-				list.addAll(detectedList);
-			}
-		}
-		return list.size();
-	}
-
-	@Override
-	public List<TensorFlowObject> getDetection(String id) {
-		if (id != null) {
-			List<TensorFlowObject> detectedObjects = detectionMap.get(id);
-			return detectedObjects;
-		}
-		return null;
 	}
 
 	@Override
@@ -978,44 +908,6 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean addSubTrack(String mainTrackId, String subTrackId) {
-		boolean result = false;
-		Broadcast mainTrack = broadcastMap.get(mainTrackId);
-		if (mainTrack != null && subTrackId != null) {
-			List<String> subTracks = mainTrack.getSubTrackStreamIds();
-
-			if (subTracks == null) {
-				subTracks = new ArrayList<>();
-			}
-
-			if (!subTracks.contains(subTrackId)) 
-			{
-				subTracks.add(subTrackId);
-				mainTrack.setSubTrackStreamIds(subTracks);
-				broadcastMap.put(mainTrackId, mainTrack);
-			}
-			result = true;
-
-		}
-		return result;
-	}
-
-	@Override
-	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
-		boolean result = false;
-		Broadcast mainTrack = broadcastMap.get(mainTrackId);
-		if (mainTrack != null && subTrackId != null) {
-			List<String> subTracks = mainTrack.getSubTrackStreamIds();
-			if(subTracks.remove(subTrackId)) {
-				mainTrack.setSubTrackStreamIds(subTracks);
-				broadcastMap.put(mainTrackId, mainTrack);
-				result = true;
-			}
-		}
-		return result;
-	}
-
-	@Override
 	public int resetBroadcasts(String hostAddress) {
 		Set<Entry<String,Broadcast>> entrySet = broadcastMap.entrySet();
 
@@ -1057,37 +949,6 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public void saveViewerInfo(WebRTCViewerInfo info) {
-		webRTCViewerMap.put(info.getViewerId(), info);
-	}
-
-	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
-			String search) {
-
-		Collection<WebRTCViewerInfo> values = webRTCViewerMap.values();
-
-		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
-
-
-		for (WebRTCViewerInfo info : values)
-		{
-			list.add(info);
-		}
-
-		if(search != null && !search.isEmpty()){
-			logger.info("server side search called for Conference Room = {}", search);
-			list = searchOnWebRTCViewerInfo(list, search);
-		}
-		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
-	}
-
-	@Override
-	public boolean deleteWebRTCViewerInfo(String viewerId) {
-		webRTCViewerMap.remove(viewerId);
-		return true;
-	}
-
-	@Override
 	public boolean updateStreamMetaData(String streamId, String metaData) {
 		Broadcast broadcast = broadcastMap.get(streamId);
 		boolean result = false;
@@ -1108,11 +969,6 @@ public class InMemoryDataStore extends DataStore {
 	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata subscriberMetadata) {
 		subscriberMetadata.setSubscriberId(subscriberId);
 		subscriberMetadataMap.put(subscriberId, subscriberMetadata);
-	}
-
-	@Override
-	public void migrateConferenceRoomsToBroadcasts() {
-		//no need to implement
 	}
 
 	@Override
@@ -1182,6 +1038,28 @@ public class InMemoryDataStore extends DataStore {
 					&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))) 
 			{
 				subtracks.add(broadcast);
+			}
+		}
+		return subtracks;
+	}
+
+	@Override
+	public List<Broadcast> getActiveSubtracks(String mainTrackId, int offset, int size, String role) {
+		List<Broadcast> subtracks = new ArrayList<>();
+		int counter = 0;
+		int itemCount = 0;
+		
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))) 
+			{
+				if (counter >= offset && itemCount < size) {
+					subtracks.add(broadcast);
+					itemCount++;
+				}
+				counter++;
 			}
 		}
 		return subtracks;
