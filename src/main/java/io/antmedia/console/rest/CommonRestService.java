@@ -1015,13 +1015,13 @@ public class CommonRestService {
 			sslConfigurator.setDomain(fqdn);
 			sslConfigurator.setType(sslConfigurationType);
 
-			String command = sslConfigurator.getCommand();
-			if (command != null) 
+			String[] commandArgs = sslConfigurator.getCommandArgs();
+			if (commandArgs != null)
 			{
 				AdminApplication adminApplication = getApplication();
 				if (adminApplication != null) 
 				{
-					result.setSuccess(adminApplication.runCommand(command));
+					result.setSuccess(adminApplication.runConfiguredCommand(AdminApplication.ENABLE_SSL_COMMAND, commandArgs));
 				}
 			}
 			else {
