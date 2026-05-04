@@ -1,5 +1,10 @@
 #!/bin/bash
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' 
+
 usage() {
   echo ""
   echo "This script change server mode to cluster or standalone"
@@ -22,44 +27,76 @@ usage() {
   echo "$0  standalone {DB_CONNECTION_URL}"
   echo ""
   echo ""
-  echo "Change server mode to standalone"
-  echo "$0  standalone"
-  echo ""
   echo "If you have any question, send e-mail to contact@antmedia.io"
+}
+
+validate_parameters() {
+  local mode=$1
+  local db_connection=$2
+  
+  if [[ "$mode" != "cluster" && "$mode" != "standalone" ]]; then
+    echo -e "${RED}ERROR: Invalid mode '$mode'. Only 'cluster' or 'standalone' are allowed.${NC}"
+    usage
+    exit 1
+  fi
+  
+  if [[ "$mode" == "cluster" && -z "$db_connection" ]]; then
+    echo -e "${RED}ERROR: Database connection URL is required for cluster mode.${NC}"
+    usage
+    exit 1
+  fi
+  
+  if [[ -n "$db_connection" ]]; then
+    if [[ ! "$db_connection" =~ ^(mongodb://|mongodb\+srv://|redis://) ]] \
+       && [[ "$db_connection" != "127.0.0.1" ]] \
+       && [[ "$db_connection" != "localhost" ]] \
+       && [[ ! -f "$db_connection" ]]; then
+      echo -e "${YELLOW}WARNING: DB connection doesn't start with mongodb://, mongodb+srv://, redis:// and is not a file.${NC}"
+      echo "Are you sure this is correct? (y/n)"
+      read -r confirmation
+      if [[ "$confirmation" != "y" && "$confirmation" != "Y" ]]; then
+        echo -e "${RED}Operation cancelled.${NC}"
+        exit 1
+      fi
+    fi
+  fi
 }
  
 BASEDIR=$(dirname "$0")
 cd $BASEDIR
 AMS_INSTALL_LOCATION=`pwd`
 
-
 source $AMS_INSTALL_LOCATION/conf/functions.sh
 
 USE_GLOBAL_IP="false"
 MODE=$1
+
 if [ -z "$MODE" ]; then
-  echo "No server mode specified. Missing parameter"
+  echo -e "${RED}ERROR: No server mode specified. Missing parameter${NC}"
   usage
   exit 1
 fi
+
+validate_parameters "$1" "$2"
 
 OS_NAME=`uname`
 if [ "$OS_NAME" = "Darwin" ]; then
     SED_COMPATIBILITY='.bak'
 fi
 
-change_server_mode $1 $2 $3 $4
+if ! change_server_mode $1 $2 $3 $4; then
+  echo -e "${RED}ERROR: Failed to change server mode.${NC}"
+  exit 1
+fi
 
 sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $AMS_INSTALL_LOCATION/conf/red5.properties 
 
 if [ "$OS_NAME" = "Darwin" ]; then
-  echo "You can re-start Ant Media Server on your Macos"
+  echo -e "${GREEN}You can re-start Ant Media Server on your Macos${NC}"
   exit 0
 fi
 
-
-
-echo "Ant Media Server is restarting in $MODE mode."
+echo -e "${GREEN}Ant Media Server is restarting in $MODE mode.${NC}"
 #service antmedia restart does not work if daemon is not running so that stop and start
 service antmedia stop
 service antmedia start

@@ -86,100 +86,6 @@ public class VoDRestServiceV2UnitTest {
 	}
 
 	@Test
-	public void synchUserVodList()  {
-
-		Result result = new Result(false);
-
-		String vodFolder = "vodFolder";
-		VoDRestService streamSourceRest = Mockito.spy(restServiceReal);
-		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
-		InMemoryDataStore store = new InMemoryDataStore("test");
-		AppSettings settings = mock(AppSettings.class);
-
-		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
-		Mockito.doReturn(settings).when(streamSourceRest).getAppSettings();
-
-
-		when(settings.getVodFolder()).thenReturn(vodFolder);
-		Mockito.doReturn(true).when(adaptor).synchUserVoDFolder(null, vodFolder);
-
-
-		result = streamSourceRest.synchUserVodList();
-
-		assertTrue(result.isSuccess());
-	}
-
-	/**
-	 * These tests should be run with stalker db
-	 */
-	@Test
-	public void testImportVoD2Stalker() {
-		AppSettings settings = mock(AppSettings.class);
-
-		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
-		when(settings.getStalkerDBUsername()).thenReturn("stalker");
-		when(settings.getStalkerDBPassword()).thenReturn("1");
-
-		String vodFolderPath = "webapps/junit/streams/vod_folder";
-
-		File vodFolder = new File(vodFolderPath);
-		vodFolder.mkdirs();
-		assertTrue(vodFolder.exists());
-
-		Scope scope = mock(Scope.class);
-		String scopeName = "scope";
-		when(scope.getName()).thenReturn(scopeName);
-
-		restServiceReal.setScope(scope);
-
-		restServiceReal.setAppSettings(settings);
-
-		ServerSettings serverSettings = mock(ServerSettings.class);
-		when(serverSettings.getServerName()).thenReturn("localhost");
-		restServiceReal.setServerSettings(serverSettings);
-
-		//Vod vod = new Vod();
-		File file = new File(vodFolder, "test_file");
-		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 0, 6000,
-				VoD.USER_VOD,vodId,null);
-		DataStore store = new InMemoryDataStore("testdb");
-		restServiceReal.setDataStore(store);
-
-		assertNotNull(store.addVod(newVod));
-
-		Process process = mock(Process.class);
-
-		try {
-			when(process.waitFor()).thenReturn(0);
-
-			ProcessBuilderFactory factory = new ProcessBuilderFactory() {
-				@Override
-				public Process make(String... args) {
-					return process;
-				}
-			};
-			restServiceReal.setProcessBuilderFactory(factory);
-
-			Result result = restServiceReal.importVoDsToStalker();
-
-			assertFalse(result.isSuccess());
-
-			when(settings.getVodFolder()).thenReturn(vodFolderPath);
-
-			result = restServiceReal.importVoDsToStalker();
-
-			assertTrue(result.isSuccess());
-
-		}  catch (InterruptedException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-	}
-
-	@Test
 	public void testDeleteVoD() {
 		InMemoryDataStore datastore = new InMemoryDataStore("datastore");
 		restServiceReal.setDataStore(datastore);
@@ -276,7 +182,7 @@ public class VoDRestServiceV2UnitTest {
 		assertNull(datastore.getVoD(vodId));
 
 
-		Result result = restServiceReal.deleteVoDs(new String[] {});
+		Result result = restServiceReal.deleteVoDsBulk("");
 		assertFalse(result.isSuccess());
 
 		result = restServiceReal.deleteVoDsBulk(null);
@@ -550,7 +456,7 @@ public class VoDRestServiceV2UnitTest {
 		MapDBStore mapDataStore = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
 		vodSorting(mapDataStore);
 
-		DataStore mongoDataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		DataStore mongoDataStore = new MongoStore("127.0.0.1", "testdb");
 		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
 
 		store.find(VoD.class).delete(new DeleteOptions().multi(true));

@@ -28,17 +28,14 @@ import com.google.gson.reflect.TypeToken;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
-import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberMetadata;
-import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -244,15 +241,6 @@ public abstract class MapBasedDataStore extends DataStore
 		return result;
 	}
 
-	/**
-	 * Use getTotalBroadcastNumber
-	 * @deprecated
-	 */
-	@Override
-	@Deprecated
-	public long getBroadcastCount() {
-		return super.getBroadcastCount(map);
-	}
 
 	@Override
 	public long getActiveBroadcastCount() {
@@ -544,45 +532,6 @@ public abstract class MapBasedDataStore extends DataStore
 	@Override
 	public long getPartialBroadcastNumber(String search) {
 		return getBroadcastListV2(null ,search).size();
-	}
-
-	@Override
-	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
-		long startTime = System.nanoTime();
-
-		synchronized (this) {
-			try {
-				if (detectedObjects != null) {
-					for (TensorFlowObject tensorFlowObject : detectedObjects) {
-						tensorFlowObject.setDetectionTime(timeElapsed);
-					}
-					detectionMap.put(id, gson.toJson(detectedObjects));
-
-				}
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects)");
-	}
-
-	@Override
-	public List<TensorFlowObject> getDetection(String id) {
-		
-		return super.getDetection(detectionMap, id, gson);
-	}
-
-	@Override
-	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
-		return super.getDetectionList(detectionMap, idFilter, offsetSize, batchSize, gson);
-	}
-
-	@Override
-	public long getObjectDetectedTotal(String id) {
-		return super.getObjectDetectedTotal(detectionMap, id, gson);
 	}
 
 
@@ -1290,101 +1239,8 @@ public abstract class MapBasedDataStore extends DataStore
 	}
 
 	@Override
-	public boolean addSubTrack(String mainTrackId, String subTrackId) {
-		long startTime = System.nanoTime();
-
-		boolean result = false;
-		synchronized (this) {
-			Broadcast broadcast = getBroadcastFromMap(mainTrackId);
-			if (broadcast != null && subTrackId != null) {
-				List<String> subTracks = broadcast.getSubTrackStreamIds();
-				if (subTracks == null) {
-					subTracks = new ArrayList<>();
-				}
-				if (!subTracks.contains(subTrackId)) {
-					subTracks.add(subTrackId);
-					broadcast.setSubTrackStreamIds(subTracks);
-					setBroadcastToMap(broadcast, mainTrackId);
-				}
-				result = true;
-			}
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, " addSubTrack(String mainTrackId, String subTrackId)");
-
-		return result;
-	}
-
-	@Override
-	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
-		long startTime = System.nanoTime();
-
-		boolean result = false;
-		synchronized (this) {
-			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
-			if (mainTrack != null && subTrackId != null) {
-				List<String> subTracks = mainTrack.getSubTrackStreamIds();
-				if(subTracks.remove(subTrackId)) {
-					mainTrack.setSubTrackStreamIds(subTracks);
-					setBroadcastToMap(mainTrack, mainTrackId);
-					result = true;
-				}
-			}
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "removeSubTrack(String mainTrackId, String subTrackId)");
-		return result;
-	}
-
-
-
-	@Override
 	public int getTotalWebRTCViewersCount() {
 		return super.getTotalWebRTCViewersCount(map, gson);
-	}
-
-	@Override
-	public void saveViewerInfo(WebRTCViewerInfo info) {
-		long startTime = System.nanoTime();
-
-		synchronized (this) {
-			if (info != null) {
-				try {
-					webRTCViewerMap.put(info.getViewerId(), gson.toJson(info));
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "saveViewerInfo(WebRTCViewerInfo info)");
-	}
-
-	@Override
-	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
-			String search) {
-		return super.getWebRTCViewerList(webRTCViewerMap, offset, size, sortBy, orderBy, search, gson);
-	}
-
-	@Override
-	public boolean deleteWebRTCViewerInfo(String viewerId) {
-		long startTime = System.nanoTime();
-		boolean result = false;
-		synchronized (this) {
-			result = webRTCViewerMap.remove(viewerId) != null;
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "deleteWebRTCViewerInfo(String viewerId)");
-		
-		return result;
 	}
 
 	@Override
@@ -1458,39 +1314,6 @@ public abstract class MapBasedDataStore extends DataStore
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getSubscriberMetaData(String subscriberId)");
 		return metadata;
-	}
-
-	public void migrateConferenceRoomsToBroadcasts() 
-	{
-		long startTime = System.nanoTime();
-
-		if (conferenceRoomMap.values() != null) {
-			List <String> roomIdList = new ArrayList<>(); 
-			for (String conferenceString : conferenceRoomMap.values()) 
-			{
-				ConferenceRoom room = gson.fromJson(conferenceString, ConferenceRoom.class);
-
-				try {
-					Broadcast broadcast = conferenceToBroadcast(room);
-					if (get(broadcast.getStreamId()) == null) 
-					{ 
-						//save it to broadcast map if it does not exist
-						save(broadcast);
-						roomIdList.add(room.getRoomId());
-					}
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-
-			for (String roomId : roomIdList) {
-				conferenceRoomMap.remove(roomId);
-			}
-		}
-		
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "migrateConferenceRoomsToBroadcasts");
 	}
 
 	public Map<String, String> getConferenceRoomMap() {
@@ -1606,6 +1429,39 @@ public abstract class MapBasedDataStore extends DataStore
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getActiveSubtracks(String mainTrackId, String role)");
+
+		return subtracks;
+	}
+
+	@Override
+	public List<Broadcast> getActiveSubtracks(String mainTrackId, int offset, int size, String role) {
+		long startTime = System.nanoTime();
+
+		List<Broadcast> subtracks = new ArrayList<>();
+		int counter = 0;
+		int itemCount = 0;
+		
+		synchronized (this) {
+			for (String broadcastString : map.values()) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if ( mainTrackId.equals(broadcast.getMainTrackStreamId())
+						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role)) 
+						&& (AntMediaApplicationAdapter.isStreaming(broadcast.getStatus()))
+						) 
+				{
+					if (counter >= offset && itemCount < size) {
+						subtracks.add(broadcast);
+						itemCount++;
+					}
+					counter++;
+				}
+			}
+		}
+		
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getActiveSubtracks(String mainTrackId, int offset, int size, String role)");
 
 		return subtracks;
 	}
