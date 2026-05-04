@@ -340,11 +340,13 @@ public class RTMPHandler extends BaseRTMPHandler {
 						channel.sendStatus(status);
 					}
 					break;
+				case FC_PUBLISH:
+				case FC_UNPUBLISH:
+				case FC_SUBSCRIBE:
+					invokeCall(conn, call);
+					break;
 				default:
 					log.info("Defaulting to invoke for: {}", action);
-					if(action.equals("FCPublish")) {
-						invokeCall(conn, call);
-					}
 				}
 			} else {
 				// handle service calls
