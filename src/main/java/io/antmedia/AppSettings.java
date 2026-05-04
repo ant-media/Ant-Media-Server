@@ -293,8 +293,8 @@ public class AppSettings implements Serializable{
 	 * remote endpoint may have long outages and the operator wants the source
 	 * to keep reconnecting until it comes back.
 	 */
-	@Value ( "${endpointRepublishLimit:20}" )
-	private int endpointRepublishLimit=20;
+	@Value ( "${endpointRepublishLimit:3}" )
+	private int endpointRepublishLimit=3;
 
 	/**
 	 * Duration of segments in mpd files,
