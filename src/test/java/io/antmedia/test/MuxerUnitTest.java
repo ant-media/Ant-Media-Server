@@ -6575,6 +6575,104 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
+	public void testShutdownWorkerQueueFullDrainsPacket() throws Exception {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12354?localaddr=127.0.0.1", vertx);
+
+		Field capacityField = EndpointMuxer.class.getDeclaredField("PACKET_QUEUE_CAPACITY");
+		capacityField.setAccessible(true);
+		int capacity = capacityField.getInt(null);
+
+		Field queueField = EndpointMuxer.class.getDeclaredField("packetQueue");
+		queueField.setAccessible(true);
+		@SuppressWarnings("unchecked")
+		java.util.concurrent.LinkedBlockingQueue<Object> queue =
+				(java.util.concurrent.LinkedBlockingQueue<Object>) queueField.get(muxer);
+
+		// Fill to capacity with real AVPackets so the head-drop branch runs and
+		// av_packet_free is exercised on the polled stale element.
+		for (int i = 0; i < capacity; i++) {
+			AVPacket p = av_packet_alloc();
+			assertTrue(queue.offer(p));
+		}
+		assertEquals(capacity, queue.size());
+
+		Field runningField = EndpointMuxer.class.getDeclaredField("isWorkerRunning");
+		runningField.setAccessible(true);
+		runningField.setBoolean(muxer, true);
+
+		// Null out workerThread so shutdownWorkerAndJoin's join branch is a no-op.
+		Field threadField = EndpointMuxer.class.getDeclaredField("workerThread");
+		threadField.setAccessible(true);
+		threadField.set(muxer, null);
+
+		java.lang.reflect.Method shutdown = EndpointMuxer.class.getDeclaredMethod("shutdownWorkerAndJoin");
+		shutdown.setAccessible(true);
+		shutdown.invoke(muxer);
+
+		// Outer offer failed, one stale AVPacket was polled+freed, retry offer succeeded.
+		assertEquals(capacity, queue.size());
+		Field poisonField = EndpointMuxer.class.getDeclaredField("POISON_PILL");
+		poisonField.setAccessible(true);
+		Object poison = poisonField.get(null);
+		assertTrue("POISON_PILL must have landed in the queue", queue.contains(poison));
+		assertFalse(runningField.getBoolean(muxer));
+	}
+
+	@Test
+	public void testSetUpEndPointsBranches() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		MuxAdaptor adaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
+
+		// null broadcast: outer guard returns immediately.
+		MuxAdaptor.setUpEndPoints(adaptor, null, vertx);
+		Mockito.verify(adaptor, never()).addMuxer(Mockito.any(EndpointMuxer.class));
+
+		// broadcast with null endpoint list: inner guard returns.
+		Broadcast broadcast = new Broadcast();
+		MuxAdaptor.setUpEndPoints(adaptor, broadcast, vertx);
+		Mockito.verify(adaptor, never()).addMuxer(Mockito.any(EndpointMuxer.class));
+
+		// empty endpoint list: also short-circuits.
+		broadcast.setEndPointList(new ArrayList<>());
+		MuxAdaptor.setUpEndPoints(adaptor, broadcast, vertx);
+		Mockito.verify(adaptor, never()).addMuxer(Mockito.any(EndpointMuxer.class));
+
+		// populated list: each endpoint becomes an EndpointMuxer wired to the adaptor.
+		Endpoint ep1 = new Endpoint();
+		ep1.setEndpointUrl("rtmp://example.test/live/a");
+		Endpoint ep2 = new Endpoint();
+		ep2.setEndpointUrl("rtmp://example.test/live/b");
+		broadcast.setEndPointList(Arrays.asList(ep1, ep2));
+
+		MuxAdaptor.setUpEndPoints(adaptor, broadcast, vertx);
+		Mockito.verify(adaptor, times(2)).addMuxer(Mockito.any(EndpointMuxer.class));
+	}
+
+	@Test
+	public void testMuxAdaptorSimpleAccessors() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		MuxAdaptor adaptor = MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope);
+
+		adaptor.setWebRTCEnabled(true);
+		assertTrue(adaptor.isWebRTCEnabled());
+		adaptor.setWebRTCEnabled(false);
+		assertFalse(adaptor.isWebRTCEnabled());
+
+		adaptor.setHLSFilesDeleteOnExit(true);
+		adaptor.setHLSFilesDeleteOnExit(false);
+
+		adaptor.setPreviewOverwrite(true);
+		assertTrue(adaptor.isPreviewOverwrite());
+		adaptor.setPreviewOverwrite(false);
+		assertFalse(adaptor.isPreviewOverwrite());
+	}
+
+	@Test
 	public void testGetOutputFormatCtx(){
 		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest2", vertx));
 		endpointMuxer.setFormat("testing");
