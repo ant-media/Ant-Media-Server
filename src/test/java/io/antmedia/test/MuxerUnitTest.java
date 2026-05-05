@@ -6473,6 +6473,107 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
+
+	@Test
+	public void testStartupGracePeriodDropsWrites() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		EndpointMuxer muxer = spy(new EndpointMuxer("udp://127.0.0.1:12351?localaddr=127.0.0.1", vertx));
+
+		AVPacket pkt = new AVPacket();
+		AVRational tb = new AVRational().num(1).den(1000);
+
+		// First inStartupGracePeriod() call seeds graceStartMs and must report true.
+		assertTrue(muxer.inStartupGracePeriod());
+
+		// writePacket short-circuits inside grace, never reaching writeFrameInternal.
+		muxer.writePacket(pkt, tb, tb, 1);
+		verify(muxer, times(0)).writeFrameInternal(any(), any(), any(), any(), anyInt());
+
+		// After STARTUP_GRACE_PERIOD_MS (1.5s) elapses, the predicate must flip.
+		Awaitility.await().atMost(3, TimeUnit.SECONDS).until(() -> !muxer.inStartupGracePeriod());
+		assertFalse(muxer.inStartupGracePeriod());
+	}
+
+	@Test
+	public void testSetStatusListenerNotifyAndDedup() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		IEndpointStatusListener listener = mock(IEndpointStatusListener.class);
+		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12352?localaddr=127.0.0.1", vertx);
+		muxer.setStatusListener(listener);
+
+		// Initial status is CREATED. Transition to "foo" must notify exactly once.
+		muxer.setStatus("foo");
+		// Repeating the same status must NOT notify (dedup branch).
+		muxer.setStatus("foo");
+		// New value notifies again.
+		muxer.setStatus("bar");
+
+		verify(listener, times(1)).endpointStatusUpdated("udp://127.0.0.1:12352?localaddr=127.0.0.1", "foo");
+		verify(listener, times(1)).endpointStatusUpdated("udp://127.0.0.1:12352?localaddr=127.0.0.1", "bar");
+		assertEquals("bar", muxer.getStatus());
+	}
+
+	@Test
+	public void testOpenIONoFileFormat() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		// rtsp muxer carries AVFMT_NOFILE — openIO must short-circuit return true
+		// before touching avio_open2 (which would fail on a bogus URL).
+		EndpointMuxer muxer = new EndpointMuxer("rtsp://127.0.0.1:5544/dummy", vertx);
+		muxer.setFormat("rtsp");
+
+		AVFormatContext ctx = muxer.getOutputFormatContext();
+		assertNotNull(ctx);
+		assertTrue("rtsp muxer is expected to have AVFMT_NOFILE",
+				(ctx.oformat().flags() & AVFMT_NOFILE) != 0);
+
+		assertTrue(muxer.openIO());
+	}
+
+	@Test
+	public void testEndpointAnalyticsDropAndBurst() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12353?localaddr=127.0.0.1", vertx);
+		EndpointMuxer.EndpointAnalytics analytics = muxer.getAnalytics();
+		assertNotNull(analytics);
+
+		// recordDrop: incrementing the counter and hitting the rate-limited log path.
+		for (int i = 0; i < 10; i++) {
+			analytics.recordDrop(50);
+		}
+
+		// recordWrite: feed a burst of fast back-to-back writes spanning > 500ms DTS.
+		// First call seeds lastWriteEndNanos; subsequent calls within BURST_GAP_NANOS
+		// (~2ms) of each other and crossing BURST_DTS_SPAN_THRESHOLD_MS (500ms) must
+		// drive burstCount past BURST_THRESHOLD (3) and fire the burst-flush warn.
+		long durNanos = 50_000L; // 50us per write — well under BURST_GAP_NANOS
+		long[] dtsValues = {0L, 200L, 400L, 600L, 800L, 1000L};
+		for (long dts : dtsValues) {
+			analytics.recordWrite(durNanos, dts, 10);
+		}
+
+		// Non-burst path: a long gap resets burstCount and exercises the else branch.
+		try { Thread.sleep(5); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+		analytics.recordWrite(durNanos, 1200L, 10);
+
+		// Spike-detection branch: a write much slower than the (now warmed) EWMA baseline.
+		// Push more writes to grow EWMA past 0, then a >5x outlier above the 100ms floor.
+		for (int i = 0; i < 50; i++) {
+			analytics.recordWrite(1_000_000L, 1300L + i, 10); // 1ms each
+		}
+		analytics.recordWrite(500_000_000L, 2000L, 10); // 500ms — should trip spike log
+
+		// AV_NOPTS_VALUE path: the early-skip branch in the DTS update.
+		analytics.recordWrite(durNanos, avutil.AV_NOPTS_VALUE, 10);
+	}
+
 	@Test
 	public void testGetOutputFormatCtx(){
 		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest2", vertx));

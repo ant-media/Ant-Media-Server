@@ -408,7 +408,16 @@ public class EndpointMuxer extends Muxer {
 		synchronized (this) {
 			if (isWorkerRunning) {
 				isWorkerRunning = false;
-				packetQueue.offer(POISON_PILL);
+				if (!packetQueue.offer(POISON_PILL)) {
+					// Queue full: free one slot so the wake-up sentinel lands.
+					Object stale = packetQueue.poll();
+					if (stale instanceof AVPacket) {
+						av_packet_free((AVPacket) stale);
+					}
+					if (!packetQueue.offer(POISON_PILL)) {
+						logger.debug("Could not enqueue poison pill for {}, relying on poll timeout", url);
+					}
+				}
 			}
 			t = workerThread;
 		}
@@ -696,12 +705,17 @@ public class EndpointMuxer extends Muxer {
 		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC);
 	}
 
+	/** Test hook: lets unit tests drive recordDrop/recordWrite directly. */
+	public EndpointAnalytics getAnalytics() {
+		return analytics;
+	}
+
 	/**
 	 * Per-endpoint analytics stuff
 	 * {@link #recordDrop} is producer-thread (atomic+volatile);
 	 * {@link #recordWrite} is worker-thread only (plain fields).
 	 */
-	private static class EndpointAnalytics {
+	public static class EndpointAnalytics {
 		private static final Logger logger = LoggerFactory.getLogger(EndpointMuxer.class);
 
 		// --- Drop counter (producer thread). ---
@@ -746,7 +760,7 @@ public class EndpointMuxer extends Muxer {
 		}
 
 		/** One warn per {@link #DROP_LOG_INTERVAL_MS} regardless of drop rate. */
-		void recordDrop(int queueDepth) {
+		public void recordDrop(int queueDepth) {
 			long count = dropCount.incrementAndGet();
 			long now = System.currentTimeMillis();
 			if (now - lastDropLogMs >= DROP_LOG_INTERVAL_MS) {
@@ -760,7 +774,7 @@ public class EndpointMuxer extends Muxer {
 		 * Records per-write timing, detects burst-flushes, and emits periodic stats.
 		 * Worker-thread only — fields are unsynchronized by design.
 		 */
-		void recordWrite(long durNanos, long pktDts, int queueDepth) {
+		public void recordWrite(long durNanos, long pktDts, int queueDepth) {
 			writeAccumNanos += durNanos;
 			if (durNanos > writeMaxNanos) {
 				writeMaxNanos = durNanos;
