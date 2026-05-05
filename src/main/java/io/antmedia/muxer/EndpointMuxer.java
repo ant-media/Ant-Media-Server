@@ -465,11 +465,7 @@ public class EndpointMuxer extends Muxer {
 	@Override
 	public synchronized void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType)
 	{
-		if (graceStartMs == 0L) {
-			graceStartMs = System.currentTimeMillis();
-			logger.info("Startup grace period ({} ms) started for {}", STARTUP_GRACE_PERIOD_MS, url);
-		}
-		if (System.currentTimeMillis() - graceStartMs < STARTUP_GRACE_PERIOD_MS) {
+		if (inStartupGracePeriod()) {
 			return;
 		}
 
@@ -482,8 +478,19 @@ public class EndpointMuxer extends Muxer {
 		writeFrameInternal(pkt, inputTimebase, outputTimebase, context, codecType);
 	}
 
+	/**
+	 * Extracted so unit tests can stub it or spy...
+	 */
+	public boolean inStartupGracePeriod() {
+		if (graceStartMs == 0L) {
+			graceStartMs = System.currentTimeMillis();
+			logger.info("Startup grace period ({} ms) started for {}", STARTUP_GRACE_PERIOD_MS, url);
+		}
+		return System.currentTimeMillis() - graceStartMs < STARTUP_GRACE_PERIOD_MS;
+	}
+
 	public synchronized void writeFrameInternal(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
-			AVFormatContext context, int codecType) 
+			AVFormatContext context, int codecType)
 	{
 		long pts = pkt.pts();
 		long dts = pkt.dts();

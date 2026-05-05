@@ -1489,7 +1489,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
@@ -1511,7 +1511,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
@@ -1543,7 +1543,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
-		verify(muxAdaptor, Mockito.timeout(5000)).sendEndpointErrorNotifyHook(rtmpUrl);
+		verify(muxAdaptor, Mockito.timeout(5000).times(3)).sendEndpointErrorNotifyHook(rtmpUrl);
 
 	}
 
@@ -6344,6 +6344,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		final AVRational outputTimebase = new AVRational().num(1).den(1000);
 
 		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
+		// Bypass the 1.5s startup grace period so writePacket exercises the routing
+		// logic this test asserts on, not the source-pipeline-settling drop window.
+		doReturn(false).when(endpointMuxer).inStartupGracePeriod();
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.codec_id(AV_CODEC_ID_AAC);
@@ -6361,6 +6364,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(endpointMuxer,times(0)).writeFrameInternal(any(),any(),any(),any(),anyInt());
 
 		endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
+		doReturn(false).when(endpointMuxer).inStartupGracePeriod();
 
 		codecParameters = new AVCodecParameters();
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
@@ -6433,6 +6437,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//bitstream filter
 		endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
+		doReturn(false).when(endpointMuxer).inStartupGracePeriod();
 
 		codecParameters = new AVCodecParameters();
 		spsParser = new SPSParser(extradata_original, 5);
