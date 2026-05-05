@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -666,7 +667,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testRunMuxerScript() throws IOException {
+	public void testRunConfiguredScript() throws Exception {
 		File f = new File ("src/test/resources/hello_script");
 		if (f.exists()) { // if it exists delete it due to cache
 			Files.delete(f.toPath());
@@ -674,7 +675,25 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertFalse(f.exists());
 
 		adapter.setVertx(vertx);
-		adapter.runScript("src/test/resources/echo.sh");
+		AppSettings appSettings = new AppSettings();
+		adapter.setAppSettings(appSettings);
+
+		Method runConfiguredScript = AntMediaApplicationAdapter.class.getDeclaredMethod("runConfiguredScript", String.class, String[].class);
+		runConfiguredScript.setAccessible(true);
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[0]);
+		assertFalse(f.exists());
+
+		appSettings.setMuxerFinishScript("src/test/resources");
+		runConfiguredScript.invoke(adapter, "src/test/resources", new String[0]);
+		assertFalse(f.exists());
+
+		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[] {"echo x"});
+		assertFalse(f.exists());
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[] {"&echo"});
+		assertFalse(f.exists());
+
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[0]);
 
 		await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
