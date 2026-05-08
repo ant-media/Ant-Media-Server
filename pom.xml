@@ -653,6 +653,16 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <artifactId>prometheus-metrics-instrumentation-jvm</artifactId>
             <version>1.5.0</version>
         </dependency>
+        <dependency>
+          <groupId>io.prometheus</groupId>
+          <artifactId>prometheus-metrics-exposition-formats</artifactId>
+          <version>1.5.0</version>
+        </dependency>
+        <dependency>
+          <groupId>io.prometheus</groupId>
+          <artifactId>prometheus-metrics-exposition-textformats</artifactId>
+          <version>1.5.0</version>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>
