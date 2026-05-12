@@ -1819,6 +1819,7 @@ public class AppSettings implements Serializable{
 			encoderJSON.put(EncoderSettings.VIDEO_BITRATE, encoderSettings.getVideoBitrate());
 			encoderJSON.put(EncoderSettings.AUDIO_BITRATE, encoderSettings.getAudioBitrate());
 			encoderJSON.put(EncoderSettings.FORCE_ENCODE, encoderSettings.isForceEncode());
+			encoderJSON.put(EncoderSettings.FORCE_SAME_RESOLUTION_ENCODE, encoderSettings.isForceSameResolutionEncode());
 			jsonArray.add(encoderJSON);
 		}
 		return jsonArray.toJSONString();
@@ -1833,6 +1834,8 @@ public class AppSettings implements Serializable{
 		int videoBitrate;
 		int audioBitrate;
 		boolean forceEncode;
+		boolean forceSameResolutionEncode;
+
 		List<EncoderSettings> encoderSettingsList = new ArrayList<>();
 
 		try {
@@ -1846,7 +1849,8 @@ public class AppSettings implements Serializable{
 				videoBitrate = Integer.parseInt(jsObject.get(EncoderSettings.VIDEO_BITRATE).toString());
 				audioBitrate = Integer.parseInt(jsObject.get(EncoderSettings.AUDIO_BITRATE).toString());
 				forceEncode = (boolean)jsObject.get(EncoderSettings.FORCE_ENCODE);
-				encoderSettingsList.add(new EncoderSettings(height,videoBitrate,audioBitrate,forceEncode));
+				forceSameResolutionEncode = (boolean)jsObject.get(EncoderSettings.FORCE_SAME_RESOLUTION_ENCODE);
+				encoderSettingsList.add(new EncoderSettings(height,videoBitrate,audioBitrate,forceEncode, forceSameResolutionEncode));
 			}
 		}
 		catch (ParseException e) {
