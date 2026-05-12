@@ -186,6 +186,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//Try with new format settings
 		String newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceEncode\":"+forceEncode2+",\"audioBitrate\":"+audioBitrate2+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceEncode\":"+forceEncode3+",\"audioBitrate\":"+audioBitrate3+",\"height\":"+height3+"}]";
+		String serializedEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceSameResolutionEncode\":false,\"forceEncode\":"+forceEncode1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceSameResolutionEncode\":false,\"forceEncode\":"+forceEncode2+",\"audioBitrate\":"+audioBitrate2+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceSameResolutionEncode\":false,\"forceEncode\":"+forceEncode3+",\"audioBitrate\":"+audioBitrate3+",\"height\":"+height3+"}]";
 
 		List<EncoderSettings> list = AppSettings.encodersStr2List(newFormatEncoderSettingString);
 
@@ -202,7 +203,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(300000, list.get(2).getVideoBitrate());
 		assertEquals(32000, list.get(2).getAudioBitrate());
 
-		assertEquals(newFormatEncoderSettingString, appSettings.encodersList2Str(list));
+		assertEquals(serializedEncoderSettingString, appSettings.encodersList2Str(list));
 
 		//Try with old format settings
 		String oldFormatEncoderSettingString = height1+"," + videoBitrate1 + "," + audioBitrate1
@@ -227,7 +228,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		list.get(0).setForceEncode(false);
 		list.get(1).setForceEncode(true);
 		list.get(2).setForceEncode(false);
-		assertEquals(newFormatEncoderSettingString, appSettings.encodersList2Str(list));
+		assertEquals(serializedEncoderSettingString, appSettings.encodersList2Str(list));
+
+		String newFormatEncoderSettingStringWithoutOptionalFlags =
+				"[{\"videoBitrate\":"+videoBitrate1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+"}]";
+		list = AppSettings.encodersStr2List(newFormatEncoderSettingStringWithoutOptionalFlags);
+		assertEquals(1, list.size());
+		assertEquals(480, list.get(0).getHeight());
+		assertEquals(500000, list.get(0).getVideoBitrate());
+		assertEquals(128000, list.get(0).getAudioBitrate());
+		assertTrue(list.get(0).isForceEncode());
+		assertFalse(list.get(0).isForceSameResolutionEncode());
 	}
 
 

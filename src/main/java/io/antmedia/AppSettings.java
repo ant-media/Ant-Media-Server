@@ -1848,8 +1848,8 @@ public class AppSettings implements Serializable{
 				height = Integer.parseInt(jsObject.get(EncoderSettings.RESOLUTION_HEIGHT).toString());
 				videoBitrate = Integer.parseInt(jsObject.get(EncoderSettings.VIDEO_BITRATE).toString());
 				audioBitrate = Integer.parseInt(jsObject.get(EncoderSettings.AUDIO_BITRATE).toString());
-				forceEncode = (boolean)jsObject.get(EncoderSettings.FORCE_ENCODE);
-				forceSameResolutionEncode = (boolean)jsObject.get(EncoderSettings.FORCE_SAME_RESOLUTION_ENCODE);
+				forceEncode = getBooleanValue(jsObject, EncoderSettings.FORCE_ENCODE, true);
+				forceSameResolutionEncode = getBooleanValue(jsObject, EncoderSettings.FORCE_SAME_RESOLUTION_ENCODE, false);
 				encoderSettingsList.add(new EncoderSettings(height,videoBitrate,audioBitrate,forceEncode, forceSameResolutionEncode));
 			}
 		}
@@ -1869,6 +1869,11 @@ public class AppSettings implements Serializable{
 			}
 		}
 		return encoderSettingsList;
+	}
+
+	private static boolean getBooleanValue(JSONObject jsObject, String key, boolean defaultValue) {
+		Object value = jsObject.get(key);
+		return value instanceof Boolean ? (Boolean) value : defaultValue;
 	}
 
 	public String getEncoderSettingsString() {
