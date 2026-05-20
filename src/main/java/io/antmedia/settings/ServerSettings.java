@@ -113,7 +113,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	private transient Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue<>();
 
 
-	private static Logger logger = LoggerFactory.getLogger(ServerSettings.class);
+	private static final Logger logger = LoggerFactory.getLogger(ServerSettings.class);
 
 	private static String localHostAddress;
 
@@ -407,7 +407,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 			}
 			long diff = System.currentTimeMillis() - startTime;
 			if (diff > 1000) {
-				logger.warn("Getting host adress took {}ms. it's cached now and will return immediately from now on. You can "
+				logger.warn("Getting host address took {}ms. it's cached now and will return immediately from now on. You can "
 						+ " alternatively set serverName in conf/red5.properties file ", diff);
 			}
 		}
@@ -449,10 +449,9 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 			}
 		}
 
-		if (applicationContext.containsBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())) 
-		{
+		if (applicationContext.containsBean(ILicenceService.BEAN_NAME)) {
 
-			ILicenceService licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+			ILicenceService licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BEAN_NAME);
 
 			if (ILicenceService.LICENCE_TYPE_MARKETPLACE.equals(licenseService.getLicenseType())) {
 				buildForMarket = true;

@@ -46,7 +46,7 @@ public class CommunityLicenseServiceTest {
 		//this should be always null, because community version does not check license status
 		assertNull(result);
 		
-		assertNotNull(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+		assertNotNull(ILicenceService.BEAN_NAME);
 	}
 
 	/**

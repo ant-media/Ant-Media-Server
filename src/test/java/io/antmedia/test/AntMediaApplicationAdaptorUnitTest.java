@@ -1875,7 +1875,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(context.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		when(licenseService.isLicenceSuspended()).thenReturn(false);
 
 		when(appContext.getBean(StatsCollector.BEAN_NAME)).thenReturn(statsCollector);
@@ -1949,7 +1949,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(context.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		when(licenseService.isLicenceSuspended()).thenReturn(false);
 
 		when(appContext.getBean(StatsCollector.BEAN_NAME)).thenReturn(statsCollector);

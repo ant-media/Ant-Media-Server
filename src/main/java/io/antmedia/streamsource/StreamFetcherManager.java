@@ -91,7 +91,7 @@ public class StreamFetcherManager {
 		this.scope=scope;
 		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 		this.serverSettings = (ServerSettings) scope.getContext().getBean(ServerSettings.BEAN_NAME);
-		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BEAN_NAME);
 		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
 	}
 
