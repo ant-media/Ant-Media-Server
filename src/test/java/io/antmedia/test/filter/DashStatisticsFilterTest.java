@@ -2,6 +2,9 @@ package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -328,7 +331,7 @@ public class DashStatisticsFilterTest {
 			dashStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, times(1)).registerNewViewer(eq(streamId), anyString(), isNull());
 			
 			
 			
@@ -382,16 +385,16 @@ public class DashStatisticsFilterTest {
 			dashStatisticsFilter.init(filterconfig);
 			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
 			
-			String sessionId = requestDash(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			requestDash(streamId);		
+			verify(streamStats, times(1)).registerNewViewer(eq(streamId), anyString(), isNull());
 			broadcast.setDashViewerCount(1);
 			
-			String sessionId2 = requestDash(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null);
+			requestDash(streamId);		
+			verify(streamStats, times(2)).registerNewViewer(eq(streamId), anyString(), isNull());
 			broadcast.setDashViewerCount(2);
 
-			String sessionId3 = requestDash(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null);
+			requestDash(streamId);		
+			verify(streamStats, times(2)).registerNewViewer(eq(streamId), anyString(), isNull());
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));

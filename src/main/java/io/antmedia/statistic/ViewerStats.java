@@ -21,6 +21,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.settings.ServerSettings;
+import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 
 public class ViewerStats {
@@ -28,6 +29,7 @@ public class ViewerStats {
 	protected static Logger logger = LoggerFactory.getLogger(ViewerStats.class);
 	
 	protected Vertx vertx;
+	private Context statsContext;
 	
 	public static final String HLS_TYPE = "hls";
 	public static final String DASH_TYPE = "dash";
@@ -70,7 +72,7 @@ public class ViewerStats {
 	public void registerNewViewer(String streamId, String sessionId, String subscriberId) 
 	{
 		//do not block the thread, run in vertx event queue 
-		vertx.runOnContext(h -> {
+		runOnStatsContext(h -> {
 			
 			synchronized (lock) {
 				//synchronize with database update calculations, because some odd cases may happen
@@ -135,7 +137,7 @@ public class ViewerStats {
 			
 		});
 		
-	}
+}
 	
 	public void resetViewerMap(String streamID, String type) {
 		
@@ -162,6 +164,22 @@ public class ViewerStats {
 		}
 	}
 	
+	public void removeViewerEntry(String streamId, String viewerKey) {
+		runOnStatsContext(h -> {
+			synchronized (lock) {
+				Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
+				if (viewerMap != null && viewerMap.remove(viewerKey) != null) {
+					logger.debug("Removed fingerprint entry {} for stream {}", viewerKey, streamId);
+					sessionId2subscriberId.remove(viewerKey);
+
+					int streamIncrementCounter = getIncreaseCounterMap(streamId);
+					streamIncrementCounter--;
+					increaseCounterMap.put(streamId, streamIncrementCounter);
+				}
+			}
+		});
+	}
+
 	public int getViewerCount(String streamId) {
 		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
 		int viewerCount = 0;
@@ -255,6 +273,17 @@ public class ViewerStats {
 	
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
+		this.statsContext = vertx.getOrCreateContext();
+	}
+
+	private void runOnStatsContext(io.vertx.core.Handler<Void> action) {
+		if (statsContext != null) {
+			statsContext.runOnContext(v -> action.handle(null));
+		}
+		else {
+			// Fallback for early startup calls before setVertx()
+			vertx.runOnContext(v -> action.handle(null));
+		}
 	}
 	
 	public void updateViewerCountProcess(String type) {
