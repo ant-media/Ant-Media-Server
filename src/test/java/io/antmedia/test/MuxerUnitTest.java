@@ -2673,7 +2673,42 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
+	@Test
+	public void testPacketReceivedDropsAudioWhenDisabled() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			assertTrue(appScope.getDepth() == 1);
+		}
 
+		AppSettings settings = getAppSettings();
+		boolean original = settings.isDisableAudio();
+		try {
+			settings.setDisableAudio(true);
+
+			ClientBroadcastStream clientBroadcastStream = Mockito.spy(new ClientBroadcastStream());
+			clientBroadcastStream.setConnection(Mockito.mock(IStreamCapableConnection.class));
+			clientBroadcastStream.setCodecInfo(new StreamCodecInfo());
+
+			MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope));
+			muxAdaptor.setScope(appScope);
+
+			ITag videoTag = new Tag((byte) Constants.TYPE_VIDEO_DATA, 0, 10, IoBuffer.allocate(10), BUFFER_SIZE);
+			muxAdaptor.packetReceived(clientBroadcastStream, new StreamPacket(videoTag));
+			assertEquals(1, muxAdaptor.getInputQueueSize());
+
+			ITag audioTag = new Tag((byte) Constants.TYPE_AUDIO_DATA, 0, 10, IoBuffer.allocate(10), BUFFER_SIZE);
+			muxAdaptor.packetReceived(clientBroadcastStream, new StreamPacket(audioTag));
+			assertEquals(1, muxAdaptor.getInputQueueSize());
+		} finally {
+			settings.setDisableAudio(original);
+		}
+	}
+
+	@Test
+	public void testGetAppSettingsReturnsNullWhenScopeIsNull() {
+		MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class, Mockito.CALLS_REAL_METHODS);
+		assertNull(muxAdaptor.getAppSettings());
+	}
 
 
 	@Test
