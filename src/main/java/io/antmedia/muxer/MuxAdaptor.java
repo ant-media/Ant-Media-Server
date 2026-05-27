@@ -1059,7 +1059,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public AppSettings getAppSettings() {
 
-		if (appSettings == null && scope.getContext().getApplicationContext().containsBean(AppSettings.BEAN_NAME)) {
+		if (appSettings == null && scope != null && scope.getContext().getApplicationContext().containsBean(AppSettings.BEAN_NAME)) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
