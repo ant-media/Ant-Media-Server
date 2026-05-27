@@ -1371,15 +1371,26 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					enableVideo = codecInfo.hasVideo();
 					enableAudio = codecInfo.hasAudio();
 
+					// audioDisabled: handle the stream as video-only. enableAudio is
+					// forced false so the whole pipeline (decoders, encoders, muxers)
+					// follows the standard video-only path
+					boolean audioDisabled = getAppSettings().isDisableAudio();
+					if (audioDisabled) {
+						enableAudio = false;
+					}
+
 					getVideoDataConf(codecInfo);
 					getAudioDataConf(codecInfo);
 
-					// Sometimes AAC Sequenece Header is received later 
+					// Sometimes AAC Sequenece Header is received later
 					// so that we check if we get the audio codec parameters correctly
 
-					if (enableVideo && enableAudio && getAudioCodecParameters() != null)
-					{
-						logger.info("Video and audio is enabled in stream:{} queue size: {}", streamId, queueSize.get());
+					boolean readyToPrepare = audioDisabled
+							? (enableVideo && getVideoCodecParameters() != null)
+							: (enableVideo && enableAudio && getAudioCodecParameters() != null);
+
+					if (readyToPrepare) {
+						logger.info("Stream is ready to prepare - stream:{} enableVideo:{} enableAudio:{} audioDisabled:{} queue size:{}", streamId, enableVideo, enableAudio, audioDisabled, queueSize.get());
 						prepareParameters();
 					}
 					else {
@@ -2078,8 +2089,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	@Override
-	public void packetReceived(IBroadcastStream stream, IStreamPacket packet) 
+	public void packetReceived(IBroadcastStream stream, IStreamPacket packet)
 	{
+		// audioDisabled: drop audio at ingest so packets are never queued
+		if (packet.getDataType() == Constants.TYPE_AUDIO_DATA && getAppSettings().isDisableAudio()) {
+			return;
+		}
 
 		lastFrameTimestamp = packet.getTimestamp();
 		if (firstReceivedFrameTimestamp  == -1) {
