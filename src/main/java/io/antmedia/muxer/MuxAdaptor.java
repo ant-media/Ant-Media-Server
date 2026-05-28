@@ -334,9 +334,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private boolean directMuxingSupported = true;
 
+
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
-
-
 		MuxAdaptor muxAdaptor = null;
 		ApplicationContext applicationContext = scope.getContext().getApplicationContext();
 		boolean tryEncoderAdaptor = false;

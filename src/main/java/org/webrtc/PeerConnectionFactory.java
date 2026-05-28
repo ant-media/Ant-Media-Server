@@ -296,15 +296,9 @@ public class PeerConnectionFactory {
    */
   public static void initialize(InitializationOptions options) {
     //ContextUtils.initialize(options.applicationContext);
-    logger.info("***************************** before NativeLibrary.initialize");
     NativeLibrary.initialize(options.nativeLibraryLoader, options.nativeLibraryName);
-    logger.info("after NativeLibrary.initialize");
-    logger.info("before nativeInitializeAndroidGlobals");
     nativeInitializeAndroidGlobals();
-    logger.info("after nativeInitializeAndroidGlobals");
-    logger.info("before nativeInitializeFieldTrials");
     nativeInitializeFieldTrials(options.fieldTrials);
-    logger.info("after nativeInitializeFieldTrials");
     if (options.enableInternalTracer && !internalTracerInitialized) {
       initializeInternalTracer();
     }
