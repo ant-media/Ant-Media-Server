@@ -195,7 +195,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
-                    <argLine>@{argLine} -Xmx3000M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
+                    <argLine>@{argLine} -Xmx3000M -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
                 	<skipAfterFailureCount>10</skipAfterFailureCount>
                 </configuration>
             </plugin>
