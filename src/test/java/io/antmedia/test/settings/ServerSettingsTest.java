@@ -2,12 +2,12 @@ package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Arrays;
@@ -36,6 +36,9 @@ import io.antmedia.settings.ServerSettings;
 @ContextConfiguration(locations = { "../test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
+
+	private static final String TEST_NONE_LOOPBACK_ADDRESS = "198.51.100.10";
+	private static final String TEST_PRIVATE_ADDRESS = "10.0.0.10";
 	
 	@Test
 	public void testNativeLogLevel() {
@@ -193,15 +196,48 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	@Test
-	public void testNoneLoopbackHostAddress() {
-		
-		String localHostAddress = ServerSettings.getLocalHostAddress();
-		assertNotNull(localHostAddress);
-		
-		//it should never return 127.0.0.1 address
-		assertNotEquals("127.0.0.1", localHostAddress);
-		assertNotEquals("127.0.1.1", localHostAddress);
+	public void testGetLocalHostAddressReturnsNoneLoopbackAddress() throws Exception {
+		Field localHostAddressField = ServerSettings.class.getDeclaredField("localHostAddress");
+		localHostAddressField.setAccessible(true);
+		Object originalLocalHostAddress = localHostAddressField.get(null);
+		localHostAddressField.set(null, null);
 
+		InetAddress noneLoopbackAddress = InetAddress.getByName(TEST_NONE_LOOPBACK_ADDRESS);
+
+		try (MockedStatic<ServerSettings> serverSettings = Mockito.mockStatic(ServerSettings.class, Mockito.CALLS_REAL_METHODS)) {
+			serverSettings.when(ServerSettings::getPrivateAddress).thenReturn(null);
+			serverSettings.when(ServerSettings::getNoneLoopbackHostAddress).thenReturn(noneLoopbackAddress);
+
+			assertEquals(TEST_NONE_LOOPBACK_ADDRESS, ServerSettings.getLocalHostAddress());
+
+			serverSettings.verify(ServerSettings::getPrivateAddress);
+			serverSettings.verify(ServerSettings::getNoneLoopbackHostAddress);
+		}
+		finally {
+			localHostAddressField.set(null, originalLocalHostAddress);
+		}
+	}
+
+	@Test
+	public void testGetLocalHostAddressReturnsPrivateAddress() throws Exception {
+		Field localHostAddressField = ServerSettings.class.getDeclaredField("localHostAddress");
+		localHostAddressField.setAccessible(true);
+		Object originalLocalHostAddress = localHostAddressField.get(null);
+		localHostAddressField.set(null, null);
+
+		InetAddress privateAddress = InetAddress.getByName(TEST_PRIVATE_ADDRESS);
+
+		try (MockedStatic<ServerSettings> serverSettings = Mockito.mockStatic(ServerSettings.class, Mockito.CALLS_REAL_METHODS)) {
+			serverSettings.when(ServerSettings::getPrivateAddress).thenReturn(privateAddress);
+
+			assertEquals(TEST_PRIVATE_ADDRESS, ServerSettings.getLocalHostAddress());
+
+			serverSettings.verify(ServerSettings::getPrivateAddress);
+			serverSettings.verify(ServerSettings::getNoneLoopbackHostAddress, Mockito.never());
+		}
+		finally {
+			localHostAddressField.set(null, originalLocalHostAddress);
+		}
 	}
 	
 	
