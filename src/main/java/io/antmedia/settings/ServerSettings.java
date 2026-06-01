@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.net.DatagramSocket;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -380,12 +381,46 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 
 	}
+	
+	public static InetAddress getPrivateAddress() {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface ni = interfaces.nextElement();
+
+                // skip down or loopback
+                if (!ni.isUp() || ni.isLoopback())
+                    continue;
+
+                Enumeration<InetAddress> addresses = ni.getInetAddresses();
+
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+
+                    if (addr.isLoopbackAddress() || !(addr instanceof Inet4Address))
+                        continue;
+
+                    if (addr.isSiteLocalAddress()) {
+                        return addr;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
 	public static String getLocalHostAddress() {
 
 		if (localHostAddress == null) {
 			long startTime = System.currentTimeMillis();
 			try {
+				InetAddress privateAddress = getPrivateAddress();
+				if(privateAddress != null) {
+					return privateAddress.getHostAddress();
+				}
 				/*
 				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
 				 * Let it is run once
