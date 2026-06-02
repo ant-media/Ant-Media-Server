@@ -3,7 +3,7 @@ package io.antmedia.licence;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.settings.ServerSettings;
 
-public class CommunityLicenceService implements ILicenceService{
+public class CommunityLicenceService implements ILicenceService {
 
     @Override
 	public void start() {
