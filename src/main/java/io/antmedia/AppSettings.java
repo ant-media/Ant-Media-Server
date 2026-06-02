@@ -1511,6 +1511,15 @@ public class AppSettings implements Serializable{
 	private boolean hwScalingEnabled = false;
 
 	/**
+	 * Enable hardware-accelerated video decoding (h264_cuvid on NVIDIA GPUs).
+	 * When disabled, the software decoder is used instead.
+	 * Disable this if you experience PTS or stuttering issues with h264_cuvid on certain GPU architectures (e.g. Blackwell RTX 5000 series).
+	 * Default value is true.
+	 */
+	@Value("${hwDecoderEnabled:true}")
+	private boolean hwDecoderEnabled = true;
+
+	/**
 	 * Firebase Service Account Key JSON to send push notification
 	 * through Firebase Cloud Messaging
 	 */
@@ -3011,6 +3020,14 @@ public class AppSettings implements Serializable{
 
 	public void setHwScalingEnabled(boolean hwScalingEnabled) {
 		this.hwScalingEnabled = hwScalingEnabled;
+	}
+
+	public boolean isHwDecoderEnabled() {
+		return hwDecoderEnabled;
+	}
+
+	public void setHwDecoderEnabled(boolean hwDecoderEnabled) {
+		this.hwDecoderEnabled = hwDecoderEnabled;
 	}
 
 	public String getFirebaseAccountKeyJSON() {
