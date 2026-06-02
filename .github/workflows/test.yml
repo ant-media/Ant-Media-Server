@@ -102,25 +102,28 @@ jobs:
           distribution: 'adopt' #openjdk
           java-version: '17'
           cache: 'maven'
-          
-      - name: Cache OWASP Dependency Check DB
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.m2/repository/org/owasp/dependency-check-data
-            ~/.dependency-check
-          key: dependency-check-${{ runner.os }}-v1
-          restore-keys: |
-            dependency-check-${{ runner.os }}-
-            dependency-check-
         
       - name: Build projects
         uses: ./.github/actions/build-projects 
         with:
           branch_name: ${{ github.ref_name }}
            
+      - name: Cache OWASP Dependency Check DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check
+          key: dependency-check-${{ runner.os }}-v1
+          restore-keys: |
+            dependency-check-${{ runner.os }}-
+      
       - name: Check vulnerabilities
-        run: mvn org.owasp:dependency-check-maven:check -DnvdValidForHours=24 -DfailOnError=true -DnvdApiKey=${{ secrets.NVD_API_KEY }}
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mvn dependency-check:check \
+            -DnvdApiKey=$NVD_API_KEY \
+            -DnvdValidForHours=24 \
+            -DfailOnError=true
 
 
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
