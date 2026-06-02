@@ -29,7 +29,7 @@ jobs:
       - name: Restore OWASP Dependency DB Cache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.dependency-check
+          path: ~/.dependency-check-data
           key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
           restore-keys: |
             owasp-dependency-check-db-${{ runner.os }}-
@@ -39,15 +39,16 @@ jobs:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn org.owasp:dependency-check-maven:update-only \
-            -DnvdApiKey=$NVD_API_KEY
+            -DnvdApiKey=$NVD_API_KEY \
+            -DdataDirectory=$HOME/.dependency-check-data
 
       - name: Verify cache
         run: |
-          ls -lah ~/.dependency-check
-          du -sh ~/.dependency-check
+          ls -lah $HOME/.dependency-check-data
+          du -sh $HOME/.dependency-check-data
 
       - name: Save OWASP Dependency DB Cache
         uses: actions/cache/save@v4
         with:
-          path: ~/.dependency-check
+          path: ~/.dependency-check-data
           key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
