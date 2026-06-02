@@ -86,7 +86,11 @@ public interface IAntMediaStreamHandler {
     /***
      * Checks a Stream parameters is valid.
      *
-     * @param inputFormatContext, pkt, streamId
+     * @param width
+     * @param height
+     * @param fps
+     * @param bitrate
+     * @param streamId
      */
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId);
 	
@@ -250,8 +254,15 @@ public interface IAntMediaStreamHandler {
 	/**
 	 * Notify the webhook about the stream status
 	 * 
-	 * @param streamName
-	 * @param absoluteStartTimeMs
+     * @param broadcast
+     * @param width
+     * @param height
+     * @param totalByteReceived
+     * @param inputQueueSize
+     * @param encodingQueueSize
+     * @param dropFrameCountInEncoding
+     * @param dropPacketCountInIngestion
+     * @param speed
 	 */
 	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
 			int inputQueueSize, int encodingQueueSize, int dropFrameCountInEncoding, int dropPacketCountInIngestion, double speed);

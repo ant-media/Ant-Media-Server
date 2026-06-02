@@ -46,7 +46,7 @@ public interface IMessageOutput {
      *            Provider
      * @param paramMap
      *            Parameters passed with connection
-     * @return <tt>true</tt> when successfully subscribed, <tt>false</tt> otherwise.
+     * @return {@code true} when successfully subscribed, {@code false} otherwise.
      */
     boolean subscribe(IProvider provider, Map<String, Object> paramMap);
 
@@ -55,7 +55,7 @@ public interface IMessageOutput {
      * 
      * @param provider
      *            Provider
-     * @return <tt>true</tt> when successfully unsubscribed, <tt>false</tt> otherwise.
+     * @return {@code true} when successfully unsubscribed, {@code false} otherwise.
      */
     boolean unsubscribe(IProvider provider);
 

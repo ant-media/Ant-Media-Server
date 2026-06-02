@@ -252,7 +252,9 @@ public class RestProxyFilter extends AbstractFilter {
 	/**
 	 * This method checks if there is a token in the header for internal node communication and if it exists, checks its validity
 	 * 
-	 * @param httpRequest
+	 * @param jwtInternalCommunicationToken
+	 * @param jwtSecretKey
+	 * @param requestURI
 	 * @return true if there is a token and it's valid. Otherwise it returns false.
 	 * 
 	 */

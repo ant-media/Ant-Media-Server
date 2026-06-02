@@ -981,10 +981,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	/**
 	 * @param streamId        id of the stream
-	 * @param quality,        quality string
-	 * @param packetTime,     time of the packet in milliseconds
-	 * @param duration,       the total elapsed time in milliseconds
-	 * @param inputQueueSize, input queue size of the packets that is waiting to be processed
+	 * @param speed           stream speed
 	 */
 	public void updateStreamQualityParameters(String streamId, double speed) {
 		long now = System.currentTimeMillis();
@@ -1323,7 +1320,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * Check if max analyze time has been passed. 
 	 * If it initializes the prepare then isRecording is set to true in prepareParameters
 	 * 
-	 * @return
 	 */
 	public void checkMaxAnalyzeTotalTime() {
 		long totalTime = System.currentTimeMillis() - checkStreamsStartTime;
@@ -2962,5 +2958,4 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 }
-
 
