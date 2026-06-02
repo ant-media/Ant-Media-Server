@@ -107,14 +107,18 @@ jobs:
         uses: ./.github/actions/build-projects 
         with:
           branch_name: ${{ github.ref_name }}
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
            
-      - name: Cache OWASP Dependency Check DB
-        uses: actions/cache@v4
+      - name: Restore OWASP Dependency Check DB
+        uses: actions/cache/restore@v4
         with:
           path: ~/.dependency-check
-          key: dependency-check-${{ runner.os }}-v1
+          key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
           restore-keys: |
-            dependency-check-${{ runner.os }}-
+            owasp-dependency-check-db-${{ runner.os }}-
       
       - name: Check vulnerabilities
         env:

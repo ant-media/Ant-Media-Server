@@ -3,10 +3,6 @@ name: Update OWASP Dependency DB
 on:
   workflow_dispatch:
 
-  #pull_request:
-  #  branches:
-  #    - '**'
-
   schedule:
     - cron: '0 2 * * *'
 
@@ -23,23 +19,32 @@ jobs:
           java-version: '17'
           cache: maven
 
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
       - name: Restore OWASP Dependency DB Cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: dependency-check-data
-          key: dependency-check-${{ runner.os }}-v1
+          path: ~/.dependency-check
+          key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
           restore-keys: |
-            dependency-check-${{ runner.os }}-
-      
+            owasp-dependency-check-db-${{ runner.os }}-
+
       - name: Update OWASP Dependency DB
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn org.owasp:dependency-check-maven:update-only \
-            -DnvdApiKey=$NVD_API_KEY \
-            -DdataDirectory=dependency-check-data
-      
+            -DnvdApiKey=$NVD_API_KEY
+
       - name: Verify cache
         run: |
-          ls -lah dependency-check-data
-          du -sh dependency-check-data
+          ls -lah ~/.dependency-check
+          du -sh ~/.dependency-check
+
+      - name: Save OWASP Dependency DB Cache
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.dependency-check
+          key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
