@@ -3,9 +3,9 @@ name: Update OWASP Dependency DB
 on:
   workflow_dispatch:
 
-  pull_request:
-    branches:
-      - '**'
+ # pull_request:
+ #   branches:
+ #     - '**'
 
   schedule:
     - cron: '0 2 * * *'
