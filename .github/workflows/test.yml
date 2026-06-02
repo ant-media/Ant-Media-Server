@@ -108,9 +108,27 @@ jobs:
         with:
           branch_name: ${{ github.ref_name }}
            
-      - name: Check vulnerabilities
-        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+            
+      - name: Restore OWASP Dependency Check DB
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.dependency-check-data
+          key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
+          restore-keys: |
+            owasp-dependency-check-db-${{ runner.os }}-
 
+      - name: Check vulnerabilities
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mvn org.owasp:dependency-check-maven:check \
+            -Dnoupdate=true \
+            -DnvdApiKey=$NVD_API_KEY \
+            -DdataDirectory=$HOME/.dependency-check-data \
+            -DfailOnError=true
 
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
