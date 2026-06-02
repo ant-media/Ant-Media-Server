@@ -120,9 +120,9 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
-          mvn dependency-check:check \
+          mvn org.owasp:dependency-check-maven:check \
+            -Dnoupdate=true \
             -DnvdApiKey=$NVD_API_KEY \
-            -DnvdValidForHours=24 \
             -DfailOnError=true
 
 
