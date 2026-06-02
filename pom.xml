@@ -222,7 +222,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <plugin>
               <groupId>org.owasp</groupId>
               <artifactId>dependency-check-maven</artifactId>
-              <version>12.1.0</version>
+              <version>12.2.2</version>
 			  <configuration>
 				 <failBuildOnCVSS>7</failBuildOnCVSS>
 				 <suppressionFile>owasp-suppressions.xml</suppressionFile>
