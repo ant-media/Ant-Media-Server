@@ -115,7 +115,7 @@ jobs:
       - name: Restore OWASP Dependency Check DB
         uses: actions/cache/restore@v4
         with:
-          path: ~/.dependency-check
+          path: ~/.dependency-check-data
           key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
           restore-keys: |
             owasp-dependency-check-db-${{ runner.os }}-
@@ -127,6 +127,7 @@ jobs:
           mvn org.owasp:dependency-check-maven:check \
             -Dnoupdate=true \
             -DnvdApiKey=$NVD_API_KEY \
+            -DdataDirectory=$HOME/.dependency-check-data \
             -DfailOnError=true
 
 
