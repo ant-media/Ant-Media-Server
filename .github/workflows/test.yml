@@ -109,7 +109,7 @@ jobs:
           branch_name: ${{ github.ref_name }}
            
       - name: Check vulnerabilities
-        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false
+        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false -DnvdApiKey=${{ secrets.NVD_API_KEY }}
 
 
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
