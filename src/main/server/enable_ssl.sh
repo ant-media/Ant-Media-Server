@@ -561,6 +561,7 @@ output
 
 # Install systemd timer for SSL expiry check (run once so installation steps are complete)
 if [ -f "$INSTALL_DIRECTORY/conf/ssl_renewal_check.sh" ]; then
+    $SUDO chmod +x "$INSTALL_DIRECTORY/conf/ssl_renewal_check.sh"
     $SUDO "$INSTALL_DIRECTORY/conf/ssl_renewal_check.sh" || true
 fi
 

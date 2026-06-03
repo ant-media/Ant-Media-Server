@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -268,6 +269,12 @@ public class DBStoresUnitTest {
 
 
 	@Test
+	public void testMongoCacheRaceCondition() throws Exception {
+		testViewerCountUpdateOverwritesCacheUpdateTime();
+		testViewerCountUpdateOverwritesCacheStatus();
+	}
+
+	@Test
 	public void testMongoStore() throws Exception {
 
 		DataStore dataStore = new MongoStore("127.0.0.1", "testdb");
@@ -337,7 +344,7 @@ public class DBStoresUnitTest {
 		testGetSubtracksWithStatus(dataStore);
 
 		testSubscriberCache(dataStore);
-		
+
 		testGetSubtracksWithOrdering(dataStore);
 		testGetSubtracksWithSearch(dataStore);
 		testGetActiveSubtracksComprehensive(dataStore);
@@ -4094,6 +4101,212 @@ public class DBStoresUnitTest {
 	}
 	
 	
+	/**
+	 * Reproduces the bug where updateWebRTCViewerCount keeps the cached Broadcast alive
+	 * with a stale updateTime on a separate node, even though another node has updated
+	 * updateTime in Mongo.
+	 *
+	 * Two MongoStore instances simulate two cluster nodes sharing the same Mongo DB,
+	 * each with its own Caffeine cache.
+	 *
+	 * Scenario:
+	 * 1. Node1 saves a broadcast with an old updateTime
+	 * 2. Node2 populates its cache by reading
+	 * 3. A background thread on Node2 calls updateWebRTCViewerCount every second,
+	 *    continuously resetting the cache TTL (expireAfterWrite)
+	 * 4. Node1 calls updateBroadcastFields with a fresh updateTime — updates Mongo AND Node1's cache
+	 * 5. Wait longer than BROADCAST_CACHE_EXPIRE_SECONDS — Node2's cache should have expired
+	 *    but viewer updates keep it alive
+	 * 6. Node2.get() returns the stale cached updateTime instead of the fresh one from Mongo
+	 */
+	public void testViewerCountUpdateOverwritesCacheUpdateTime() throws InterruptedException {
+		MongoStore mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		mongoStore1.close(true);
+		mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		AppSettings appSettings1 = new AppSettings();
+		mongoStore1.setAppSettings(appSettings1);
+
+		// Second MongoStore instance pointing to the same MongoDB — simulates a second cluster node
+		MongoStore mongoStore2 = new MongoStore("127.0.0.1", "testdb");
+		AppSettings appSettings2 = new AppSettings();
+		mongoStore2.setAppSettings(appSettings2);
+
+		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+
+		// Step 1: Save a broadcast with a stale updateTime via mongoStore1
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		long staleUpdateTime = System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 10000;
+		broadcast.setUpdateTime(staleUpdateTime);
+
+		mongoStore1.save(broadcast);
+
+		// Step 2: Populate mongoStore2's cache by calling get
+		Broadcast fromStore2 = mongoStore2.get(streamId);
+		assertNotNull(fromStore2);
+		assertEquals(staleUpdateTime, fromStore2.getUpdateTime());
+
+		// Step 3: Start a thread that calls updateWebRTCViewerCount on mongoStore2 every second.
+		// This keeps mongoStore2's cache alive by resetting the expireAfterWrite TTL.
+		final MongoStore finalMongoStore2 = mongoStore2;
+		AtomicBoolean keepRunning = new AtomicBoolean(true);
+		Thread viewerUpdateThread = new Thread(() -> {
+			while (keepRunning.get()) {
+				finalMongoStore2.updateWebRTCViewerCount(streamId, true);
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		});
+		viewerUpdateThread.start();
+
+		// Wait a moment to let a few viewer updates go through
+		Thread.sleep(2000);
+
+		// Step 4: Publisher on mongoStore1 updates updateTime with a fresh value
+		// (simulating setQualityParameters via updateBroadcastFields).
+		// This updates mongoStore1's cache and MongoDB, but mongoStore2's cache
+		// still holds the old updateTime because viewer updates keep refreshing it.
+		long freshUpdateTime = System.currentTimeMillis();
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setUpdateTime(freshUpdateTime);
+		assertTrue(mongoStore1.updateBroadcastFields(streamId, broadcastUpdate));
+
+		// Verify mongoStore1 sees the updated updateTime
+		assertEquals(freshUpdateTime, mongoStore1.get(streamId).getUpdateTime());
+
+		// Step 5: Wait longer than BROADCAST_CACHE_EXPIRE_SECONDS so the cache
+		// should have expired — but viewer updates on mongoStore2 keep it alive.
+		Thread.sleep(5000);
+
+		// Stop the viewer update thread
+		keepRunning.set(false);
+		viewerUpdateThread.join(3000);
+
+		// Step 6: Get the broadcast from mongoStore2.
+		// Since the cache never expired (viewer updates kept resetting the TTL),
+		// mongoStore2.get() returns the stale cached object with the old updateTime
+		// instead of querying MongoDB for the real fresh updateTime.
+		Broadcast broadcastFromStore2 = mongoStore2.get(streamId);
+
+		// THIS ASSERTION WILL FAIL — proving the bug.
+		// Expected: freshUpdateTime (the real value in MongoDB, set by mongoStore1)
+		// Actual: staleUpdateTime (from mongoStore2's never-expiring cache)
+		assertEquals("mongoStore2's cache should reflect the fresh updateTime from MongoDB, " +
+				"but viewer updates kept the stale value alive",
+				freshUpdateTime, broadcastFromStore2.getUpdateTime());
+
+		// Cleanup
+		mongoStore1.delete(streamId);
+		mongoStore1.close(false);
+		mongoStore2.close(false);
+	}
+
+	/**
+	 * Reproduces the RTSP restart bug using the same two-instance approach.
+	 *
+	 * Scenario: mongoStore1 marks the stream as FINISHED in Mongo, but mongoStore2's
+	 * cache still has BROADCASTING because viewer updates keep refreshing the TTL.
+	 * When the dashboard on mongoStore2 checks isStreamRunning(), it sees "broadcasting"
+	 * from stale cache and returns "Stream is already active".
+	 *
+	 * 1. Node1 saves a broadcasting stream
+	 * 2. Node2 populates its cache by reading
+	 * 3. Background thread on Node2 calls updateWebRTCViewerCount every second (keeps TTL alive)
+	 * 4. Node1 calls updateStatus(FINISHED) — updates Mongo and Node1's cache
+	 * 5. Wait > BROADCAST_CACHE_EXPIRE_SECONDS — Node2's cache would normally expire
+	 * 6. Node2.get().getStatus() returns stale BROADCASTING instead of FINISHED from Mongo
+	 */
+	public void testViewerCountUpdateOverwritesCacheStatus() throws InterruptedException {
+		MongoStore mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		mongoStore1.close(true);
+		mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		AppSettings appSettings1 = new AppSettings();
+		mongoStore1.setAppSettings(appSettings1);
+
+		// Second MongoStore instance pointing to the same MongoDB — simulates a second cluster node
+		MongoStore mongoStore2 = new MongoStore("127.0.0.1", "testdb");
+		AppSettings appSettings2 = new AppSettings();
+		mongoStore2.setAppSettings(appSettings2);
+
+		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+
+		// Step 1: Save a broadcasting stream via mongoStore1
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast.setUpdateTime(System.currentTimeMillis());
+
+		mongoStore1.save(broadcast);
+
+		// Step 2: Populate mongoStore2's cache
+		Broadcast fromStore2 = mongoStore2.get(streamId);
+		assertNotNull(fromStore2);
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, fromStore2.getStatus());
+
+		// Step 3: Start a thread that calls updateWebRTCViewerCount on mongoStore2 every second
+		// to keep the cache TTL alive.
+		final MongoStore finalMongoStore2 = mongoStore2;
+		AtomicBoolean keepRunning = new AtomicBoolean(true);
+		Thread viewerUpdateThread = new Thread(() -> {
+			while (keepRunning.get()) {
+				finalMongoStore2.updateWebRTCViewerCount(streamId, true);
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		});
+		viewerUpdateThread.start();
+
+		Thread.sleep(2000);
+
+		// Step 4: Stream stops — mongoStore1 sets status to FINISHED in Mongo and its own cache
+		assertTrue(mongoStore1.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+
+		// Verify mongoStore1 sees FINISHED
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, mongoStore1.get(streamId).getStatus());
+
+		// Step 5: Wait longer than BROADCAST_CACHE_EXPIRE_SECONDS so the cache
+		// should have expired — but viewer updates on mongoStore2 keep it alive.
+		Thread.sleep(5000);
+
+		keepRunning.set(false);
+		viewerUpdateThread.join(3000);
+
+		// Step 6: Get the broadcast from mongoStore2.
+		// Cache is still populated with stale BROADCASTING status.
+		// This is exactly what the dashboard sees when trying to restart the RTSP source —
+		// "Stream is already active".
+		Broadcast broadcastFromStore2 = mongoStore2.get(streamId);
+
+		// THIS ASSERTION WILL FAIL — proving the bug.
+		// Expected: FINISHED (real value in MongoDB, set by mongoStore1)
+		// Actual: BROADCASTING (from mongoStore2's never-expiring cache)
+		assertEquals("mongoStore2 should see FINISHED status from MongoDB, " +
+				"but viewer updates kept the stale BROADCASTING status alive in cache",
+				AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastFromStore2.getStatus());
+
+		// Cleanup
+		mongoStore1.delete(streamId);
+		mongoStore1.close(false);
+		mongoStore2.close(false);
+	}
+
 	public void testConnectedSubscribers(DataStore dataStore) {
 		String streamId = "stream"+RandomStringUtils.randomNumeric(6);
 		
@@ -4172,5 +4385,6 @@ public class DBStoresUnitTest {
 		assertNotNull(retrievedSubscriber2);
 		assertNull(retrievedSubscriber2.getTotpExpiryPeriodSeconds());
 	}
+
 
 }

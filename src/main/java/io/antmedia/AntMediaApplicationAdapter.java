@@ -730,6 +730,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	}
 
+	public void notifyLiveStreamEnded(Broadcast broadcast,String subscriberId){
+							final String listenerHookURL = getListenerHookURL(broadcast);
+							if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
+									final String name = broadcast.getName();
+									final String category = broadcast.getCategory();
+									final String metaData = broadcast.getMetaData();
+									final String mainTrackId = broadcast.getMainTrackStreamId();
+									String streamId = broadcast.getStreamId();
+									logger.info("call live stream ended hook for stream:{}",streamId );
+									notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category,null, null, metaData, subscriberId, null);
+							}
+	}
+
+
 	/**
 	 * This method is used to close the broadcast stream
 	 * 
@@ -818,7 +832,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String streamEndedScript = appSettings.getStreamEndedScript();
 		if (StringUtils.isNotBlank(streamEndedScript)) 
 		{
-			runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
+			runConfiguredScript(streamEndedScript, broadcast.getStreamId(), getScope().getName());
 		}
 	}
 
@@ -1028,7 +1042,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				String streamStartedScript = appSettings.getStreamStartedScript();
 				if (StringUtils.isNotBlank(streamStartedScript)) 
 				{
-					runScript(streamStartedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
+					runConfiguredScript(streamStartedScript, broadcast.getStreamId(), getScope().getName());
 				}
 
 
@@ -1265,7 +1279,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
 		if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {
-			runScript(muxerFinishScript + "  " + file.getAbsolutePath() + "  " + getScope().getName());
+			runConfiguredScript(muxerFinishScript, file.getAbsolutePath(), getScope().getName());
 		}
 
 
@@ -1299,11 +1313,40 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		notifyPublishStopped(mainTrack.getStreamId(), null, mainTrack.getStreamId());
 
 	}
-	public void runScript(String scriptFile) {
+	private void runConfiguredScript(String configuredScript, String... args) {
+		boolean isConfiguredScript = appSettings != null && StringUtils.isNotBlank(configuredScript) &&
+				(Strings.CS.equals(configuredScript, appSettings.getStreamStartedScript()) ||
+				Strings.CS.equals(configuredScript, appSettings.getStreamEndedScript()) ||
+				Strings.CS.equals(configuredScript, appSettings.getMuxerFinishScript()) ||
+				Strings.CS.equals(configuredScript, appSettings.getStreamIdleTimeoutScript()));
+
+		if (!isConfiguredScript) {
+			logger.warn("Discarding script because it is not configured in app settings: {}", configuredScript);
+			return;
+		}
+
+		File scriptFile = new File(configuredScript);
+		if (!scriptFile.isFile()) {
+			logger.warn("Discarding script because it is not a file: {}", configuredScript);
+			return;
+		}
+
+		List<String> command = new ArrayList<>();
+		command.add(configuredScript);
+		if (args != null) {
+			for (String arg : args) {
+				String scriptArgument = String.valueOf(arg);
+				if (scriptArgument.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) {
+					logger.warn("Discarding script because an argument includes special characters. Argument:{} and script:{}", scriptArgument, configuredScript);
+					return;
+				}
+				command.add(scriptArgument);
+			}
+		}
 		vertx.executeBlocking(() -> {
 			try {
-				logger.info("running script: {}", scriptFile);
-				Process exec = Runtime.getRuntime().exec(scriptFile);
+				logger.info("running script: {}", command);
+				Process exec = new ProcessBuilder(command).start();
 				
 				InputStream errorStream = exec.getErrorStream();
 	            byte[] data = new byte[1024];
@@ -1322,7 +1365,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	            
 				int result = exec.waitFor();
 
-				logger.info("completing script: {} with return value {}", scriptFile, result);
+				logger.info("completing script: {} with return value {}", command, result);
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			} catch (InterruptedException e) {
@@ -1896,7 +1939,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		
 		String streamIdleTimeoutScript = getAppSettings().getStreamIdleTimeoutScript();
 		if (StringUtils.isNotBlank(streamIdleTimeoutScript)) {
-			runScript(streamIdleTimeoutScript + " " + broadcast.getStreamId() + " " + getScope().getName());
+			runConfiguredScript(streamIdleTimeoutScript, broadcast.getStreamId(), getScope().getName());
 		}
 		
 	}
