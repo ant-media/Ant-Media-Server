@@ -573,21 +573,76 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
+	private Result validateVoDImportDirectory(File directory) {
+		if (directory == null || StringUtils.isBlank(directory.getPath())) {
+			return new Result(false, "VoD import directory is not specified");
+		}
+
+		Path directoryPath = directory.toPath().toAbsolutePath().normalize();
+		Result parentDirectoryAccessResult = checkParentDirectoryExecutePermissions(directoryPath);
+		if (!parentDirectoryAccessResult.isSuccess()) {
+			return parentDirectoryAccessResult;
+		}
+
+		if (!Files.isDirectory(directoryPath)) {
+			return new Result(false, getCannotReadVoDImportDirectoryMessage(directoryPath));
+		}
+
+		if (!Files.isReadable(directoryPath) || !Files.isExecutable(directoryPath)) {
+			return new Result(false, getCannotReadVoDImportDirectoryMessage(directoryPath));
+		}
+
+		return new Result(true);
+	}
+
+	private Result checkParentDirectoryExecutePermissions(Path directoryPath) {
+		Path parentPath = directoryPath.getParent();
+		if (parentPath == null) {
+			return new Result(true);
+		}
+
+		Path currentPath = directoryPath.getRoot();
+		if (currentPath == null) {
+			currentPath = directoryPath.getFileSystem().getPath("");
+		}
+
+		for (Path pathPart : parentPath) {
+			currentPath = currentPath.resolve(pathPart);
+			if (Files.exists(currentPath) && !Files.isExecutable(currentPath)) {
+				return new Result(false, "Cannot access VoD import directory " + directoryPath
+						+ ". Please check execute permission on parent directory " + currentPath
+						+ " and make sure all parent directories have execute permission.");
+			}
+		}
+
+		return new Result(true);
+	}
+
+	private String getCannotReadVoDImportDirectoryMessage(Path directoryPath) {
+		return "Cannot read VoD import directory " + directoryPath
+				+ ". Please check that the directory exists, it is a directory, all parent directories have execute permission, and the directory has read and execute permissions.";
+	}
+
 	/**
 	 * Import vod files recursively in the directory. It also created symbolic link to make the files streamable
 	 * @param vodFolderPath absolute path of the vod folder to be imported
 	 * @return
 	 */
 	public Result importVoDFolder(String vodFolderPath) {
-		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
 
 		File allowedDirectory = new File(VOD_IMPORT_ALLOWED_DIRECTORY);
 		Result result = null;
 		try {
+			result = validateVoDImportDirectory(directory);
+			if (!result.isSuccess()) {
+				return result;
+			}
+
 			if (FileUtils.directoryContains(allowedDirectory, directory))
 			{
 
+				File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 				result = createSymbolicLink(streamsFolder, directory);
 				if (result.isSuccess()) {
 					int numberOfFilesImported = importToDB(directory, directory);
@@ -595,11 +650,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 			}
 			else {
-				result = new Result(false, "VoD import directory is allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
+				result = new Result(false, "VoD import directory is only allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
 			}
 		} catch (IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
-			result = new Result(false, "VoD import directory is allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
+			result = new Result(false, getCannotReadVoDImportDirectoryMessage(directory.toPath().toAbsolutePath().normalize()));
 		}
 
 		return result;

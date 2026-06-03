@@ -18,7 +18,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -589,6 +593,53 @@ public class VoDRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testImportVoDsDirectoryAccessMessages() throws IOException {
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		app.setScope(scope);
+		app.setDataStore(new InMemoryDataStore("test"));
+
+		Result result = app.importVoDFolder(null);
+		assertFalse(result.isSuccess());
+		assertEquals("VoD import directory is not specified", result.getMessage());
+
+		result = app.importVoDFolder("");
+		assertFalse(result.isSuccess());
+		assertEquals("VoD import directory is not specified", result.getMessage());
+
+		result = app.importVoDFolder("target/non-existing-vod-directory");
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().startsWith("Cannot read VoD import directory"));
+		assertTrue(result.getMessage().contains("all parent directories have execute permission"));
+
+		Path parentDirectory = Files.createTempDirectory("vod-parent");
+		Path vodDirectory = Files.createDirectory(parentDirectory.resolve("vod"));
+		Set<PosixFilePermission> parentDirectoryPermissions = null;
+
+		try {
+			parentDirectoryPermissions = Files.getPosixFilePermissions(parentDirectory);
+			Files.setPosixFilePermissions(parentDirectory, EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+
+			if (!Files.isExecutable(parentDirectory)) {
+				result = app.importVoDFolder(vodDirectory.toString());
+				assertFalse(result.isSuccess());
+				assertTrue(result.getMessage().contains("Please check execute permission on parent directory"));
+			}
+		}
+		catch (UnsupportedOperationException e) {
+		}
+		finally {
+			if (parentDirectoryPermissions != null) {
+				Files.setPosixFilePermissions(parentDirectory, parentDirectoryPermissions);
+			}
+			Files.deleteIfExists(vodDirectory);
+			Files.deleteIfExists(parentDirectory);
+		}
+	}
+
+	@Test
 	public void testImportVoDs() {
 		VoDRestService restService=new VoDRestService();
 		InMemoryDataStore dataStore = new InMemoryDataStore("test");
@@ -674,12 +725,14 @@ public class VoDRestServiceV2UnitTest {
 
 		result = restService.importVoDs(null);
 		assertFalse(result.isSuccess());
+		assertEquals("VoD import directory is not specified", result.getMessage());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		//there are numberOfFiles files under src/test directory it should not increae
 		assertEquals(numberOfFiles, vodList.size());
 
 		result = restService.importVoDs("");
 		assertFalse(result.isSuccess());
+		assertEquals("VoD import directory is not specified", result.getMessage());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		//there are numberOfFiles files under src/test directory it should not increae
 		assertEquals(numberOfFiles, vodList.size());
