@@ -63,6 +63,7 @@
 				<exclude>libtensorflow*.jar</exclude>
 				<exclude>tensorflow*.jar</exclude>
 				<exclude>srt*.jar</exclude>
+				<exclude>ndi*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>

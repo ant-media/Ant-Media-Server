@@ -858,12 +858,25 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
-				 <dependency>
-		    		<groupId>org.bytedeco</groupId>
-		    		<artifactId>srt-platform</artifactId>
-		           	<version>${javacpp.srt.version}</version>
-		            <scope>provided</scope>
-        		</dependency>
+                <dependency>
+                    <groupId>org.bytedeco</groupId>
+                    <artifactId>srt-platform</artifactId>
+                    <version>${javacpp.srt.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.bytedeco</groupId>
+                    <artifactId>ndi</artifactId>
+                    <version>${javacpp.ndi.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.bytedeco</groupId>
+                    <artifactId>ndi</artifactId>
+                    <version>${javacpp.ndi.version}</version>
+                    <classifier>linux-x86_64</classifier>
+                    <scope>provided</scope>
+                </dependency>
                 <dependency>
                     <groupId>com.google.cloud</groupId>
                     <artifactId>google-cloud-storage</artifactId>
