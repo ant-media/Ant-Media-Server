@@ -25,6 +25,8 @@ public class OnvifCamera implements IOnvifCamera {
 	public static final int CONNECTION_SUCCESS = 0;
 	public static final int CONNECT_ERROR = -1;
 	public static final int AUTHENTICATION_ERROR = -2;
+	private static final String PROFILE_INDEX = "profileIndex";
+
 	String profileToken;
 	private static final String HTTP_PREFIX = "http://";
 	private static final String HTTPS_PREFIX = "https://";
@@ -37,10 +39,14 @@ public class OnvifCamera implements IOnvifCamera {
 	public int connect(String address, String username, String password) {
 		int result = CONNECT_ERROR;
 		String camIP = "";
+		int streamIndex = 0;
 		try {
 
+			
 			//address may include http:// or https:// so get the IPAddress directly
 			camIP = getIPAddress(address);
+
+			streamIndex = getStreamIndex(address);
 
 			String protocol = getProtocol(address);
 			
@@ -61,7 +67,7 @@ public class OnvifCamera implements IOnvifCamera {
 					}
 				}
 				if (profileToken == null) {
-					profileToken = profiles.get(0).getToken();
+					profileToken = profiles.get(streamIndex).getToken();
 				}
 
 				result = CONNECTION_SUCCESS;
@@ -79,6 +85,34 @@ public class OnvifCamera implements IOnvifCamera {
 			result = CONNECT_ERROR;
 		}
 		return result;
+	}
+
+	private int getStreamIndex(String address) {
+		int profileIndex = 0;
+		
+		if (address.contains("?")){
+			String[] ipAddrParts = address.split("?");
+			
+			String query = ipAddrParts[1];
+			String[] parameters = query.split("&");
+			
+			for (String param : parameters) {
+				String[] keyValue = param.split("=", 2);
+				String key = keyValue[0];
+				String value = keyValue.length > 1 ? keyValue[1] : "";
+
+				if(PROFILE_INDEX.equals(key)) {
+					try {
+						profileIndex = Integer.parseInt(value);
+					}
+					catch(NumberFormatException e){
+						logger.error("Profile index for IP camera should be an integer but it is {}", value);
+					}
+				}
+			}
+		}
+		
+		return profileIndex;
 	}
 
 	public String getProtocol(String address) {
@@ -298,6 +332,10 @@ public class OnvifCamera implements IOnvifCamera {
 			logger.info("IP: {}", ipAddr);
 
 
+		}
+		if (ipAddr.contains("?")){
+			ipAddrParts = ipAddr.split("?");
+			ipAddr = ipAddrParts[0];
 		}
 		return ipAddr;
 	}

@@ -754,7 +754,7 @@ public abstract class RestServiceBase {
 	public Result connectToCamera(String ipAddr, String username, String password) {
 
 		Result result = new Result(false);
-
+		
 		OnvifCamera onvif = new OnvifCamera();
 		int connResult = onvif.connect(ipAddr, username, password);
 		if (connResult == 0) {
@@ -813,6 +813,12 @@ public abstract class RestServiceBase {
 			}
 			if (serverAddr.contains("/")){
 				ipAddrParts = serverAddr.split("/");
+				serverAddr = ipAddrParts[0];
+			}
+			
+			//Burak: I added this to get profileIndex 
+			if (serverAddr.contains("?")){
+				ipAddrParts = serverAddr.split("?");
 				serverAddr = ipAddrParts[0];
 			}
 
