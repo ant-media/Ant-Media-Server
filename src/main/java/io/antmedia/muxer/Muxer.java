@@ -280,7 +280,7 @@ public abstract class Muxer {
 
 	protected AVDictionary optionDictionary = new AVDictionary(null);
 
-	private long firstPacketDtsMs = -1;
+	protected long firstPacketDtsMs = -1;
 
 	private long audioNotWrittenCount;
 
