@@ -964,6 +964,27 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                                     </artifactItems>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>copy-ndi-runtime</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.bytedeco</groupId>
+                                            <artifactId>ndi-runtime</artifactId>
+                                            <version>${javacpp.ndi.version}</version>
+                                            <classifier>linux-x86_64</classifier>
+                                            <type>so</type>
+                                            <overWrite>true</overWrite>
+                                            <outputDirectory>${project.build.directory}/native-linux-x86_64</outputDirectory>
+                                            <destFileName>libndi.so.6</destFileName>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                    

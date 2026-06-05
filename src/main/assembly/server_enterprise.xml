@@ -169,6 +169,13 @@
 			</includes>
 		</fileSet>
 		<fileSet>
+			<directory>${project.build.directory}/native-linux-x86_64</directory>
+			<outputDirectory>lib/native-linux-x86_64</outputDirectory>
+			<includes>
+				<include>*</include>
+			</includes>
+		</fileSet>
+		<fileSet>
 			<directory>${project.basedir}/src/main/server/lib/native-linux-aarch64</directory>
 			<outputDirectory>lib/native-linux-aarch64</outputDirectory>
 			<includes>
