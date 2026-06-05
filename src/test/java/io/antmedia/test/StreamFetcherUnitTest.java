@@ -580,6 +580,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		when(zombie.getStreamUrl()).thenReturn(broadcast.getStreamUrl());
 		when(zombie.isStreamAlive()).thenReturn(false);
 		when(zombie.isStreamBlocked()).thenReturn(true);
+		when(zombie.isZombie()).thenReturn(true);
 
 		StreamFetcherManager fetcherManager_ = new StreamFetcherManager(vertx, dataStore, appScope);
 		StreamFetcherManager fetcherManager = Mockito.spy(fetcherManager_);

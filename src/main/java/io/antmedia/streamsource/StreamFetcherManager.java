@@ -124,15 +124,15 @@ public class StreamFetcherManager {
 		
 		StreamFetcher existing = streamFetcherList.get(broadcast.getStreamId());
 		if (existing != null) {
-			if (existing.isStreamAlive()) {
-				logger.info("Stream is on FetcherManagerList and alive for streamId:{}", broadcast.getStreamId());
-				isStreamLive = true;
-			}
-			else {
-				logger.warn("Evicting zombie fetcher for streamId:{} (alive=false, blocked={}) so the next start can recover",
-						broadcast.getStreamId(), existing.isStreamBlocked());
+			if (existing.isZombie()) {
+				logger.warn("Evicting zombie fetcher for streamId:{} (alive={}, blocked={}) so the next start can recover",
+						broadcast.getStreamId(), existing.isStreamAlive(), existing.isStreamBlocked());
 				existing.stopStream();
 				streamFetcherList.remove(broadcast.getStreamId());
+			}
+			else {
+				logger.info("Stream is on FetcherManagerList for streamId:{}", broadcast.getStreamId());
+				isStreamLive = true;
 			}
 		}
 

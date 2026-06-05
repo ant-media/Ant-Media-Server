@@ -1113,6 +1113,19 @@ public class StreamFetcher {
 		return Math.abs(readNextPacketCompleteTime - readNextPacketStartTime) > PACKET_RECEIVED_INTERVAL_TIMEOUT;
 	}
 
+	/**
+	 * A fetcher is a zombie when it received packets at some point (so it really opened
+	 * the source) but no packet has arrived for at least STREAM_TIMEOUT_MS. This is the
+	 * "silent camera / NAT idle timeout" condition: the TCP socket is still open from
+	 * the OS's point of view, the worker thread is parked inside av_read_frame(), but
+	 * nothing will ever wake it up. Distinguished from a freshly-started fetcher whose
+	 * lastPacketReceivedTime is still 0.
+	 */
+	public boolean isZombie() {
+		return lastPacketReceivedTime > 0
+				&& (System.currentTimeMillis() - lastPacketReceivedTime) > AntMediaApplicationAdapter.STREAM_TIMEOUT_MS;
+	}
+
 	//TODO: why we're using isInterruped here? It may not give correct value about the status of the stream
 	//@mekya
 	public boolean isStopped() {
