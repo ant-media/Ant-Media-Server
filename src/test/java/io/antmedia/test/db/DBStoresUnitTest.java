@@ -717,28 +717,84 @@ public class DBStoresUnitTest {
 	public void testBugGetExternalStreamsList(DataStore datastore) {
 
 
-		// add ip camera 
-		Broadcast broadcast = new Broadcast("name", "ipAddr", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);
-		datastore.save(broadcast);
+		long expiredUpdateTime = System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 1;
 
-		//add stream source 
-		Broadcast streamSource = new Broadcast("name_stream_source");
-		streamSource.setStreamUrl("rtsp urdfdfdl");
-		streamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		datastore.save(streamSource);
+		Broadcast finishedOnShutdownIpCamera = new Broadcast("available_ip_camera_finished_on_shutdown", "ipAddr", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);
+		finishedOnShutdownIpCamera.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED_ON_SHUTDOWN);
+		datastore.save(finishedOnShutdownIpCamera);
+
+		Broadcast terminatedUnexpectedlyStreamSource = new Broadcast("available_stream_source_terminated_unexpectedly");
+		terminatedUnexpectedlyStreamSource.setStreamUrl("rtsp urdfdfdl");
+		terminatedUnexpectedlyStreamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		terminatedUnexpectedlyStreamSource.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+		datastore.save(terminatedUnexpectedlyStreamSource);
+
+		Broadcast stalePreparingStreamSource = new Broadcast("available_stream_source_stale_preparing");
+		stalePreparingStreamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		stalePreparingStreamSource.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		stalePreparingStreamSource.setUpdateTime(expiredUpdateTime);
+		datastore.save(stalePreparingStreamSource);
+
+		Broadcast staleBroadcastingIpCamera = new Broadcast("available_ip_camera_stale_broadcasting");
+		staleBroadcastingIpCamera.setType(AntMediaApplicationAdapter.IP_CAMERA);
+		staleBroadcastingIpCamera.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		staleBroadcastingIpCamera.setUpdateTime(expiredUpdateTime);
+		datastore.save(staleBroadcastingIpCamera);
+
+		Broadcast freshPreparingStreamSource = new Broadcast("unavailable_stream_source_fresh_preparing");
+		freshPreparingStreamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		freshPreparingStreamSource.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		freshPreparingStreamSource.setUpdateTime(System.currentTimeMillis());
+		datastore.save(freshPreparingStreamSource);
+
+		Broadcast freshBroadcastingIpCamera = new Broadcast("unavailable_ip_camera_fresh_broadcasting");
+		freshBroadcastingIpCamera.setType(AntMediaApplicationAdapter.IP_CAMERA);
+		freshBroadcastingIpCamera.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		freshBroadcastingIpCamera.setUpdateTime(System.currentTimeMillis());
+		datastore.save(freshBroadcastingIpCamera);
+
+		Broadcast virtualStaleBroadcastingStreamSource = new Broadcast("unavailable_stream_source_virtual_stale_broadcasting");
+		virtualStaleBroadcastingStreamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		virtualStaleBroadcastingStreamSource.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		virtualStaleBroadcastingStreamSource.setUpdateTime(expiredUpdateTime);
+		virtualStaleBroadcastingStreamSource.setVirtual(true);
+		datastore.save(virtualStaleBroadcastingStreamSource);
+
+		Broadcast createdStreamSource = new Broadcast("unavailable_stream_source_created");
+		createdStreamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		createdStreamSource.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
+		datastore.save(createdStreamSource);
+
+		Broadcast finishedStreamSource = new Broadcast("unavailable_stream_source_finished");
+		finishedStreamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		finishedStreamSource.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		datastore.save(finishedStreamSource);
+
+		Broadcast terminatedUnexpectedlyLiveStream = new Broadcast("unavailable_live_stream_terminated_unexpectedly");
+		terminatedUnexpectedlyLiveStream.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		terminatedUnexpectedlyLiveStream.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+		datastore.save(terminatedUnexpectedlyLiveStream);
 
 		//get external list
 		List<Broadcast> streamsList = datastore.getExternalStreamsList();
 		assertNotNull(streamsList);
 
-		assertEquals(2, streamsList.size());
+		assertEquals(4, streamsList.size());
 
-		streamsList = datastore.getExternalStreamsList();
-		assertNotNull(streamsList);
-
-		assertEquals(0, streamsList.size());
-
-		//check that there are two streams and values are same as added above
+		List<String> streamNames = new ArrayList<>();
+		for (Broadcast stream : streamsList) {
+			streamNames.add(stream.getName());
+		}
+		assertTrue(streamNames.contains("available_ip_camera_finished_on_shutdown"));
+		assertTrue(streamNames.contains("available_stream_source_terminated_unexpectedly"));
+		assertTrue(streamNames.contains("available_stream_source_stale_preparing"));
+		assertTrue(streamNames.contains("available_ip_camera_stale_broadcasting"));
+		assertFalse(streamNames.contains("unavailable_stream_source_fresh_preparing"));
+		assertFalse(streamNames.contains("unavailable_ip_camera_fresh_broadcasting"));
+		assertFalse(streamNames.contains("unavailable_stream_source_virtual_stale_broadcasting"));
+		assertFalse(streamNames.contains("unavailable_stream_source_created"));
+		assertFalse(streamNames.contains("unavailable_stream_source_finished"));
+		assertFalse(streamNames.contains("unavailable_live_stream_terminated_unexpectedly"));
 
 	}
 
@@ -2869,7 +2925,7 @@ public class DBStoresUnitTest {
 		assertEquals(2, dataStore.getTotalBroadcastNumber());
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null, null, null);
 		for (Broadcast tmp : broadcastList) {
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, tmp.getStatus());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, tmp.getStatus());
 			assertEquals(0, tmp.getWebRTCViewerCount());
 			assertEquals(0, tmp.getHlsViewerCount());
 			assertEquals(0, tmp.getRtmpViewerCount());
@@ -2990,30 +3046,9 @@ public class DBStoresUnitTest {
 
 
 	private void testStreamSourceList(DataStore dataStore) {
-		if (dataStore instanceof MongoStore) {
-			deleteBroadcast((MongoStore) dataStore);
-			assertEquals(0, dataStore.getTotalBroadcastNumber());
-		}
-		else  {
-			long broadcastCount = dataStore.getTotalBroadcastNumber();
-			System.out.println("broadcast count: " + broadcastCount);
-			int j = 0;
-			List<Broadcast> broadcastList;
-			while ((broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, null)) != null)
-			{
-				if (broadcastList.size() == 0) {
-					break;
-				}
-				for (Broadcast broadcast : broadcastList) {
-					assertTrue(dataStore.delete(broadcast.getStreamId()));
-
-				}
-			}
-		}
-
 		Broadcast ss1 = new Broadcast("ss1");
 		ss1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		ss1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		ss1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED_ON_SHUTDOWN);
 
 		Broadcast ss2 = new Broadcast("ss2");
 		ss2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -3027,11 +3062,12 @@ public class DBStoresUnitTest {
 
 		Broadcast ss4 = new Broadcast("ss4");
 		ss4.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		ss4.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+		ss4.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 
 		Broadcast ss5 = new Broadcast("ss5");
 		ss5.setType(AntMediaApplicationAdapter.IP_CAMERA);
-		ss5.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+		ss5.setUpdateTime(System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 1);
+		ss5.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 
 		Broadcast ss6 = new Broadcast("ss6");
 		ss6.setType(AntMediaApplicationAdapter.LIVE_STREAM);
@@ -3052,7 +3088,22 @@ public class DBStoresUnitTest {
 		assertNotEquals("ss6", list.get(2).getName());
 
 		List<Broadcast> list2 = dataStore.getExternalStreamsList();
-		assertEquals(0, list2.size());
+		assertEquals(3, list2.size());
+		
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+
+		dataStore.updateBroadcastFields(ss1.getStreamId(), broadcastUpdate);
+		dataStore.updateBroadcastFields(ss2.getStreamId(), broadcastUpdate);
+		dataStore.updateBroadcastFields(ss3.getStreamId(), broadcastUpdate);
+		dataStore.updateBroadcastFields(ss4.getStreamId(), broadcastUpdate);
+		dataStore.updateBroadcastFields(ss5.getStreamId(), broadcastUpdate);
+		dataStore.updateBroadcastFields(ss6.getStreamId(), broadcastUpdate);
+
+		
+		List<Broadcast> list3 = dataStore.getExternalStreamsList();
+		assertEquals(0, list3.size());
 	}
 
 	private void testUpdateEndpointStatus(DataStore dataStore)
