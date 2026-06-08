@@ -2503,7 +2503,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 			else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED) )
 			{
-				tryToRepublish(url, id);
+				tryToRepublishEndpoint(url, id);
 			}
 		});
 	}
@@ -2518,36 +2518,48 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	private void tryToRepublish(String url, Long id) 
+	private void tryToRepublishEndpoint(String url, Long id)
 	{
 		int errorCount = errorCountMap.getOrDefault(url, 1);
 		if(errorCount < 3)
 		{
 			errorCountMap.put(url, errorCount+1);
 			logger.info("Endpoint check returned error for {} times for endpoint {}", errorCount , url);
+			return;
 		}
-		else
-		{
-			int tmpRetryCount = retryCounter.getOrDefault(url, 1);
-			if( tmpRetryCount <= rtmpEndpointRetryLimit){
-				logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
 
-				//TODO: 0 as second parameter may cause a problem
-				stopEndpointStreaming(url, 0);
-				startEndpointStreaming(url, height);
-				retryCounter.put(url, tmpRetryCount + 1);
-			}
-			else{
-				logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
-				stopEndpointStreaming(url, 0);
-				sendEndpointErrorNotifyHook(url);
-				retryCounter.remove(url);
-			}
-			//Clear the data and cancel timer to free memory and CPU.
-			isHealthCheckStartedMap.remove(url);
-			errorCountMap.remove(url);
-			vertx.cancelTimer(id);
+		// Serialize: skip if a previous republish is still in flight (PREPARING phase).
+		// Without this, the previous attempt's avio_open2 may still be running on a worker
+		// thread while we open a second TCP/RTMP session to the same URL — remote sees
+		// parallel publishes for the same stream key and gets confused.
+		if (IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(statusMap.get(url)))
+		{
+			logger.info("Republish already in progress for endpoint {}, skipping this tick", url);
+			return;
 		}
+
+		int tmpRetryCount = retryCounter.getOrDefault(url, 1);
+
+		// endpointRepublishLimit < 0 opts in to "retry forever" — keeps reconnecting
+		// across long remote outages. Non-negative values preserve the legacy bounded
+		// behavior: after the limit is exceeded, give up and close the endpoint.
+		if (rtmpEndpointRetryLimit >= 0 && tmpRetryCount > rtmpEndpointRetryLimit)
+		{
+			logger.info("Exceeded republish retry limit ({}), endpoint {} can't be reached and will be closed", rtmpEndpointRetryLimit, url);
+			stopEndpointStreaming(url, 0);
+			sendEndpointErrorNotifyHook(url);
+			clearCounterMapsAndCancelTimer(url, id);
+			return;
+		}
+
+		logger.info("Republish attempt #{} for endpoint {}", tmpRetryCount, url);
+		stopEndpointStreaming(url, 0);
+		startEndpointStreaming(url, height);
+		retryCounter.put(url, tmpRetryCount + 1);
+
+		// Reset error count so we wait another N health-check ticks before next attempt
+		// (acts as a built-in ~6s gap between republish attempts).
+		errorCountMap.remove(url);
 	}
 
 	@Override

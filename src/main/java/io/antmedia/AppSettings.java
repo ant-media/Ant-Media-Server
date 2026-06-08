@@ -278,9 +278,13 @@ public class AppSettings implements Serializable{
 	private int endpointHealthCheckPeriodMs=2000;
 
 	/**
-	 * This limit is for republishing to a certain endpoint for how many times
+	 * This limit is for republishing to a certain endpoint for how many times.
 	 * For example in case we tried to republish 3 times and still got an error
-	 * We conclude that the endpoint is dead and close it.
+	 * we conclude that the endpoint is dead and close it.
+	 *
+	 * Set to a negative value (e.g. -1) to retry indefinitely. Useful when the
+	 * remote endpoint may have long outages and the operator wants the source
+	 * to keep reconnecting until it comes back.
 	 */
 	@Value ( "${endpointRepublishLimit:3}" )
 	private int endpointRepublishLimit=3;
