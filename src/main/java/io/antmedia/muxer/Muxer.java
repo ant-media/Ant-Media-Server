@@ -376,7 +376,7 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
-	
+
 
 		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0)
 		{
