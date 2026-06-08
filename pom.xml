@@ -54,6 +54,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 		      <enabled>true</enabled>
 		    </snapshots>
 		</repository>
+        <repository>
+            <id>github</id>
+            <name>Ant Media JavaCPP Presets GitHub Packages</name>
+            <url>https://maven.pkg.github.com/ant-media/javacpp-presets</url>
+        </repository>
     </repositories>
    
     <properties>
@@ -246,6 +251,12 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
     </build>
     <dependencies>
         <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.38</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>io.antmedia.ipcamera.onvif</groupId>
             <artifactId>ONVIF</artifactId>
             <version>1.2.0</version>
@@ -301,12 +312,8 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -856,12 +863,25 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
-				 <dependency>
-		    		<groupId>org.bytedeco</groupId>
-		    		<artifactId>srt-platform</artifactId>
-		           	<version>${javacpp.srt.version}</version>
-		            <scope>provided</scope>
-        		</dependency>
+                <dependency>
+                    <groupId>org.bytedeco</groupId>
+                    <artifactId>srt-platform</artifactId>
+                    <version>${javacpp.srt.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.bytedeco</groupId>
+                    <artifactId>ndi</artifactId>
+                    <version>${javacpp.ndi.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.bytedeco</groupId>
+                    <artifactId>ndi</artifactId>
+                    <version>${javacpp.ndi.version}</version>
+                    <classifier>linux-x86_64</classifier>
+                    <scope>provided</scope>
+                </dependency>
                 <dependency>
                     <groupId>com.google.cloud</groupId>
                     <artifactId>google-cloud-storage</artifactId>
@@ -940,6 +960,27 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                                             <type>jar</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/plugins</outputDirectory>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-ndi-runtime</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.bytedeco</groupId>
+                                            <artifactId>ndi-runtime</artifactId>
+                                            <version>${javacpp.ndi.version}</version>
+                                            <classifier>linux-x86_64</classifier>
+                                            <type>so</type>
+                                            <overWrite>true</overWrite>
+                                            <outputDirectory>${project.build.directory}/native-linux-x86_64</outputDirectory>
+                                            <destFileName>libndi.so.6</destFileName>
                                         </artifactItem>
                                     </artifactItems>
                                 </configuration>

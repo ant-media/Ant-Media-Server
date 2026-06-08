@@ -14,6 +14,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.webrtc.Logging.Severity;
 import org.webrtc.PeerConnection;
 import org.webrtc.audio.AudioDeviceModule;
@@ -28,6 +30,7 @@ public class PeerConnectionFactory {
   @Deprecated public static final String VIDEO_FRAME_EMIT_TRIAL = "VideoFrameEmit";
 
   private static final String TAG = "PeerConnectionFactory";
+  private static Logger logger = LoggerFactory.getLogger(PeerConnectionFactory.class);
   private static final String VIDEO_CAPTURER_THREAD_NAME = "VideoCapturerThread";
 
   /** Helper class holding both Java and C++ thread info. */
