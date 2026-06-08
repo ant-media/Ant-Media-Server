@@ -1248,6 +1248,90 @@ public class CommonRestService {
 		return null;
 	}
 
+	public List<io.antmedia.plugin.api.PluginRecord> getPlugins() {
+		AdminApplication adminApp = getApplication();
+		if (adminApp == null) return new ArrayList<>();
+		return adminApp.getAllPluginRecords();
+	}
+
+	public Result deployPlugin(String pluginName, InputStream inputStream) {
+		if (!AdminApplication.isValidPluginName(pluginName)) {
+			return new Result(false, "Plugin name must match [a-zA-Z0-9_.-]+");
+		}
+		if (inputStream == null) {
+			return new Result(false, "No plugin ZIP uploaded");
+		}
+		AdminApplication adminApp = getApplication();
+		if (adminApp == null) {
+			return new Result(false, "AdminApplication not available");
+		}
+		boolean ok = adminApp.deployPlugin(pluginName, inputStream);
+		return new Result(ok, ok ? "Plugin deployed: " + pluginName
+				: "Failed to deploy plugin: " + pluginName);
+	}
+
+	public Result installPluginFromUrl(String pluginId, String downloadUrl) {
+		if (!AdminApplication.isValidPluginName(pluginId)) {
+			return new Result(false, "Plugin ID must match [a-zA-Z0-9_-]+");
+		}
+		if (downloadUrl == null || downloadUrl.isEmpty()) {
+			return new Result(false, "Download URL is required");
+		}
+		AdminApplication adminApp = getApplication();
+		if (adminApp == null) {
+			return new Result(false, "AdminApplication not available");
+		}
+		boolean ok = adminApp.installPluginFromUrl(pluginId, downloadUrl);
+		return new Result(ok, ok ? "Plugin installed: " + pluginId
+				: "Failed to install plugin: " + pluginId);
+	}
+
+	public Result undeployPlugin(String pluginName) {
+		if (!AdminApplication.isValidPluginName(pluginName)) {
+			return new Result(false, "Plugin name must match [a-zA-Z0-9_.-]+");
+		}
+		AdminApplication adminApp = getApplication();
+		if (adminApp == null) {
+			return new Result(false, "AdminApplication not available");
+		}
+		boolean ok = adminApp.undeployPlugin(pluginName);
+		return new Result(ok, ok ? "Plugin undeployed: " + pluginName
+				: "Failed to undeploy plugin: " + pluginName);
+	}
+
+	public Response downloadPlugin(String pluginName, String authToken) {
+		AdminApplication adminApp = getApplication();
+		if (adminApp == null) {
+			return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+		}
+
+		String secret = adminApp.getClusterCommunicationKey();
+		if (secret == null || authToken == null
+				|| !io.antmedia.filter.JWTFilter.isJWTTokenValid(secret, authToken)) {
+			return Response.status(Status.FORBIDDEN).build();
+		}
+
+		if (!AdminApplication.isValidPluginName(pluginName)) {
+			return Response.status(Status.BAD_REQUEST).build();
+		}
+
+		File zipFile = new File(adminApp.getPluginsDir(), pluginName + ".zip");
+		if (!zipFile.exists()) {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+
+		try {
+			FileInputStream fis = new FileInputStream(zipFile);
+			return Response.ok(fis)
+					.header("Content-Disposition", "attachment; filename=\"" + pluginName + ".zip\"")
+					.header("Content-Length", zipFile.length())
+					.type("application/zip")
+					.build();
+		} catch (java.io.FileNotFoundException e) {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+	}
+
 	public ConsoleDataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null)
 		{

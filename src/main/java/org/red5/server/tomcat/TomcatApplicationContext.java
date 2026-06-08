@@ -109,4 +109,17 @@ public class TomcatApplicationContext implements IApplicationContext {
 		return context;
 	}
 
+	public org.springframework.context.ApplicationContext getSpringContext() {
+		try {
+			ServletContext servlet = context.getServletContext();
+			Object o = servlet.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+			if (o instanceof org.springframework.context.ApplicationContext) {
+				return (org.springframework.context.ApplicationContext) o;
+			}
+		} catch (Exception e) {
+			log.warn("Could not retrieve Spring context for {}", context.getName(), e);
+		}
+		return null;
+	}
+
 }

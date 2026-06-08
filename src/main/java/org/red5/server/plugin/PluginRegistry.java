@@ -128,6 +128,15 @@ public class PluginRegistry {
      *            plugin name
      * @return requested plug-in matching the name given or null if not found
      */
+    public static java.util.Set<String> getPluginNames() {
+        pluginReadLock.lock();
+        try {
+            return new java.util.HashSet<>(plugins.keySet());
+        } finally {
+            pluginReadLock.unlock();
+        }
+    }
+
     public static IRed5Plugin getPlugin(String pluginName) {
         IRed5Plugin plugin = null;
         pluginReadLock.lock();
