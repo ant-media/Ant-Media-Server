@@ -66,7 +66,7 @@ jobs:
       - name: Build projects
         uses: ./.github/actions/build-projects 
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
            
           
       - name: Run tests and SonarCloud analysis
@@ -106,7 +106,7 @@ jobs:
       - name: Build projects
         uses: ./.github/actions/build-projects 
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
            
       - name: Get current date
         id: date
@@ -208,7 +208,7 @@ jobs:
       - name: Build projects
         uses: ./.github/actions/build-projects 
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
      
       - name: Package Ant Media Server
         run: mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
@@ -287,7 +287,7 @@ jobs:
       - name: Build projects # there is low probability that if somethings has pushed to the related branch while running test and before this job, it may build something not exactly same
         uses: ./.github/actions/build-projects 
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
       - name: Deploy snapshots
       #if it is a master branch
         if: github.ref == 'refs/heads/master' #if it is a master branch
