@@ -69,6 +69,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.annotations.VisibleForTesting;
 
 import io.antmedia.analytic.model.PublishEndedEvent;
 import io.antmedia.analytic.model.PublishStartedEvent;
@@ -573,7 +574,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	private Result validateVoDImportDirectory(File directory) {
+	@VisibleForTesting
+	Result validateVoDImportDirectory(File directory) {
 		if (directory == null || StringUtils.isBlank(directory.getPath())) {
 			return new Result(false, "VoD import directory is not specified");
 		}

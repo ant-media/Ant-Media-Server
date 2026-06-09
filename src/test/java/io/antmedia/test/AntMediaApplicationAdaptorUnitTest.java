@@ -1,4 +1,4 @@
-package io.antmedia.test;
+package io.antmedia;
 
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
@@ -37,12 +37,15 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +74,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -99,10 +103,7 @@ import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.SendResponse;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AntMediaApplicationAdapter.RTMPClusterStreamFetcherListener;
-import io.antmedia.AppSettings;
-import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
@@ -163,6 +164,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		};
 	};
 
+	@Rule
+	public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
 	@Before
 	public void before() {
 		adapter = new AntMediaApplicationAdapter();
@@ -204,6 +208,44 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
+	@Test
+	public void testValidateVoDImportDirectory() throws IOException {
+		Result result = adapter.validateVoDImportDirectory(null);
+		assertFalse(result.isSuccess());
+		assertEquals("VoD import directory is not specified", result.getMessage());
+
+		result = adapter.validateVoDImportDirectory(new File(""));
+		assertFalse(result.isSuccess());
+		assertEquals("VoD import directory is not specified", result.getMessage());
+
+		result = adapter.validateVoDImportDirectory(new File("target/non-existing-vod-directory"));
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().startsWith("Cannot read VoD import directory"));
+		assertTrue(result.getMessage().contains("all parent directories have execute permission"));
+
+		Path parentDirectory = temporaryFolder.newFolder("vod-parent").toPath();
+		Path vodDirectory = Files.createDirectory(parentDirectory.resolve("vod"));
+		Set<PosixFilePermission> parentDirectoryPermissions = null;
+
+		try {
+			parentDirectoryPermissions = Files.getPosixFilePermissions(parentDirectory);
+			Files.setPosixFilePermissions(parentDirectory, EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+
+			if (!Files.isExecutable(parentDirectory)) {
+				result = adapter.validateVoDImportDirectory(vodDirectory.toFile());
+				assertFalse(result.isSuccess());
+				assertTrue(result.getMessage().contains("Please check execute permission on parent directory"));
+			}
+		}
+		catch (UnsupportedOperationException e) {
+			// File systems without POSIX permissions cannot simulate this scenario.
+		}
+		finally {
+			if (parentDirectoryPermissions != null) {
+				Files.setPosixFilePermissions(parentDirectory, parentDirectoryPermissions);
+			}
+		}
+	}
 
 	public void testFirebase() throws IOException, FirebaseMessagingException {
 		FileInputStream serviceAccount =
