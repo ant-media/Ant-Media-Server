@@ -39,6 +39,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -52,6 +53,7 @@ import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.console.rest.RestServiceV2;
 import io.antmedia.console.rest.SupportRequest;
 import io.antmedia.console.rest.SupportRestService;
+import io.antmedia.console.security.PasswordService;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.model.Result;
@@ -120,6 +122,7 @@ public class ConsoleRestV2UnitTest {
 			}
 		}
 		restService = new RestServiceV2();
+		restService.setPasswordService(new PasswordService(new Argon2PasswordEncoder(8, 16, 1, 16, 1)));
 		vertx = Vertx.vertx();
 		dbStore = new MapDBStore(vertx);
 		restService.setDataStore(dbStore);
@@ -140,6 +143,12 @@ public class ConsoleRestV2UnitTest {
 			}
 		}
 	}
+
+	private void assertArgon2Password(String rawPassword, String storedPassword) {
+		assertTrue(storedPassword.startsWith("$argon2"));
+		assertTrue(restService.getPasswordService().verify(rawPassword, storedPassword).isVerified());
+	}
+
 	@Test
 	public void getUserList(){
 		String password = "password";
@@ -590,22 +599,23 @@ public class ConsoleRestV2UnitTest {
 
 		Result result = restService.addInitialUser(user);
 		assertTrue(result.isSuccess());
-		assertEquals(restService.getMD5Hash(password), dbStore.getUser(userName).getPassword());
+		assertArgon2Password(password, dbStore.getUser(userName).getPassword());
 		assertEquals(UserType.ADMIN, dbStore.getUser(userName).getUserType());
 
 		//Change password tests
+		user.setPassword(password);
 		user.setNewPassword("password2");
 		Result result2 = restService.changeUserPasswordInternal(userName, user);
 		assertTrue(result2.isSuccess());
 
-		assertEquals(restService.getMD5Hash("password2"), dbStore.getUser(userName).getPassword());
+		assertArgon2Password("password2", dbStore.getUser(userName).getPassword());
 
 		user.setPassword("password2");
 		user.setNewPassword("12345");
 		result2 = restService.changeUserPasswordInternal(userName, user);
 		assertTrue(result2.isSuccess());
 
-		assertEquals(restService.getMD5Hash("12345"), dbStore.getUser(userName).getPassword());
+		assertArgon2Password("12345", dbStore.getUser(userName).getPassword());
 
 		//Does not exist with pass
 		result2 = restService.changeUserPasswordInternal(userName, user);
@@ -645,7 +655,7 @@ public class ConsoleRestV2UnitTest {
 
 		Result result = restService.addInitialUser(user);
 		assertTrue(result.isSuccess());
-		assertEquals(restService.getMD5Hash(password), dbStore.getUser(userName).getPassword());
+		assertArgon2Password(password, dbStore.getUser(userName).getPassword());
 		assertEquals(UserType.ADMIN, dbStore.getUser(userName).getUserType());
 
 		//Add second user
@@ -667,7 +677,7 @@ public class ConsoleRestV2UnitTest {
 		result = restService.editUser(user2);
 		assertTrue(result.isSuccess());
 
-		assertEquals(restService.getMD5Hash("password2"), dbStore.getUser(userName2).getPassword());
+		assertArgon2Password("password2", dbStore.getUser(userName2).getPassword());
 
 		//Null check
 		result = restService.editUser(null);
@@ -1017,6 +1027,31 @@ public class ConsoleRestV2UnitTest {
 		Result result = restService.authenticateUser(user);
 		assertTrue(result.isSuccess());
         assertEquals(result.getMessage(), appNameUserTypeJson.toString());
+		assertArgon2Password(password, dbStore.getUser(userName).getPassword());
+	}
+
+	@Test
+	public void testAuthenticateLegacyPasswordsAndUpgrade() {
+		assertLegacyPasswordIsUpgraded("md5-user", "password", CommonRestService.getMD5Hash("password"));
+		assertLegacyPasswordIsUpgraded("double-md5-user", "password", CommonRestService.getMD5Hash(CommonRestService.getMD5Hash("password")));
+		assertLegacyPasswordIsUpgraded("cleartext-user", "password", "password");
+	}
+
+	private void assertLegacyPasswordIsUpgraded(String usernamePrefix, String password, String storedPassword) {
+		String userName = usernamePrefix + (int) (Math.random() * 100000);
+		User user = new User(userName, storedPassword, UserType.ADMIN, "system", new HashMap<String, String>());
+		dbStore.addUser(user);
+
+		HttpSession session = Mockito.mock(HttpSession.class);
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+		Mockito.when(mockRequest.getSession()).thenReturn(session);
+		restService.setRequestForTest(mockRequest);
+
+		Result result = restService.authenticateUser(new User(userName, password, UserType.ADMIN, "system", null));
+		assertTrue(result.isSuccess());
+		String upgradedPassword = dbStore.getUser(userName).getPassword();
+		assertArgon2Password(password, upgradedPassword);
+		assertFalse(storedPassword.equals(upgradedPassword));
 	}
 
 
