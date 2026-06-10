@@ -38,8 +38,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import com.google.gson.Gson;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
@@ -3449,19 +3449,17 @@ public class DBStoresUnitTest {
 		String dbName = "deleteMapdb";
 		MongoStore dataStore = new MongoStore("127.0.0.1", dbName);
 
-		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("127.0.0.1"));
-		MongoClient client = new MongoClient(mongoUri);
+		try (MongoClient client = MongoClients.create(dataStore.getMongoConnectionUri("127.0.0.1"))) {
+			ArrayList<String> dbNames = new ArrayList<String>();
+			client.listDatabaseNames().forEach(c-> dbNames.add(c));
+			assertTrue(dbNames.contains(dbName));
 
+			dataStore.close(true);
 
-		ArrayList<String> dbNames = new ArrayList<String>();
-		client.listDatabaseNames().forEach(c-> dbNames.add(c));
-		assertTrue(dbNames.contains(dbName));
-
-		dataStore.close(true);
-
-		dbNames.clear();
-		client.listDatabaseNames().forEach(c-> dbNames.add(c));
-		assertFalse(dbNames.contains(dbName));
+			dbNames.clear();
+			client.listDatabaseNames().forEach(c-> dbNames.add(c));
+			assertFalse(dbNames.contains(dbName));
+		}
 
 	}
 
