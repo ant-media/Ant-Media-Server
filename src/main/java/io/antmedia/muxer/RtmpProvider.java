@@ -41,41 +41,11 @@ import org.red5.server.messaging.IMessageComponent;
 /**
  * Lightweight provider that converts encoded H.264 / AAC {@link AVPacket}s coming from
  * {@link io.antmedia.plugin.PacketFeeder} into Red5 RTMP messages and pushes them to an
- * {@link InMemoryPushPushPipe}.
-    @Override
-    public void writeTrailer(String streamId) {
-
-    }
-
-    @Override
-    public void setVideoStreamInfo(String streamId, StreamParametersInfo videoStreamInfo) {
-
-    }
-T
-    @Override
-    public void writeTrailer(String streamId) {
-
-    }
-
-    @Override
-    public void setVideoStreamInfo(String streamId, StreamParametersInfo videoStreamInfo) {
-
-    }
-h
-    @Override
-    public void writeTrailer(String streamId) {
-
-    }
-
-    @Override
-    public void setVideoStreamInfo(String streamId, StreamParametersInfo videoStreamInfo) {
-
-    }
-e pipe is registered as a provider in a {@link org.red5.server.api.scope.IBroadcastScope},
+ * {@code InMemoryPushPushPipe}.
+ *
+ * The pipe is registered as a provider in a {@link org.red5.server.api.scope.IBroadcastScope},
  * so standard RTMP play ( {@code ProviderService.lookupProviderInput(...)=LIVE} ) works without opening a TCP socket.
- * NOTE – current implementation assumes
- *      • H.264 Annex-B video
- *      • AAC LC audio
+ * NOTE: current implementation assumes H.264 Annex-B video and AAC LC audio,
  * and does not do any transcoding.  It wraps raw frames in minimum-viable FLV tags.
  * Further optimisations (SPS/PPS extraction, metadata, PTS/DTS re-ordering) can be added incrementally.
  */
