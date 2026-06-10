@@ -7,11 +7,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -21,7 +18,6 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -56,6 +52,8 @@ import io.antmedia.console.AdminApplication.ApplicationInfo;
 import io.antmedia.console.AdminApplication.BroadcastInfo;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.console.security.PasswordService;
+import io.antmedia.console.security.PasswordService.PasswordVerificationResult;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.preference.PreferenceStore;
@@ -111,6 +109,7 @@ public class CommonRestService {
 	private static final String LOG_LEVEL_OFF = "OFF";
 
 	public static final String USER_PASSWORD = "user.password";
+	private static final String AUTHENTICATED_PASSWORD_MARKER = "authenticated";
 
 	public static final String USER_EMAIL = "user.email";
 
@@ -127,6 +126,8 @@ public class CommonRestService {
 	Gson gson = new Gson();
 
 	private AbstractConsoleDataStore dataStore;
+
+	private PasswordService passwordService = new PasswordService();
 
 	private static final String LOG_LEVEL = "logLevel";
 
@@ -199,7 +200,7 @@ public class CommonRestService {
 		{
 			if (!getDataStore().doesUsernameExist(user.getEmail()) && user.getPassword() != null && user.getEmail() != null)
 			{
-				user.setPassword(getMD5Hash(user.getPassword()));
+				user.setPassword(getPasswordService().hash(user.getPassword()));
 				result = getDataStore().addUser(user);
 				logger.info("added user = {} user type = {} -> {}", user.getEmail() ,user.getUserType(), result);
 
@@ -231,7 +232,7 @@ public class CommonRestService {
 	public Result addInitialUser(User user) {
 		boolean result = false;
 		int errorId = -1;
-		user.setPassword(getMD5Hash(user.getPassword()));
+		user.setPassword(getPasswordService().hash(user.getPassword()));
 		user.setUserType(UserType.ADMIN);
 		user.setScope(SCOPE_SYSTEM);
 		Map<String, String> appNameUserType = new HashMap<>();
@@ -388,17 +389,20 @@ public class CommonRestService {
 		if (tryToAuthenticate) 
 		{
 			
-			String md5Password = getMD5Hash(user.getPassword());
-			result = getDataStore().doesUserExist(user.getEmail(), md5Password) || 
-					getDataStore().doesUserExist(user.getEmail(), getMD5Hash(md5Password));
+			User userFromDB = getDataStore().getUser(user.getEmail());
+			PasswordVerificationResult verificationResult = verifyPassword(userFromDB, user.getPassword());
+			result = verificationResult.isVerified();
+			if (result) {
+				upgradePasswordIfNeeded(userFromDB, user.getPassword(), verificationResult);
+			}
 
 			if (result) 
 			{
 				HttpSession session = servletRequest.getSession();
 				session.setAttribute(IS_AUTHENTICATED, true);
 				session.setAttribute(USER_EMAIL, user.getEmail());
-				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
-				user = getDataStore().getUser(user.getEmail());
+				session.setAttribute(USER_PASSWORD, AUTHENTICATED_PASSWORD_MARKER);
+				user = userFromDB;
 				if(user.getScope() != null && user.getUserType() != null){
 					message = user.getScope() + "/" + user.getUserType();
 
@@ -418,7 +422,7 @@ public class CommonRestService {
 				//send user info
 				new Thread() {
 					public void run() {
-						sendUserInfo(userFinal.getEmail(), userFinal.getFirstName(), userFinal.getLastName(), userFinal.getScope(), userFinal.getUserType().toString(), userFinal.getAppNameUserType());
+						sendUserInfo(userFinal.getEmail(), userFinal.getFirstName(), userFinal.getLastName(), userFinal.getScope(), Objects.toString(userFinal.getUserType(), ""), userFinal.getAppNameUserType());
 					}
 				}.start();
 			} 
@@ -479,7 +483,7 @@ public class CommonRestService {
 				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) 
 				{
 					logger.info("Changing password of user: {}",  user.getEmail());
-					user.setPassword(getMD5Hash(user.getNewPassword()));
+					user.setPassword(getPasswordService().hash(user.getNewPassword()));
 					user.setNewPassword(null);
 				}
 				else {
@@ -544,10 +548,10 @@ public class CommonRestService {
 		boolean result = false;
 		String message = null;
 		if (userMail != null && user.getNewPassword() != null) {
-			result = getDataStore().doesUserExist(userMail, user.getPassword()) || getDataStore().doesUserExist(userMail, getMD5Hash(user.getPassword()));
+			User userFromDB = getDataStore().getUser(userMail);
+			result = verifyPassword(userFromDB, user.getPassword()).isVerified();
 			if (result) {
-				User userFromDB = getDataStore().getUser(userMail);
-				userFromDB.setPassword(getMD5Hash(user.getNewPassword()));
+				userFromDB.setPassword(getPasswordService().hash(user.getNewPassword()));
 				userFromDB.setNewPassword(null);
 				result = getDataStore().editUser(userFromDB);
 
@@ -557,7 +561,7 @@ public class CommonRestService {
 					if (session != null) {
 						session.setAttribute(IS_AUTHENTICATED, true);
 						session.setAttribute(USER_EMAIL, userMail);
-						session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
+						session.setAttribute(USER_PASSWORD, AUTHENTICATED_PASSWORD_MARKER);
 					}
 				}
 			}
@@ -1210,6 +1214,29 @@ public class CommonRestService {
 		return dataStore;
 	}
 
+	protected PasswordVerificationResult verifyPassword(User user, String rawPassword) {
+		if (user == null) {
+			return PasswordVerificationResult.failed();
+		}
+
+		return getPasswordService().verify(rawPassword, user.getPassword());
+	}
+
+	protected void upgradePasswordIfNeeded(User user, String rawPassword, PasswordVerificationResult verificationResult) {
+		if (verificationResult.isVerified() && verificationResult.isNeedsRehash()) {
+			user.setPassword(getPasswordService().hash(rawPassword));
+			getDataStore().editUser(user);
+		}
+	}
+
+	public PasswordService getPasswordService() {
+		return passwordService;
+	}
+
+	public void setPasswordService(PasswordService passwordService) {
+		this.passwordService = passwordService;
+	}
+
 	public WebApplicationContext getContext() {
 		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
 	}
@@ -1419,17 +1446,7 @@ public class CommonRestService {
 	}
 
 	public static String getMD5Hash(String pass){
-		String passResult= "";
-		try {
-			MessageDigest m=MessageDigest.getInstance("MD5");
-			m.reset();
-			m.update(pass.getBytes(Charset.forName("UTF8")));
-			byte[] digestResult=m.digest();
-			passResult= Hex.encodeHexString(digestResult);
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-		return passResult;
+		return PasswordService.getMD5Hash(pass);
 	}
 
 
