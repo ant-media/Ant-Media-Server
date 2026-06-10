@@ -1551,6 +1551,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testRTMPWriteCrash() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
