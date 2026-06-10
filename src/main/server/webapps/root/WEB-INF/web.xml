@@ -175,6 +175,20 @@
   	</filter-mapping>
   	-->
 
+	<!--
+		For local UI development from a different site/origin, Chrome requires
+		cross-site session cookies to be sent as SameSite=None; Secure.
+		Enable this together with the SameSite=None CookieProcessor in conf/context.xml
+		when testing that setup.
+
+		<session-config>
+			<cookie-config>
+				<secure>true</secure>
+				<http-only>true</http-only>
+			</cookie-config>
+		</session-config>
+	-->
+
 	<!-- The security-constraint element is used to associate security constraints 
 		with one or more web resource collections -->
 	<security-constraint>
