@@ -140,6 +140,15 @@
    		<!--    * The default number of event loop threads to be used  = 2 * number of cores on the machine -->
     </bean>
     
+    <!-- Isolated pool for EndpointMuxer push writes; maxExecuteTime(ns) > rtmp rw_timeout(10s) to avoid false blocked-thread warns -->
+    <bean id="endpointMuxerExecutor"
+          factory-bean="vertxCore"
+          factory-method="createSharedWorkerExecutor">
+        <constructor-arg index="0" value="endpoint-muxer-pool"/>
+        <constructor-arg index="1" value="16"/>
+        <constructor-arg index="2" value="15000000000"/>
+    </bean>
+
     <bean id="webRTCVertx" class="io.vertx.core.Vertx" factory-method="vertx">
     	<constructor-arg>
     		<bean class="io.vertx.core.VertxOptions">

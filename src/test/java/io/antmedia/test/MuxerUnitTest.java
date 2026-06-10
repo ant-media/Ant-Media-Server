@@ -1551,6 +1551,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testRTMPWriteCrash() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
@@ -6575,7 +6576,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testShutdownWorkerQueueFullDrainsPacket() throws Exception {
+	public void testTeardownDrainsQueuedPackets() throws Exception {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
@@ -6588,36 +6589,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Field queueField = EndpointMuxer.class.getDeclaredField("packetQueue");
 		queueField.setAccessible(true);
 		@SuppressWarnings("unchecked")
-		java.util.concurrent.LinkedBlockingQueue<Object> queue =
-				(java.util.concurrent.LinkedBlockingQueue<Object>) queueField.get(muxer);
+		java.util.concurrent.LinkedBlockingQueue<AVPacket> queue =
+				(java.util.concurrent.LinkedBlockingQueue<AVPacket>) queueField.get(muxer);
 
-		// Fill to capacity with real AVPackets so the head-drop branch runs and
-		// av_packet_free is exercised on the polled stale element.
 		for (int i = 0; i < capacity; i++) {
-			AVPacket p = av_packet_alloc();
-			assertTrue(queue.offer(p));
+			assertTrue(queue.offer(av_packet_alloc()));
 		}
 		assertEquals(capacity, queue.size());
 
-		Field runningField = EndpointMuxer.class.getDeclaredField("isWorkerRunning");
+		Field runningField = EndpointMuxer.class.getDeclaredField("running");
 		runningField.setAccessible(true);
 		runningField.setBoolean(muxer, true);
 
-		// Null out workerThread so shutdownWorkerAndJoin's join branch is a no-op.
-		Field threadField = EndpointMuxer.class.getDeclaredField("workerThread");
-		threadField.setAccessible(true);
-		threadField.set(muxer, null);
+		// Teardown must stop draining and free every queued packet.
+		muxer.clearResource();
 
-		java.lang.reflect.Method shutdown = EndpointMuxer.class.getDeclaredMethod("shutdownWorkerAndJoin");
-		shutdown.setAccessible(true);
-		shutdown.invoke(muxer);
-
-		// Outer offer failed, one stale AVPacket was polled+freed, retry offer succeeded.
-		assertEquals(capacity, queue.size());
-		Field poisonField = EndpointMuxer.class.getDeclaredField("POISON_PILL");
-		poisonField.setAccessible(true);
-		Object poison = poisonField.get(null);
-		assertTrue("POISON_PILL must have landed in the queue", queue.contains(poison));
+		assertEquals(0, queue.size());
 		assertFalse(runningField.getBoolean(muxer));
 	}
 
