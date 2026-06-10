@@ -25,7 +25,7 @@ import java.util.Map;
  * Out-of-band control message used by inter-components communication which are connected with pipes. 
  * Out-of-band data is a separate data stream used for specific purposes (in TCP it's referenced as "urgent data"), like lifecycle control.
  *
- * <tt>'Target'</tt> is used to represent the receiver who may be interested for receiving. 
+ * {@code 'Target'} is used to represent the receiver who may be interested for receiving.
  * It's a string of any form. XXX shall we design a standard form for Target, like "class.instance"?
  *
  * @author The Red5 Project

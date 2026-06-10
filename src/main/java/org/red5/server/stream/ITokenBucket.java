@@ -27,24 +27,24 @@ package org.red5.server.stream;
  */
 public interface ITokenBucket {
     /**
-     * Acquire tokens amount of <tt>tokenCount</tt> waiting <tt>wait</tt> milliseconds if token not available.
+     * Acquire tokens amount of {@code tokenCount} waiting {@code wait} milliseconds if token not available.
      * 
      * @param tokenCount
      *            The count of tokens to acquire.
      * @param wait
-     *            Milliseconds to wait. <tt>0</tt> means no wait and any value below zero means wait forever.
-     * @return <tt>true</tt> if successfully acquired or <tt>false</tt> if not acquired.
+     *            Milliseconds to wait. {@code 0} means no wait and any value below zero means wait forever.
+     * @return {@code true} if successfully acquired or {@code false} if not acquired.
      */
     boolean acquireToken(long tokenCount, long wait);
 
     /**
-     * Nonblockingly acquire token. If the token is not available and <tt>task</tt> is not null, the callback will be executed when the token is available. The tokens are not consumed automatically before callback, so it's recommended to acquire token again in callback function.
+     * Nonblockingly acquire token. If the token is not available and {@code task} is not null, the callback will be executed when the token is available. The tokens are not consumed automatically before callback, so it's recommended to acquire token again in callback function.
      * 
      * @param tokenCount
      *            Number of tokens
      * @param callback
      *            Callback
-     * @return <tt>true</tt> if successfully acquired or <tt>false</tt> if not acquired.
+     * @return {@code true} if successfully acquired or {@code false} if not acquired.
      */
     boolean acquireTokenNonblocking(long tokenCount, ITokenBucketCallback callback);
 
@@ -72,7 +72,7 @@ public interface ITokenBucket {
     double getSpeed();
 
     /**
-     * Reset this token bucket. All pending threads are woken up with <tt>false</tt> returned for acquiring token and callback is removed without calling back.
+     * Reset this token bucket. All pending threads are woken up with {@code false} returned for acquiring token and callback is removed without calling back.
      */
     void reset();
 

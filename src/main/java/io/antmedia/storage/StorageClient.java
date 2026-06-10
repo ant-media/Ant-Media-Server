@@ -67,15 +67,14 @@ public abstract class StorageClient {
 	/**
 	 * Delete file from storage
 	 * 
-	 * @param fileName
-	 * @param type
+	 * @param key
 	 */
 	public abstract void delete(String key);
 	/**
 	 * Delete Multiple files from storage
 	 * 
-	 * @param fileName
-	 * @param fileExtensions
+	 * @param key
+	 * @param regex
 	 */
 
   public abstract void deleteMultipleFiles(String key, String regex);
