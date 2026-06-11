@@ -122,9 +122,18 @@ public class StreamFetcherManager {
 
 		boolean isStreamLive = false;
 		
-		if (streamFetcherList.containsKey(broadcast.getStreamId())) {
-			logger.info("Stream is still on FetcherManagerList so it's active for streamId:{}", broadcast.getStreamId());
-			isStreamLive = true;
+		StreamFetcher existing = streamFetcherList.get(broadcast.getStreamId());
+		if (existing != null) {
+			if (existing.isZombie()) {
+				logger.warn("Evicting zombie fetcher for streamId:{} (alive={}, blocked={}) so the next start can recover",
+						broadcast.getStreamId(), existing.isStreamAlive(), existing.isStreamBlocked());
+				existing.stopStream();
+				streamFetcherList.remove(broadcast.getStreamId());
+			}
+			else {
+				logger.info("Stream is on FetcherManagerList for streamId:{}", broadcast.getStreamId());
+				isStreamLive = true;
+			}
 		}
 
 		if (!isStreamLive) 
@@ -612,8 +621,10 @@ public class StreamFetcherManager {
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
 				
-				if (!streamScheduler.isStreamBlocked() && !streamScheduler.isStreamAlive() && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
-					// if it's not blocked and it's not alive, stop the stream 
+				if (!streamScheduler.isStreamAlive() && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
+					// status==TERMINATED_UNEXPECTEDLY already proves no packets have arrived for STREAM_TIMEOUT_MS,
+					// so a still-blocked fetcher (stuck inside av_read_frame on a silent source) is also a zombie
+					// and must be evicted — otherwise it stays in streamFetcherList forever and blocks restarts.
 					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
 					stopStreaming(streamScheduler.getStreamId(), false);
 					//turn restart to true because we restart the stream to reconnect
