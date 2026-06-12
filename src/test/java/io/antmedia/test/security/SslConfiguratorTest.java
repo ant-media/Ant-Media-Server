@@ -1,15 +1,15 @@
 package io.antmedia.test.security;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.File;
 import java.nio.file.Paths;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -23,11 +23,11 @@ public class SslConfiguratorTest {
     protected static Logger logger = LoggerFactory.getLogger(SslConfiguratorTest.class);
 
 
-    @Before
+    @BeforeEach
     public void before() {
     }
 
-    @After
+    @AfterEach
     public void after() {
 
     }

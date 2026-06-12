@@ -1,11 +1,10 @@
 package io.antmedia.test.security;
-
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import io.antmedia.datastore.db.DataStore;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.security.ExpireStreamPublishSecurity;

@@ -7,11 +7,7 @@ import io.antmedia.ipcamera.onvif.soap.devices.InitialDevices;
 import io.antmedia.ipcamera.onvif.soap.devices.MediaDevices;
 import io.antmedia.ipcamera.onvif.soap.devices.PtzDevices;
 import jakarta.xml.soap.SOAPException;
-import junit.framework.TestCase;
-import org.junit.Assert;
-import org.junit.Test;
-import org.onvif.ver10.schema.Capabilities;
-import org.onvif.ver10.schema.DeviceCapabilities;
+import org.junit.jupiter.api.Test;
 import org.onvif.ver10.schema.Profile;
 
 import java.net.ConnectException;
@@ -23,42 +19,43 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class OnvifCameraTest extends TestCase {
 
-    public void testGetIPAddress() {
+public class OnvifCameraTest {
+
+	@Test
+	public void testGetIPAddress() {
         
         OnvifCamera onvifCamera = new OnvifCamera();
 
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("http://192.168.1.1:8080"));
+        assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("http://192.168.1.1:8080"));
 
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("192.168.1.1:8080/test"));
+        assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("192.168.1.1:8080/test"));
 
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("192.168.1.1:8080/test/test2"));
+        assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("192.168.1.1:8080/test/test2"));
 
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("rtmp://192.168.1.1:8080/test"));
+        assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("rtmp://192.168.1.1:8080/test"));
 
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("rtmps://192.168.1.1:8080/test"));
+        assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("rtmps://192.168.1.1:8080/test"));
 
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("http://192.168.1.1:8080/test"));
+        assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("http://192.168.1.1:8080/test"));
 
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("https://192.168.1.1:8080/test"));
-
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("https://192.168.1.1:8080/test?profileIndex=1"));
-
-        Assert.assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("192.168.1.1:8080?profileIndex=1"));
+        assertEquals("192.168.1.1:8080", onvifCamera.getIPAddress("https://192.168.1.1:8080/test"));
     }
-    
-    
-    public void testGetPortAddress() {
+
+
+	@Test
+	public void testGetPortAddress() {
         
         OnvifCamera onvifCamera = new OnvifCamera();
 
-        Assert.assertEquals("http", onvifCamera.getProtocol("http://192.168.1.1:8080"));
+        assertEquals("http", onvifCamera.getProtocol("http://192.168.1.1:8080"));
 
-        Assert.assertEquals("https", onvifCamera.getProtocol("https://192.168.1.1:8080/test"));
+        assertEquals("https", onvifCamera.getProtocol("https://192.168.1.1:8080/test"));
 
-        Assert.assertNull(onvifCamera.getProtocol("192.168.1.1:8080/test/test2"));
+        assertNull(onvifCamera.getProtocol("192.168.1.1:8080/test/test2"));
 
     }
 

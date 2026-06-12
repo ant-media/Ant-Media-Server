@@ -1,17 +1,16 @@
 package io.antmedia.test.analytic.model;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Before;
-import org.junit.Test;
-
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import io.antmedia.analytic.model.PlayerStatsEvent;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PlayerStatsEventTest {
 
     private PlayerStatsEvent playerStatsEvent;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         playerStatsEvent = new PlayerStatsEvent();
     }

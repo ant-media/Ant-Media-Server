@@ -1,11 +1,10 @@
 package io.antmedia.test.webrtc.datachannel;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-
 import io.antmedia.webrtc.datachannel.event.AudioLevelEvent;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.antmedia.webrtc.datachannel.event.RoleEvent;
+import org.junit.jupiter.api.Test;
 
 public class EventTypeTest {
 	

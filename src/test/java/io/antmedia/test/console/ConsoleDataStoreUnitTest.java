@@ -1,8 +1,8 @@
 package io.antmedia.test.console;
 
-import org.junit.Test;
-
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
+
+import static org.junit.jupiter.api.Assertions.*;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.datastore.MongoStore;
 import io.antmedia.console.datastore.RedisStore;
@@ -11,8 +11,7 @@ import io.antmedia.datastore.db.types.UserType;
 import io.vertx.core.Vertx;
 
 import java.util.HashMap;
-
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
 
 
 public class ConsoleDataStoreUnitTest {

@@ -1,11 +1,11 @@
 package io.antmedia.test.settings;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.net.InetAddress;
@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
@@ -30,7 +30,6 @@ import org.webrtc.Logging;
 import io.antmedia.AppSettings;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.settings.ServerSettings;
-
 
 
 @ContextConfiguration(locations = { "../test.xml" })

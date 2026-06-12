@@ -1,12 +1,12 @@
 package io.antmedia.integration;
 
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,11 +42,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.message.BasicHeader;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -126,7 +126,7 @@ public class AppFunctionalV2Test {
 		return OS_TYPE;
 	}
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
@@ -135,7 +135,7 @@ public class AppFunctionalV2Test {
 		avformat_network_init();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		restService = new BroadcastRestService();
 
@@ -190,7 +190,7 @@ public class AppFunctionalV2Test {
 	}
 
 
-	@After
+	@AfterEach
 	public void after() {
 		restService = null;
 		try {
@@ -220,7 +220,7 @@ public class AppFunctionalV2Test {
 
 	@Test
 	public void testSetUpEndPointsV2() {
-		assertTrue("This test is moved to RestServiceV2Test#testAddEndpointCrossCheckV2", true);
+		assertTrue(true, "This test is moved to RestServiceV2Test#testAddEndpointCrossCheckV2");
 	}
 
 	@Test

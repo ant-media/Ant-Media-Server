@@ -1,14 +1,15 @@
 package io.antmedia.test.db;
 
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationContext;
@@ -32,7 +33,7 @@ public class ConsoleDataStoreFactoryUnitTest {
     @Mock
     private Vertx vertx;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
         consoleDataStoreFactory = new ConsoleDataStoreFactory();
@@ -43,14 +44,14 @@ public class ConsoleDataStoreFactoryUnitTest {
     public void testSetAndGetDbName() {
         String dbName = "testDbName";
         consoleDataStoreFactory.setDbName(dbName);
-        assertEquals("DB name should be set correctly", dbName, consoleDataStoreFactory.getDbName());
+        assertEquals(dbName, consoleDataStoreFactory.getDbName(), "DB name should be set correctly");
     }
 
     @Test
     public void testSetAndGetDbType() {
         String dbType = DataStoreFactory.DB_TYPE_MONGODB;
         consoleDataStoreFactory.setDbType(dbType);
-        assertEquals("DB type should be set correctly", dbType, consoleDataStoreFactory.getDbType());
+        assertEquals(dbType, consoleDataStoreFactory.getDbType(), "DB type should be set correctly");
     }
 
     @Test
@@ -59,8 +60,8 @@ public class ConsoleDataStoreFactoryUnitTest {
         consoleDataStoreFactory.setDbHost("127.0.0.1");
         
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
-        assertNotNull("DataStore should not be null", dataStore);
-        assertTrue("DataStore should be of type MongoStore", dataStore instanceof MongoStore);
+        assertNotNull(dataStore, "DataStore should not be null");
+        assertTrue(dataStore instanceof MongoStore, "DataStore should be of type MongoStore");
     }
 
     @Test
@@ -70,8 +71,8 @@ public class ConsoleDataStoreFactoryUnitTest {
         consoleDataStoreFactory.setApplicationContext(applicationContext);
 
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
-        assertNotNull("DataStore should not be null", dataStore);
-        assertTrue("DataStore should be of type MapDBStore", dataStore instanceof MapDBStore);
+        assertNotNull(dataStore, "DataStore should not be null");
+        assertTrue(dataStore instanceof MapDBStore, "DataStore should be of type MapDBStore");
         dataStore.clear();
         dataStore.close();
     }
@@ -82,8 +83,8 @@ public class ConsoleDataStoreFactoryUnitTest {
         consoleDataStoreFactory.setDbHost("redis://127.0.0.1:6379");
 
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
-        assertNotNull("DataStore should not be null", dataStore);
-        assertTrue("DataStore should be of type RedisStore", dataStore instanceof RedisStore);
+        assertNotNull(dataStore, "DataStore should not be null");
+        assertTrue(dataStore instanceof RedisStore, "DataStore should be of type RedisStore");
     }
 
     @Test
@@ -91,6 +92,6 @@ public class ConsoleDataStoreFactoryUnitTest {
         consoleDataStoreFactory.setDbType("undefined_db_type");
 
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
-        assertNull("DataStore should be null for undefined DB type", dataStore);
+        assertNull(dataStore, "DataStore should be null for undefined DB type");
     }
 }

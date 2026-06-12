@@ -18,11 +18,15 @@
 
 package org.red5.server.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.TreeSet;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.red5.cache.impl.NoCacheImpl;
 import org.red5.io.ITag;
 import org.red5.io.ITagReader;
@@ -38,29 +42,28 @@ import org.red5.io.object.Serializer;
 import org.red5.server.service.flv.IFLVService;
 import org.red5.server.service.flv.impl.FLVService;
 
-import junit.framework.TestCase;
-
 /**
  * @author The Red5 Project
  * @author Dominick Accattato (daccattato@gmail.com)
  * @author Luke Hubbard, Codegent Ltd (luke@codegent.com)
  */
-public class CuePointInjectionTest extends TestCase {
+public class CuePointInjectionTest {
 
     private IFLVService service;
 
-    @Override
-    public void setUp() {
+	@BeforeEach
+	public void setUp() {
         service = new FLVService();
     }
 
-    /**
-     * Test MetaData injection
-     * 
-     * @throws IOException
+	/**
+	 * Test MetaData injection
+	 * 
+	 * @throws IOException
      *             for fun
-     */
-    public void testCuePointInjection() throws IOException {
+	 */
+	@Test
+	public void testCuePointInjection() throws IOException {
         String path = "target/test-classes/fixtures/test_cue1.flv";
         File f = new File(path);
         System.out.println("Path: " + f.getAbsolutePath());
@@ -183,10 +186,11 @@ public class CuePointInjectionTest extends TestCase {
 
     }
 
-    /**
-     * Test to see if TreeSet is sorting properly
-     */
-    public void testCuePointOrder() {
+	/**
+	 * Test to see if TreeSet is sorting properly
+	 */
+	@Test
+	public void testCuePointOrder() {
         IMetaCue cue = new MetaCue<Object, Object>();
         cue.setName("cue_1");
         cue.setTime(0.01);

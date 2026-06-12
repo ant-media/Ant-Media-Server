@@ -1,6 +1,7 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -8,10 +9,10 @@ import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletContext;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -40,12 +41,12 @@ public class SubscriberBlockFilterTest {
     protected static Logger logger = LoggerFactory.getLogger(SubscriberBlockFilterTest.class);
 
 
-    @Before
+    @BeforeEach
     public void before() {
         subscriberBlockFilter = new SubscriberBlockFilter();
     }
 
-    @After
+    @AfterEach
     public void after() {
         subscriberBlockFilter = null;
     }

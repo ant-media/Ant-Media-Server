@@ -1,15 +1,15 @@
 package io.antmedia.test.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 
@@ -34,7 +34,7 @@ public class DataStoreFactoryUnitTest {
 	private DataStoreFactory dsf;
 	Vertx vertx = Vertx.vertx();
 
-	@Before
+	@BeforeEach
 	public void before() 
 	{
 		deleteMapDB();
@@ -50,7 +50,7 @@ public class DataStoreFactoryUnitTest {
 		dsf.setDataStore(null);
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		deleteMapDB();
 	}

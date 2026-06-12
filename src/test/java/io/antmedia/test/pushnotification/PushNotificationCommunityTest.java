@@ -1,13 +1,12 @@
 package io.antmedia.test.pushnotification;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.Arrays;
 
 import org.json.simple.JSONObject;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 import io.antmedia.pushnotification.PushNotificationServiceCommunity;
 import io.antmedia.rest.model.Result;
 

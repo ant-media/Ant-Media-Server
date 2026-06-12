@@ -1,14 +1,12 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.File;
 
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
@@ -16,6 +14,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -34,7 +34,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		System.setProperty("red5.root", ".");
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		acceptStreamFilter = new StreamAcceptFilter();
 		
@@ -53,7 +53,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setAddDateTimeToMp4FileName(false);
 	}
 	
-	@After
+	@AfterEach
 	public void after() {
 		acceptStreamFilter = null;
 

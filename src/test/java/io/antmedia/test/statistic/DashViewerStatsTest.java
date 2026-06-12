@@ -1,9 +1,10 @@
 package io.antmedia.test.statistic;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -13,9 +14,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -45,12 +46,12 @@ public class DashViewerStatsTest {
 	
 	private static Logger log = LoggerFactory.getLogger(DashViewerStatsTest.class);
 	
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		vertx = io.vertx.core.Vertx.vertx();
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		vertx.close();
 	}

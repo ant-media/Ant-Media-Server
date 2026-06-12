@@ -1,11 +1,10 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-
 import io.antmedia.rest.model.BasicStreamInfo;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.antmedia.webrtc.VideoCodec;
+import org.junit.jupiter.api.Test;
 
 public class BasicStreamInfoTest {
 

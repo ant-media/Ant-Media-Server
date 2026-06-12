@@ -1,12 +1,12 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doNothing;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -22,9 +22,9 @@ import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.Scope;
@@ -69,7 +69,7 @@ public class VoDRestServiceV2UnitTest {
 	Vertx vertx = io.vertx.core.Vertx.vertx();
 
 
-	@Before
+	@BeforeEach
 	public void before() {
 		restServiceReal = new VoDRestService();
 		File webapps = new File("webapps");
@@ -80,7 +80,7 @@ public class VoDRestServiceV2UnitTest {
 		}
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		restServiceReal = null;
 	}

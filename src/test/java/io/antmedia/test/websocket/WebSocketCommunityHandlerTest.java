@@ -2,8 +2,8 @@ package io.antmedia.test.websocket;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
@@ -26,7 +26,7 @@ public class WebSocketCommunityHandlerTest {
     private WebSocketCommunityHandler webSocketCommunityHandler;
     private Session session;
 
-    @Before
+    @BeforeEach
     public void setup() {
         session = Mockito.mock(Session.class);
         ApplicationContext context = mock(ApplicationContext.class);

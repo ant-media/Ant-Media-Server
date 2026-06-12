@@ -1,14 +1,12 @@
 package org.red5.server.stream.provider;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.red5.spring.ExtendedPropertyPlaceholderConfigurer.ResourceFilenameComparator;
 import org.slf4j.Logger;

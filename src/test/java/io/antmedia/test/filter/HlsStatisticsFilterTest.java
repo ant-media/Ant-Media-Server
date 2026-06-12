@@ -1,6 +1,9 @@
 package io.antmedia.test.filter;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -15,10 +18,10 @@ import jakarta.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -43,12 +46,12 @@ public class HlsStatisticsFilterTest {
 	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilterTest.class);
 
 
-	@Before
+	@BeforeEach
 	public void before() {
 		hlsStatisticsFilter = new HlsStatisticsFilter();
 	}
 	
-	@After
+	@AfterEach
 	public void after() {
 		hlsStatisticsFilter = null;
 	}
