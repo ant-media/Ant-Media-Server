@@ -816,6 +816,12 @@ public abstract class RestServiceBase {
 				ipAddrParts = serverAddr.split("/");
 				serverAddr = ipAddrParts[0];
 			}
+			
+			//Burak: I added this to get profileIndex 
+			if (serverAddr.contains("?")){
+				ipAddrParts = serverAddr.split("\\?");
+				serverAddr = ipAddrParts[0];
+			}
 
 			if (logger.isInfoEnabled())  {
 				logger.info("IP: {}", serverAddr.replaceAll(REPLACE_CHARS, "_"));
