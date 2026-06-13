@@ -39,14 +39,14 @@ public class OnvifCamera implements IOnvifCamera {
 	public int connect(String address, String username, String password) {
 		int result = CONNECT_ERROR;
 		String camIP = "";
-		int streamIndex = 0;
+		int profileIndex = 0;
 		try {
 
 			
 			//address may include http:// or https:// so get the IPAddress directly
 			camIP = getIPAddress(address);
 
-			streamIndex = getStreamIndex(address);
+			profileIndex = getProfileIndex(address);
 
 			String protocol = getProtocol(address);
 			
@@ -60,16 +60,17 @@ public class OnvifCamera implements IOnvifCamera {
 
 			if (profiles != null)
 			{
-				for (Profile profile : profiles) {
-					if (profile.getPTZConfiguration() != null) {
-						profileToken = profile.getToken();
-						break;
+				profileToken = profiles.get(profileIndex).getToken();
+				
+				if(profileToken == null) {
+					for (Profile profile : profiles) {
+						if (profile.getPTZConfiguration() != null) {
+							profileToken = profile.getToken();
+							break;
+						}
 					}
 				}
-				if (profileToken == null) {
-					profileToken = profiles.get(streamIndex).getToken();
-				}
-
+				
 				result = CONNECTION_SUCCESS;
 			}
 			else {
@@ -87,11 +88,11 @@ public class OnvifCamera implements IOnvifCamera {
 		return result;
 	}
 
-	private int getStreamIndex(String address) {
+	private int getProfileIndex(String address) {
 		int profileIndex = 0;
 		
 		if (address.contains("?")){
-			String[] ipAddrParts = address.split("?");
+			String[] ipAddrParts = address.split("\\?");
 			
 			String query = ipAddrParts[1];
 			String[] parameters = query.split("&");
@@ -334,7 +335,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 		}
 		if (ipAddr.contains("?")){
-			ipAddrParts = ipAddr.split("?");
+			ipAddrParts = ipAddr.split("\\?");
 			ipAddr = ipAddrParts[0];
 		}
 		return ipAddr;
