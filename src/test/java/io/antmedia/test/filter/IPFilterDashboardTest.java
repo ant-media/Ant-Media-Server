@@ -1,5 +1,7 @@
 package io.antmedia.test.filter;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -18,6 +20,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import io.antmedia.filter.IPFilterDashboard;
 import io.antmedia.settings.ServerSettings;
 
+@Tag("fast")
 public class IPFilterDashboardTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(IPFilterDashboardTest.class);

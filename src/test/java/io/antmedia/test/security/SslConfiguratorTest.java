@@ -1,5 +1,7 @@
 package io.antmedia.test.security;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -19,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.rest.model.SslConfigurationType;
 import io.antmedia.security.SslConfigurator;
 
+@Tag("fast")
 public class SslConfiguratorTest {
     protected static Logger logger = LoggerFactory.getLogger(SslConfiguratorTest.class);
 

@@ -1,5 +1,7 @@
 package io.antmedia.test.webrtc.adaptor;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.Frame.Type;
 
+@Tag("fast")
 public class FrameTest {
 	
 	@Test

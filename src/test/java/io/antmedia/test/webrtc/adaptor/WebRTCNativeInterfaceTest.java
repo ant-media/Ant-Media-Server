@@ -1,5 +1,7 @@
 package io.antmedia.test.webrtc.adaptor;
 
+
+import org.junit.jupiter.api.Tag;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +50,7 @@ import org.webrtc.audio.WebRtcAudioTrack;
 import io.antmedia.webrtc.api.IAudioRecordListener;
 import io.antmedia.webrtc.api.IAudioTrackListener;
 
+@Tag("fast")
 public class WebRTCNativeInterfaceTest {
 
 	//moved to enterprise because it's crashing time to time in travis ci while loading the lib and I could not resolve

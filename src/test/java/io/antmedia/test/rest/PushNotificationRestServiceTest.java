@@ -1,5 +1,7 @@
 package io.antmedia.test.rest;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,6 +27,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.ServletContext;
 
+@Tag("fast")
 public class PushNotificationRestServiceTest {
 	
 	

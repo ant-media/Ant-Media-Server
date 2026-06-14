@@ -1,5 +1,7 @@
 package io.antmedia.test.console;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,6 +20,7 @@ import io.antmedia.console.rest.ClusterRestServiceV2;
 import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.model.Result;
 
+@Tag("fast")
 public class ClusterRestServiceV2Test {
 	
 	

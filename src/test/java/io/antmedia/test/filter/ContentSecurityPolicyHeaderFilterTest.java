@@ -1,5 +1,7 @@
 package io.antmedia.test.filter;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -23,6 +25,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.filter.ContentSecurityPolicyHeaderFilter;
 import io.antmedia.filter.JWTFilter;
 
+@Tag("fast")
 public class ContentSecurityPolicyHeaderFilterTest {
 	
 	protected static Logger logger = LoggerFactory.getLogger(ContentSecurityPolicyHeaderFilterTest.class);

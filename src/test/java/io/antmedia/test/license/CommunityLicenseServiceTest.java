@@ -1,5 +1,7 @@
 package io.antmedia.test.license;
 
+
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import io.antmedia.licence.CommunityLicenceService;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.settings.ServerSettings;
 
+@Tag("fast")
 public class CommunityLicenseServiceTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(CommunityLicenseServiceTest.class);

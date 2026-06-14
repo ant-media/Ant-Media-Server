@@ -1,5 +1,7 @@
 package io.antmedia.test.filter;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -46,6 +48,7 @@ import io.antmedia.filter.DashStatisticsFilter;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
+@Tag("fast")
 public class DashStatisticsFilterTest {
 	
 	private DashStatisticsFilter dashStatisticsFilter;

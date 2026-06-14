@@ -1,5 +1,7 @@
 package io.antmedia.test;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.red5.server.Shutdown;
 
+@Tag("fast")
 public class ShutdownTest {
 	
 	

@@ -1,5 +1,7 @@
 package io.antmedia.test.rest;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import io.antmedia.console.rest.SupportRestService;
 
+@Tag("fast")
 public class SupportRestServiceTest {
 
 	

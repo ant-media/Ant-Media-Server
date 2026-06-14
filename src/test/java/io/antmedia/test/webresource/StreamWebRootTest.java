@@ -1,5 +1,7 @@
 package io.antmedia.test.webresource;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -7,6 +9,7 @@ import org.mockito.Mockito;
 
 import io.antmedia.webresource.StreamWebRoot;
 
+@Tag("fast")
 public class StreamWebRootTest {
 	
 	@Test

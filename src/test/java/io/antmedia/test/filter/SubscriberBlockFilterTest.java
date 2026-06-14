@@ -1,5 +1,7 @@
 package io.antmedia.test.filter;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.Mockito.mock;
@@ -34,6 +36,7 @@ import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 import jakarta.ws.rs.HttpMethod;
 
+@Tag("fast")
 public class SubscriberBlockFilterTest {
 
     private SubscriberBlockFilter subscriberBlockFilter;

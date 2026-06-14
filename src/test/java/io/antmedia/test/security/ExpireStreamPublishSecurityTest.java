@@ -1,4 +1,6 @@
 package io.antmedia.test.security;
+
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -9,6 +11,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.security.ExpireStreamPublishSecurity;
 
+@Tag("fast")
 public class ExpireStreamPublishSecurityTest {
 	
 	

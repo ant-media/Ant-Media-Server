@@ -18,6 +18,7 @@
 
 package org.red5.server.service;
 
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
@@ -47,6 +48,7 @@ import org.red5.server.service.flv.impl.FLVService;
  * @author Dominick Accattato (daccattato@gmail.com)
  * @author Luke Hubbard, Codegent Ltd (luke@codegent.com)
  */
+@org.junit.jupiter.api.Tag("fast")
 public class CuePointInjectionTest {
 
     private IFLVService service;

@@ -1,11 +1,14 @@
 package io.antmedia.test.analytic.model;
 
+
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import io.antmedia.analytic.model.PlayerStatsEvent;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Tag("fast")
 public class PlayerStatsEventTest {
 
     private PlayerStatsEvent playerStatsEvent;

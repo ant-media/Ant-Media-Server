@@ -18,6 +18,8 @@
 
 package org.red5.server.service;
 
+
+import org.junit.jupiter.api.Tag;
 import java.io.File;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,7 @@ import org.red5.io.flv.meta.MetaData;
 import org.red5.io.flv.meta.MetaService;
 import org.red5.server.service.flv.impl.FLVService;
 
+@Tag("fast")
 public class MetaServiceTest {
 
     private FLVService service;

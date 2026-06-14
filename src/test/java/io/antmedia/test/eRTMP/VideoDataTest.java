@@ -1,5 +1,7 @@
 package io.antmedia.test.eRTMP;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -14,6 +16,7 @@ import org.red5.server.net.rtmp.event.VideoData.ExVideoPacketType;
 import org.red5.server.net.rtmp.event.VideoData.FrameType;
 import org.red5.server.net.rtmp.event.VideoData.VideoFourCC;
 
+@Tag("fast")
 public class VideoDataTest {
 
 

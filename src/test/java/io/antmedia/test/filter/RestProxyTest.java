@@ -1,5 +1,7 @@
 package io.antmedia.test.filter;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -50,6 +52,7 @@ import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 import jakarta.ws.rs.HttpMethod;
 
+@Tag("fast")
 public class RestProxyTest {
 	protected static Logger logger = LoggerFactory.getLogger(IPFilterTest.class);
 	@Rule

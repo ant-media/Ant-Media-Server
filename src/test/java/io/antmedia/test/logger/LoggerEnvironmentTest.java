@@ -1,5 +1,7 @@
 package io.antmedia.test.logger;
 
+
+import org.junit.jupiter.api.Tag;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -8,6 +10,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import io.antmedia.logger.LoggerEnvironment;
 
+@Tag("fast")
 public class LoggerEnvironmentTest {
 
     @AfterEach

@@ -1,4 +1,6 @@
 package io.antmedia.test.filter;
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -39,6 +41,7 @@ import io.antmedia.filter.HlsStatisticsFilter;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
+@Tag("fast")
 public class HlsStatisticsFilterTest {
 	
 	private HlsStatisticsFilter hlsStatisticsFilter;

@@ -1,5 +1,7 @@
 package io.antmedia.test.statistic;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,6 +42,7 @@ import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.ViewerStats;
 import io.vertx.core.Vertx;
 
+@Tag("fast")
 public class DashViewerStatsTest {
 	
 	static Vertx vertx;	

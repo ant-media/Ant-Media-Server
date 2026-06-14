@@ -1,5 +1,7 @@
 package io.antmedia.test.websocket;
 
+
+import org.junit.jupiter.api.Tag;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
+@Tag("fast")
 public class WebSocketCommunityHandlerTest {
 
     private WebSocketCommunityHandler webSocketCommunityHandler;

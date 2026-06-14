@@ -1,5 +1,7 @@
 package io.antmedia.test.db;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -29,6 +31,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.storage.StorageClient;
 
+@Tag("fast")
 public class AppSettingsTest {
 	String appName = "TestApp";
 	String path = "webapps/"+appName+"/WEB-INF/red5-web.properties";

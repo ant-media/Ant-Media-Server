@@ -1,5 +1,7 @@
 package io.antmedia.test.eRTMP;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,6 +18,7 @@ import org.red5.codec.HEVCVideo;
 import org.red5.server.net.rtmp.event.VideoData;
 
 
+@Tag("fast")
 public class HEVCVideoTest  {
 
 	private HEVCVideo hevcVideo;

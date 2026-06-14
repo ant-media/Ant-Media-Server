@@ -1,6 +1,8 @@
 package io.antmedia.test;
 
 
+
+import org.junit.jupiter.api.Tag;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,6 +12,7 @@ import io.antmedia.shutdown.IShutdownListener;
 import org.junit.jupiter.api.Test;
 
 
+@Tag("fast")
 public class AMSShutdownManagerUnitTest {
 	
 	@Test

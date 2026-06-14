@@ -18,6 +18,7 @@
 
 package org.red5.server.service;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.util.TreeSet;
@@ -45,6 +46,7 @@ import org.red5.server.service.flv.impl.FLVService;
  * @author Dominick Accattato (daccattato@gmail.com)
  * @author Luke Hubbard, Codegent Ltd (luke@codegent.com)
  */
+@org.junit.jupiter.api.Tag("fast")
 public class MetaDataInjectionTest {
 
     private IFLVService service;

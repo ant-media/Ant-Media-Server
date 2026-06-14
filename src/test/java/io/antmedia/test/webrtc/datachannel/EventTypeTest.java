@@ -1,11 +1,14 @@
 package io.antmedia.test.webrtc.datachannel;
 
+
+import org.junit.jupiter.api.Tag;
 import io.antmedia.webrtc.datachannel.event.AudioLevelEvent;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.antmedia.webrtc.datachannel.event.RoleEvent;
 import org.junit.jupiter.api.Test;
 
+@Tag("fast")
 public class EventTypeTest {
 	
 	@Test

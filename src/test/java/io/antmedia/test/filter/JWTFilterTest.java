@@ -1,5 +1,7 @@
 package io.antmedia.test.filter;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,6 +25,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import io.antmedia.AppSettings;
 import io.antmedia.filter.JWTFilter;
 
+@Tag("fast")
 public class JWTFilterTest {
 	
 	protected static Logger logger = LoggerFactory.getLogger(JWTFilterTest.class);

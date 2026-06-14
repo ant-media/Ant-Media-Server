@@ -1,5 +1,7 @@
 package io.antmedia.test.console;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,6 +32,7 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 
+@Tag("fast")
 public class WarDownloadServletTest {
 	
 	@Test

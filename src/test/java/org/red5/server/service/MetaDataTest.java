@@ -17,6 +17,8 @@
  */
 
 package org.red5.server.service;
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.AfterEach;
@@ -30,6 +32,7 @@ import org.red5.io.flv.meta.MetaData;
  * @author The Red5 Project
  * @author daccattato (daccattato@gmail.com)
  */
+@Tag("fast")
 public class MetaDataTest {
 
     MetaData<?, ?> data;

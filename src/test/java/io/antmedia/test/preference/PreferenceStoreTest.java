@@ -1,5 +1,7 @@
 package io.antmedia.test.preference;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -12,6 +14,7 @@ import java.nio.file.Files;
 import org.junit.jupiter.api.Test;
 import io.antmedia.datastore.preference.PreferenceStore;
 
+@Tag("fast")
 public class PreferenceStoreTest {
 
 

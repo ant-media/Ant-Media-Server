@@ -1,5 +1,7 @@
 package org.red5.server.stream;
 
+
+import org.junit.jupiter.api.Tag;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -34,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.internal.util.MockUtil.resetMock;
 
+@Tag("fast")
 public class StreamServiceTest {
 
 

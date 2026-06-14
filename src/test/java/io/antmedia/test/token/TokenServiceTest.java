@@ -1,5 +1,7 @@
 package io.antmedia.test.token;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -33,6 +35,7 @@ import io.antmedia.filter.TokenSessionFilter;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.MockTokenService;
 
+@Tag("fast")
 public class TokenServiceTest {
 	protected static Logger logger = LoggerFactory.getLogger(TokenServiceTest.class);
 

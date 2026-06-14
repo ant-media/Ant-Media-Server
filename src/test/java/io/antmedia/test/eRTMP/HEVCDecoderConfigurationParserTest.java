@@ -1,10 +1,13 @@
 package io.antmedia.test.eRTMP;
 
+
+import org.junit.jupiter.api.Tag;
 import io.antmedia.eRTMP.HEVCDecoderConfigurationParser;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Tag("fast")
 public class HEVCDecoderConfigurationParserTest {
 
 	

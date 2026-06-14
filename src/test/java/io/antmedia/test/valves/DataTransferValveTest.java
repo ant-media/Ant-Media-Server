@@ -1,6 +1,8 @@
 package io.antmedia.test.valves;
 
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import static org.mockito.Mockito.*;
@@ -27,6 +29,7 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 
+@Tag("fast")
 public class DataTransferValveTest {
 
 	@InjectMocks

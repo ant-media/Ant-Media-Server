@@ -1,5 +1,7 @@
 package io.antmedia.test.pushnotification;
 
+
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import io.antmedia.pushnotification.PushNotificationServiceCommunity;
 import io.antmedia.rest.model.Result;
 
+@Tag("fast")
 public class PushNotificationCommunityTest {
 	
 	
