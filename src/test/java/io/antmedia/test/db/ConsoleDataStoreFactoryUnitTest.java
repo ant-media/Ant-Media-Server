@@ -10,8 +10,9 @@ import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
@@ -22,7 +23,13 @@ import io.antmedia.console.datastore.RedisStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
+@ExtendWith(MockitoExtension.class)
+@Testcontainers
 public class ConsoleDataStoreFactoryUnitTest {
 
     private ConsoleDataStoreFactory consoleDataStoreFactory;
@@ -33,11 +40,17 @@ public class ConsoleDataStoreFactoryUnitTest {
     @Mock
     private Vertx vertx;
 
+    @Container
+    public GenericContainer redis = new GenericContainer(DockerImageName.parse("redis:6-alpine"))
+            .withExposedPorts(6379);
+
+    @Container
+    public GenericContainer mongo = new GenericContainer(DockerImageName.parse("mongo:7"))
+            .withExposedPorts(27017);
+
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
         consoleDataStoreFactory = new ConsoleDataStoreFactory();
-        when(applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
     }
 
     @Test
@@ -57,17 +70,19 @@ public class ConsoleDataStoreFactoryUnitTest {
     @Test
     public void testGetDataStoreMongoDB() {
         consoleDataStoreFactory.setDbType(DataStoreFactory.DB_TYPE_MONGODB);
-        consoleDataStoreFactory.setDbHost("127.0.0.1");
+        consoleDataStoreFactory.setDbHost("mongodb://" + mongo.getHost() + ":" + mongo.getFirstMappedPort());
         
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
         assertNotNull(dataStore, "DataStore should not be null");
         assertTrue(dataStore instanceof MongoStore, "DataStore should be of type MongoStore");
+        dataStore.close();
     }
 
     @Test
     public void testGetDataStoreMapDB() {
         consoleDataStoreFactory.setDbType(DataStoreFactory.DB_TYPE_MAPDB);
 
+        when(applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
         consoleDataStoreFactory.setApplicationContext(applicationContext);
 
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
@@ -80,11 +95,12 @@ public class ConsoleDataStoreFactoryUnitTest {
     @Test
     public void testGetDataStoreRedisDB() {
         consoleDataStoreFactory.setDbType(DataStoreFactory.DB_TYPE_REDISDB);
-        consoleDataStoreFactory.setDbHost("redis://127.0.0.1:6379");
+        consoleDataStoreFactory.setDbHost("redis://" + redis.getHost() + ":" + redis.getFirstMappedPort());
 
         AbstractConsoleDataStore dataStore = consoleDataStoreFactory.getDataStore();
         assertNotNull(dataStore, "DataStore should not be null");
         assertTrue(dataStore instanceof RedisStore, "DataStore should be of type RedisStore");
+        dataStore.close();
     }
 
     @Test
