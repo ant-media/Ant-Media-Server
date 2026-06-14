@@ -32,6 +32,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
@@ -55,6 +59,7 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@Testcontainers
 public class VoDRestServiceV2UnitTest {
 
 
@@ -67,6 +72,10 @@ public class VoDRestServiceV2UnitTest {
 	}
 
 	Vertx vertx = io.vertx.core.Vertx.vertx();
+
+	@Container
+	public static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
+			.withExposedPorts(27017);
 
 
 	@BeforeEach
@@ -83,6 +92,10 @@ public class VoDRestServiceV2UnitTest {
 	@AfterEach
 	public void after() {
 		restServiceReal = null;
+	}
+
+	private String mongoUri() {
+		return "mongodb://" + mongo.getHost() + ":" + mongo.getFirstMappedPort();
 	}
 
 	@Test
@@ -456,7 +469,7 @@ public class VoDRestServiceV2UnitTest {
 		MapDBStore mapDataStore = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
 		vodSorting(mapDataStore);
 
-		DataStore mongoDataStore = new MongoStore("127.0.0.1", "testdb");
+		DataStore mongoDataStore = new MongoStore(mongoUri(), "testdb");
 		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
 
 		store.find(VoD.class).delete(new DeleteOptions().multi(true));

@@ -49,6 +49,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressEventType;
@@ -105,6 +109,7 @@ import jakarta.ws.rs.core.Response.Status;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@Testcontainers
 public class BroadcastRestServiceV2UnitTest {
 
 
@@ -118,6 +123,10 @@ public class BroadcastRestServiceV2UnitTest {
 
 	Vertx vertx = io.vertx.core.Vertx.vertx();
 
+	@Container
+	public static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:6-alpine"))
+			.withExposedPorts(6379);
+
 
 	@BeforeEach
 	public void before() {
@@ -127,6 +136,10 @@ public class BroadcastRestServiceV2UnitTest {
 	@AfterEach
 	public void after() {
 		restServiceReal = null;
+	}
+
+	private String redisUri() {
+		return "redis://" + redis.getHost() + ":" + redis.getFirstMappedPort();
 	}
 
 
@@ -632,7 +645,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2 = new Broadcast(null, "name2");
 		Broadcast broadcast3 = new Broadcast(null, "name3");
 		Broadcast broadcast4 = new Broadcast(null, "name4");
-		DataStore store = new RedisStore("redis://127.0.0.1:6379", "testdb" + RandomStringUtils.randomNumeric(5));
+		DataStore store = new RedisStore(redisUri(), "testdb" + RandomStringUtils.randomNumeric(5));
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -2887,7 +2900,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testGetStreamInfo() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
-		DataStore datastore = new RedisStore("redis://127.0.0.1:6379", "test" + RandomStringUtils.randomNumeric(5));
+		DataStore datastore = new RedisStore(redisUri(), "test" + RandomStringUtils.randomNumeric(5));
 
 		broadcastRestService.setDataStore(datastore);
 		StreamInfo streamInfo = new StreamInfo(true, 720, 1080, 300, true, 64, 1000, 1000, VideoCodec.H264);

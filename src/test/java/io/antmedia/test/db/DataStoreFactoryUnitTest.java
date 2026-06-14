@@ -12,6 +12,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -30,9 +34,14 @@ import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.vertx.core.Vertx;
 
+@Testcontainers
 public class DataStoreFactoryUnitTest {
 	private DataStoreFactory dsf;
 	Vertx vertx = Vertx.vertx();
+
+	@Container
+	public static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
+			.withExposedPorts(27017);
 
 	@BeforeEach
 	public void before() 
@@ -40,7 +49,7 @@ public class DataStoreFactoryUnitTest {
 		deleteMapDB();
 		dsf =  new DataStoreFactory();
 		dsf.setDbName("myDB");
-		dsf.setDbHost("127.0.0.1");
+		dsf.setDbHost(mongoUri());
 		dsf.setDbType("memorydb");
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
@@ -48,6 +57,10 @@ public class DataStoreFactoryUnitTest {
 		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 		dsf.setApplicationContext(context);
 		dsf.setDataStore(null);
+	}
+
+	private String mongoUri() {
+		return "mongodb://" + mongo.getHost() + ":" + mongo.getFirstMappedPort();
 	}
 
 	@AfterEach

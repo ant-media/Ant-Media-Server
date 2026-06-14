@@ -37,10 +37,14 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import com.google.gson.Gson;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
@@ -73,6 +77,7 @@ import io.antmedia.pushnotification.IPushNotificationService.PushNotificationSer
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
+@Testcontainers
 public class DBStoresUnitTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(DBStoresUnitTest.class);
@@ -80,6 +85,14 @@ public class DBStoresUnitTest {
 	private Vertx vertx = Vertx.vertx();
 
 	private AppSettings appSettings;
+
+	@Container
+	public static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:6-alpine"))
+			.withExposedPorts(6379);
+
+	@Container
+	public static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
+			.withExposedPorts(27017);
 
 	@BeforeEach
 	public void before() {
@@ -101,6 +114,14 @@ public class DBStoresUnitTest {
 				fail(e.getMessage());
 			}
 		}
+	}
+
+	private String mongoUri() {
+		return "mongodb://" + mongo.getHost() + ":" + mongo.getFirstMappedPort();
+	}
+
+	private String redisUri() {
+		return "redis://" + redis.getHost() + ":" + redis.getFirstMappedPort();
 	}
 
 	@Test
@@ -278,11 +299,11 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMongoStore() throws Exception {
 
-		DataStore dataStore = new MongoStore("127.0.0.1", "testdb");
+		DataStore dataStore = new MongoStore(mongoUri(), "testdb");
 		//delete db
 		dataStore.close(true);
 
-		dataStore = new MongoStore("127.0.0.1", "testdb");
+		dataStore = new MongoStore(mongoUri(), "testdb");
 
 		appSettings = new AppSettings();
 
@@ -359,10 +380,10 @@ public class DBStoresUnitTest {
 	@Test
 	public void testRedisStore() throws Exception {
 
-		DataStore dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
+		DataStore dataStore = new RedisStore(redisUri(), "testdb");
 		//delete db
 		dataStore.close(true);
-		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
+		dataStore = new RedisStore(redisUri(), "testdb");
 
 		appSettings = new AppSettings();
 
@@ -2799,7 +2820,7 @@ public class DBStoresUnitTest {
 		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
-		dsf.setDbHost("127.0.0.1");
+		dsf.setDbHost(mongoUri());
 		ApplicationContext context = mock(ApplicationContext.class);
 		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		AppSettings appSettings = new AppSettings();
@@ -2940,7 +2961,7 @@ public class DBStoresUnitTest {
 
 	@Test
 	public void testMongoDBSaveStreamInfo() {
-		MongoStore dataStore = new MongoStore("127.0.0.1", "testdb");
+		MongoStore dataStore = new MongoStore(mongoUri(), "testdb");
 		deleteStreamInfos(dataStore);
 		assertEquals(0, dataStore.getDataStore().find(StreamInfo.class).count());
 
@@ -3448,10 +3469,9 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMongoDBCollection() {
 		String dbName = "deleteMapdb";
-		MongoStore dataStore = new MongoStore("127.0.0.1", dbName);
+		MongoStore dataStore = new MongoStore(mongoUri(), dbName);
 
-		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("127.0.0.1"));
-		MongoClient client = new MongoClient(mongoUri);
+		MongoClient client = MongoClients.create(dataStore.getMongoConnectionUri(mongoUri()));
 
 
 		ArrayList<String> dbNames = new ArrayList<String>();
@@ -3463,6 +3483,7 @@ public class DBStoresUnitTest {
 		dbNames.clear();
 		client.listDatabaseNames().forEach(c-> dbNames.add(c));
 		assertFalse(dbNames.contains(dbName));
+		client.close();
 
 	}
 
@@ -4121,14 +4142,14 @@ public class DBStoresUnitTest {
 	 * 6. Node2.get() returns the stale cached updateTime instead of the fresh one from Mongo
 	 */
 	public void testViewerCountUpdateOverwritesCacheUpdateTime() throws InterruptedException {
-		MongoStore mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		MongoStore mongoStore1 = new MongoStore(mongoUri(), "testdb");
 		mongoStore1.close(true);
-		mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		mongoStore1 = new MongoStore(mongoUri(), "testdb");
 		AppSettings appSettings1 = new AppSettings();
 		mongoStore1.setAppSettings(appSettings1);
 
 		// Second MongoStore instance pointing to the same MongoDB — simulates a second cluster node
-		MongoStore mongoStore2 = new MongoStore("127.0.0.1", "testdb");
+		MongoStore mongoStore2 = new MongoStore(mongoUri(), "testdb");
 		AppSettings appSettings2 = new AppSettings();
 		mongoStore2.setAppSettings(appSettings2);
 
@@ -4227,14 +4248,14 @@ public class DBStoresUnitTest {
 	 * 6. Node2.get().getStatus() returns stale BROADCASTING instead of FINISHED from Mongo
 	 */
 	public void testViewerCountUpdateOverwritesCacheStatus() throws InterruptedException {
-		MongoStore mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		MongoStore mongoStore1 = new MongoStore(mongoUri(), "testdb");
 		mongoStore1.close(true);
-		mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		mongoStore1 = new MongoStore(mongoUri(), "testdb");
 		AppSettings appSettings1 = new AppSettings();
 		mongoStore1.setAppSettings(appSettings1);
 
 		// Second MongoStore instance pointing to the same MongoDB — simulates a second cluster node
-		MongoStore mongoStore2 = new MongoStore("127.0.0.1", "testdb");
+		MongoStore mongoStore2 = new MongoStore(mongoUri(), "testdb");
 		AppSettings appSettings2 = new AppSettings();
 		mongoStore2.setAppSettings(appSettings2);
 
