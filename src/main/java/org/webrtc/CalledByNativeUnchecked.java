@@ -16,7 +16,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- *  @CalledByNativeUnchecked is used to generate JNI bindings that do not check for exceptions.
+ *  {@code @CalledByNativeUnchecked} is used to generate JNI bindings that do not check for exceptions.
  *  It only makes sense to use this annotation on methods that declare a throws... spec.
  *  However, note that the exception received native side maybe an 'unchecked' (RuntimeExpception)
  *  such as NullPointerException, so the native code should differentiate these cases.
