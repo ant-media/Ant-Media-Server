@@ -18,6 +18,9 @@ env:
 jobs:  
   run-unit-tests:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: read
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -77,7 +80,18 @@ jobs:
         run: |
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
-          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/* -Dorg.bytedeco.javacpp.logger.debug=false org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true
+          SONAR_EXTRA_ARGS="-Dsonar.scm.provider=git"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            SONAR_EXTRA_ARGS="$SONAR_EXTRA_ARGS \
+              -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+              -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+              -Dsonar.pullrequest.base=${{ github.base_ref }} \
+              -Dsonar.pullrequest.provider=GitHub \
+              -Dsonar.scm.revision=${{ github.event.pull_request.head.sha }}"
+          else
+            SONAR_EXTRA_ARGS="$SONAR_EXTRA_ARGS -Dsonar.scm.revision=${{ github.sha }}"
+          fi
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/* -Dorg.bytedeco.javacpp.logger.debug=false org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true $SONAR_EXTRA_ARGS
       
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
