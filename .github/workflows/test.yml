@@ -30,14 +30,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-          
+        with:
+          fetch-depth: 0
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'adopt' #openjdk
           java-version: '17'
           cache: 'maven'
-        
+
       - name: Add MongoDB 6.0 GPG key and repository
         run: |
           if [ ! -f /usr/share/keyrings/mongodb-server-6.0.gpg ]; then
@@ -70,6 +72,8 @@ jobs:
            
           
       - name: Run tests and SonarCloud analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
