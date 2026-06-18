@@ -8,18 +8,18 @@ import io.antmedia.IUndeployPluginListener;
 
 public interface IClusterNotifier {
 
-	public static final String BEAN_NAME = "tomcat.cluster";
+	String BEAN_NAME = "tomcat.cluster";
 
-	public IClusterStore getClusterStore();
+	IClusterStore getClusterStore();
 
-	public void registerSettingUpdateListener(String appName, IAppSettingsUpdateListener listener);
+	void registerSettingUpdateListener(String appName, IAppSettingsUpdateListener listener);
 
-	public void registerCreateAppListener(ICreateAppListener createApplistener);
+	void registerCreateAppListener(ICreateAppListener createApplistener);
 
-	public void registerDeleteAppListener(IDeleteAppListener deleteApplistener);
+	void registerDeleteAppListener(IDeleteAppListener deleteApplistener);
 
-	public void registerDeployPluginListener(IDeployPluginListener listener);
+	void registerDeployPluginListener(IDeployPluginListener listener);
 
-	public void registerUndeployPluginListener(IUndeployPluginListener listener);
+	void registerUndeployPluginListener(IUndeployPluginListener listener);
 
 }

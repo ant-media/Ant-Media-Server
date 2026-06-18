@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -50,6 +51,8 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.plugin.api.PluginRecord;
+import io.antmedia.plugin.api.PluginState;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
@@ -818,22 +821,22 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public List<String> getAllPluginNames() {
-		java.util.Set<String> all = new java.util.HashSet<>();
+		Set<String> all = new HashSet<>();
 		all.addAll(PluginRegistry.getPluginNames());
 		if (pluginDeployer != null) {
 			all.addAll(pluginDeployer.getPluginNames());
 		}
-		return new ArrayList<>(all);
+		return Collections.unmodifiableList(new ArrayList<>(all));
 	}
 
-	public List<io.antmedia.plugin.api.PluginRecord> getAllPluginRecords() {
-		List<io.antmedia.plugin.api.PluginRecord> records = new ArrayList<>();
+	public List<PluginRecord> getAllPluginRecords() {
+		List<PluginRecord> records = new ArrayList<>();
 
 		// V1 startup-loaded plugins — minimal records with name and ACTIVE state
 		for (String name : PluginRegistry.getPluginNames()) {
-			io.antmedia.plugin.api.PluginRecord r = new io.antmedia.plugin.api.PluginRecord();
+			PluginRecord r = new PluginRecord();
 			r.setName(name);
-			r.setState(io.antmedia.plugin.api.PluginState.ACTIVE);
+			r.setState(PluginState.ACTIVE);
 			records.add(r);
 		}
 
@@ -842,14 +845,14 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			records.addAll(pluginDeployer.getAllPluginRecords());
 		}
 
-		return records;
+		return Collections.unmodifiableList(records);
 	}
 
 	public File getPluginsDir() {
 		String amsHome = System.getProperty("red5.root", "/usr/local/antmedia");
 		File dir = new File(amsHome, "plugins");
-		if (!dir.exists()) {
-			dir.mkdirs();
+		if (!dir.exists() && !dir.mkdirs()) {
+			log.warn("Could not create plugins directory: {}", dir.getAbsolutePath());
 		}
 		return dir;
 	}
