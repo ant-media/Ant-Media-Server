@@ -163,6 +163,10 @@
    	
     <bean id="srtAdaptor" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.srt.SRTAdaptor' : 'io.antmedia.srt.SRTAdaptor' }">
 	</bean>
+
+    <!-- Plugin hot-load engine. AdminApplication wires this in via @Autowired and uses it
+         for the ZIP install flow + bean registration into per-app Spring contexts. -->
+    <bean id="pluginDeployer" class="org.red5.server.plugin.PluginDeployer" />
    	
    	
     

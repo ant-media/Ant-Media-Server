@@ -66,7 +66,11 @@ public class ServerClassLoader extends URLClassLoader {
 
 	public ServerClassLoader(java.lang.ClassLoader parent) {
 		super(getJars(), parent);
-		
+
+	}
+
+	public void addPluginJar(URL url) {
+		addURL(url);
 	}
 	
 	public static URL[] getJars() {

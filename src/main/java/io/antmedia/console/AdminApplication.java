@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -50,8 +51,13 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.plugin.api.PluginRecord;
+import io.antmedia.plugin.api.PluginState;
+import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
+import org.red5.server.plugin.PluginDeployer;
+import org.red5.server.plugin.PluginRegistry;
 
 
 /**
@@ -96,8 +102,15 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	private IClusterNotifier clusterNotifier;
 
+	private PluginDeployer pluginDeployer;
 
 	private Queue<String> currentApplicationCreationProcesses = new ConcurrentLinkedQueue<>();
+
+	/** Allowed characters in a plugin name when used as a path parameter or filename. Blocks
+	 *  path traversal (`..`, `/`, `\`) and any non-alphanumeric character that could be
+	 *  abused to escape {@code {AMS_HOME}/plugins/}. */
+	private static final java.util.regex.Pattern PLUGIN_NAME_PATTERN =
+			java.util.regex.Pattern.compile("[a-zA-Z0-9_.\\-]+");
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -106,9 +119,16 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		vertx = (Vertx) scope.getContext().getBean("vertxCore");
 		warDeployer = (WarDeployer) app.getContext().getBean("warDeployer");
 
+		try {
+			pluginDeployer = (PluginDeployer) app.getContext().getBean("pluginDeployer");
+			pluginDeployer.scanInstalledPlugins();
+		} catch (Exception e) {
+			log.warn("PluginDeployer bean not found: {}", e.getMessage());
+		}
+
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) -> 
+			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) ->
 			createApplicationWithURL(appName, warFileURI, secretKey)
 					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
@@ -116,6 +136,13 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				return deleteApplication(appName, false);
 			});
 
+			// Plugin install/uninstall propagation across cluster nodes.
+			clusterNotifier.registerDeployPluginListener((pluginName, jarURI, secretKey) ->
+					deployPluginWithURL(pluginName, jarURI, secretKey));
+			clusterNotifier.registerUndeployPluginListener(pluginName -> {
+				log.info("Undeploying plugin with name {}", pluginName);
+				return undeployPlugin(pluginName);
+			});
 		}
 
 		return super.appStart(app);
@@ -659,4 +686,254 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	public void setWarDeployer(WarDeployer warDeployer) {
 		this.warDeployer = warDeployer;
 	}
+
+	public void setPluginDeployer(PluginDeployer pluginDeployer) {
+		this.pluginDeployer = pluginDeployer;
+	}
+
+	public PluginDeployer getPluginDeployer() {
+		return pluginDeployer;
+	}
+
+	public static boolean isValidPluginName(String pluginName) {
+		return pluginName != null && PLUGIN_NAME_PATTERN.matcher(pluginName).matches();
+	}
+
+	public synchronized boolean deployPlugin(String pluginName, InputStream inputStream) {
+		if (pluginDeployer == null) {
+			log.error("PluginDeployer not initialized");
+			return false;
+		}
+		if (PluginRegistry.getPluginNames().contains(pluginName)
+				|| pluginDeployer.getPluginNames().contains(pluginName)) {
+			log.warn("Plugin {} is already loaded", pluginName);
+			return false;
+		}
+
+		File zipFile = savePluginZip(pluginName, inputStream);
+		if (zipFile == null) {
+			return false;
+		}
+
+		Result loadResult = pluginDeployer.loadPluginFromZip(zipFile, getPluginsDir());
+		if (!loadResult.isSuccess()) {
+			log.error("Failed to load plugin {}: {}", pluginName, loadResult.getMessage());
+			return false;
+		}
+
+		log.info("Plugin {} deployed successfully", pluginName);
+		// TODO: cluster propagation — implement in TcpCluster (Enterprise) and call here
+		return true;
+	}
+
+	public boolean deployPluginWithURL(String pluginName, String jarFileURI, String secretKey) {
+		log.info("Deploying plugin {} from cluster URI {}", pluginName, jarFileURI);
+		try {
+			File zipFile = downloadPluginZip(pluginName, jarFileURI, secretKey);
+			if (zipFile == null) {
+				return false;
+			}
+			Result loadResult = pluginDeployer.loadPluginFromZip(zipFile, getPluginsDir());
+			if (!loadResult.isSuccess()) {
+				log.error("Failed to load plugin {} from cluster: {}", pluginName, loadResult.getMessage());
+				return false;
+			}
+			return true;
+		} catch (Exception e) {
+			log.error("Error deploying plugin {} from cluster: {}", pluginName, e.getMessage(), e);
+			return false;
+		}
+	}
+
+	public synchronized boolean installPluginFromUrl(String pluginId, String downloadUrl) {
+		if (pluginDeployer == null) {
+			log.error("PluginDeployer not initialized");
+			return false;
+		}
+
+		try {
+			File pluginsDir = getPluginsDir();
+			File zipFile = new File(pluginsDir, pluginId + ".zip");
+
+			// Download the ZIP from the registry
+			try (CloseableHttpClient client = getHttpClient()) {
+				RequestConfig config = RequestConfig.custom()
+						.setConnectTimeout(5000).setSocketTimeout(30000).build();
+				HttpRequestBase get = (HttpRequestBase) RequestBuilder.get()
+						.setUri(downloadUrl).build();
+				get.setConfig(config);
+
+				HttpResponse response = client.execute(get);
+				if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+					log.error("Failed to download plugin from {}. Status: {}",
+							downloadUrl, response.getStatusLine().getStatusCode());
+					return false;
+				}
+
+				try (InputStream in = response.getEntity().getContent();
+					 OutputStream out = new FileOutputStream(zipFile)) {
+					byte[] buf = new byte[4096];
+					int len;
+					while ((len = in.read(buf)) != -1) {
+						out.write(buf, 0, len);
+					}
+				}
+			}
+
+			log.info("Downloaded plugin ZIP from {} ({} bytes)", downloadUrl, zipFile.length());
+
+			Result loadResult = pluginDeployer.loadPluginFromZip(zipFile, pluginsDir);
+			if (!loadResult.isSuccess()) {
+				log.error("Failed to load plugin {}: {}", pluginId, loadResult.getMessage());
+				return false;
+			}
+
+			log.info("Plugin {} installed from URL successfully", pluginId);
+			return true;
+
+		} catch (Exception e) {
+			log.error("Error installing plugin {} from {}: {}", pluginId, downloadUrl, e.getMessage(), e);
+			return false;
+		}
+	}
+
+	public synchronized boolean undeployPlugin(String pluginName) {
+		if (pluginDeployer == null) {
+			log.error("PluginDeployer not initialized");
+			return false;
+		}
+
+		Result unloadResult = pluginDeployer.unloadPluginFromZip(pluginName, getPluginsDir());
+		if (!unloadResult.isSuccess()) {
+			log.warn("Failed to unload plugin {}: {}", pluginName, unloadResult.getMessage());
+			return false;
+		}
+
+		File zipFile = new File(getPluginsDir(), pluginName + ".zip");
+		if (zipFile.exists() && !zipFile.delete()) {
+			log.warn("Failed to delete plugin ZIP: {}", zipFile.getAbsolutePath());
+		}
+
+		log.info("Plugin {} undeployed successfully", pluginName);
+		// TODO: cluster propagation — implement in TcpCluster (Enterprise) and call here
+		return true;
+	}
+
+	public List<String> getAllPluginNames() {
+		Set<String> all = new HashSet<>();
+		all.addAll(PluginRegistry.getPluginNames());
+		if (pluginDeployer != null) {
+			all.addAll(pluginDeployer.getPluginNames());
+		}
+		return Collections.unmodifiableList(new ArrayList<>(all));
+	}
+
+	public List<PluginRecord> getAllPluginRecords() {
+		List<PluginRecord> records = new ArrayList<>();
+
+		// V1 startup-loaded plugins — minimal records with name and ACTIVE state
+		for (String name : PluginRegistry.getPluginNames()) {
+			PluginRecord r = new PluginRecord();
+			r.setName(name);
+			r.setState(PluginState.ACTIVE);
+			records.add(r);
+		}
+
+		// ZIP-installed plugins — full records from PluginDeployer
+		if (pluginDeployer != null) {
+			records.addAll(pluginDeployer.getAllPluginRecords());
+		}
+
+		return Collections.unmodifiableList(records);
+	}
+
+	public File getPluginsDir() {
+		String amsHome = System.getProperty("red5.root", "/usr/local/antmedia");
+		File dir = new File(amsHome, "plugins");
+		if (!dir.exists() && !dir.mkdirs()) {
+			log.warn("Could not create plugins directory: {}", dir.getAbsolutePath());
+		}
+		return dir;
+	}
+
+	@Nullable
+	public File savePluginZip(String pluginName, InputStream inputStream) {
+		if (inputStream == null) {
+			log.error("Plugin upload stream is null for {}", pluginName);
+			return null;
+		}
+		File saved = new File(getPluginsDir(), pluginName + ".zip");
+		try (OutputStream out = new FileOutputStream(saved)) {
+			byte[] buf = new byte[4096];
+			int read;
+			long total = 0;
+			while ((read = inputStream.read(buf)) != -1) {
+				out.write(buf, 0, read);
+				total += read;
+			}
+			out.flush();
+			log.info("Plugin ZIP saved: {} ({} bytes)", saved.getAbsolutePath(), total);
+		} catch (IOException e) {
+			log.error("Failed to save plugin ZIP for {}: {}", pluginName, e.getMessage());
+			return null;
+		}
+		return saved;
+	}
+
+	@Nullable
+	public File downloadPluginZip(String pluginName, String pluginFileUrl, String jwtSecretKey) throws IOException {
+		try (CloseableHttpClient client = getHttpClient()) {
+			RequestConfig requestConfig = RequestConfig.custom()
+					.setConnectTimeout(2000).setSocketTimeout(5000).build();
+
+			String jwtToken = JWTFilter.generateJwtToken(jwtSecretKey,
+					System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "pluginname", pluginName);
+
+			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get()
+					.setUri(pluginFileUrl)
+					.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken)
+					.build();
+			get.setConfig(requestConfig);
+
+			HttpResponse response = client.execute(get);
+			Header contentLengthHeader = response.getFirstHeader(HttpHeaders.CONTENT_LENGTH);
+			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK
+					|| (contentLengthHeader != null && "0".equals(contentLengthHeader.getValue()))) {
+				log.error("Cannot download plugin ZIP from {}. Status: {}",
+						pluginFileUrl, response.getStatusLine().getStatusCode());
+				return null;
+			}
+
+			try (BufferedInputStream in = new BufferedInputStream(response.getEntity().getContent())) {
+				return savePluginZip(pluginName, in);
+			}
+		}
+	}
+
+	public String buildPluginDownloadURI(String pluginName) {
+		String host = System.getProperty("server.host", "localhost");
+		String port = System.getProperty("server.http.port", "5080");
+		return "http://" + host + ":" + port + "/rest/v2/plugins/" + pluginName + "/download";
+	}
+
+	@Nullable
+	public String getClusterCommunicationKey() {
+		for (String name : getApplications()) {
+			if (APP_NAME.equals(name)) continue;
+			IScope appScope = getRootScope().getScope(name);
+			if (appScope == null) continue;
+			try {
+				AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) appScope.getContext()
+						.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+				if (adapter != null && adapter.getAppSettings() != null) {
+					String key = adapter.getAppSettings().getClusterCommunicationKey();
+					if (key != null && !key.isEmpty()) return key;
+				}
+			} catch (Exception e) {
+				log.debug("Could not read cluster key from app {}: {}", name, e.getMessage());
+			}
+		}
+		return null;
+	}
+
 }

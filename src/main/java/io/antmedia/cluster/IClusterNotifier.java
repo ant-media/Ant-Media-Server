@@ -3,17 +3,23 @@ package io.antmedia.cluster;
 import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.ICreateAppListener;
 import io.antmedia.IDeleteAppListener;
+import io.antmedia.IDeployPluginListener;
+import io.antmedia.IUndeployPluginListener;
 
 public interface IClusterNotifier {
-	
-	public static final String BEAN_NAME = "tomcat.cluster";
-	
-	public IClusterStore getClusterStore();
-	
-	public void registerSettingUpdateListener(String appName, IAppSettingsUpdateListener listener);
-	
-	public void registerCreateAppListener(ICreateAppListener createApplistener);
-	
-	public void registerDeleteAppListener(IDeleteAppListener deleteApplistener);
+
+	String BEAN_NAME = "tomcat.cluster";
+
+	IClusterStore getClusterStore();
+
+	void registerSettingUpdateListener(String appName, IAppSettingsUpdateListener listener);
+
+	void registerCreateAppListener(ICreateAppListener createApplistener);
+
+	void registerDeleteAppListener(IDeleteAppListener deleteApplistener);
+
+	void registerDeployPluginListener(IDeployPluginListener listener);
+
+	void registerUndeployPluginListener(IUndeployPluginListener listener);
 
 }
