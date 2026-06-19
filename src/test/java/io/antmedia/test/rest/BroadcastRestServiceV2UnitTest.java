@@ -2041,6 +2041,21 @@ public class BroadcastRestServiceV2UnitTest {
 
 
 	@Test
+	public void testGetRTSPURLWithAuthEncodesCredentials() {
+		class TestRestServiceBase extends RestServiceBase {
+			String getRTSPURLWithAuthForTest(String rtspURL, String username, String password) {
+				return getRTSPURLWithAuth(rtspURL, username, password);
+			}
+		}
+
+		TestRestServiceBase restServiceBase = new TestRestServiceBase();
+
+		String rtspURLWithAuth = restServiceBase.getRTSPURLWithAuthForTest("rtsp://192.168.1.10:554/live1.sdp", "admin user", "p@ss:word/one?#");
+
+		assertEquals("rtsp://admin%20user:p%40ss%3Aword%2Fone%3F%23@192.168.1.10:554/live1.sdp", rtspURLWithAuth);
+	}
+
+	@Test
 	public void testStartStopStreamSource()  {
 
 		//start ONVIF Camera emulator

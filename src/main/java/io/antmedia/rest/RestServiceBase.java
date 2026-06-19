@@ -9,6 +9,8 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -526,8 +528,7 @@ public abstract class RestServiceBase {
 			}
 
 			String rtspURL = connectionRes.getMessage();
-			String authparam = updatedBroadcast.getUsername() + ":" + updatedBroadcast.getPassword() + "@";
-			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
+			String rtspURLWithAuth = getRTSPURLWithAuth(rtspURL, updatedBroadcast.getUsername(), updatedBroadcast.getPassword());
 			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
 			updatedBroadcast.setStreamUrl(rtspURLWithAuth);
 
@@ -697,8 +698,7 @@ public abstract class RestServiceBase {
 
 			if (connResult.isSuccess()) {
 
-				String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
-				String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
+				String rtspURLWithAuth = getRTSPURLWithAuth(connResult.getMessage(), stream.getUsername(), stream.getPassword());
 				logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 				stream.setStreamUrl(rtspURLWithAuth);
 				Date currentDate = new Date();
@@ -772,6 +772,15 @@ public abstract class RestServiceBase {
 
 		return result;
 
+	}
+
+	protected static String getRTSPURLWithAuth(String rtspURL, String username, String password) {
+		String authparam = encodeURLUserInfo(username) + ":" + encodeURLUserInfo(password) + "@";
+		return RTSP + authparam + rtspURL.substring(RTSP.length());
+	}
+
+	protected static String encodeURLUserInfo(String value) {
+		return URLEncoder.encode(String.valueOf(value), StandardCharsets.UTF_8).replace("+", "%20");
 	}
 
 
@@ -1322,8 +1331,7 @@ public abstract class RestServiceBase {
 
 				if (result.isSuccess())
 				{
-					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + result.getMessage().substring(RTSP.length());
+					String rtspURLWithAuth = getRTSPURLWithAuth(result.getMessage(), broadcast.getUsername(), broadcast.getPassword());
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
 
