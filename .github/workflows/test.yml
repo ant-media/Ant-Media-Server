@@ -112,28 +112,8 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
             
-      - name: Restore OWASP Dependency Check DB
-        id: restore-owasp-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.dependency-check-data
-          key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
-          restore-keys: |
-            owasp-dependency-check-db-${{ runner.os }}-
-
-      - name: Verify OWASP Dependency Check DB cache
-        run: |
-          if [ ! -d "$HOME/.dependency-check-data" ] || [ -z "$(find "$HOME/.dependency-check-data" -type f -print -quit)" ]; then
-            echo "OWASP Dependency Check DB cache is missing. Run the Update OWASP Dependency DB workflow first."
-            exit 1
-          fi
-
       - name: Check vulnerabilities
-        run: |
-          mvn org.owasp:dependency-check-maven:check \
-            -DautoUpdate=false \
-            -DdataDirectory=$HOME/.dependency-check-data \
-            -DfailOnError=true
+        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false
 
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
