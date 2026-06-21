@@ -34,7 +34,7 @@ public interface ITokenBucketService {
      *            Capacity of the bucket.
      * @param speed
      *            Speed of the bucket. Bytes per millisecond.
-     * @return <tt>null</tt> if fail to create.
+     * @return {@code null} if fail to create.
      */
     ITokenBucket createTokenBucket(long capacity, long speed);
 
