@@ -38,6 +38,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.AppSettings;
 import io.antmedia.RecordType;
 import io.antmedia.cluster.IClusterNotifier;
@@ -70,6 +71,8 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.ServletContext;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 public abstract class RestServiceBase {
 
@@ -250,6 +253,52 @@ public abstract class RestServiceBase {
 		}
 
 		return createdBroadcast;
+	}
+
+	/**
+	 * Shared create-broadcast orchestration used by both v2 and v3 REST APIs so the
+	 * validation and creation behavior stays identical across versions.
+	 */
+	protected Response createBroadcastInternal(Broadcast broadcast, boolean autoStart) {
+
+		if (broadcast != null && broadcast.getStreamId() != null) {
+			try {
+				broadcast.setStreamId(broadcast.getStreamId().trim());
+				if (!broadcast.getStreamId().isEmpty()) {
+					if (getDataStore().get(broadcast.getStreamId()) != null) {
+						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
+					}
+					else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) {
+						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
+					}
+				}
+			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id set generated exception")).build();
+			}
+		}
+
+		Object returnObject = new Result(false, "unexpected parameters received");
+
+		if (autoStart) {
+			if (broadcast != null) {
+				returnObject = addStreamSource(broadcast);
+			}
+		}
+		else {
+			if (broadcast != null
+					&& ((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
+							|| (AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()) && !checkStreamUrl(broadcast.getStreamUrl())))) {
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid. ")).build();
+			}
+			if (broadcast != null && broadcast.getSubFolder() != null && broadcast.getSubFolder().contains("..")) {
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Subfolder is not valid. ")).build();
+			}
+			returnObject = createBroadcastWithStreamID(broadcast);
+		}
+
+		return Response.status(Status.OK).entity(returnObject).build();
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
