@@ -5,9 +5,14 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+concurrency:
+  group: update-owasp-db
+  cancel-in-progress: false
+
 jobs:
   update-owasp-db:
     runs-on: ubuntu-22.04
+    timeout-minutes: 360
 
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +41,9 @@ jobs:
         run: |
           mvn org.owasp:dependency-check-maven:update-only \
             -DnvdApiKey=$NVD_API_KEY \
+            -DnvdApiDelay=6000 \
+            -DconnectionTimeout=30000 \
+            -DreadTimeout=120000 \
             -DdataDirectory=$HOME/.dependency-check-data
 
       - name: Verify cache
