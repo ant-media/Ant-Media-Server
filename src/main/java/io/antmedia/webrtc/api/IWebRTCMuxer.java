@@ -49,7 +49,9 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * Send video packet to WebRTCClients
 	 * @param videoPacket
 	 * @param isKeyFrame
-	 * @param trackIndex
+	 * @param timestamp
+	 * @param frameRotation
+	 * @param trackId
 	 */
 	public void sendTrackVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation,
 			String trackId);

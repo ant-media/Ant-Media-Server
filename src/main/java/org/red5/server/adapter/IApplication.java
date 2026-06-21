@@ -23,7 +23,7 @@ import org.red5.server.api.IConnection;
 import org.red5.server.api.scope.IScope;
 
 /**
- * IApplication provides lifecycle methods that most communication applications will use. This interface defines the methods that are called by Red5 through an applications life. It is suggested that you NOT implement this interface yourself, but instead you should subclass <tt>org.red5.server.adapter.MultiThreadedApplicationAdapter</tt> or <tt>org.red5.server.adapter.ApplicationAdapter</tt>.
+ * IApplication provides lifecycle methods that most communication applications will use. This interface defines the methods that are called by Red5 through an applications life. It is suggested that you NOT implement this interface yourself, but instead you should subclass {@code org.red5.server.adapter.MultiThreadedApplicationAdapter} or {@code org.red5.server.adapter.ApplicationAdapter}.
  * 
  * @author Dominick Accattato
  */

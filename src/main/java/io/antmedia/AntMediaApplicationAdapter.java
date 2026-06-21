@@ -832,7 +832,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String streamEndedScript = appSettings.getStreamEndedScript();
 		if (StringUtils.isNotBlank(streamEndedScript)) 
 		{
-			runScript(streamEndedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
+			runConfiguredScript(streamEndedScript, broadcast.getStreamId(), getScope().getName());
 		}
 	}
 
@@ -1042,7 +1042,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				String streamStartedScript = appSettings.getStreamStartedScript();
 				if (StringUtils.isNotBlank(streamStartedScript)) 
 				{
-					runScript(streamStartedScript + "  " + broadcast.getStreamId() + "  " + getScope().getName());
+					runConfiguredScript(streamStartedScript, broadcast.getStreamId(), getScope().getName());
 				}
 
 
@@ -1279,7 +1279,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
 		if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {
-			runScript(muxerFinishScript + "  " + file.getAbsolutePath() + "  " + getScope().getName());
+			runConfiguredScript(muxerFinishScript, file.getAbsolutePath(), getScope().getName());
 		}
 
 
@@ -1313,11 +1313,40 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		notifyPublishStopped(mainTrack.getStreamId(), null, mainTrack.getStreamId());
 
 	}
-	public void runScript(String scriptFile) {
+	private void runConfiguredScript(String configuredScript, String... args) {
+		boolean isConfiguredScript = appSettings != null && StringUtils.isNotBlank(configuredScript) &&
+				(Strings.CS.equals(configuredScript, appSettings.getStreamStartedScript()) ||
+				Strings.CS.equals(configuredScript, appSettings.getStreamEndedScript()) ||
+				Strings.CS.equals(configuredScript, appSettings.getMuxerFinishScript()) ||
+				Strings.CS.equals(configuredScript, appSettings.getStreamIdleTimeoutScript()));
+
+		if (!isConfiguredScript) {
+			logger.warn("Discarding script because it is not configured in app settings: {}", configuredScript);
+			return;
+		}
+
+		File scriptFile = new File(configuredScript);
+		if (!scriptFile.isFile()) {
+			logger.warn("Discarding script because it is not a file: {}", configuredScript);
+			return;
+		}
+
+		List<String> command = new ArrayList<>();
+		command.add(configuredScript);
+		if (args != null) {
+			for (String arg : args) {
+				String scriptArgument = String.valueOf(arg);
+				if (scriptArgument.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) {
+					logger.warn("Discarding script because an argument includes special characters. Argument:{} and script:{}", scriptArgument, configuredScript);
+					return;
+				}
+				command.add(scriptArgument);
+			}
+		}
 		vertx.executeBlocking(() -> {
 			try {
-				logger.info("running script: {}", scriptFile);
-				Process exec = Runtime.getRuntime().exec(scriptFile);
+				logger.info("running script: {}", command);
+				Process exec = new ProcessBuilder(command).start();
 				
 				InputStream errorStream = exec.getErrorStream();
 	            byte[] data = new byte[1024];
@@ -1336,7 +1365,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	            
 				int result = exec.waitFor();
 
-				logger.info("completing script: {} with return value {}", scriptFile, result);
+				logger.info("completing script: {} with return value {}", command, result);
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			} catch (InterruptedException e) {
@@ -1391,8 +1420,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *                    {@link #HOOK_ACTION_START_LIVE_STREAM}
 	 * @param vodName     name of the vod
 	 * @param vodId       id of the vod in the datastore
-	 * @param parameters 
-	 * @return
+	 * @param parameters
 	 */
 	public void notifyHook(@NotNull String url, String id, String mainTrackId, String action, String streamName, String category,
 			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters) {
@@ -1578,7 +1606,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @param url
 	 * @param variables
 	 * @param retryAttempts
-	 * @param sendType the type of the entity to be sent. It can be either "application/x-www-form-urlencoded" or "application/json"
+	 * @param contentType the type of the entity to be sent. It can be either "application/x-www-form-urlencoded" or "application/json"
 	 */
 	public void sendPOST(String url, Map<String, Object> variables, int retryAttempts, String contentType) {
 		logger.info("Sending POST request to {}", url);
@@ -1910,7 +1938,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		
 		String streamIdleTimeoutScript = getAppSettings().getStreamIdleTimeoutScript();
 		if (StringUtils.isNotBlank(streamIdleTimeoutScript)) {
-			runScript(streamIdleTimeoutScript + " " + broadcast.getStreamId() + " " + getScope().getName());
+			runConfiguredScript(streamIdleTimeoutScript, broadcast.getStreamId(), getScope().getName());
 		}
 		
 	}
@@ -2589,7 +2617,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/**
 	 *
 	 * @param newSettings
-	 * @param checkUpdateTime
 	 * @return true if time are not equal, it means new settings is different than the current settings
 	 */
 	public boolean isIncomingSettingsDifferent(AppSettings newSettings)
