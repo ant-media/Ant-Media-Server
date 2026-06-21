@@ -1943,7 +1943,7 @@ public abstract class RestServiceBase {
 									vodId = RandomStringUtils.secure().nextAlphanumeric(24);
 									muxer.setVodId(vodId);
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
-									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+									logger.warn("{} recording is {} for stream: {}", recordType, status, streamId);
 								}
 
 							}
