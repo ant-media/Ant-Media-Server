@@ -1,4 +1,4 @@
-package io.antmedia.filter;
+package io.antmedia.rest;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

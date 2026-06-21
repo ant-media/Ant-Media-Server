@@ -3,8 +3,10 @@ package io.antmedia.test.filter;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,7 +25,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.algorithms.Algorithm;
 
-import io.antmedia.filter.JWTFilterV3;
+import io.antmedia.rest.JWTFilterV3;
 import io.antmedia.settings.ServerSettings;
 import jakarta.servlet.ServletContext;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -165,5 +167,58 @@ public class JWTFilterV3IntegrationTest {
 	@Test
 	public void testBlankSecretUnauthorized() {
 		assertStatus(Status.UNAUTHORIZED, runFilter(true, "", "Bearer " + validToken("admin:system")));
+	}
+
+	@Test
+	public void testNoAppContextUnauthorized() {
+		// Web application context not available (e.g. app still initializing) -> deny.
+		ServletContext servletContext = mock(ServletContext.class);
+		when(servletContext.getContextPath()).thenReturn("/" + APP);
+
+		JWTFilterV3 filter = new JWTFilterV3();
+		ReflectionTestUtils.setField(filter, "servletContext", servletContext);
+
+		ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+		when(requestContext.getHeaderString(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer " + validToken("admin:system"));
+
+		try (MockedStatic<WebApplicationContextUtils> mocked = mockStatic(WebApplicationContextUtils.class)) {
+			mocked.when(() -> WebApplicationContextUtils.getWebApplicationContext(servletContext)).thenReturn(null);
+			filter.filter(requestContext);
+		}
+
+		ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
+		verify(requestContext).abortWith(captor.capture());
+		assertEquals(Status.UNAUTHORIZED.getStatusCode(), captor.getValue().getStatus());
+	}
+
+	/**
+	 * On success the filter must expose the verified sub as a request property so the
+	 * resource can stamp asset ownership without re-parsing the token.
+	 */
+	@Test
+	public void testAuthenticatedUserIdPropertySetOnSuccess() {
+		String token = token("rest", "owner-123", "admin:system", new Date(System.currentTimeMillis() + 3600_000), SECRET);
+
+		ServletContext servletContext = mock(ServletContext.class);
+		when(servletContext.getContextPath()).thenReturn("/" + APP);
+		WebApplicationContext webContext = mock(WebApplicationContext.class);
+		ServerSettings settings = mock(ServerSettings.class);
+		when(settings.isJwtServerControlEnabled()).thenReturn(true);
+		when(settings.getJwtServerSecretKey()).thenReturn(SECRET);
+		when(webContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(settings);
+
+		JWTFilterV3 filter = new JWTFilterV3();
+		ReflectionTestUtils.setField(filter, "servletContext", servletContext);
+
+		ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+		when(requestContext.getHeaderString(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer " + token);
+
+		try (MockedStatic<WebApplicationContextUtils> mocked = mockStatic(WebApplicationContextUtils.class)) {
+			mocked.when(() -> WebApplicationContextUtils.getWebApplicationContext(servletContext)).thenReturn(webContext);
+			filter.filter(requestContext);
+		}
+
+		verify(requestContext, never()).abortWith(any());
+		verify(requestContext).setProperty(JWTFilterV3.AUTHENTICATED_USER_ID, "owner-123");
 	}
 }

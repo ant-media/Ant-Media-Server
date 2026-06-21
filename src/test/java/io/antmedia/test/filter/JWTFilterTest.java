@@ -171,7 +171,23 @@ public class JWTFilterTest {
             
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
-        }        
+        }
+
+        // v3 path bypasses the v2 filter (governed solely by JWTFilterV3), even with control on and an invalid token
+        {
+            filterChain = new MockFilterChain();
+            httpServletResponse = new MockHttpServletResponse();
+            httpServletRequest = new MockHttpServletRequest();
+
+            appSettings.setJwtControlEnabled(true);
+            Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
+
+            httpServletRequest.setRequestURI("/LiveApp/rest/v3/broadcasts/create");
+            httpServletRequest.addHeader("Authorization", invalidToken);
+
+            jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+            assertEquals(HttpStatus.OK.value(), httpServletResponse.getStatus());
+        }
     }
     
     

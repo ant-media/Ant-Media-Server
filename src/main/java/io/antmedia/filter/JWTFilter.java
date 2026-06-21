@@ -35,14 +35,24 @@ public class JWTFilter extends AbstractFilter {
 	public static final String JWT_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 	public static final String JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX = "Bearer";
 
+	/** v3 REST API is authorized exclusively by JWTFilterV3, so this v2 filter skips it. */
+	public static final String REST_V3_PATH_PREFIX = "/rest/v3/";
+
 
 	private AppSettings appSettings;
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 
+		HttpServletRequest httpRequest = (HttpServletRequest) request;
+
+		// v3 REST is authorized solely by JWTFilterV3 (JAX-RS). Don't apply the v2 filter to it.
+		if (httpRequest.getRequestURI() != null && httpRequest.getRequestURI().contains(REST_V3_PATH_PREFIX)) {
+			chain.doFilter(request, response);
+			return;
+		}
+
 		appSettings = getAppSettings();
 
-		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		if(appSettings == null){
 			((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Application is getting initialized");
 			return;

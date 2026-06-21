@@ -1,4 +1,4 @@
-package io.antmedia.filter;
+package io.antmedia.rest;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -45,6 +45,9 @@ public class JWTFilterV3 implements ContainerRequestFilter {
 	public static final String AUDIENCE_REST = "rest";
 	public static final String SCOPE_CLAIM = "scope";
 	public static final String BEARER_PREFIX = "Bearer";
+
+	/** Request property holding the authenticated user id (JWT sub) for downstream resources. */
+	public static final String AUTHENTICATED_USER_ID = "ams.v3.userId";
 
 	private static final String PERMISSION_ADMIN = "admin";
 	private static final String PERMISSION_USER = "user";
@@ -95,7 +98,11 @@ public class JWTFilterV3 implements ContainerRequestFilter {
 		String appName = getApplicationName();
 		if (!hasWriteAccess(scopeClaim.asString(), appName)) {
 			abort(requestContext, Status.FORBIDDEN, "JWT scope does not grant write access to this application");
+			return;
 		}
+
+		// Hand the already-parsed user id to downstream resources so they don't re-parse the token.
+		requestContext.setProperty(AUTHENTICATED_USER_ID, jwt.getSubject());
 	}
 
 	private DecodedJWT verify(String token, String secret) {

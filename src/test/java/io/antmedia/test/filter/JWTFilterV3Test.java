@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.antmedia.filter.JWTFilterV3;
+import io.antmedia.rest.JWTFilterV3;
 
 public class JWTFilterV3Test {
 
