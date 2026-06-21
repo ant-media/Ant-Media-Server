@@ -50,7 +50,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 			String protocol = getProtocol(address);
 			
-			nvt = new OnvifDevice(camIP, protocol, username, password);
+			nvt = createOnvifDevice(camIP, protocol, username, password);
 			nvt.getSoap().setLogging(false);
 			nvt.getDevices().getCapabilities().getDevice();
 			nvt.getDevices().getServices(false);
@@ -114,6 +114,10 @@ public class OnvifCamera implements IOnvifCamera {
 		}
 		
 		return profileIndex;
+	}
+
+	protected OnvifDevice createOnvifDevice(String camIP, String protocol, String username, String password) throws ConnectException, SOAPException {
+		return new OnvifDevice(camIP, protocol, username, password);
 	}
 
 	public String getProtocol(String address) {
