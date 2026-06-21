@@ -792,55 +792,55 @@ public abstract class RestServiceBase {
 	 */
 	protected static boolean validateStreamURL(String url) {
 
-		boolean ipAddrControl = false;
-		String[] ipAddrParts = null;
-		String serverAddr = url;
+		String serverAddr = extractServerAddress(url);
+		if (serverAddr == null) {
+			return false;
+		}
 
-		if(url != null && (url.startsWith(HTTP) ||
+		if (logger.isInfoEnabled())  {
+			logger.info("IP: {}", serverAddr.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return hasSupportedStreamProtocol(url) || isValidIPv4Address(serverAddr);
+	}
+
+	private static boolean hasSupportedStreamProtocol(String url) {
+		return url != null && (url.startsWith(HTTP) ||
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
 				url.startsWith("srt://") ||
-				url.startsWith(RTSP))) {
+				url.startsWith(RTSP));
+	}
 
-			ipAddrParts = url.split("//");
-			serverAddr = ipAddrParts[1];
-			ipAddrControl=true;
-
+	private static String extractServerAddress(String url) {
+		if (url == null) {
+			return null;
 		}
-		if (serverAddr != null) {
-			if (serverAddr.contains("@")){
 
-				ipAddrParts = serverAddr.split("@");
-				serverAddr = ipAddrParts[1];
-
-			}
-			if (serverAddr.contains(":")){
-
-				ipAddrParts = serverAddr.split(":");
-				serverAddr = ipAddrParts[0];
-
-			}
-			if (serverAddr.contains("/")){
-				ipAddrParts = serverAddr.split("/");
-				serverAddr = ipAddrParts[0];
-			}
-			
-			//Burak: I added this to get profileIndex 
-			if (serverAddr.contains("?")){
-				ipAddrParts = serverAddr.split("\\?");
-				serverAddr = ipAddrParts[0];
-			}
-
-			if (logger.isInfoEnabled())  {
-				logger.info("IP: {}", serverAddr.replaceAll(REPLACE_CHARS, "_"));
-			}
-
-			if(serverAddr.split("\\.").length == 4 && validateIPaddress(serverAddr)){
-				ipAddrControl = true;
-			}
+		String serverAddr = url;
+		if (hasSupportedStreamProtocol(url)) {
+			serverAddr = url.substring(url.indexOf("//") + 2);
 		}
-		return ipAddrControl;
+
+		serverAddr = substringAfter(serverAddr, "@");
+		serverAddr = substringBefore(serverAddr, ":");
+		serverAddr = substringBefore(serverAddr, "/");
+		return substringBefore(serverAddr, "?");
+	}
+
+	private static String substringAfter(String value, String delimiter) {
+		int index = value.indexOf(delimiter);
+		return index > -1 ? value.substring(index + delimiter.length()) : value;
+	}
+
+	private static String substringBefore(String value, String delimiter) {
+		int index = value.indexOf(delimiter);
+		return index > -1 ? value.substring(0, index) : value;
+	}
+
+	private static boolean isValidIPv4Address(String serverAddr) {
+		return serverAddr.split("\\.").length == 4 && validateIPaddress(serverAddr);
 	}
 
 	protected static boolean validateIPaddress(String ipaddress)  {
