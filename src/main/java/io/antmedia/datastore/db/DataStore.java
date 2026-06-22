@@ -370,7 +370,6 @@ public abstract class DataStore {
 	/**
 	 * Validates token
 	 * @param token
-	 * @param streamId
 	 * @return token if validated, null if not
 	 */
 	public abstract Token validateToken (Token token);
@@ -492,7 +491,7 @@ public abstract class DataStore {
 	 * adds subscriber to the datastore for this stream
 	 * @param streamId
 	 * @param subscriber - subscriber to be added
-	 * @return- true if set, false if not
+	 * @return true if set, false if not
 	 */	
 	public abstract boolean addSubscriber(String streamId, Subscriber subscriber);
 
@@ -500,7 +499,7 @@ public abstract class DataStore {
 	 * deletes subscriber from the datastore for this stream
 	 * @param streamId
 	 * @param subscriberId - id of the subsciber to be deleted
-	 * @return- true if set, false if not
+	 * @return true if set, false if not
 	 */		
 	public abstract boolean deleteSubscriber(String streamId, String subscriberId);
 
@@ -512,14 +511,14 @@ public abstract class DataStore {
 	 * 						publish, play, publish_play
 	 * 
 	 * @param seconds - duration of seconds to block the user
-	 * @return- true if set, false if not
+	 * @return true if set, false if not
 	 */
 	public abstract boolean blockSubscriber(String streamId, String subscriberId, String blockedType, int seconds);
 
 	/**
 	 * deletes all subscriber from the datastore for this stream
 	 * @param streamId
-	 * @return- true if set, false if not
+	 * @return true if set, false if not
 	 */		
 	public abstract boolean revokeSubscribers(String streamId);
 
@@ -527,7 +526,7 @@ public abstract class DataStore {
 	 * gets subscriber from the datastore
 	 * @param streamId
 	 * @param subscriberId - id of the subsciber to be deleted
-	 * @return- Subscriber
+	 * @return Subscriber
 	 */	
 	public abstract Subscriber getSubscriber (String streamId, String subscriberId);
 
@@ -554,7 +553,7 @@ public abstract class DataStore {
 	 * gets the connection status of the subscriber from the datastore
 	 * @param streamId
 	 * @param subscriberId - id of the subscriber 
-	 * @return- true if connected else false
+	 * @return true if connected else false
 	 */	
 	public boolean isSubscriberConnected(String streamId, String subscriberId) {
 		long startTime = System.nanoTime();
@@ -576,7 +575,7 @@ public abstract class DataStore {
 	 * @param streamId
 	 * @param subscriberId - id of the subscriber 
 	 * @param event - connection event which occured for this subscriber
-	 * @return- true if successful else false
+	 * @return true if successful else false
 	 */	
 	public boolean addSubscriberConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) {
 		long startTime = System.nanoTime();
@@ -638,8 +637,9 @@ public abstract class DataStore {
 	 * sets the avarage bitrate of the subscriber in the datastore
 	 * @param streamId
 	 * @param subscriberId - id of the subscriber 
-	 * @param event - bitrate measurement event
-	 * @return- true if successful else false
+	 * @param avgVideoBitrate average video bitrate
+	 * @param avgAudioBitrate average audio bitrate
+	 * @return true if successful else false
 	 */	
 	public boolean updateSubscriberBitrateEvent(String streamId, String subscriberId, long avgVideoBitrate, long avgAudioBitrate) {
 		boolean result = false;
@@ -667,7 +667,7 @@ public abstract class DataStore {
 	/**
 	 * sets the connection status of all the subscribers false in the datastore
 	 * called after an ungraceful shutdown
-	 * @return- true if successful else false
+	 * @return true if successful else false
 	 */	
 	public abstract boolean resetSubscribersConnectedStatus ();	
 
@@ -675,7 +675,7 @@ public abstract class DataStore {
 	 * enables or disables mp4 muxing for the stream
 	 * @param streamId- id of the stream
 	 * @param enabled 1 means enabled, -1 means disabled, 0 means no setting for the stream
-	 * @return- true if set, false if not
+	 * @return true if set, false if not
 	 */
 	public abstract boolean setMp4Muxing(String streamId, int enabled);
 
@@ -683,7 +683,7 @@ public abstract class DataStore {
 	 * enables or disables WebM muxing for the stream
 	 * @param streamId- id of the stream
 	 * @param enabled 1 means enabled, -1 means disabled, 0 means no setting for the stream
-	 * @return- true if set, false if not
+	 * @return true if set, false if not
 	 */
 	public abstract boolean setWebMMuxing(String streamId, int enabled);
 
@@ -691,7 +691,7 @@ public abstract class DataStore {
 	/**
 	 * Gets the video files under the {@code fileDir} directory parameter
 	 * and saves them to the datastore as USER_VOD in {@code Vod} class
-	 * @param file
+	 * @param filedir
 	 * @return number of files that are saved to datastore
 	 */
 	public abstract int fetchUserVodList(File filedir);
@@ -846,12 +846,7 @@ public abstract class DataStore {
 	/**
 	 * Updates the stream fields if it's not null
 	 * @param broadcast
-	 * @param name
-	 * @param description
-	 * @param userName
-	 * @param password
-	 * @param ipAddr
-	 * @param streamUrl
+	 * @param newBroadcast
 	 */
 	protected void updateStreamInfo(Broadcast broadcast, BroadcastUpdate newBroadcast)
 	{
@@ -1271,7 +1266,7 @@ public abstract class DataStore {
 
 	/**
 	 * Creates new P2PConnection
-	 * @param conn - P2PConnection object
+	 * @param conn P2PConnection object
 	 * @return boolean - success 
 	 */
 	public abstract boolean createP2PConnection(P2PConnection conn);
@@ -1285,7 +1280,7 @@ public abstract class DataStore {
 
 	/**
 	 * Deletes a P2PConnection
-	 * @param conn - P2PConnection object
+	 * @param streamId stream id
 	 * @return boolean - success 
 	 */
 	public abstract boolean deleteP2PConnection(String streamId);
@@ -1295,7 +1290,8 @@ public abstract class DataStore {
 	 * It sets number of viewers to zero. 
 	 * It also delete the stream if it's zombi stream
 	 *
-	 * @returns total number of operation in the db
+	 * @param hostAddress host address
+	 * @return total number of operation in the db
 	 */
 	public abstract int resetBroadcasts(String hostAddress);
 
@@ -1312,7 +1308,7 @@ public abstract class DataStore {
 	/**
 	 * This is used to get total number of WebRTC viewers 
 	 *
-	 * @returns total number of WebRTC viewers
+	 * @return total number of WebRTC viewers
 	 */
 	public abstract int getTotalWebRTCViewersCount();
 
@@ -1353,8 +1349,7 @@ public abstract class DataStore {
 	 * first get the {@link #getSubscriberMetaData(String)} , update it and put it
 	 * 
 	 * @param subscriberId
-	 * @param SubscriberMetadata
-	 * @return 
+	 * @param metadata subscriber metadata
 	 */
 	public abstract void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata);
 

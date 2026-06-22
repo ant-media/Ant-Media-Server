@@ -353,7 +353,7 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		//if default mp4 file requested such as: 541211332342978513714151.mp4, 541211332342978513714151_23.mp4
 		String underScoreRegex = "(.*)_[0-9]+(.*)";
-		endIndex = requestURI.lastIndexOf(".mp4");
+		endIndex = Math.max(requestURI.lastIndexOf(".mp4"), requestURI.lastIndexOf(".mp3"));
 		if (endIndex == -1) 
 		{
 			//if default webm file requested such as: 541211332342978513714151.webm
