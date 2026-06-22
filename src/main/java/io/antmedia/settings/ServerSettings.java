@@ -384,7 +384,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	
 	public static InetAddress getPrivateAddress() {
         try {
-            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            Enumeration<NetworkInterface> interfaces = getNetworkInterfaces();
 
             while (interfaces.hasMoreElements()) {
                 NetworkInterface ni = interfaces.nextElement();

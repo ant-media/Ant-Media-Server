@@ -207,6 +207,7 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		try (MockedStatic<ServerSettings> serverSettings = Mockito.mockStatic(ServerSettings.class, Mockito.CALLS_REAL_METHODS)) {
 			serverSettings.when(ServerSettings::getPrivateAddress).thenReturn(null);
 			serverSettings.when(ServerSettings::getNoneLoopbackHostAddress).thenReturn(noneLoopbackAddress);
+			serverSettings.clearInvocations();
 
 			assertEquals(TEST_NONE_LOOPBACK_ADDRESS, ServerSettings.getLocalHostAddress());
 
@@ -229,6 +230,7 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 
 		try (MockedStatic<ServerSettings> serverSettings = Mockito.mockStatic(ServerSettings.class, Mockito.CALLS_REAL_METHODS)) {
 			serverSettings.when(ServerSettings::getPrivateAddress).thenReturn(privateAddress);
+			serverSettings.clearInvocations();
 
 			assertEquals(TEST_PRIVATE_ADDRESS, ServerSettings.getLocalHostAddress());
 
@@ -240,6 +242,51 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 	
+	@Test
+	public void testGetPrivateAddressReturnsSiteLocalIPv4Address() throws Exception {
+		InetAddress loopbackAddress = InetAddress.getByName("127.0.0.1");
+		InetAddress publicAddress = InetAddress.getByName(TEST_NONE_LOOPBACK_ADDRESS);
+		InetAddress ipv6Address = InetAddress.getByName("fd00::10");
+		InetAddress privateAddress = InetAddress.getByName(TEST_PRIVATE_ADDRESS);
+
+		NetworkInterface downInterface = mockNetworkInterface(false, false, privateAddress);
+		NetworkInterface loopbackInterface = mockNetworkInterface(true, true, privateAddress);
+		NetworkInterface publicInterface = mockNetworkInterface(true, false, loopbackAddress, ipv6Address, publicAddress);
+		NetworkInterface privateInterface = mockNetworkInterface(true, false, privateAddress);
+
+		try (MockedStatic<ServerSettings> serverSettings = Mockito.mockStatic(ServerSettings.class, Mockito.CALLS_REAL_METHODS)) {
+			serverSettings.when(ServerSettings::getNetworkInterfaces).thenReturn(Collections.enumeration(Arrays.asList(
+					downInterface,
+					loopbackInterface,
+					publicInterface,
+					privateInterface)));
+
+			assertEquals(privateAddress, ServerSettings.getPrivateAddress());
+		}
+	}
+
+	@Test
+	public void testGetPrivateAddressReturnsNullIfPrivateIPv4AddressDoesNotExist() throws Exception {
+		InetAddress loopbackAddress = InetAddress.getByName("127.0.0.1");
+		InetAddress publicAddress = InetAddress.getByName(TEST_NONE_LOOPBACK_ADDRESS);
+		InetAddress ipv6Address = InetAddress.getByName("fd00::10");
+
+		NetworkInterface publicInterface = mockNetworkInterface(true, false, loopbackAddress, ipv6Address, publicAddress);
+
+		try (MockedStatic<ServerSettings> serverSettings = Mockito.mockStatic(ServerSettings.class, Mockito.CALLS_REAL_METHODS)) {
+			serverSettings.when(ServerSettings::getNetworkInterfaces).thenReturn(Collections.enumeration(Arrays.asList(publicInterface)));
+
+			assertNull(ServerSettings.getPrivateAddress());
+		}
+	}
+
+	private NetworkInterface mockNetworkInterface(boolean up, boolean loopback, InetAddress... addresses) throws Exception {
+		NetworkInterface networkInterface = Mockito.mock(NetworkInterface.class);
+		Mockito.when(networkInterface.isUp()).thenReturn(up);
+		Mockito.when(networkInterface.isLoopback()).thenReturn(loopback);
+		Mockito.when(networkInterface.getInetAddresses()).thenReturn(Collections.enumeration(Arrays.asList(addresses)));
+		return networkInterface;
+	}
 	
 	
 }
