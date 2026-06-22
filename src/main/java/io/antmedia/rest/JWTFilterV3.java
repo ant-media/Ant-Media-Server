@@ -48,6 +48,12 @@ public class JWTFilterV3 implements ContainerRequestFilter {
 	public static final String SCOPE_CLAIM = "scope";
 	public static final String BEARER_PREFIX = "Bearer";
 
+	/** REST API version handled by this scheme. */
+	public static final String VERSION = "v3";
+
+	/** Path prefix (relative to the app context) authorized exclusively by this v3 scheme. */
+	public static final String REST_V3_PATH_PREFIX = "/rest/" + VERSION + "/";
+
 	/** Request property holding the authenticated user id (JWT sub) for downstream resources. */
 	public static final String AUTHENTICATED_USER_ID = "ams.v3.userId";
 

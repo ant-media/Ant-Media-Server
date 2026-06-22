@@ -1,10 +1,14 @@
 package io.antmedia.rest;
 
+import static io.antmedia.AntMediaApplicationAdapter.IP_CAMERA;
+import static io.antmedia.AntMediaApplicationAdapter.PLAY_LIST;
+import static io.antmedia.AntMediaApplicationAdapter.STREAM_SOURCE;
+import static io.antmedia.AntMediaApplicationAdapter.VOD;
+
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.rest.model.Result;
@@ -27,57 +31,51 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 /**
- * v3 Broadcast REST API. Protected by the new v3 JWT authorization scheme
- * ({@link JwtV3Secured} / {@link JWTFilterV3}). Business logic is reused from
- * {@link RestServiceBase} so behavior matches v2.
+ * Broadcast REST API protected by the JWT authorization scheme ({@link JwtV3Secured} /
+ * {@link JWTFilterV3}). Business logic is reused from {@link RestServiceBase}.
  *
- * <p>Asset ownership: create stamps {@code ownerId} from the JWT sub; update/delete
- * enforce it (admin → any, user → only own, read_only is already blocked by the filter).
+ * <p>Ownership: creating a broadcast records the authenticated user as its owner. Only an
+ * admin, or that owner, may update or delete it. Changing or removing the owner is admin only.
  */
-@Path("/v3/broadcasts")
+@Path("/" + JWTFilterV3.VERSION + "/broadcasts")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
 public class BroadcastRestServiceV3 extends RestServiceBase {
 
-	@Operation(description = "Creates a Broadcast, IP Camera or Stream Source and returns the full broadcast object. "
-			+ "Requires a v3 JWT granting admin or user access to this application. If no ownerId is provided, "
-			+ "the broadcast is owned by the authenticated user (JWT sub).")
+	@Operation(description = "Creates a broadcast and returns it. For IP cameras and stream sources the server pulls "
+			+ "from the configured URL. If no owner is given, the authenticated user becomes the owner.")
 	@POST
 	@JwtV3Secured
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/create")
-	@Produces(MediaType.APPLICATION_JSON)
 	public Response createBroadcast(
-			@Parameter(description = "Broadcast object. Set the required fields, it may be null as well.", required = false) Broadcast broadcast,
-			@Parameter(description = "Only effective if stream is IP Camera or Stream Source. If true, it starts pulling the stream automatically.", required = false) @QueryParam("autoStart") boolean autoStart,
+			@Parameter(description = "The broadcast to create. May be null.", required = false) Broadcast broadcast,
+			@Parameter(description = "Only for IP cameras and stream sources: start pulling the stream immediately.", required = false) @QueryParam("autoStart") boolean autoStart,
 			@Context ContainerRequestContext requestContext) {
 
-		// JWTFilterV3 already verified the token and put the user id (sub) here, so we don't re-parse it.
 		if (broadcast != null && StringUtils.isBlank(broadcast.getOwnerId())) {
-			Object ownerId = requestContext.getProperty(JWTFilterV3.AUTHENTICATED_USER_ID);
-			if (ownerId != null) {
-				broadcast.setOwnerId(ownerId.toString());
+			String userId = authenticatedUserId(requestContext);
+			if (userId != null) {
+				broadcast.setOwnerId(userId);
 			}
 		}
 
 		return createBroadcastInternal(broadcast, autoStart);
 	}
 
-	@Operation(description = "Returns a single broadcast by id. Requires read access to this application.")
+	@Operation(description = "Returns a single broadcast by its id.")
 	@GET
 	@JwtV3Secured
 	@Path("/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
 	public Response getBroadcast(@Parameter(description = "Id of the broadcast", required = true) @PathParam("id") String id) {
 		Broadcast broadcast = getDataStore().get(id);
 		if (broadcast == null) {
-			return Response.status(Status.NOT_FOUND).entity(new Result(false, "Broadcast not found")).build();
+			return error(Status.NOT_FOUND, "Broadcast not found");
 		}
 		return Response.status(Status.OK).entity(broadcast).build();
 	}
 
-	@Operation(description = "Lists broadcasts with pagination. Requires read access to this application.")
+	@Operation(description = "Lists broadcasts with pagination and optional filtering.")
 	@GET
 	@JwtV3Secured
-	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> getBroadcastList(
 			@Parameter(description = "Offset of the list for pagination", required = false) @QueryParam("offset") @DefaultValue("0") int offset,
 			@Parameter(description = "Number of items to return", required = false) @QueryParam("size") @DefaultValue("50") int size,
@@ -88,31 +86,37 @@ public class BroadcastRestServiceV3 extends RestServiceBase {
 		return getDataStore().getBroadcastList(offset, size, type, sortBy, orderBy, search);
 	}
 
-	@Operation(description = "Updates a broadcast. Requires admin access, or user access while being the asset owner.")
+	@Operation(description = "Updates a broadcast. Admins can update any broadcast; other users can update only broadcasts they own.")
 	@PUT
 	@JwtV3Secured
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
 	public Response updateBroadcast(
-			@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
-			@Parameter(description = "Broadcast object with the updates") BroadcastUpdate broadcast,
+			@Parameter(description = "Id of the broadcast", required = true) @PathParam("id") String id,
+			@Parameter(description = "The fields to update") BroadcastUpdate broadcast,
 			@Context ContainerRequestContext requestContext) {
 
 		if (broadcast == null) {
-			return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Broadcast update body is required")).build();
+			return error(Status.BAD_REQUEST, "Broadcast update body is required");
 		}
 
 		Broadcast broadcastInDB = getDataStore().get(id);
-		Response denied = checkOwnership(broadcastInDB, requestContext);
-		if (denied != null) {
-			return denied;
+		if (broadcastInDB == null) {
+			return error(Status.NOT_FOUND, "Broadcast not found");
+		}
+
+		boolean admin = isAdmin(requestContext);
+		if (!canModifyOrDelete(broadcastInDB, authenticatedUserId(requestContext), admin)) {
+			return error(Status.FORBIDDEN, "You are not the owner of this broadcast");
+		}
+
+		// Only an admin may change or remove the owner (an empty ownerId clears it).
+		if (broadcast.getOwnerId() != null && !admin) {
+			return error(Status.FORBIDDEN, "Only an admin can change the owner of a broadcast");
 		}
 
 		Result result;
 		String type = broadcastInDB.getType();
-		if (AntMediaApplicationAdapter.IP_CAMERA.equals(type) || AntMediaApplicationAdapter.STREAM_SOURCE.equals(type)
-				|| AntMediaApplicationAdapter.VOD.equals(type) || AntMediaApplicationAdapter.PLAY_LIST.equals(type)) {
+		if (IP_CAMERA.equals(type) || STREAM_SOURCE.equals(type) || VOD.equals(type) || PLAY_LIST.equals(type)) {
 			result = updateStreamSource(id, broadcast, broadcastInDB);
 		}
 		else {
@@ -121,20 +125,22 @@ public class BroadcastRestServiceV3 extends RestServiceBase {
 		return Response.status(result.isSuccess() ? Status.OK : Status.BAD_REQUEST).entity(result).build();
 	}
 
-	@Operation(description = "Deletes a broadcast. Requires admin access, or user access while being the asset owner.")
+	@Operation(description = "Deletes a broadcast. Admins can delete any broadcast; other users can delete only broadcasts they own.")
 	@DELETE
 	@JwtV3Secured
 	@Path("/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
 	public Response deleteBroadcast(
 			@Parameter(description = "Id of the broadcast", required = true) @PathParam("id") String id,
 			@Parameter(description = "Delete the subtracks as well", required = false) @QueryParam("deleteSubtracks") boolean deleteSubtracks,
 			@Context ContainerRequestContext requestContext) {
 
 		Broadcast broadcastInDB = getDataStore().get(id);
-		Response denied = checkOwnership(broadcastInDB, requestContext);
-		if (denied != null) {
-			return denied;
+		if (broadcastInDB == null) {
+			return error(Status.NOT_FOUND, "Broadcast not found");
+		}
+
+		if (!canModifyOrDelete(broadcastInDB, authenticatedUserId(requestContext), isAdmin(requestContext))) {
+			return error(Status.FORBIDDEN, "You are not the owner of this broadcast");
 		}
 
 		Result result = deleteBroadcast(id, deleteSubtracks);
@@ -142,27 +148,27 @@ public class BroadcastRestServiceV3 extends RestServiceBase {
 	}
 
 	/**
-	 * Asset ownership check for modify/delete. Returns an error Response when access is
-	 * denied (404 if the broadcast is missing, 403 if the caller is not the owner), or
-	 * {@code null} when the operation may proceed. read_only is already blocked by the filter.
+	 * Pure authorization rule for modifying or deleting a broadcast: an admin may act on any
+	 * broadcast; any other caller only when they are the owner. A broadcast with no owner is
+	 * open to any write-authorized caller (read_only is already blocked by the filter).
 	 */
-	private Response checkOwnership(Broadcast broadcast, ContainerRequestContext requestContext) {
-		if (broadcast == null) {
-			return Response.status(Status.NOT_FOUND).entity(new Result(false, "Broadcast not found")).build();
-		}
-		// No owner set -> any write-authorized caller may proceed.
+	public static boolean canModifyOrDelete(Broadcast broadcast, String userId, boolean admin) {
 		if (StringUtils.isBlank(broadcast.getOwnerId())) {
-			return null;
+			return true;
 		}
-		// Admins may modify any asset.
-		if (Boolean.TRUE.equals(requestContext.getProperty(JWTFilterV3.ADMIN_ACCESS))) {
-			return null;
-		}
-		// Otherwise the caller must be the owner.
+		return admin || broadcast.getOwnerId().equals(userId);
+	}
+
+	private static String authenticatedUserId(ContainerRequestContext requestContext) {
 		Object userId = requestContext.getProperty(JWTFilterV3.AUTHENTICATED_USER_ID);
-		if (broadcast.getOwnerId().equals(userId)) {
-			return null;
-		}
-		return Response.status(Status.FORBIDDEN).entity(new Result(false, "You are not the owner of this broadcast")).build();
+		return userId != null ? userId.toString() : null;
+	}
+
+	private static boolean isAdmin(ContainerRequestContext requestContext) {
+		return Boolean.TRUE.equals(requestContext.getProperty(JWTFilterV3.ADMIN_ACCESS));
+	}
+
+	private static Response error(Status status, String message) {
+		return Response.status(status).entity(new Result(false, message)).build();
 	}
 }

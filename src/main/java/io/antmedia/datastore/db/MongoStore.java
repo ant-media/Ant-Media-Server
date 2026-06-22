@@ -1088,6 +1088,10 @@ public class MongoStore extends DataStore {
 					updates.add(set(ROLE, broadcast.getRole()));
 				}
 
+				if (broadcast.getOwnerId() != null) {
+					updates.add(set("ownerId", broadcast.getOwnerId()));
+				}
+
 				if (broadcast.getQuality() != null) {
 					updates.add(set("quality", broadcast.getQuality()));
 				}

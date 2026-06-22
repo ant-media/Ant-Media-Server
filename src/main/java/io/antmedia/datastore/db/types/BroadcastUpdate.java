@@ -150,6 +150,8 @@ public class BroadcastUpdate {
 
     private String role = null;
 
+    private String ownerId = null;
+
     private HLSParameters hlsParameters = null;
 
     private Boolean autoStartStopEnabled = null;
@@ -603,6 +605,14 @@ public class BroadcastUpdate {
 
 	public void setRole(String role) {
 		this.role = role;
+	}
+
+	public String getOwnerId() {
+		return ownerId;
+	}
+
+	public void setOwnerId(String ownerId) {
+		this.ownerId = ownerId;
 	}
 
 	public HLSParameters getHlsParameters() {

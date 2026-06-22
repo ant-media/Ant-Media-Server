@@ -1,13 +1,15 @@
-package io.antmedia.test.filter;
+package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,14 +36,84 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 /**
- * Exercises the full decision tree of {@link JWTFilterV3#filter} with mocked
- * request/context/settings. Tokens are minted with the same java-jwt library a
- * real client would use.
+ * Tests {@link JWTFilterV3}: the pure scope-authorization helpers and the full decision tree
+ * of {@code filter()} (with mocked request/context/settings). Tokens are minted with the same
+ * java-jwt library a real client would use.
  */
-public class JWTFilterV3IntegrationTest {
+public class JWTFilterV3Test {
 
 	private static final String SECRET = "test-secret-key";
 	private static final String APP = "LiveApp";
+
+	// ---- scope authorization helpers (pure logic) ----
+
+	@Test
+	public void testSystemScopeGrantsWriteToAnyApp() {
+		assertTrue(JWTFilterV3.hasWriteAccess("admin:system", "live"));
+		assertTrue(JWTFilterV3.hasWriteAccess("user:system", "anyApp"));
+	}
+
+	@Test
+	public void testApplicationScopeMatchesOnlyItsApp() {
+		assertTrue(JWTFilterV3.hasWriteAccess("user:application:live", "live"));
+		assertTrue(JWTFilterV3.hasWriteAccess("admin:application:live", "live"));
+		assertFalse(JWTFilterV3.hasWriteAccess("user:application:live", "other"));
+	}
+
+	@Test
+	public void testReadOnlyNeverGrantsWrite() {
+		assertFalse(JWTFilterV3.hasWriteAccess("read_only:system", "live"));
+		assertFalse(JWTFilterV3.hasWriteAccess("read_only:application:live", "live"));
+	}
+
+	@Test
+	public void testMultipleScopesAreUnionOfGrants() {
+		assertTrue(JWTFilterV3.hasWriteAccess("read_only:application:app2 user:system", "live"));
+		assertTrue(JWTFilterV3.hasWriteAccess("admin:application:test_app user:application:live", "live"));
+		assertFalse(JWTFilterV3.hasWriteAccess("read_only:system read_only:application:live", "live"));
+	}
+
+	@Test
+	public void testInvalidOrEmptyScopeDenied() {
+		assertFalse(JWTFilterV3.hasWriteAccess(null, "live"));
+		assertFalse(JWTFilterV3.hasWriteAccess("", "live"));
+		assertFalse(JWTFilterV3.hasWriteAccess("garbage", "live"));
+		assertFalse(JWTFilterV3.hasWriteAccess("admin", "live"));
+		assertFalse(JWTFilterV3.hasWriteAccess("superuser:system", "live"));
+	}
+
+	@Test
+	public void testAdminAccessOnlyForAdminScopes() {
+		assertTrue(JWTFilterV3.hasAdminAccess("admin:system", "live"));
+		assertTrue(JWTFilterV3.hasAdminAccess("admin:application:live", "live"));
+		assertTrue(JWTFilterV3.hasAdminAccess("user:system admin:application:live", "live"));
+	}
+
+	@Test
+	public void testUserAndReadOnlyAreNotAdmin() {
+		assertFalse(JWTFilterV3.hasAdminAccess("user:system", "live"));
+		assertFalse(JWTFilterV3.hasAdminAccess("user:application:live", "live"));
+		assertFalse(JWTFilterV3.hasAdminAccess("read_only:system", "live"));
+		assertFalse(JWTFilterV3.hasAdminAccess("admin:application:other", "live"));
+		assertFalse(JWTFilterV3.hasAdminAccess(null, "live"));
+	}
+
+	@Test
+	public void testReadAccessGrantedForAllRoles() {
+		assertTrue(JWTFilterV3.hasReadAccess("read_only:system", "live"));
+		assertTrue(JWTFilterV3.hasReadAccess("read_only:application:live", "live"));
+		assertTrue(JWTFilterV3.hasReadAccess("user:application:live", "live"));
+		assertTrue(JWTFilterV3.hasReadAccess("admin:system", "live"));
+	}
+
+	@Test
+	public void testReadAccessDeniedForOtherAppOrEmpty() {
+		assertFalse(JWTFilterV3.hasReadAccess("read_only:application:other", "live"));
+		assertFalse(JWTFilterV3.hasReadAccess(null, "live"));
+		assertFalse(JWTFilterV3.hasReadAccess("garbage", "live"));
+	}
+
+	// ---- filter() decision tree ----
 
 	private static String token(String aud, String sub, String scope, Date exp, String secret) {
 		JWTCreator.Builder builder = JWT.create();
@@ -56,9 +128,7 @@ public class JWTFilterV3IntegrationTest {
 		return token("rest", "testuser", scope, new Date(System.currentTimeMillis() + 3600_000), SECRET);
 	}
 
-	/**
-	 * Runs the filter and returns the abort Response, or null if the request was allowed through.
-	 */
+	/** Runs the filter and returns the abort Response, or null if the request was allowed through. */
 	private Response runFilter(boolean controlEnabled, String settingsSecret, String authHeader, String httpMethod) {
 		ServletContext servletContext = mock(ServletContext.class);
 		when(servletContext.getContextPath()).thenReturn("/" + APP);
@@ -213,10 +283,6 @@ public class JWTFilterV3IntegrationTest {
 		assertEquals(Status.UNAUTHORIZED.getStatusCode(), captor.getValue().getStatus());
 	}
 
-	/**
-	 * On success the filter must expose the verified sub and admin flag as request
-	 * properties so resources can stamp/check asset ownership without re-parsing the token.
-	 */
 	@Test
 	public void testAdminTokenSetsUserIdAndAdminAccess() {
 		ContainerRequestContext requestContext = runSuccess("owner-123", "admin:system");

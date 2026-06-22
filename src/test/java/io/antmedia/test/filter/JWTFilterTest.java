@@ -182,7 +182,8 @@ public class JWTFilterTest {
             appSettings.setJwtControlEnabled(true);
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
 
-            httpServletRequest.setRequestURI("/LiveApp/rest/v3/broadcasts/create");
+            httpServletRequest.setContextPath("/LiveApp");
+            httpServletRequest.setRequestURI("/LiveApp/rest/v3/broadcasts");
             httpServletRequest.addHeader("Authorization", invalidToken);
 
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);

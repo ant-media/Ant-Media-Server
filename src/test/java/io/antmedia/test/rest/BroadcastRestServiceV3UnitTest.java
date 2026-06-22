@@ -1,7 +1,9 @@
 package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -103,6 +105,20 @@ public class BroadcastRestServiceV3UnitTest {
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 	}
 
+	// ---- pure authorization rule ----
+
+	@Test
+	public void testCanModifyOrDeleteRule() {
+		Broadcast owned = new Broadcast(null, "x");
+		owned.setOwnerId("alice");
+		assertTrue(BroadcastRestServiceV3.canModifyOrDelete(owned, "alice", false));   // owner
+		assertTrue(BroadcastRestServiceV3.canModifyOrDelete(owned, "bob", true));      // admin
+		assertFalse(BroadcastRestServiceV3.canModifyOrDelete(owned, "bob", false));    // other user
+
+		Broadcast noOwner = new Broadcast(null, "y");
+		assertTrue(BroadcastRestServiceV3.canModifyOrDelete(noOwner, "anyone", false)); // no owner set
+	}
+
 	// ---- update ownership ----
 
 	@Test
@@ -150,6 +166,37 @@ public class BroadcastRestServiceV3UnitTest {
 				.createBroadcast(new Broadcast(null, "no-owner"), false, requestWithUser(null)).getEntity();
 		Response response = service.updateBroadcast(created.getStreamId(), new BroadcastUpdate(), request("bob", false));
 		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+	}
+
+	@Test
+	public void testAdminCanChangeOwner() {
+		String id = createOwnedBroadcast("alice");
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setOwnerId("bob");
+		Response response = service.updateBroadcast(id, update, request("admin", true));
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		assertEquals("bob", service.getDataStore().get(id).getOwnerId());
+	}
+
+	@Test
+	public void testAdminCanRemoveOwner() {
+		String id = createOwnedBroadcast("alice");
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setOwnerId("");
+		Response response = service.updateBroadcast(id, update, request("admin", true));
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		assertEquals("", service.getDataStore().get(id).getOwnerId());
+	}
+
+	@Test
+	public void testNonAdminCannotChangeOwner() {
+		String id = createOwnedBroadcast("alice");
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setOwnerId("bob");
+		// alice owns it (passes ownership), but only admins may reassign ownership
+		Response response = service.updateBroadcast(id, update, request("alice", false));
+		assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+		assertEquals("alice", service.getDataStore().get(id).getOwnerId());
 	}
 
 	// ---- delete ownership (denial paths) ----

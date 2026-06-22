@@ -12,9 +12,12 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.antmedia.rest.JWTFilterV3;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
@@ -35,9 +38,6 @@ public class JWTFilter extends AbstractFilter {
 	public static final String JWT_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 	public static final String JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX = "Bearer";
 
-	/** v3 REST API is authorized exclusively by JWTFilterV3, so this v2 filter skips it. */
-	public static final String REST_V3_PATH_PREFIX = "/rest/v3/";
-
 
 	private AppSettings appSettings;
 
@@ -45,8 +45,8 @@ public class JWTFilter extends AbstractFilter {
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 
-		// v3 has its own JAX-RS filter; this v2 filter must not run on it.
-		if (httpRequest.getRequestURI() != null && httpRequest.getRequestURI().contains(REST_V3_PATH_PREFIX)) {
+		// v3 has its own JAX-RS filter (JWTFilterV3); this v2 filter must not run on it.
+		if (StringUtils.defaultString(httpRequest.getRequestURI()).startsWith(httpRequest.getContextPath() + JWTFilterV3.REST_V3_PATH_PREFIX)) {
 			chain.doFilter(request, response);
 			return;
 		}

@@ -274,7 +274,7 @@ public abstract class RestServiceBase {
 				}
 			}
 			catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
+				logger.error("Could not set the stream id while creating a broadcast", e);
 				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id set generated exception")).build();
 			}
 		}
@@ -290,10 +290,10 @@ public abstract class RestServiceBase {
 			if (broadcast != null
 					&& ((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
 							|| (AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()) && !checkStreamUrl(broadcast.getStreamUrl())))) {
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid. ")).build();
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid.")).build();
 			}
 			if (broadcast != null && broadcast.getSubFolder() != null && broadcast.getSubFolder().contains("..")) {
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Subfolder is not valid. ")).build();
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Subfolder is not valid. It cannot contain '..'")).build();
 			}
 			returnObject = createBroadcastWithStreamID(broadcast);
 		}
