@@ -484,10 +484,12 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_1"+".mp4")); 
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp4")); 
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+".mp4")); 
-		
-		
-		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842"+".mp4")); 
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+".mp4"));
+
+        assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp3"));
+        assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+".mp3"));
+
+        assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842"+".mp4"));
 		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_underline_test-2021-05-18_11-26-26.842"+".mp4")); 
 		
 		
