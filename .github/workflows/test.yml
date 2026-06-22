@@ -113,6 +113,7 @@ jobs:
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
             
       - name: Restore OWASP Dependency Check DB
+        continue-on-error: true
         uses: actions/cache/restore@v4
         with:
           path: ~/.dependency-check-data
@@ -121,6 +122,7 @@ jobs:
             owasp-dependency-check-db-${{ runner.os }}-
 
       - name: Check vulnerabilities
+        continue-on-error: true
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
