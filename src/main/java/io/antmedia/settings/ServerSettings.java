@@ -419,23 +419,27 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 			try {
 				InetAddress privateAddress = getPrivateAddress();
 				if(privateAddress != null) {
-					return privateAddress.getHostAddress();
+					localHostAddress = privateAddress.getHostAddress();
+					logger.info("localhost address is set to private address: {}", localHostAddress);
 				}
-				/*
-				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
-				 * Let it is run once
-				 */
-				InetAddress noneLoopbackHostAddress = getNoneLoopbackHostAddress();
-				if (noneLoopbackHostAddress != null) 
-				{
-					logger.info("localhost address is set to none loopback address: {}", noneLoopbackHostAddress.getHostAddress());
-					localHostAddress = noneLoopbackHostAddress.getHostAddress();
-				}
-				else 
-				{
-
-					localHostAddress = InetAddress.getLocalHost().getHostAddress(); 
-					logger.info("localhost address is set to default localhost address: {}", localHostAddress);
+				else {
+					/*
+					 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
+					 * Let it is run once
+					 */
+				
+					InetAddress noneLoopbackHostAddress = getNoneLoopbackHostAddress();
+					if (noneLoopbackHostAddress != null) 
+					{
+						logger.info("localhost address is set to none loopback address: {}", noneLoopbackHostAddress.getHostAddress());
+						localHostAddress = noneLoopbackHostAddress.getHostAddress();
+					}
+					else 
+					{
+	
+						localHostAddress = InetAddress.getLocalHost().getHostAddress(); 
+						logger.info("localhost address is set to default localhost address: {}", localHostAddress);
+					}
 				}
 			} catch (UnknownHostException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
