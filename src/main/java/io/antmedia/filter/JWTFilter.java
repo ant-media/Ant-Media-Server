@@ -45,7 +45,7 @@ public class JWTFilter extends AbstractFilter {
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 
-		// v3 REST is authorized solely by JWTFilterV3 (JAX-RS). Don't apply the v2 filter to it.
+		// v3 has its own JAX-RS filter; this v2 filter must not run on it.
 		if (httpRequest.getRequestURI() != null && httpRequest.getRequestURI().contains(REST_V3_PATH_PREFIX)) {
 			chain.doFilter(request, response);
 			return;

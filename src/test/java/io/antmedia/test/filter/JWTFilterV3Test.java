@@ -43,4 +43,35 @@ public class JWTFilterV3Test {
 		assertFalse(JWTFilterV3.hasWriteAccess("admin", "live"));
 		assertFalse(JWTFilterV3.hasWriteAccess("superuser:system", "live"));
 	}
+
+	@Test
+	public void testAdminAccessOnlyForAdminScopes() {
+		assertTrue(JWTFilterV3.hasAdminAccess("admin:system", "live"));
+		assertTrue(JWTFilterV3.hasAdminAccess("admin:application:live", "live"));
+		assertTrue(JWTFilterV3.hasAdminAccess("user:system admin:application:live", "live"));
+	}
+
+	@Test
+	public void testUserAndReadOnlyAreNotAdmin() {
+		assertFalse(JWTFilterV3.hasAdminAccess("user:system", "live"));
+		assertFalse(JWTFilterV3.hasAdminAccess("user:application:live", "live"));
+		assertFalse(JWTFilterV3.hasAdminAccess("read_only:system", "live"));
+		assertFalse(JWTFilterV3.hasAdminAccess("admin:application:other", "live"));
+		assertFalse(JWTFilterV3.hasAdminAccess(null, "live"));
+	}
+
+	@Test
+	public void testReadAccessGrantedForAllRoles() {
+		assertTrue(JWTFilterV3.hasReadAccess("read_only:system", "live"));
+		assertTrue(JWTFilterV3.hasReadAccess("read_only:application:live", "live"));
+		assertTrue(JWTFilterV3.hasReadAccess("user:application:live", "live"));
+		assertTrue(JWTFilterV3.hasReadAccess("admin:system", "live"));
+	}
+
+	@Test
+	public void testReadAccessDeniedForOtherAppOrEmpty() {
+		assertFalse(JWTFilterV3.hasReadAccess("read_only:application:other", "live"));
+		assertFalse(JWTFilterV3.hasReadAccess(null, "live"));
+		assertFalse(JWTFilterV3.hasReadAccess("garbage", "live"));
+	}
 }

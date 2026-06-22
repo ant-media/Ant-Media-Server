@@ -59,7 +59,7 @@ public class JWTFilterV3IntegrationTest {
 	/**
 	 * Runs the filter and returns the abort Response, or null if the request was allowed through.
 	 */
-	private Response runFilter(boolean controlEnabled, String settingsSecret, String authHeader) {
+	private Response runFilter(boolean controlEnabled, String settingsSecret, String authHeader, String httpMethod) {
 		ServletContext servletContext = mock(ServletContext.class);
 		when(servletContext.getContextPath()).thenReturn("/" + APP);
 
@@ -74,6 +74,7 @@ public class JWTFilterV3IntegrationTest {
 
 		ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
 		when(requestContext.getHeaderString(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+		when(requestContext.getMethod()).thenReturn(httpMethod);
 
 		try (MockedStatic<WebApplicationContextUtils> mocked = mockStatic(WebApplicationContextUtils.class)) {
 			mocked.when(() -> WebApplicationContextUtils.getWebApplicationContext(servletContext)).thenReturn(webContext);
@@ -86,8 +87,13 @@ public class JWTFilterV3IntegrationTest {
 		return aborts.isEmpty() ? null : aborts.get(0);
 	}
 
+	// write request (POST) unless stated otherwise
 	private Response runWithToken(String authHeader) {
-		return runFilter(true, SECRET, authHeader);
+		return runFilter(true, SECRET, authHeader, "POST");
+	}
+
+	private Response runGet(String authHeader) {
+		return runFilter(true, SECRET, authHeader, "GET");
 	}
 
 	private static void assertAllowed(Response response) {
@@ -161,12 +167,28 @@ public class JWTFilterV3IntegrationTest {
 
 	@Test
 	public void testControlDisabledUnauthorized() {
-		assertStatus(Status.UNAUTHORIZED, runFilter(false, SECRET, "Bearer " + validToken("admin:system")));
+		assertStatus(Status.UNAUTHORIZED, runFilter(false, SECRET, "Bearer " + validToken("admin:system"), "POST"));
 	}
 
 	@Test
 	public void testBlankSecretUnauthorized() {
-		assertStatus(Status.UNAUTHORIZED, runFilter(true, "", "Bearer " + validToken("admin:system")));
+		assertStatus(Status.UNAUTHORIZED, runFilter(true, "", "Bearer " + validToken("admin:system"), "POST"));
+	}
+
+	@Test
+	public void testReadOnlyTokenAllowedForGet() {
+		assertAllowed(runGet("Bearer " + validToken("read_only:system")));
+		assertAllowed(runGet("Bearer " + validToken("read_only:application:" + APP)));
+	}
+
+	@Test
+	public void testReadOnlyTokenStillForbiddenForWrite() {
+		assertStatus(Status.FORBIDDEN, runWithToken("Bearer " + validToken("read_only:system")));
+	}
+
+	@Test
+	public void testGetForbiddenForOtherApp() {
+		assertStatus(Status.FORBIDDEN, runGet("Bearer " + validToken("read_only:application:otherApp")));
 	}
 
 	@Test
@@ -192,12 +214,27 @@ public class JWTFilterV3IntegrationTest {
 	}
 
 	/**
-	 * On success the filter must expose the verified sub as a request property so the
-	 * resource can stamp asset ownership without re-parsing the token.
+	 * On success the filter must expose the verified sub and admin flag as request
+	 * properties so resources can stamp/check asset ownership without re-parsing the token.
 	 */
 	@Test
-	public void testAuthenticatedUserIdPropertySetOnSuccess() {
-		String token = token("rest", "owner-123", "admin:system", new Date(System.currentTimeMillis() + 3600_000), SECRET);
+	public void testAdminTokenSetsUserIdAndAdminAccess() {
+		ContainerRequestContext requestContext = runSuccess("owner-123", "admin:system");
+		verify(requestContext, never()).abortWith(any());
+		verify(requestContext).setProperty(JWTFilterV3.AUTHENTICATED_USER_ID, "owner-123");
+		verify(requestContext).setProperty(JWTFilterV3.ADMIN_ACCESS, true);
+	}
+
+	@Test
+	public void testUserTokenSetsUserIdButNotAdminAccess() {
+		ContainerRequestContext requestContext = runSuccess("owner-123", "user:application:" + APP);
+		verify(requestContext, never()).abortWith(any());
+		verify(requestContext).setProperty(JWTFilterV3.AUTHENTICATED_USER_ID, "owner-123");
+		verify(requestContext).setProperty(JWTFilterV3.ADMIN_ACCESS, false);
+	}
+
+	private ContainerRequestContext runSuccess(String sub, String scope) {
+		String token = token("rest", sub, scope, new Date(System.currentTimeMillis() + 3600_000), SECRET);
 
 		ServletContext servletContext = mock(ServletContext.class);
 		when(servletContext.getContextPath()).thenReturn("/" + APP);
@@ -217,8 +254,6 @@ public class JWTFilterV3IntegrationTest {
 			mocked.when(() -> WebApplicationContextUtils.getWebApplicationContext(servletContext)).thenReturn(webContext);
 			filter.filter(requestContext);
 		}
-
-		verify(requestContext, never()).abortWith(any());
-		verify(requestContext).setProperty(JWTFilterV3.AUTHENTICATED_USER_ID, "owner-123");
+		return requestContext;
 	}
 }
