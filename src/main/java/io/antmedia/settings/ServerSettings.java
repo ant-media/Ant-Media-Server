@@ -407,7 +407,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(ExceptionUtils.getStackTrace(e));
         }
         return null;
     }
