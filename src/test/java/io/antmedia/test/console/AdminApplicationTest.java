@@ -2,6 +2,7 @@ package io.antmedia.test.console;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -300,6 +301,31 @@ public class AdminApplicationTest {
 		assertFalse(result);
 		result = app.runConfiguredCommand(AdminApplication.CREATE_APP_COMMAND, "&echo");
 		assertFalse(result);
+	}
+
+	@Test
+	public void testCreateAppCommandArguments() throws Exception {
+		AdminApplication app = new AdminApplication();
+
+		assertTrue(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"-n", "testapp", "-m", "mongodb://user:password@127.0.0.1:27018/admin?readPreference=secondaryPreferred&authSource=admin",
+				"-p", "/usr/local/antmedia", "-w", "true", "-c", "false"));
+		assertTrue(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"testapp", "/usr/local/antmedia"));
+		assertFalse(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"-n", "test app"));
+		assertFalse(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"-m", "mongodb://127.0.0.1:27017/admin;touch/tmp/test"));
+		assertFalse(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"-x", "testapp"));
+		assertFalse(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"testapp", "/usr/local/antmedia", "mongodb://127.0.0.1:27017/admin"));
+	}
+
+	private boolean areCommandArgumentsValid(AdminApplication app, String configuredCommand, String... args) throws Exception {
+		Method method = AdminApplication.class.getDeclaredMethod("areCommandArgumentsValid", String.class, String[].class);
+		method.setAccessible(true);
+		return (boolean) method.invoke(app, configuredCommand, args);
 	}
 
 	@Test
