@@ -32,7 +32,7 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 /**
  * The scope object.
  * 
- * A stateful object shared between a group of clients connected to the same <tt>context path</tt>. Scopes are arranged in hierarchical way, 
+ * A stateful object shared between a group of clients connected to the same {@code context path}. Scopes are arranged in hierarchical way,
  * so its possible for a scope to have a parent and children scopes. If a client connects to a scope then they are also connected to its parent scope.
  * The scope object is used to access resources, shared object, streams, etc. Scope is a general option for grouping things in an application.
  * 

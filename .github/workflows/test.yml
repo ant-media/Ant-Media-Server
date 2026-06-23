@@ -66,7 +66,7 @@ jobs:
       - name: Build projects
         uses: ./.github/actions/build-projects 
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
            
           
       - name: Run tests and SonarCloud analysis
@@ -106,11 +106,31 @@ jobs:
       - name: Build projects
         uses: ./.github/actions/build-projects 
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
            
-      - name: Check vulnerabilities
-        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+            
+      - name: Restore OWASP Dependency Check DB
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.dependency-check-data
+          key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
+          restore-keys: |
+            owasp-dependency-check-db-${{ runner.os }}-
 
+      - name: Check vulnerabilities
+        continue-on-error: true
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mvn org.owasp:dependency-check-maven:check \
+            -Dnoupdate=true \
+            -DnvdApiKey=$NVD_API_KEY \
+            -DdataDirectory=$HOME/.dependency-check-data \
+            -DfailOnError=true
 
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
@@ -190,7 +210,7 @@ jobs:
       - name: Build projects
         uses: ./.github/actions/build-projects 
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
      
       - name: Package Ant Media Server
         run: mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
@@ -269,7 +289,7 @@ jobs:
       - name: Build projects # there is low probability that if somethings has pushed to the related branch while running test and before this job, it may build something not exactly same
         uses: ./.github/actions/build-projects 
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
       - name: Deploy snapshots
       #if it is a master branch
         if: github.ref == 'refs/heads/master' #if it is a master branch
