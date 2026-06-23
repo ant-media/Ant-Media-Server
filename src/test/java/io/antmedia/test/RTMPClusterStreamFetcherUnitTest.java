@@ -12,13 +12,10 @@ import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.red5.server.messaging.IConsumer;
 import org.red5.server.scope.BroadcastScope;
@@ -28,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -40,7 +38,8 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContextTests  {
+@ExtendWith(SpringExtension.class)
+public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
@@ -49,22 +48,6 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 	private AppSettings appSettings;
 	private Vertx vertx;
 
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			System.out.println("Failed test: " + description.getMethodName());
-		}
-
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		}
-
-	};
-	
 	@AfterAll
 	public static void afterClass() {
 		try {

@@ -41,11 +41,11 @@ public class ConsoleDataStoreFactoryUnitTest {
     private Vertx vertx;
 
     @Container
-    public GenericContainer redis = new GenericContainer(DockerImageName.parse("redis:6-alpine"))
+    public static GenericContainer redis = new GenericContainer(DockerImageName.parse("redis:6-alpine"))
             .withExposedPorts(6379);
 
     @Container
-    public GenericContainer mongo = new GenericContainer(DockerImageName.parse("mongo:7"))
+    public static GenericContainer mongo = new GenericContainer(DockerImageName.parse("mongo:7"))
             .withExposedPorts(27017);
 
     @BeforeEach

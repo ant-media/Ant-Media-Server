@@ -7,10 +7,12 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -24,6 +26,7 @@ import io.antmedia.filter.StreamAcceptFilter;
 
 @ContextConfiguration(locations = {"../test.xml"})
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@ExtendWith(SpringExtension.class)
 public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 	
 	private StreamAcceptFilter acceptStreamFilter;

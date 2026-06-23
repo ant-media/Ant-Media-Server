@@ -93,7 +93,7 @@ public class MetaDataTest {
 
 	@Test
 	public void testWidth() {
-        assertEquals(400, data.getVideoDataRate());
+        assertEquals(300, data.getWidth());
     }
 
 }

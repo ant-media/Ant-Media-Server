@@ -8,6 +8,7 @@ import java.io.IOException;
 import org.junit.jupiter.api.MethodOrderer.MethodName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.red5.server.messaging.IMessage;
 import org.red5.server.messaging.IPipe;
 import org.red5.server.messaging.InMemoryPullPullPipe;
@@ -15,9 +16,11 @@ import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 @TestMethodOrder(MethodName.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "FileProviderTest.xml" })
 public class FileProviderTest extends AbstractJUnit4SpringContextTests {
 

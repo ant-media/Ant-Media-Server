@@ -1,16 +1,15 @@
 package io.antmedia.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,42 +23,38 @@ public abstract class UnitTestBase<T> {
 
     protected T classUnderTest;
 
-    @Rule
-    public TestRule watcher = new TestWatcher() {
+    @BeforeEach
+    public void logTestStart(TestInfo testInfo) {
+        logger.info("Starting test: {}", testInfo.getDisplayName());
+    }
 
-        @Override
-        protected void starting(Description description) {
-            logger.info("Starting test: {}", description.getMethodName());
-        }
-
-        @Override
-        protected void finished(Description description) {
-            logger.info("Finishing test: {}", description.getMethodName());
-        }
-    };
+    @AfterEach
+    public void logTestFinish(TestInfo testInfo) {
+        logger.info("Finishing test: {}", testInfo.getDisplayName());
+    }
 
     @Test
     public void testShouldBeInTheSamePackage() {
         Type genericSuperclass = getClass().getGenericSuperclass();
         assertTrue(
-                "Subclass " + getClass().getName() + " must directly parameterize UnitTestBase<T>",
-                genericSuperclass instanceof ParameterizedType);
+                genericSuperclass instanceof ParameterizedType,
+                "Subclass " + getClass().getName() + " must directly parameterize UnitTestBase<T>");
 
         Type typeArg = ((ParameterizedType) genericSuperclass).getActualTypeArguments()[0];
         assertTrue(
-                "Type parameter T must be a concrete Class, but was " + typeArg,
-                typeArg instanceof Class<?>);
+                typeArg instanceof Class<?>,
+                "Type parameter T must be a concrete Class, but was " + typeArg);
 
         Class<?> classUnderTestType = (Class<?>) typeArg;
         String testPackage = getClass().getPackage().getName();
         String cutPackage = classUnderTestType.getPackage().getName();
 
         assertEquals(
+                cutPackage,
+                testPackage,
                 "Test " + getClass().getName()
                         + " must live in the same package as class under test "
-                        + classUnderTestType.getName(),
-                cutPackage,
-                testPackage);
+                        + classUnderTestType.getName());
     }
 
 }

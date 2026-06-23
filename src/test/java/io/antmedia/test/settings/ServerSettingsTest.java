@@ -16,6 +16,7 @@ import java.util.Enumeration;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
@@ -24,6 +25,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.webrtc.Logging;
 
@@ -34,6 +36,7 @@ import io.antmedia.settings.ServerSettings;
 
 @ContextConfiguration(locations = { "../test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@ExtendWith(SpringExtension.class)
 public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 
 	private static final String TEST_NONE_LOOPBACK_ADDRESS = "198.51.100.10";

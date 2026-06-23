@@ -37,14 +37,11 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
@@ -53,6 +50,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -76,6 +74,7 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
+@ExtendWith(SpringExtension.class)
 public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	private WebScope appScope;
@@ -89,21 +88,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
 	}
-
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			System.out.println("Failed test: " + description.getMethodName() );
-			e.printStackTrace();
-		}
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		}
-	};
 
 	@BeforeAll
 	public static void beforeClass() {

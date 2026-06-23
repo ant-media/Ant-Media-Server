@@ -14,13 +14,10 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
@@ -29,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -43,7 +41,8 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
-public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
+@ExtendWith(SpringExtension.class)
+public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests {
 
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
@@ -78,21 +77,6 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 	private QuartzSchedulingService scheduler;
 
 	private static String ffmpegPath = "ffmpeg";
-
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			System.out.println("Failed test: " + description.getMethodName() );
-			e.printStackTrace();
-		};
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		};
-	};
 
 	@BeforeAll
 	public static void beforeClass() {

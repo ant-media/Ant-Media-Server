@@ -32,14 +32,11 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
@@ -49,6 +46,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -73,6 +71,7 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
+@ExtendWith(SpringExtension.class)
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
@@ -92,20 +91,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			e.printStackTrace();
-			System.out.println("Failed test: " + description.getMethodName());
-		};
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		};
-	};
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;
 	private Vertx vertx;
@@ -1561,5 +1546,3 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 }
-
-
