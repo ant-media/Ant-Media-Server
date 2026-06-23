@@ -32,11 +32,12 @@ import org.json.simple.parser.ParseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.red5.server.scope.WebScope;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import com.amazonaws.RequestClientOptions;
 import com.google.gson.Gson;
@@ -49,8 +50,10 @@ import io.antmedia.rest.RestServiceBase;
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 @ExtendWith(SpringExtension.class)
-public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
+public class AppSettingsUnitTest {
 
+	@Autowired
+	private ApplicationContext applicationContext;
 
 	protected WebScope appScope;
 	static {

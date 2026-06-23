@@ -15,14 +15,18 @@ import org.red5.server.messaging.InMemoryPullPullPipe;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 @TestMethodOrder(MethodName.class)
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "FileProviderTest.xml" })
-public class FileProviderTest extends AbstractJUnit4SpringContextTests {
+public class FileProviderTest {
+
+    @Autowired
+    private ApplicationContext applicationContext;
 
     private Logger log = LoggerFactory.getLogger(FileProviderTest.class);
 
