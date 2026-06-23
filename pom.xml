@@ -537,6 +537,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <dependency>
           <groupId>org.mockito</groupId>
           <artifactId>mockito-junit-jupiter</artifactId>
+          <version>5.17.0</version>
           <scope>test</scope>
         </dependency>
         <dependency>
