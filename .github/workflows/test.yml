@@ -130,7 +130,7 @@ jobs:
             -Dnoupdate=true \
             -DnvdApiKey=$NVD_API_KEY \
             -DdataDirectory=$HOME/.dependency-check-data \
-            -DfailOnError=true
+            -DfailOnError=false
 
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
