@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.TreeSet;
 
 import org.apache.mina.core.buffer.IoBuffer;
@@ -213,9 +214,10 @@ public class CuePointInjectionTest {
         ts.add(cue1);
         ts.add(cue2);
 
-        System.out.println("ts: " + ts);
-
-        assertEquals(true, true);
+        Iterator<IMetaCue> iterator = ts.iterator();
+        assertEquals("cue_1", iterator.next().getName());
+        assertEquals("cue_2", iterator.next().getName());
+        assertEquals("cue_3", iterator.next().getName());
     }
 
 }
