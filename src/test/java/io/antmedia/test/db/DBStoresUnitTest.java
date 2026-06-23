@@ -1,12 +1,13 @@
 package io.antmedia.test.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,16 +31,20 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import com.google.gson.Gson;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
@@ -72,6 +77,7 @@ import io.antmedia.pushnotification.IPushNotificationService.PushNotificationSer
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
+@Testcontainers
 public class DBStoresUnitTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(DBStoresUnitTest.class);
@@ -80,12 +86,20 @@ public class DBStoresUnitTest {
 
 	private AppSettings appSettings;
 
-	@Before
+	@Container
+	public static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:6-alpine"))
+			.withExposedPorts(6379);
+
+	@Container
+	public static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
+			.withExposedPorts(27017);
+
+	@BeforeEach
 	public void before() {
 		deleteMapDBFile();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		deleteMapDBFile();
 	}
@@ -100,6 +114,14 @@ public class DBStoresUnitTest {
 				fail(e.getMessage());
 			}
 		}
+	}
+
+	private String mongoUri() {
+		return "mongodb://" + mongo.getHost() + ":" + mongo.getFirstMappedPort();
+	}
+
+	private String redisUri() {
+		return "redis://" + redis.getHost() + ":" + redis.getFirstMappedPort();
 	}
 
 	@Test
@@ -277,11 +299,11 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMongoStore() throws Exception {
 
-		DataStore dataStore = new MongoStore("127.0.0.1", "testdb");
+		DataStore dataStore = new MongoStore(mongoUri(), "testdb");
 		//delete db
 		dataStore.close(true);
 
-		dataStore = new MongoStore("127.0.0.1", "testdb");
+		dataStore = new MongoStore(mongoUri(), "testdb");
 
 		appSettings = new AppSettings();
 
@@ -358,10 +380,10 @@ public class DBStoresUnitTest {
 	@Test
 	public void testRedisStore() throws Exception {
 
-		DataStore dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
+		DataStore dataStore = new RedisStore(redisUri(), "testdb");
 		//delete db
 		dataStore.close(true);
-		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
+		dataStore = new RedisStore(redisUri(), "testdb");
 
 		appSettings = new AppSettings();
 
@@ -1647,10 +1669,10 @@ public class DBStoresUnitTest {
 		Broadcast nonExistentBroadcast = new Broadcast(null, null);
 		Endpoint endpoint = new Endpoint("rtmp://test.com", "generic", "test-service-id", "finished");
 		boolean result = dataStore.removeEndpoint("non-existent-stream-id", endpoint, true);
-		assertFalse("Should return false when broadcast doesn't exist", result);
+		assertFalse(result, "Should return false when broadcast doesn't exist");
 
 		result = dataStore.removeEndpoint("non-existent-stream-id", endpoint, false);
-		assertFalse("Should return false when broadcast doesn't exist (checkRTMPUrl=false)", result);
+		assertFalse(result, "Should return false when broadcast doesn't exist (checkRTMPUrl=false)");
 
 		// Test Case 2: Remove endpoint with null endpoint
 		Broadcast broadcast = new Broadcast(null, null);
@@ -1658,78 +1680,78 @@ public class DBStoresUnitTest {
 		assertNotNull(streamId);
 
 		result = dataStore.removeEndpoint(streamId, null, true);
-		assertFalse("Should return false when endpoint is null (checkRTMPUrl=true)", result);
+		assertFalse(result, "Should return false when endpoint is null (checkRTMPUrl=true)");
 
 		result = dataStore.removeEndpoint(streamId, null, false);
-		assertFalse("Should return false when endpoint is null (checkRTMPUrl=false)", result);
+		assertFalse(result, "Should return false when endpoint is null (checkRTMPUrl=false)");
 
 		// Test Case 3: Remove endpoint when endPointList is null
 		Broadcast broadcast2 = dataStore.get(streamId);
-		assertTrue("endPointList should be null initially", broadcast2.getEndPointList() == null);
+		assertTrue(broadcast2.getEndPointList() == null, "endPointList should be null initially");
 		
 		endpoint = new Endpoint("rtmp://test.com", "generic", "service-id-1", "finished");
 		result = dataStore.removeEndpoint(streamId, endpoint, true);
-		assertFalse("Should return false when endPointList is null (checkRTMPUrl=true)", result);
+		assertFalse(result, "Should return false when endPointList is null (checkRTMPUrl=true)");
 
 		result = dataStore.removeEndpoint(streamId, endpoint, false);
-		assertFalse("Should return false when endPointList is null (checkRTMPUrl=false)", result);
+		assertFalse(result, "Should return false when endPointList is null (checkRTMPUrl=false)");
 
 		// Test Case 4: Remove endpoint that doesn't exist (by URL)
 		Endpoint endpoint1 = new Endpoint("rtmp://existing.com", "facebook", "service-id-existing", "finished");
-		assertTrue("Should add endpoint successfully", dataStore.addEndpoint(streamId, endpoint1));
+		assertTrue(dataStore.addEndpoint(streamId, endpoint1), "Should add endpoint successfully");
 
 		broadcast2 = dataStore.get(streamId);
-		assertEquals("Should have 1 endpoint", 1, broadcast2.getEndPointList().size());
+		assertEquals(1, broadcast2.getEndPointList().size(), "Should have 1 endpoint");
 
 		Endpoint nonExistentEndpoint = new Endpoint("rtmp://non-existent.com", "generic", "unknown-id", "finished");
 		result = dataStore.removeEndpoint(streamId, nonExistentEndpoint, true);
-		assertFalse("Should return false when endpoint URL doesn't exist", result);
+		assertFalse(result, "Should return false when endpoint URL doesn't exist");
 
 		broadcast2 = dataStore.get(streamId);
-		assertEquals("Endpoint count should remain 1", 1, broadcast2.getEndPointList().size());
+		assertEquals(1, broadcast2.getEndPointList().size(), "Endpoint count should remain 1");
 
 		// Test Case 5: Remove endpoint that doesn't exist (by ServiceId)
 		result = dataStore.removeEndpoint(streamId, nonExistentEndpoint, false);
-		assertFalse("Should return false when endpoint ServiceId doesn't exist", result);
+		assertFalse(result, "Should return false when endpoint ServiceId doesn't exist");
 
 		broadcast2 = dataStore.get(streamId);
-		assertEquals("Endpoint count should remain 1", 1, broadcast2.getEndPointList().size());
+		assertEquals(1, broadcast2.getEndPointList().size(), "Endpoint count should remain 1");
 
 		// Test Case 7:  remove endpoint by URL
 		result = dataStore.removeEndpoint(streamId, endpoint1, true); //endpoint1
-		assertTrue("Should  successfully remove endpoint by URL", result);
+		assertTrue(result, "Should  successfully remove endpoint by URL");
 
 		broadcast2 = dataStore.get(streamId);
-		assertTrue("endPointList should be empty or null after removal", 
-			broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
+		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0, 
+			"endPointList should be empty or null after removal");
 
 		// Test Case 7: Successfully remove endpoint by ServiceId
 		Endpoint endpoint2 = new Endpoint("rtmp://service1.com", "facebook", "service-001", "finished");
 		Endpoint endpoint3 = new Endpoint("rtmp://service2.com", "youtube", "service-002", "finished");
 		
-		assertTrue("Should add first endpoint", dataStore.addEndpoint(streamId, endpoint2));
-		assertTrue("Should add second endpoint", dataStore.addEndpoint(streamId, endpoint3));
+		assertTrue(dataStore.addEndpoint(streamId, endpoint2), "Should add first endpoint");
+		assertTrue(dataStore.addEndpoint(streamId, endpoint3), "Should add second endpoint");
 
 		broadcast2 = dataStore.get(streamId);
-		assertEquals("Should have 2 endpoints", 2, broadcast2.getEndPointList().size());
+		assertEquals(2, broadcast2.getEndPointList().size(), "Should have 2 endpoints");
 
 		// Remove by ServiceId
 		//Endpoint endpointToRemoveByServiceId = new Endpoint("any-url", "any-type", "service-001", "finished");
 		result = dataStore.removeEndpoint(streamId, endpoint2, false);
-		assertTrue("Should successfully remove endpoint by ServiceId", result);
+		assertTrue(result, "Should successfully remove endpoint by ServiceId");
 
 		broadcast2 = dataStore.get(streamId);
-		assertEquals("Should have 1 endpoint remaining", 1, broadcast2.getEndPointList().size());
-		assertEquals("Remaining endpoint should have service-002", "service-002", 
-			broadcast2.getEndPointList().get(0).getEndpointServiceId());
+		assertEquals(1, broadcast2.getEndPointList().size(), "Should have 1 endpoint remaining");
+		assertEquals("service-002", broadcast2.getEndPointList().get(0).getEndpointServiceId(), 
+			"Remaining endpoint should have service-002");
 
 		// Test Case 8: Remove last endpoint
 		result = dataStore.removeEndpoint(streamId, endpoint3, false);
-		assertTrue("Should successfully remove last endpoint", result);
+		assertTrue(result, "Should successfully remove last endpoint");
 
 		broadcast2 = dataStore.get(streamId);
-		assertTrue("endPointList should be empty or null after removing last endpoint", 
-			broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
+		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0, 
+			"endPointList should be empty or null after removing last endpoint");
 	}
 
 	public void testGetActiveSubtracksComprehensive(DataStore dataStore) {
@@ -1738,8 +1760,8 @@ public class DBStoresUnitTest {
 
 		// Test Case 1: No main track exists - should return empty list
 		List<Broadcast> result = dataStore.getActiveSubtracks("non-existent-main-track", 0, 10, null);
-		assertNotNull("Result should not be null", result);
-		assertEquals("Should return empty list when main track doesn't exist", 0, result.size());
+		assertNotNull(result, "Result should not be null");
+		assertEquals(0, result.size(), "Should return empty list when main track doesn't exist");
 
 		// Test Case 2: Main track exists but has no subtracks
 		Broadcast mainTrack = new Broadcast("Main Track", "mainTrack");
@@ -1748,8 +1770,8 @@ public class DBStoresUnitTest {
 		assertNotNull(mainTrackId);
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
-		assertNotNull("Result should not be null", result);
-		assertEquals("Should return empty list when no subtracks exist", 0, result.size());
+		assertNotNull(result, "Result should not be null");
+		assertEquals(0, result.size(), "Should return empty list when no subtracks exist");
 
 		// Test Case 3: Main track with subtracks but none are active (finished status)
 		Broadcast subtrack1 = new Broadcast("Subtrack 1", "subtrack1");
@@ -1765,46 +1787,46 @@ public class DBStoresUnitTest {
 		String subtrack2Id = dataStore.save(subtrack2);
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
-		assertEquals("Should return empty list when subtracks are not active", 0, result.size());
+		assertEquals(0, result.size(), "Should return empty list when subtracks are not active");
 
 		// Test Case 4: Main track with active subtracks, no role filter - should return all active
 		dataStore.updateStatus(subtrack1Id, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		dataStore.updateStatus(subtrack2Id, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
-		assertEquals("Should return 2 active subtracks with no role filter", 2, result.size());
+		assertEquals(2, result.size(), "Should return 2 active subtracks with no role filter");
 
 		// Test Case 5: Main track with active subtracks, with specific role filter
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "role1");
-		assertEquals("Should return 1 subtrack with role1", 1, result.size());
-		assertEquals("Returned subtrack should have role1", "role1", result.get(0).getRole());
+		assertEquals(1, result.size(), "Should return 1 subtrack with role1");
+		assertEquals("role1", result.get(0).getRole(), "Returned subtrack should have role1");
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "role2");
-		assertEquals("Should return 1 subtrack with role2", 1, result.size());
-		assertEquals("Returned subtrack should have role2", "role2", result.get(0).getRole());
+		assertEquals(1, result.size(), "Should return 1 subtrack with role2");
+		assertEquals("role2", result.get(0).getRole(), "Returned subtrack should have role2");
 
 		// Test Case 6: Role filter with no matching subtracks
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "non-existent-role");
-		assertEquals("Should return empty list when no subtracks match the role", 0, result.size());
+		assertEquals(0, result.size(), "Should return empty list when no subtracks match the role");
 
 		// Test Case 7: Pagination with offset=0, size varying
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 1, null);
-		assertEquals("Should return 1 item with size=1", 1, result.size());
+		assertEquals(1, result.size(), "Should return 1 item with size=1");
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 2, null);
-		assertEquals("Should return 2 items with size=2", 2, result.size());
+		assertEquals(2, result.size(), "Should return 2 items with size=2");
 
 		// Test Case 8: Pagination with offset > 0
 		result = dataStore.getActiveSubtracks(mainTrackId, 1, 1, null);
-		assertEquals("Should return 1 item with offset=1, size=1", 1, result.size());
+		assertEquals(1, result.size(), "Should return 1 item with offset=1, size=1");
 
 		// Test Case 9: Pagination with offset beyond total items
 		result = dataStore.getActiveSubtracks(mainTrackId, 10, 5, null);
-		assertEquals("Should return empty list when offset exceeds total items", 0, result.size());
+		assertEquals(0, result.size(), "Should return empty list when offset exceeds total items");
 
 		// Test Case 10: Pagination with size=0
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 0, null);
-		assertEquals("Should return empty list when size=0", 0, result.size());
+		assertEquals(0, result.size(), "Should return empty list when size=0");
 
 		// Test Case 11: Complex scenario - multiple subtracks with different roles and statuses
 		// Add more subtracks with different combinations
@@ -1823,29 +1845,29 @@ public class DBStoresUnitTest {
 
 		// Total active subtracks: subtrack1 (role1, broadcasting), subtrack2 (role2, preparing), subtrack3 (role1, broadcasting) = 3
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
-		assertEquals("Should return 3 active subtracks", 3, result.size());
+		assertEquals(3, result.size(), "Should return 3 active subtracks");
 
 		// With role1 filter: subtrack1 and subtrack3 = 2
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "role1");
-		assertEquals("Should return 2 active subtracks with role1", 2, result.size());
+		assertEquals(2, result.size(), "Should return 2 active subtracks with role1");
 		for (Broadcast bc : result) {
-			assertEquals("All returned subtracks should have role1", "role1", bc.getRole());
+			assertEquals("role1", bc.getRole(), "All returned subtracks should have role1");
 		}
 
 		// Test Case 12: Pagination with multiple pages
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 2, null);
-		assertEquals("Page 1: should return 2 items", 2, result.size());
+		assertEquals(2, result.size(), "Page 1: should return 2 items");
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 2, 2, null);
-		assertEquals("Page 2: should return 1 item", 1, result.size());
+		assertEquals(1, result.size(), "Page 2: should return 1 item");
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 4, 2, null);
-		assertEquals("Page 3: should return empty list (offset beyond total)", 0, result.size());
+		assertEquals(0, result.size(), "Page 3: should return empty list (offset beyond total)");
 
 
 		// Test Case 13: Empty role string should behave like null (include all roles)
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, "");
-		assertEquals("Empty role string should return all active subtracks", 3, result.size());
+		assertEquals(3, result.size(), "Empty role string should return all active subtracks");
 
 		// Test Case 14: Verify different main tracks don't interfere
 		Broadcast mainTrack2 = new Broadcast("Main Track 2", "mainTrack2");
@@ -1861,10 +1883,10 @@ public class DBStoresUnitTest {
 		dataStore.save(subtrack5);
 
 		result = dataStore.getActiveSubtracks(mainTrackId, 0, 10, null);
-		assertEquals("First main track should still have 3 active subtracks", 3, result.size());
+		assertEquals(3, result.size(), "First main track should still have 3 active subtracks");
 
 		result = dataStore.getActiveSubtracks(mainTrack2Id, 0, 10, null);
-		assertEquals("Second main track should have only 1 active subtrack", 1, result.size());
+		assertEquals(1, result.size(), "Second main track should have only 1 active subtrack");
 	}
 
 
@@ -2798,7 +2820,7 @@ public class DBStoresUnitTest {
 		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
-		dsf.setDbHost("127.0.0.1");
+		dsf.setDbHost(mongoUri());
 		ApplicationContext context = mock(ApplicationContext.class);
 		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		AppSettings appSettings = new AppSettings();
@@ -2939,7 +2961,7 @@ public class DBStoresUnitTest {
 
 	@Test
 	public void testMongoDBSaveStreamInfo() {
-		MongoStore dataStore = new MongoStore("127.0.0.1", "testdb");
+		MongoStore dataStore = new MongoStore(mongoUri(), "testdb");
 		deleteStreamInfos(dataStore);
 		assertEquals(0, dataStore.getDataStore().find(StreamInfo.class).count());
 
@@ -3447,10 +3469,9 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMongoDBCollection() {
 		String dbName = "deleteMapdb";
-		MongoStore dataStore = new MongoStore("127.0.0.1", dbName);
+		MongoStore dataStore = new MongoStore(mongoUri(), dbName);
 
-		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("127.0.0.1"));
-		MongoClient client = new MongoClient(mongoUri);
+		MongoClient client = MongoClients.create(dataStore.getMongoConnectionUri(mongoUri()));
 
 
 		ArrayList<String> dbNames = new ArrayList<String>();
@@ -3462,6 +3483,7 @@ public class DBStoresUnitTest {
 		dbNames.clear();
 		client.listDatabaseNames().forEach(c-> dbNames.add(c));
 		assertFalse(dbNames.contains(dbName));
+		client.close();
 
 	}
 
@@ -4120,14 +4142,14 @@ public class DBStoresUnitTest {
 	 * 6. Node2.get() returns the stale cached updateTime instead of the fresh one from Mongo
 	 */
 	public void testViewerCountUpdateOverwritesCacheUpdateTime() throws InterruptedException {
-		MongoStore mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		MongoStore mongoStore1 = new MongoStore(mongoUri(), "testdb");
 		mongoStore1.close(true);
-		mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		mongoStore1 = new MongoStore(mongoUri(), "testdb");
 		AppSettings appSettings1 = new AppSettings();
 		mongoStore1.setAppSettings(appSettings1);
 
 		// Second MongoStore instance pointing to the same MongoDB — simulates a second cluster node
-		MongoStore mongoStore2 = new MongoStore("127.0.0.1", "testdb");
+		MongoStore mongoStore2 = new MongoStore(mongoUri(), "testdb");
 		AppSettings appSettings2 = new AppSettings();
 		mongoStore2.setAppSettings(appSettings2);
 
@@ -4200,9 +4222,9 @@ public class DBStoresUnitTest {
 		// THIS ASSERTION WILL FAIL — proving the bug.
 		// Expected: freshUpdateTime (the real value in MongoDB, set by mongoStore1)
 		// Actual: staleUpdateTime (from mongoStore2's never-expiring cache)
-		assertEquals("mongoStore2's cache should reflect the fresh updateTime from MongoDB, " +
-				"but viewer updates kept the stale value alive",
-				freshUpdateTime, broadcastFromStore2.getUpdateTime());
+		assertEquals(freshUpdateTime,
+				broadcastFromStore2.getUpdateTime(), "mongoStore2's cache should reflect the fresh updateTime from MongoDB, " +
+				"but viewer updates kept the stale value alive");
 
 		// Cleanup
 		mongoStore1.delete(streamId);
@@ -4226,14 +4248,14 @@ public class DBStoresUnitTest {
 	 * 6. Node2.get().getStatus() returns stale BROADCASTING instead of FINISHED from Mongo
 	 */
 	public void testViewerCountUpdateOverwritesCacheStatus() throws InterruptedException {
-		MongoStore mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		MongoStore mongoStore1 = new MongoStore(mongoUri(), "testdb");
 		mongoStore1.close(true);
-		mongoStore1 = new MongoStore("127.0.0.1", "testdb");
+		mongoStore1 = new MongoStore(mongoUri(), "testdb");
 		AppSettings appSettings1 = new AppSettings();
 		mongoStore1.setAppSettings(appSettings1);
 
 		// Second MongoStore instance pointing to the same MongoDB — simulates a second cluster node
-		MongoStore mongoStore2 = new MongoStore("127.0.0.1", "testdb");
+		MongoStore mongoStore2 = new MongoStore(mongoUri(), "testdb");
 		AppSettings appSettings2 = new AppSettings();
 		mongoStore2.setAppSettings(appSettings2);
 
@@ -4297,9 +4319,9 @@ public class DBStoresUnitTest {
 		// THIS ASSERTION WILL FAIL — proving the bug.
 		// Expected: FINISHED (real value in MongoDB, set by mongoStore1)
 		// Actual: BROADCASTING (from mongoStore2's never-expiring cache)
-		assertEquals("mongoStore2 should see FINISHED status from MongoDB, " +
-				"but viewer updates kept the stale BROADCASTING status alive in cache",
-				AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastFromStore2.getStatus());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED,
+				broadcastFromStore2.getStatus(), "mongoStore2 should see FINISHED status from MongoDB, " +
+				"but viewer updates kept the stale BROADCASTING status alive in cache");
 
 		// Cleanup
 		mongoStore1.delete(streamId);

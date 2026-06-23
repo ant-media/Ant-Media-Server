@@ -1,10 +1,10 @@
 package io.antmedia;
 
-import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.Test;
-import org.webrtc.VideoCodecType;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import static org.junit.Assert.assertEquals;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.junit.jupiter.api.Test;
+import org.webrtc.VideoCodecType;
 
 public class FFmpegUtilitiesTest {
 

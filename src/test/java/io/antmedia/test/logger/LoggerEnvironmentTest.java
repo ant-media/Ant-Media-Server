@@ -1,24 +1,26 @@
 package io.antmedia.test.logger;
 
+
+import org.junit.jupiter.api.Tag;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import io.antmedia.logger.LoggerEnvironment;
 
+@Tag("fast")
 public class LoggerEnvironmentTest {
 
-    @After
+    @AfterEach
     public void after(){
         LoggerEnvironment.stopManagingThread();
     }
     @Test
     public void startManagingThreadTest(){
         LoggerEnvironment.startManagingThread();
-        Assert.assertTrue(LoggerEnvironment.isManagingThread());
+        Assertions.assertTrue(LoggerEnvironment.isManagingThread());
     }
 
     @Test
@@ -27,6 +29,6 @@ public class LoggerEnvironmentTest {
         LoggerEnvironment.stopManagingThread();
         Awaitility.await().atMost(20, TimeUnit.SECONDS)
                 .until(() -> !LoggerEnvironment.isManagingThread());
-        Assert.assertFalse(LoggerEnvironment.isManagingThread());
+        Assertions.assertFalse(LoggerEnvironment.isManagingThread());
     }
 }

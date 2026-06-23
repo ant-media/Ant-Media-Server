@@ -1,12 +1,14 @@
 package io.antmedia.test.statistic;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 
@@ -34,17 +36,18 @@ import io.antmedia.statistic.ViewerStats;
 import io.vertx.core.Vertx;
 
 
+@Tag("fast")
 public class HlsViewerStatsTest {
 	
 	static Vertx vertx;	
 	
 	
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		vertx = io.vertx.core.Vertx.vertx();
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		vertx.close();
 	}

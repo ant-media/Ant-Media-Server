@@ -2,14 +2,13 @@ package org.red5.server.tomcat;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.*;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 import java.io.File;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestTomcatConfig {
 

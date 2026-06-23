@@ -33,14 +33,15 @@ import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
 import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -48,12 +49,10 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
@@ -138,7 +137,11 @@ import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.SizeTPointer;
 import org.json.simple.JSONObject;
-import org.junit.*;
+import org.junit.Rule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -173,10 +176,13 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.VideoCodecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.*;
@@ -192,7 +198,6 @@ import io.antmedia.muxer.WebMMuxer;
 import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -200,11 +205,15 @@ import static org.mockito.Mockito.*;
 @ContextConfiguration(locations = {"test.xml"})
 //@ContextConfiguration(classes = {AppConfig.class})
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
+@ExtendWith(SpringExtension.class)
+public class MuxerUnitTest {
 
 
 	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
 	protected static final int BUFFER_SIZE = 10240;
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
 
 	byte[] extradata_original = new byte[]{0x00, 0x00, 0x00, 0x01, 0x67, 0x64, 0x00, 0x15, (byte) 0xAC, (byte) 0xB2, 0x03, (byte) 0xC1, 0x7F, (byte) 0xCB, (byte) 0x80,
@@ -229,14 +238,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	private DataStore datastore;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		//avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		File webApps = new File("webapps");
 		if (!webApps.exists()) {
@@ -253,7 +262,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setAddDateTimeToMp4FileName(false);
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 
 
@@ -316,7 +325,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testConvertAvcExtraDataToAnnexB() {
 		byte[] sps_pps_avc = new byte[]{0x01, 0x64, 0x00, 0x15, (byte) 0xFF,
 				(byte) 0xE1, 0x00, 0x1A, 0x67, 0x64, 0x00, 0x15, (byte) 0xAC, (byte) 0xB2, 0x03,
@@ -342,7 +351,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHEVCSPSParser() {
 		byte[] sps = new byte[] {66, 1, 1, 1, 96, 0, 0, 3, 0, -112, 0, 0, 3, 0, 0, 3, 0, 123, -96, 3, -64, -128, 16,
 				-27, -106, 74, -110, 76, -82, 106, 2, 2, 3, -62, 0, 0, 3, 0, 2, 0, 0, 3, 0, 120, 16};
@@ -355,7 +364,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAddAudioStream() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -371,7 +380,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAddExtradata() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -402,7 +411,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(25, mp4Muxer.getTmpPacket().size());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testInitVideoBitstreamFilter() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -419,7 +428,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAddStream() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -455,7 +464,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testContextChanged() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -490,13 +499,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testErrorDefinition() {
 		String errorDefinition = Muxer.getErrorDefinition(-1);
 		assertNotNull(errorDefinition);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testParseAACConfig() {
 		AACConfigParser aacParser = new AACConfigParser(aacConfig, 0);
 		assertEquals(44100, aacParser.getSampleRate());
@@ -527,7 +536,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAACAudio() {
 		AACAudio aacAudio = new AACAudio();
 
@@ -547,7 +556,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testInitBitstreamFilter() {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		//AVInputFormat findInputFormat = avformat.av_find_input_format("mp4");
@@ -591,7 +600,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		avformat_close_input(inputFormatContext);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHEVCHLSMuxingInFMP4() {
 
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
@@ -690,7 +699,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testFFmpegReadPacket() {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		AVInputFormat findInputFormat = avformat.av_find_input_format("flv");
@@ -796,7 +805,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAudioTag() {
 
 		try {
@@ -839,7 +848,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testIsCodecSupported() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
@@ -860,7 +869,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testStreamIndex() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
@@ -903,7 +912,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRecordMuxerS3Prefix() {
 		String s3Prefix = RecordMuxer.getS3Prefix("s3", null);
 		assertEquals("s3/", s3Prefix);
@@ -918,7 +927,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("s3/", s3Prefix);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSMuxerGetOutputURLAndSegmentFilename() throws IOException {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1044,7 +1053,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testGetAudioCodecParameters() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		logger.info("Application / web scope: {}", appScope);
@@ -1068,7 +1077,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testStopRtmpStreamingWhenEndpointMuxerNull() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		logger.info("Application / web scope: {}", appScope);
@@ -1098,7 +1107,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(muxAdaptor.stopEndpointStreaming(rtmpUrl, resolution).isSuccess());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxerStartStopRTMPStreaming() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		logger.info("Application / web scope: {}", appScope);
@@ -1139,7 +1148,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxerEndpointStatusUpdate() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1185,7 +1194,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testBroadcastHasBeenDeleted() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		logger.info("Application / web scope: {}", appScope);
@@ -1215,7 +1224,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRTMPCodecSupport() {
 		EndpointMuxer endpointMuxer = new EndpointMuxer(null, vertx);
 
@@ -1227,7 +1236,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSAddStream() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1248,7 +1257,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSID3TagEnabled() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -1275,7 +1284,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testWriteVideoBuffer(){
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -1298,7 +1307,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRTMPAddStream() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -1324,7 +1333,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRTMPPrepareIO() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -1375,7 +1384,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(endpointMuxer2).clearResource();
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRTMPMuxerRaceCondition() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -1418,7 +1427,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(rtmpMuxer2.getIsRunning().get());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testWriteTrailerBeforeHeader() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -1442,7 +1451,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRTMPHealthCheckProcess() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		logger.info("Application / web scope: {}", appScope);
@@ -1547,7 +1556,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRTMPWriteCrash() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1588,7 +1597,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		endpointMuxer.writeHeader();
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRtmpUrlWithoutAppName() {
 		{
 			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
@@ -1653,7 +1662,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxerDirectStreaming() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1772,7 +1781,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxAdaptorEnableSettingsPreviewCreatePeriod() {
 
 		if (appScope == null) {
@@ -1800,7 +1809,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testClientBroadcastStreamStartPublish() {
 		ClientBroadcastStream clientBroadcastStreamReal = new ClientBroadcastStream();
 
@@ -1831,7 +1840,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(clientBroadcastStream.getMuxAdaptor());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxingSimultaneously() {
 
 		if (appScope == null) {
@@ -1905,7 +1914,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testIsEncoderAdaptorShouldBeTried() {
 
 		AppSettings appSettingsLocal = new AppSettings();
@@ -1951,7 +1960,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testStressMp4Muxing() {
 
 		long startTime = System.nanoTime();
@@ -2050,7 +2059,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxerStreamType() {
 		assertEquals("video", MuxAdaptor.getStreamType(AVMEDIA_TYPE_VIDEO));
 		assertEquals("audio", MuxAdaptor.getStreamType(AVMEDIA_TYPE_AUDIO));
@@ -2061,7 +2070,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxingWithWithMultipleDepth() {
 		File file = testMp4Muxing("test_test/test");
 		assertEquals("test.mp4", file.getName());
@@ -2076,7 +2085,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(file.exists());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxingWithSameName() {
 		logger.info("running testMp4MuxingWithSameName");
 
@@ -2150,7 +2159,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testBaseStreamFileServiceBug() {
 		//I've removed this test because we don't maintain the RTMP and removing some redundant dependencies
 		/*
@@ -2184,7 +2193,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testApplicationStreamLimit() {
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
@@ -2239,7 +2248,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAbsoluteStartTimeMs() {
 		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
@@ -2276,7 +2285,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxingAndNotifyCallback() {
 
 		Application app = (Application) applicationContext.getBean("web.handler");
@@ -2348,7 +2357,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxingHighProfileDelayedVideo() {
 
 		String name = "high_profile_delayed_video_" + (int) (Math.random() * 10000);
@@ -2429,7 +2438,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		return testMp4Muxing(name, true, true);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxAdaptorClose() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2452,7 +2461,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.closeResources();
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testOrderedBufferedQueue() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2515,7 +2524,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAddBufferQueue() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
@@ -2560,7 +2569,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testWriteBufferedPacket() {
 
 		if (appScope == null) {
@@ -2612,7 +2621,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testDropPacketIfStopped() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2648,7 +2657,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRtmpIngestBufferTime() throws IOException {
 
 
@@ -2772,7 +2781,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4Muxing() {
 		File mp4File = testMp4Muxing("lkdlfkdlfkdlfk");
 
@@ -2781,7 +2790,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(431 - fileInfo.audioPacketsCount < 5);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testPlusplus() 
 	{
 		long t = Byte.toUnsignedLong((byte)0xff);
@@ -2932,7 +2941,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		return null;
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSMuxerCodecSupported() 
 	{
 		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, null, "streams", 1, null, false);
@@ -2947,7 +2956,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void updateStreamQualityParameters() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -3038,7 +3047,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxingSubtitledVideo() {
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setAddDateTimeToMp4FileName(true);
@@ -3119,12 +3128,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSNormal() {
 		testHLSMuxing("hlsmuxing_test");
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testUploadExtensions() {
 		//av_log_set_level (40);
 		int hlsListSize = 3;
@@ -3249,7 +3258,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxingWithDirectParams() {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
@@ -3312,7 +3321,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	 * Real functional test is under enterprise test repo
 	 * It is called testReinitializeEncoderContext
 	 */
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSMuxingWithDirectParams() {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
@@ -3400,7 +3409,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	 * Real functional test is under enterprise test repo
 	 * It is called testReinitializeEncoderContext
 	 */
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRecordMuxingWithDirectParams() {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
@@ -3473,7 +3482,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4FinalName() {
 		{
 			//Scenario 1
@@ -3604,7 +3613,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSMuxingWithinChildScope() {
 
 		int hlsTime = 2;
@@ -3794,7 +3803,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testWriteStreamPacketHEVC() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
@@ -3869,7 +3878,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxAdaptorGetVideConf() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
@@ -3930,7 +3939,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testSimpleGetterSetters() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
@@ -3949,7 +3958,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testStreamSpeed() throws IOException {
 
 		int hlsListSize = 3;
@@ -4136,7 +4145,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSNaming() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -4288,7 +4297,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testDontSendPacketsForTimeoutPeriod() throws IOException {
 		//av_log_set_level (40);
 		int hlsListSize = 3;
@@ -4369,7 +4378,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testHLSMuxingWithSubtitle() {
 
 		//av_log_set_level (40);
@@ -4512,7 +4521,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		return datastore;
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testNotifyMetadata() 
 	{
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
@@ -4570,7 +4579,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRelayRTMPMetadata() {
 
 		String streamId = "testRelayRTMPMetadata";
@@ -4730,7 +4739,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRecording() {
 		testRecording("dasss", true);
 	}
@@ -4906,7 +4915,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRemux() {
 
 		String input = "src/test/resources/test_video_360p.flv";
@@ -4955,7 +4964,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxingWithSameNameWhileRecording() {
 
 		/*
@@ -5016,7 +5025,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testGetExtendedName() {
 		Muxer mp4Muxer = spy(new Mp4Muxer(null, null, "streams"));
 
@@ -5079,7 +5088,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxingWhileTempFileExist() {
 
 		/*
@@ -5129,7 +5138,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAnalyzeTime() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -5178,7 +5187,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxAdaptorPacketListener() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -5231,7 +5240,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testPacketFeeder() {
 		String streamId = "stream" + RandomUtils.nextInt(1, 1000);
 		PacketFeeder packetFeeder = new PacketFeeder(streamId);
@@ -5253,7 +5262,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(listener, Mockito.times(1)).writeTrailer(eq(streamId));
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testStreamParametersInfo() {
 		StreamParametersInfo spi = new StreamParametersInfo();
 		AVCodecParameters codecParameters = mock(AVCodecParameters.class);
@@ -5274,7 +5283,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRegisterRTMPStreamToMainTrack() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -5332,7 +5341,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testOrderAudioPacket() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -5380,7 +5389,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	/*
 	 * This test is throwing exception and failing before the fix
 	 */
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testBufferUnderflowException() {
 
 		byte[] _resultPacket;
@@ -5423,7 +5432,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAddMuxer() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -5448,7 +5457,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testIsAlreadyRecording() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -5474,7 +5483,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(muxAdaptor.isAlreadyRecording(RecordType.WEBM, 240));
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAddID3TagToHLSMuxer() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -5495,7 +5504,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(hlsMuxer, times(1)).addID3Data(data);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testWriteID3TagToHLSStream() {
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
 				"streams", 0, "http://example.com", false));
@@ -5509,7 +5518,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testID3Timing() {
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
 				"streams", 0, "http://example.com", false));
@@ -5544,7 +5553,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxAdaptorPipeReader() {
 
 
@@ -5572,7 +5581,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testBroadcastHLSParameters() {
 		AppSettings appSettings = new AppSettings();
 		appSettings.setHlsListSize("5");
@@ -5634,7 +5643,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testSetSEIData() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
@@ -5841,13 +5850,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRecordingWithRecordingSubfolder() {
 		appSettings.setRecordingSubfolder("records");
 		testMp4Muxing("record" + RandomUtils.nextInt(0, 10000));
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRtmpDtsOverflow() {
 
 		if (appScope == null) {
@@ -6024,7 +6033,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testID3HeaderTagSize() {
 		int size = 257;
 		byte[] tagSizeBytes = HLSMuxer.convertIntToID3v2TagSize(size);
@@ -6060,7 +6069,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0x00, tagSizeBytes[3]);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testAddID3Data() {
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
 				"streams", 0, "http://example.com", false));
@@ -6125,7 +6134,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0x00, endOfString);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testGetSubfolder() throws Exception {
 		String mainTrackId = "mainTrackId";
 		String streamId = "stream456";
@@ -6260,13 +6269,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 	
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testReplaceMultipleSlashes() {
 		String replaceDoubleSlashesWithSingleSlash = RecordMuxer.replaceDoubleSlashesWithSingleSlash("WebRTCAppEE/streams///stream1.mp4");
 		assertEquals("WebRTCAppEE/streams/stream1.mp4", replaceDoubleSlashesWithSingleSlash);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testWriteTrailer() throws IOException, InterruptedException {
 
 		Vertx vertx = Vertx.vertx();
@@ -6315,26 +6324,26 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(recordMuxerMock, times(1)).getFinalFileName(anyBoolean());
 
 	}
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testParseEndpointURl(){
 		EndpointMuxer endpointMuxer = new EndpointMuxer("rtmp://",vertx);
-		Assert.assertEquals("rtmp", endpointMuxer.muxerType);
-		Assert.assertEquals("flv", endpointMuxer.getFormat());
-		Assert.assertEquals("rtmp",endpointMuxer.getMuxerType());
+		Assertions.assertEquals("rtmp", endpointMuxer.muxerType);
+		Assertions.assertEquals("flv", endpointMuxer.getFormat());
+		Assertions.assertEquals("rtmp",endpointMuxer.getMuxerType());
 
 		endpointMuxer = new EndpointMuxer("srt://",vertx);
-		Assert.assertEquals("srt", endpointMuxer.muxerType);
-		Assert.assertEquals("mpegts", endpointMuxer.getFormat());
-		Assert.assertEquals("srt",endpointMuxer.getMuxerType());
+		Assertions.assertEquals("srt", endpointMuxer.muxerType);
+		Assertions.assertEquals("mpegts", endpointMuxer.getFormat());
+		Assertions.assertEquals("srt",endpointMuxer.getMuxerType());
 	}
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testGetSetEndpointURl(){
 		String url = "rtmp://test.antmedia.io/LiveApp/test";
 		Endpoint endpoint = new Endpoint();
 		endpoint.setEndpointUrl(url);
 		assertEquals(url,endpoint.getEndpointUrl());
 	}
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testWritePacket() throws  InterruptedException {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -6474,7 +6483,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testStartupGracePeriodDropsWrites() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -6496,7 +6505,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(muxer.inStartupGracePeriod());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testSetStatusListenerNotifyAndDedup() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -6517,7 +6526,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("bar", muxer.getStatus());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testOpenIONoFileFormat() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -6529,13 +6538,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		AVFormatContext ctx = muxer.getOutputFormatContext();
 		assertNotNull(ctx);
-		assertTrue("rtsp muxer is expected to have AVFMT_NOFILE",
-				(ctx.oformat().flags() & AVFMT_NOFILE) != 0);
+		assertTrue((ctx.oformat().flags() & AVFMT_NOFILE) != 0,
+				"rtsp muxer is expected to have AVFMT_NOFILE");
 
 		assertTrue(muxer.openIO());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testEndpointAnalyticsDropAndBurst() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -6574,7 +6583,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		analytics.recordWrite(durNanos, avutil.AV_NOPTS_VALUE, 10);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testShutdownWorkerQueueFullDrainsPacket() throws Exception {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -6617,11 +6626,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Field poisonField = EndpointMuxer.class.getDeclaredField("POISON_PILL");
 		poisonField.setAccessible(true);
 		Object poison = poisonField.get(null);
-		assertTrue("POISON_PILL must have landed in the queue", queue.contains(poison));
+		assertTrue(queue.contains(poison), "POISON_PILL must have landed in the queue");
 		assertFalse(runningField.getBoolean(muxer));
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testSetUpEndPointsBranches() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
@@ -6653,7 +6662,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mockito.verify(adaptor, times(2)).addMuxer(Mockito.any(EndpointMuxer.class));
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxAdaptorSimpleAccessors() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		MuxAdaptor adaptor = MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope);
@@ -6672,7 +6681,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(adaptor.isPreviewOverwrite());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testGetOutputFormatCtx(){
 		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest2", vertx));
 		endpointMuxer.setFormat("testing");
@@ -6687,7 +6696,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testNotifyStreamFinish() throws IOException {
 
 		HLSMuxer muxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, "test", false));
@@ -6732,7 +6741,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testRTMPStreamMedaData(){
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		logger.info("Application / web scope: {}", appScope);
@@ -6759,7 +6768,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMp4MuxerInitUsesOverrideFileName() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams"));
@@ -6771,7 +6780,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("custom_file_name.mp4", mp4Muxer.getFileName());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testWebMMuxerInitUsesOverrideFileName() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		WebMMuxer webmMuxer = Mockito.spy(new WebMMuxer(Mockito.mock(StorageClient.class), Vertx.vertx(), "streams"));
@@ -6783,7 +6792,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("custom_file_name_webm.webm", webmMuxer.getFileName());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testSanitizeAndStripExtension_LengthAndChars() throws Exception {
 		RestServiceBase rest = new RestServiceBase() {};
 		java.lang.reflect.Method m = RestServiceBase.class.getDeclaredMethod("sanitizeAndStripExtension", String.class, RecordType.class);
@@ -6800,7 +6809,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("clip", webm);
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxAdaptorStartRecordingOverloadPassesBaseName() {
 		class TestMuxAdaptor extends MuxAdaptor {
 			public TestMuxAdaptor() { super(Mockito.mock(ClientBroadcastStream.class)); }
@@ -6817,7 +6826,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mockito.verify(created, Mockito.times(1)).setInitialResourceNameOverride("base_name");
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testMuxAdaptorDirectMuxingSupported() {
 		class TestMuxAdaptor extends MuxAdaptor {
 			public TestMuxAdaptor() { super(Mockito.mock(ClientBroadcastStream.class)); }
@@ -6834,7 +6843,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(adaptor.directMuxingSupported());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testEnableRecordMuxingWithFileNameUsesOverride() throws Exception {
 		final String streamId = "s1";
 		// mock datastore and broadcast in broadcasting state
@@ -6863,7 +6872,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(res.isSuccess());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testSanitizeAndStripExtension() throws Exception {
 		RestServiceBase rest = new RestServiceBase() {};
 		// access protected method via reflection
@@ -6874,7 +6883,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("noext", (String)m.invoke(rest, "noext", RecordType.MP4));
 	}
 	
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testPrepareFromInputFormatContextForData() throws Exception {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		logger.info("Application / web scope: {}", appScope);
@@ -6901,7 +6910,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(2, muxAdaptor.getAudioStreamIndex());
 	}
 
-	@Test
+	@org.junit.jupiter.api.Test
 	public void testEndpointMuxerPrepareIOCancelledAndNotCancelled() throws Exception {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);

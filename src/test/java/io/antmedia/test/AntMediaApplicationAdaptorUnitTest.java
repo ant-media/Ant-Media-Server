@@ -2,12 +2,13 @@ package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -67,10 +68,10 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -163,7 +164,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		};
 	};
 
-	@Before
+	@BeforeEach
 	public void before() {
 		adapter = new AntMediaApplicationAdapter();
 		adapter.setVertx(vertx);
@@ -193,7 +194,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		adapter = null;
 
@@ -755,7 +756,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 					ArgumentMatchers.eq("http://any_url"),
 					ArgumentMatchers.eq(jsonPayload),
 					ArgumentMatchers.eq(appSettings.getWebhookRetryCount() - 1), 
-					isNull(String.class)
+					isNull()
 					);
 
 			Mockito.when(statusLine.getStatusCode()).thenReturn(200);
@@ -2031,9 +2032,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(result4.isSuccess());
 
 		// Verify the async callback executed
-		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
-			verify(streamFetcherManager, times(1)).startStreaming(broadcast4);
-		});
+		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+			verify(streamFetcherManager, times(1)).startStreaming(broadcast4));
 
 		// Test Case 5: Non-cluster mode streaming
 		when(spyAdapter.isClusterMode()).thenReturn(false);
@@ -2670,7 +2670,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Get the subtrackPoller using the getter and verify it's the same as the mock
 		ISubtrackPoller retrievedSubtrackPoller = adapter.getSubtrackPoller();
-		assertEquals("The retrieved subtrackPoller should match the mock instance.", mockSubtrackPoller, retrievedSubtrackPoller);
+		assertEquals(mockSubtrackPoller, retrievedSubtrackPoller, "The retrieved subtrackPoller should match the mock instance.");
 	}
 
 	@Test

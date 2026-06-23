@@ -1,17 +1,15 @@
 package io.antmedia.test.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.settings.ServerSettings;
+import org.junit.jupiter.api.Test;
 
+@Tag("fast")
 public class UserTest {
 	
 	

@@ -1,9 +1,9 @@
 package io.antmedia.test.storage;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
 
 import com.amazonaws.event.ProgressListener;
 import com.google.cloud.ByteArray;
@@ -11,8 +11,8 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import io.antmedia.storage.GCPStorageClient;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -28,7 +28,7 @@ import java.nio.file.Path;
 public class GCPStorageClientTest {
 
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
     }
@@ -82,13 +82,13 @@ public class GCPStorageClientTest {
         File tempFile = tempFilePath.toFile();
 
         // Ensure the file exists before deletion
-        assertTrue("Temporary file should exist before deletion", tempFile.exists());
+        assertTrue(tempFile.exists(), "Temporary file should exist before deletion");
 
         // Call the deleteFile method
         gcpStorageClient.deleteFile(tempFile);
 
         // Ensure the file does not exist after deletion
-        assertFalse("Temporary file should not exist after deletion", tempFile.exists());
+        assertFalse(tempFile.exists(), "Temporary file should not exist after deletion");
 
         gcpStorageClient.deleteFile(new File("non existing"));
         //no need for check
