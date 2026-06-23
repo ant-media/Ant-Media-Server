@@ -1,6 +1,5 @@
 package io.antmedia.test.ipcamera;
 
-
 import org.junit.jupiter.api.Tag;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvif.soap.SOAP;
@@ -10,6 +9,8 @@ import io.antmedia.ipcamera.onvif.soap.devices.MediaDevices;
 import io.antmedia.ipcamera.onvif.soap.devices.PtzDevices;
 import jakarta.xml.soap.SOAPException;
 import org.junit.jupiter.api.Test;
+import org.onvif.ver10.schema.Capabilities;
+import org.onvif.ver10.schema.DeviceCapabilities;
 import org.onvif.ver10.schema.Profile;
 
 import java.net.ConnectException;
@@ -23,7 +24,6 @@ import static org.mockito.Mockito.when;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-
 
 @Tag("fast")
 public class OnvifCameraTest {
