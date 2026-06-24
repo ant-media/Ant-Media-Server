@@ -852,6 +852,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
 		streamFetcherManager.setStreamFetcherList(streamFetcherList);
 		Mockito.doReturn(true).when(streamFetcherManager).isStreamRunning(Mockito.any());
+		// Periodic restart now only restarts unhealthy fetchers. Flip the mock to look unhealthy
+		// so the listener-based restart path is exercised.
+		when(fetcher.isStreamAlive()).thenReturn(false);
 		streamFetcherManager.controlStreamFetchers(true);
 
 
@@ -1047,11 +1050,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
 
 
+		// Periodic restart now only restarts unhealthy fetchers. Flip to unhealthy so this restart
+		// path actually fires (was previously firing for every fetcher regardless of health).
+		when(fetcher.isStreamAlive()).thenReturn(false);
 		streamFetcherManager.controlStreamFetchers(true);
-		//it willl not change because restart is true
+		//restart=true plus unhealthy fetcher → stopStream fires again
 		verify(fetcher, times(4)).stopStream();
-		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());	
-		
+		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());
+
 		streamFetcherManager.stopStreaming(streamId, false);
 
 
