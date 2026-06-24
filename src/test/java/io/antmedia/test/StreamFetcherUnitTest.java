@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.*;
@@ -478,7 +479,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			when(streamFetcher.getStreamId()).thenReturn(stream.getStreamId());
 			when(streamFetcher.getStreamUrl()).thenReturn(streamUrl);
 
-			when(streamFetcher.isStreamAlive()).thenReturn(true);
+			when(streamFetcher.isStreamAlive()).thenReturn(false);
 			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
 
 			StreamFetcherManager fetcherManager_ = new StreamFetcherManager(vertx, memoryDataStore, appScope);
@@ -535,6 +536,180 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 
 
+	}
+
+	/**
+	 * Locks in the behavior that the periodic restart no longer recycles healthy fetchers.
+	 *
+	 * Customer-incident background: with the old bulk-restart at controlStreamFetchers,
+	 * a working stream at speed:1.0 was stopped and restarted on the timer. The fresh
+	 * fetcher then ran into a camera-side session conflict and never recovered without a
+	 * manual delete-and-readd. The fix in controlStreamFetchers gates the restart on
+	 * !isStreamAlive() || isStreamBlocked() so healthy streams are left alone.
+	 */
+	@Test
+	public void testRestartPeriodSkipsHealthyFetcher() {
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		try {
+			InMemoryDataStore memoryDataStore = new InMemoryDataStore("testdb");
+
+			StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
+			Broadcast stream = new Broadcast();
+			String streamId = "healthy-" + RandomStringUtils.randomNumeric(6);
+			stream.setStreamId(streamId);
+			stream.setStreamUrl("anyurl");
+			memoryDataStore.save(stream);
+
+			when(streamFetcher.getStreamId()).thenReturn(streamId);
+			when(streamFetcher.getStreamUrl()).thenReturn("anyurl");
+			// Healthy: receiving packets, not blocked.
+			when(streamFetcher.isStreamAlive()).thenReturn(true);
+			when(streamFetcher.isStreamBlocked()).thenReturn(false);
+			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
+
+			StreamFetcherManager fetcherManager_ = new StreamFetcherManager(vertx, memoryDataStore, appScope);
+			StreamFetcherManager fetcherManager = Mockito.spy(fetcherManager_);
+			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, vertx);
+
+			fetcherManager.testSetStreamCheckerInterval(1000);
+			appSettings.setRestartStreamFetcherPeriod(2);
+
+			assertTrue(fetcherManager.startStreaming(stream).isSuccess());
+
+			// Give the periodic checker enough time to fire restart>=2 cycles.
+			Awaitility.await().pollDelay(6, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> true);
+
+			// startStream() should have been called exactly once (the initial start).
+			// stopStream() must never have been called by the periodic restart.
+			verify(streamFetcher, never()).stopStream();
+			verify(streamFetcher, times(1)).startStream();
+
+			appSettings.setRestartStreamFetcherPeriod(0);
+			fetcherManager.stopCheckerJob();
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+	}
+
+	/**
+	 * Reproduces the "Stream is already active. It's already streaming or trying to connect"
+	 * response on POST /v2/broadcasts/{id}/start when the dashboard shows the stream offline.
+	 *
+	 * Setup mimics a StreamFetcher stuck inside av_read_frame() on an unreachable source
+	 * (RTSP camera that opened the TCP socket and went silent, NAT timeout, etc.):
+	 *  - isStreamBlocked()=true, isStreamAlive()=false
+	 *  - DB updateTime is stale, so Broadcast.getStatus() auto-degrades to
+	 *    TERMINATED_UNEXPECTEDLY -> dashboard correctly shows offline.
+	 *
+	 * Today the test FAILS because StreamFetcherManager.isStreamRunning at L125 only checks
+	 * streamFetcherList.containsKey(...) -> returns true -> startStreaming returns the
+	 * "already active" message. After a fix (e.g. teach isStreamRunning to also check
+	 * fetcher.isStreamAlive(), or evict zombies before the containsKey check), the
+	 * assertion below should pass.
+	 */
+	@Test
+	public void testStartStreamingRecoversFromZombieFetcher() {
+		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
+		String streamId = "zombie-" + RandomStringUtils.randomNumeric(6);
+
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
+		broadcast.setStreamUrl("rtsp://hung-source.invalid/stream");
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		broadcast.setUpdateTime(System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 10_000);
+		dataStore.save(broadcast);
+
+		assertEquals("Dashboard view: getStatus() should auto-degrade to TERMINATED_UNEXPECTEDLY when updateTime is stale",
+				AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY,
+				dataStore.get(streamId).getStatus());
+
+		StreamFetcher zombie = Mockito.mock(StreamFetcher.class);
+		when(zombie.getStreamId()).thenReturn(streamId);
+		when(zombie.getStreamUrl()).thenReturn(broadcast.getStreamUrl());
+		when(zombie.isStreamAlive()).thenReturn(false);
+		when(zombie.isStreamBlocked()).thenReturn(true);
+		when(zombie.isZombie()).thenReturn(true);
+
+		StreamFetcherManager fetcherManager_ = new StreamFetcherManager(vertx, dataStore, appScope);
+		StreamFetcherManager fetcherManager = Mockito.spy(fetcherManager_);
+
+		StreamFetcher freshFetcher = Mockito.mock(StreamFetcher.class);
+		when(freshFetcher.getStreamId()).thenReturn(streamId);
+		when(freshFetcher.getStreamUrl()).thenReturn(broadcast.getStreamUrl());
+		Mockito.doReturn(freshFetcher).when(fetcherManager).make(any(Broadcast.class), eq(appScope), eq(vertx));
+
+		fetcherManager.getStreamFetcherList().put(streamId, zombie);
+
+		Result result = fetcherManager.startStreaming(dataStore.get(streamId));
+
+		assertTrue("startStreaming should not be blocked by a zombie fetcher (isStreamBlocked=true, isStreamAlive=false). " +
+					"Got message: " + result.getMessage(),
+				result.isSuccess());
+	}
+
+	/**
+	 * Proves the upstream cause of the bug above: controlStreamFetchers cannot evict a
+	 * fetcher whose isStreamBlocked()=true. See the cleanup condition at
+	 * StreamFetcherManager.java:615:
+	 *   !isStreamBlocked() && !isStreamAlive() && status == TERMINATED_UNEXPECTEDLY
+	 *
+	 * A fetcher stuck inside av_read_frame() satisfies neither !isStreamBlocked nor
+	 * !isStreamAlive's negation in a useful way (alive is already false, but blocked
+	 * gates the whole branch). So it lives in streamFetcherList forever, which makes
+	 * the next manual Start return "already active".
+	 *
+	 * Today this test FAILS. After a fix to the eviction condition (e.g. evict when
+	 * isStreamBlocked has persisted past N * STREAM_TIMEOUT_MS), the assertion passes.
+	 */
+	@Test
+	public void testZombieFetcherEvictionByControlStreamFetchers() {
+		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
+		String streamId = "zombie-" + RandomStringUtils.randomNumeric(6);
+
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
+		broadcast.setStreamUrl("rtsp://hung-source.invalid/stream");
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		broadcast.setUpdateTime(System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 10_000);
+		dataStore.save(broadcast);
+
+		StreamFetcher zombie = Mockito.mock(StreamFetcher.class);
+		when(zombie.getStreamId()).thenReturn(streamId);
+		when(zombie.getStreamUrl()).thenReturn(broadcast.getStreamUrl());
+		when(zombie.isStreamAlive()).thenReturn(false);
+		when(zombie.isStreamBlocked()).thenReturn(true);
+
+		StreamFetcherManager fetcherManager_ = new StreamFetcherManager(vertx, dataStore, appScope);
+		StreamFetcherManager fetcherManager = Mockito.spy(fetcherManager_);
+
+		// After eviction, controlStreamFetchers tries to restart via make() -> stub so it does not open a real socket
+		StreamFetcher freshFetcher = Mockito.mock(StreamFetcher.class);
+		when(freshFetcher.getStreamId()).thenReturn(streamId);
+		when(freshFetcher.getStreamUrl()).thenReturn(broadcast.getStreamUrl());
+		when(freshFetcher.isStreamAlive()).thenReturn(true);
+		Mockito.doReturn(freshFetcher).when(fetcherManager).make(any(Broadcast.class), eq(appScope), eq(vertx));
+
+		fetcherManager.getStreamFetcherList().put(streamId, zombie);
+
+		fetcherManager.controlStreamFetchers(false);
+
+		assertNotSame("Zombie fetcher should have been evicted (and replaced) by controlStreamFetchers, " +
+					"but the cleanup condition at StreamFetcherManager.java:615 used to require !isStreamBlocked, " +
+					"which a hung av_read_frame() fetcher never satisfies",
+				zombie, fetcherManager.getStreamFetcherList().get(streamId));
 	}
 
 	@Test
