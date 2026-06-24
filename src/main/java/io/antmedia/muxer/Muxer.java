@@ -1458,6 +1458,30 @@ public abstract class Muxer {
 		av_strerror(errorCode, data, data.length);
 		return FFmpegUtilities.byteArrayToString(data);
 	}
+
+	public long getFirstVideoDts() {
+		return firstVideoDts;
+	}
+
+	public void setFirstVideoDts(long firstVideoDts) {
+		this.firstVideoDts = firstVideoDts;
+	}
+
+	public long getFirstAudioDts() {
+		return firstAudioDts;
+	}
+
+	public void setFirstAudioDts(long firstAudioDts) {
+		this.firstAudioDts = firstAudioDts;
+	}
+
+	public long getFirstPacketDtsMs() {
+		return firstPacketDtsMs;
+	}
+
+	public void setFirstPacketDtsMs(long firstPacketDtsMs) {
+		this.firstPacketDtsMs = firstPacketDtsMs;
+	}
 	
 	/**
 	 * This method is called when the current context will change/deleted soon.
