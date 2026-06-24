@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.event.ProgressEvent;
@@ -181,64 +180,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Response createBroadcast(@Parameter(description = "Broadcast object. Set the required fields, it may be null as well.", required = false) Broadcast broadcast,
 			@Parameter(description = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Its value is false by default", required = false) @QueryParam("autoStart") boolean autoStart) {
 
-		if (broadcast != null && broadcast.getStreamId() != null) {
-
-			try {
-				broadcast.setStreamId(broadcast.getStreamId().trim());
-
-				if (!broadcast.getStreamId().isEmpty()) 
-				{
-					// make sure stream id is not set on rest service
-					Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
-					if (broadcastTmp != null) 
-					{
-						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
-					}
-					else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
-					{
-						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
-					}
-				}
-			}
-			catch (Exception e) 
-			{
-				logger.error(ExceptionUtils.getStackTrace(e));
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id set generated exception")).build(); 
-			}
-
-
-		}
-
-		Object returnObject = new Result(false, "unexpected parameters received");
-
-		if (autoStart)  
-		{
-			//auto is only effective for IP Camera or Stream Source 
-			//so if it's true, it should be IP Camera or Stream Soruce
-			//otherwise wrong parameter
-			if (broadcast != null) {
-				returnObject = addStreamSource(broadcast);
-			}
-		}
-		else {
-			//TODO we need to refactor this method. Refactor validateStreamURL and checkStreamURL
-			if (broadcast != null && 
-					((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
-							|| 
-							(AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()) && !checkStreamUrl(broadcast.getStreamUrl()))
-							)
-					) {
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid. ")).build();
-			}
-			if(broadcast != null && broadcast.getSubFolder() != null) {
-				if(broadcast.getSubFolder().contains(".."))
-					return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Subfolder is not valid. ")).build();
-			}
-			returnObject = createBroadcastWithStreamID(broadcast);
-
-		}
-
-		return Response.status(Status.OK).entity(returnObject).build();
+		return createBroadcastInternal(broadcast, autoStart);
 	}
 
 	@Operation(summary = "Delete broadcast from data store and stop if it's broadcasting")

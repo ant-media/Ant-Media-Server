@@ -12,9 +12,12 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.antmedia.rest.JWTFilterV3;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
@@ -40,9 +43,16 @@ public class JWTFilter extends AbstractFilter {
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 
+		HttpServletRequest httpRequest = (HttpServletRequest) request;
+
+		// v3 has its own JAX-RS filter (JWTFilterV3); this v2 filter must not run on it.
+		if (StringUtils.defaultString(httpRequest.getRequestURI()).startsWith(httpRequest.getContextPath() + JWTFilterV3.REST_V3_PATH_PREFIX)) {
+			chain.doFilter(request, response);
+			return;
+		}
+
 		appSettings = getAppSettings();
 
-		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		if(appSettings == null){
 			((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Application is getting initialized");
 			return;
