@@ -674,12 +674,14 @@ public class VoDRestServiceV2UnitTest {
 
 		result = restService.importVoDs(null);
 		assertFalse(result.isSuccess());
+		assertEquals("VoD import directory is not specified", result.getMessage());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		//there are numberOfFiles files under src/test directory it should not increae
 		assertEquals(numberOfFiles, vodList.size());
 
 		result = restService.importVoDs("");
 		assertFalse(result.isSuccess());
+		assertEquals("VoD import directory is not specified", result.getMessage());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		//there are numberOfFiles files under src/test directory it should not increae
 		assertEquals(numberOfFiles, vodList.size());
