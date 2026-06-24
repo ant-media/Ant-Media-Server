@@ -604,39 +604,42 @@ public class StreamFetcherManager {
 				continue;
 			}
 
+			// Restarting regardless of health kills healthy streams
+			// New fetcher then maybe running into camera-side session conflicts and never recovers without a manual delete-and-readd.
+			boolean isUnhealthy = !streamScheduler.isStreamAlive() || streamScheduler.isStreamBlocked();
+			boolean restartThisFetcher = restart && isUnhealthy;
 			boolean autoStop = false;
-			if (restart || broadcast == null ||
+
+			if (restartThisFetcher || broadcast == null ||
 					(autoStop = isToBeStoppedAutomatically(broadcast)))
 			{
-				
-				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
-						streamScheduler.getStreamId(), restart, broadcast == null, autoStop);
-				
+
+				logger.info("Calling stop stream {} due to restart -> {} (healthyDuringBulkRestart skipped={}), broadcast is null -> {}, auto stop because no viewer -> {}",
+						streamScheduler.getStreamId(), restartThisFetcher, restart && !isUnhealthy, broadcast == null, autoStop);
+
 				stopStreaming(streamScheduler.getStreamId(), false);
-				
+
 			}
 			else {
-				
+
 				logger.info("Stream:{} is alive -> {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
-				
+
 				if (!streamScheduler.isStreamAlive() && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
 					// status==TERMINATED_UNEXPECTEDLY already proves no packets have arrived for STREAM_TIMEOUT_MS,
 					// so a still-blocked fetcher (stuck inside av_read_frame on a silent source) is also a zombie
 					// and must be evicted — otherwise it stays in streamFetcherList forever and blocks restarts.
 					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
 					stopStreaming(streamScheduler.getStreamId(), false);
-					//turn restart to true because we restart the stream to reconnect
-					restart = true;
+					//mark this fetcher for restart locally — don't leak to the loop variable so other healthy fetchers in this pass aren't force-restarted
+					restartThisFetcher = true;
 				}
 			}
-			
-			
-			
+
 			//start streaming if broadcast object is in db(it means not deleted)
-			if (restart && broadcast != null) 
-			{	
+			if (restartThisFetcher && broadcast != null)
+			{
 				//it may be still running because stop operation is async
 				//So start streaming after it's finished
 				if (isStreamRunning(broadcast)) 

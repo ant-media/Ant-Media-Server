@@ -479,7 +479,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			when(streamFetcher.getStreamId()).thenReturn(stream.getStreamId());
 			when(streamFetcher.getStreamUrl()).thenReturn(streamUrl);
 
-			when(streamFetcher.isStreamAlive()).thenReturn(true);
+			when(streamFetcher.isStreamAlive()).thenReturn(false);
 			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
 
 			StreamFetcherManager fetcherManager_ = new StreamFetcherManager(vertx, memoryDataStore, appScope);
@@ -536,6 +536,62 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 
 
+	}
+
+	/**
+	 * Locks in the behavior that the periodic restart no longer recycles healthy fetchers.
+	 *
+	 * Customer-incident background: with the old bulk-restart at controlStreamFetchers,
+	 * a working stream at speed:1.0 was stopped and restarted on the timer. The fresh
+	 * fetcher then ran into a camera-side session conflict and never recovered without a
+	 * manual delete-and-readd. The fix in controlStreamFetchers gates the restart on
+	 * !isStreamAlive() || isStreamBlocked() so healthy streams are left alone.
+	 */
+	@Test
+	public void testRestartPeriodSkipsHealthyFetcher() {
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		try {
+			InMemoryDataStore memoryDataStore = new InMemoryDataStore("testdb");
+
+			StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
+			Broadcast stream = new Broadcast();
+			String streamId = "healthy-" + RandomStringUtils.randomNumeric(6);
+			stream.setStreamId(streamId);
+			stream.setStreamUrl("anyurl");
+			memoryDataStore.save(stream);
+
+			when(streamFetcher.getStreamId()).thenReturn(streamId);
+			when(streamFetcher.getStreamUrl()).thenReturn("anyurl");
+			// Healthy: receiving packets, not blocked.
+			when(streamFetcher.isStreamAlive()).thenReturn(true);
+			when(streamFetcher.isStreamBlocked()).thenReturn(false);
+			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
+
+			StreamFetcherManager fetcherManager_ = new StreamFetcherManager(vertx, memoryDataStore, appScope);
+			StreamFetcherManager fetcherManager = Mockito.spy(fetcherManager_);
+			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, vertx);
+
+			fetcherManager.testSetStreamCheckerInterval(1000);
+			appSettings.setRestartStreamFetcherPeriod(2);
+
+			assertTrue(fetcherManager.startStreaming(stream).isSuccess());
+
+			// Give the periodic checker enough time to fire restart>=2 cycles.
+			Awaitility.await().pollDelay(6, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> true);
+
+			// startStream() should have been called exactly once (the initial start).
+			// stopStream() must never have been called by the periodic restart.
+			verify(streamFetcher, never()).stopStream();
+			verify(streamFetcher, times(1)).startStream();
+
+			appSettings.setRestartStreamFetcherPeriod(0);
+			fetcherManager.stopCheckerJob();
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 	}
 
 	/**
