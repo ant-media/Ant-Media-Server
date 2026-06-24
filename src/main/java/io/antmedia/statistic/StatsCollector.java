@@ -1,19 +1,25 @@
 package io.antmedia.statistic;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.ToLongFunction;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
@@ -58,6 +64,7 @@ import io.antmedia.SystemUtils;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.rest.CommonRestService;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.licence.ILicenceService;
@@ -218,6 +225,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private int measurementPeriod = 1000;
 	private int staticSendPeriod = 15000;
 
+	private int historySamplePeriod = 5000;
+	private int historySize = 60;
+	private long historyTimerId = -1;
+	private final Queue<ResourceSample> resourceHistory = new ConcurrentLinkedQueue<>();
+
+	// Per-app metric history (viewers, live streams), keyed by app name. Values are read from each
+	// app's data store, so they are cluster-wide when writeStatsToDatastore is on (the default).
+	// In-memory only - lost on restart and built up again from empty; a separate timer from the
+	// resource history above so the heavier per-app reads run at their own (slower) cadence.
+	private int appMetricsSamplePeriod = 30000;
+	private int appMetricsHistorySize = 1440;
+	private long appMetricsTimerId = -1;
+	private final Map<String, Queue<AppSample>> appMetricsHistory = new ConcurrentHashMap<>();
+
+	// Network throughput, derived from cumulative NIC byte counters between samples.
+	private long prevNetRxBytes = -1;
+	private long prevNetTxBytes = -1;
+	private long prevNetSampleNanos = 0;
+	private volatile double netInMbps = 0;
+	private volatile double netOutMbps = 0;
+	private volatile long netUplinkMbps = 0;
+
 	private static int cpuLoad;
 	private static int processCpuLoad;
 	private int cpuLimit = 75;
@@ -245,6 +274,22 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String START_TIME = "start-time";
 
 	public static final String SERVER_TIMING = "server-timing";
+
+	public static final String METRIC_HISTORY_CPU = "cpu";
+	public static final String METRIC_HISTORY_MEMORY = "mem";
+	public static final String METRIC_HISTORY_DISK = "disk";
+	public static final String METRIC_HISTORY_HEAP = "heap";
+	public static final String METRIC_HISTORY_DB_QUERY = "db";
+	public static final String METRIC_HISTORY_LIVE_STREAMS = "live";
+	public static final String METRIC_HISTORY_NET_OUT = "netOut";
+	public static final String METRIC_HISTORY_NET_IN = "netIn";
+
+	public static final String METRIC_HISTORY_VIEWERS = "viewers";
+	public static final String METRIC_HISTORY_STREAMS = "streams";
+
+	// Physical NICs only: a real device exposes /sys/class/net/<if>/device; virtual ones
+	// (lo, veth, docker0, br-*, bond*, vlan, tun/tap) do not. All reads here are unprivileged.
+	private static final File NET_DIR = new File("/sys/class/net");
 
 	private static final String ENCODERS_BLOCKED = "encoders-blocked";
 
@@ -388,6 +433,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			time2Log++;
 		});
 		startKafkaProducer();
+
+		startResourceHistory();
+
+		startAppMetricsHistory();
 
 		if (heartBeatEnabled) {
 
@@ -818,8 +867,229 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			return dbQueryTimeMs/scopes.size();
 		}
 		return 0;
-		
-		
+	}
+
+	private void startResourceHistory() {
+		if (historySamplePeriod <= 0 || historySize <= 0) {
+			return;
+		}
+		sampleResourceHistory();
+		historyTimerId = getVertx().setPeriodic(historySamplePeriod, l -> sampleResourceHistory());
+	}
+
+	private void sampleResourceHistory() {
+		try {
+			sampleNetwork();
+			resourceHistory.offer(new ResourceSample(
+					cpuLoad,
+					percent(SystemUtils.osInUsePhysicalMemory(), SystemUtils.osTotalPhysicalMemory()),
+					percent(SystemUtils.osHDInUseSpace(null), SystemUtils.osHDTotalSpace(null)),
+					percent(SystemUtils.jvmInUseMemory(), SystemUtils.jvmMaxMemory()),
+					getDBQueryAverageTimeMs(),
+					getLocalLiveStreamCount(),
+					(int) Math.round(netOutMbps),
+					(int) Math.round(netInMbps)));
+			while (resourceHistory.size() > historySize) {
+				resourceHistory.poll();
+			}
+		}
+		catch (Exception e) {
+			logger.warn("Cannot sample resource history: {}", e.getMessage());
+		}
+	}
+
+	// Reads physical-NIC byte counters and derives the in/out rate since the previous sample.
+	// First sample only seeds the baseline (no rate yet). Negative deltas (counter reset on a
+	// NIC down/up or restart) clamp to 0 rather than emit a spike.
+	private void sampleNetwork() {
+		long[] totals = readPhysicalNetworkTotals();
+		long rx = totals[0];
+		long tx = totals[1];
+		netUplinkMbps = totals[2];
+		long now = System.nanoTime();
+		if (prevNetRxBytes >= 0) {
+			double seconds = (now - prevNetSampleNanos) / 1_000_000_000.0;
+			if (seconds > 0) {
+				netInMbps = Math.max(0, rx - prevNetRxBytes) * 8.0 / 1_000_000.0 / seconds;
+				netOutMbps = Math.max(0, tx - prevNetTxBytes) * 8.0 / 1_000_000.0 / seconds;
+			}
+		}
+		prevNetRxBytes = rx;
+		prevNetTxBytes = tx;
+		prevNetSampleNanos = now;
+	}
+
+	// Sums rx/tx bytes and link speed across physical interfaces only (see NET_DIR).
+	// NOTE(container): inside Docker, eth0 is a veth with no /device entry, so a containerized
+	// AMS reports zero throughput. Tracked as a future TODO until we settle container handling.
+	private long[] readPhysicalNetworkTotals() {
+		long rx = 0;
+		long tx = 0;
+		long speed = 0;
+		File[] interfaces = NET_DIR.listFiles();
+		if (interfaces != null) {
+			for (File iface : interfaces) {
+				if (!new File(iface, "device").exists()) {
+					continue;
+				}
+				rx += readLongFile(new File(iface, "statistics/rx_bytes"));
+				tx += readLongFile(new File(iface, "statistics/tx_bytes"));
+				long s = readLongFile(new File(iface, "speed")); // Mbps; -1 or unreadable when link is down
+				if (s > 0) {
+					speed += s;
+				}
+			}
+		}
+		return new long[]{rx, tx, speed};
+	}
+
+	private static long readLongFile(File file) {
+		try {
+			String value = new String(Files.readAllBytes(Paths.get(file.getAbsolutePath()))).trim();
+			return value.isEmpty() ? 0 : Long.parseLong(value);
+		}
+		catch (Exception e) {
+			return 0;
+		}
+	}
+
+	private int getLocalLiveStreamCount() {
+		int liveStreams = 0;
+		for (IScope scope : scopes) {
+			AntMediaApplicationAdapter adaptor = getAppAdaptor(scope.getContext().getApplicationContext());
+			if (adaptor != null) {
+				liveStreams += adaptor.getMuxAdaptors().size();
+			}
+		}
+		return liveStreams;
+	}
+
+	private static int percent(long used, long total) {
+		if (total <= 0) {
+			return 0;
+		}
+		return (int) Math.max(0, Math.min(100, used * 100 / total));
+	}
+
+	@Override
+	public JsonObject getSystemResourcesHistory() {
+		JsonObject history = new JsonObject();
+		history.add(METRIC_HISTORY_CPU, series(s -> s.cpu));
+		history.add(METRIC_HISTORY_MEMORY, series(s -> s.memory));
+		history.add(METRIC_HISTORY_DISK, series(s -> s.disk));
+		history.add(METRIC_HISTORY_HEAP, series(s -> s.heap));
+		history.add(METRIC_HISTORY_DB_QUERY, series(s -> s.dbQueryMs));
+		history.add(METRIC_HISTORY_LIVE_STREAMS, series(s -> s.liveStreams));
+		history.add(METRIC_HISTORY_NET_OUT, series(s -> s.netOutMbps));
+		history.add(METRIC_HISTORY_NET_IN, series(s -> s.netInMbps));
+		return history;
+	}
+
+	@Override
+	public JsonObject getNetworkStatus() {
+		JsonObject json = new JsonObject();
+		json.addProperty("outboundMbps", Math.round(netOutMbps * 10) / 10.0);
+		json.addProperty("inboundMbps", Math.round(netInMbps * 10) / 10.0);
+		json.addProperty("uplinkMbps", netUplinkMbps);
+		return json;
+	}
+
+	private JsonArray series(ToLongFunction<ResourceSample> field) {
+		JsonArray array = new JsonArray();
+		resourceHistory.forEach(sample -> array.add(field.applyAsLong(sample)));
+		return array;
+	}
+
+	private void startAppMetricsHistory() {
+		if (appMetricsSamplePeriod <= 0 || appMetricsHistorySize <= 0) {
+			return;
+		}
+		sampleAppMetricsAsync();
+		appMetricsTimerId = getVertx().setPeriodic(appMetricsSamplePeriod, l -> sampleAppMetricsAsync());
+	}
+
+	// The reads hit each app's data store (blocking), so run them on a worker thread - ordered,
+	// so a slow sample never overlaps the next - to keep the Vert.x event loop free.
+	private void sampleAppMetricsAsync() {
+		getVertx().executeBlocking(() -> {
+			sampleAppMetrics();
+			return null;
+		}, true);
+	}
+
+	private void sampleAppMetrics() {
+		Set<String> liveApps = new HashSet<>();
+		for (IScope scope : scopes) {
+			try {
+				AntMediaApplicationAdapter adaptor = getAppAdaptor(scope.getContext().getApplicationContext());
+				String appName = scope.getName();
+				DataStore dataStore = adaptor != null ? adaptor.getDataStore() : null;
+				if (appName == null || dataStore == null) {
+					continue;
+				}
+				liveApps.add(appName);
+				AppSample sample = new AppSample(dataStore.getTotalViewersCount(), (int) dataStore.getActiveBroadcastCount());
+				Queue<AppSample> ring = appMetricsHistory.computeIfAbsent(appName, k -> new ConcurrentLinkedQueue<>());
+				ring.offer(sample);
+				while (ring.size() > appMetricsHistorySize) {
+					ring.poll();
+				}
+			}
+			catch (Exception e) {
+				logger.warn("Cannot sample app metrics for {}: {}", scope.getName(), e.getMessage());
+			}
+		}
+		// Drop history for apps that no longer exist so the map can't grow unbounded.
+		appMetricsHistory.keySet().retainAll(liveApps);
+	}
+
+	@Override
+	public JsonObject getAppMetricsHistory(String appName) {
+		JsonObject history = new JsonObject();
+		JsonArray viewers = new JsonArray();
+		JsonArray streams = new JsonArray();
+		Queue<AppSample> ring = appName != null ? appMetricsHistory.get(appName) : null;
+		if (ring != null) {
+			ring.forEach(sample -> {
+				viewers.add(sample.viewers);
+				streams.add(sample.streams);
+			});
+		}
+		history.add(METRIC_HISTORY_VIEWERS, viewers);
+		history.add(METRIC_HISTORY_STREAMS, streams);
+		return history;
+	}
+
+	private static class AppSample {
+		final int viewers;
+		final int streams;
+
+		AppSample(int viewers, int streams) {
+			this.viewers = viewers;
+			this.streams = streams;
+		}
+	}
+
+	private static class ResourceSample {
+		final int cpu;
+		final int memory;
+		final int disk;
+		final int heap;
+		final long dbQueryMs;
+		final int liveStreams;
+		final int netOutMbps;
+		final int netInMbps;
+
+		ResourceSample(int cpu, int memory, int disk, int heap, long dbQueryMs, int liveStreams, int netOutMbps, int netInMbps) {
+			this.cpu = cpu;
+			this.memory = memory;
+			this.disk = disk;
+			this.heap = heap;
+			this.dbQueryMs = dbQueryMs;
+			this.liveStreams = liveStreams;
+			this.netOutMbps = netOutMbps;
+			this.netInMbps = netInMbps;
+		}
 	}
 
 	private static int getHLSViewers(IScope scope) {
@@ -1105,6 +1375,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		hostAddress = serverSettings.getHostAddress();
 		measurementPeriod = serverSettings.getCpuMeasurementPeriodMs();
 		windowSize = serverSettings.getCpuMeasurementWindowSize();
+		historySamplePeriod = serverSettings.getMetricsHistorySamplePeriodMs();
+		historySize = serverSettings.getMetricsHistorySize();
+		appMetricsSamplePeriod = serverSettings.getAppMetricsHistorySamplePeriodMs();
+		appMetricsHistorySize = serverSettings.getAppMetricsHistorySize();
 		marketplace = serverSettings.getMarketplace();
 		webhookURL = serverSettings.getServerStatusWebHookURL();
 

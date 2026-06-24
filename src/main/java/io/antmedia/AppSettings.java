@@ -764,8 +764,11 @@ public class AppSettings implements Serializable{
 	
 
 	/**
-	 * Whether to write viewers(HLS, WebRTC) count to the data store, it's true by default. 
+	 * Whether to write viewers(HLS, WebRTC) count to the data store, it's true by default.
 	 * If you set it to false, it decreases the number of write operations to the data store and you don't see the viewer count in datastore
+	 *
+	 * NOTE: keep this enabled if you want per-app viewer metrics in management panel.
+	 * REST: /applications/{name}/metrics-history
 	 */
 	@Value( "${writeStatsToDatastore:true}")
 	private boolean writeStatsToDatastore = true;

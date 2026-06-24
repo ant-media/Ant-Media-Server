@@ -745,7 +745,23 @@ public class CommonRestService {
 	}
 
 
-	public String getGPUInfo() 
+	public String getSystemResourcesHistory() {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getSystemResourcesHistory()) : "{}";
+	}
+
+	public String getAppMetricsHistory(String appName) {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getAppMetricsHistory(appName)) : "{}";
+	}
+
+	public String getNetworkStatus() {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getNetworkStatus()) : "{}";
+	}
+
+
+	public String getGPUInfo()
 	{
 		return gson.toJson(StatsCollector.getGPUInfoJSObject());
 	}
@@ -1331,9 +1347,9 @@ public class CommonRestService {
 		//default log 
 		String logLocation = SERVER_LOG_LOCATION;
 
-		if (logType.equals(LOG_TYPE_ERROR)) {
+		if (LOG_TYPE_ERROR.equals(logType)) {
 			logLocation = ERROR_LOG_LOCATION;
-		} 
+		}
 
 		JsonObject jsonObject = new JsonObject();
 		String logContent = "";

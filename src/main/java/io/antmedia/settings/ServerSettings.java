@@ -70,6 +70,14 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	private static final String SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE = "server.cpu_measurement_window_size";
 
+	private static final String SETTINGS_METRICS_HISTORY_SAMPLE_PERIOD_MS = "server.metrics_history_sample_period_ms";
+
+	private static final String SETTINGS_METRICS_HISTORY_SIZE = "server.metrics_history_size";
+
+	private static final String SETTINGS_APP_METRICS_HISTORY_SAMPLE_PERIOD_MS = "server.app_metrics_history_sample_period_ms";
+
+	private static final String SETTINGS_APP_METRICS_HISTORY_SIZE = "server.app_metrics_history_size";
+
 	private static final String SETTINGS_SERVER_DEFAULT_HTTP_PORT = "http.port";
 
 	private static final String SETTINGS_ORIGIN_PORT = "server.origin_port";
@@ -204,6 +212,31 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	 */
 	@Value( "${"+SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE+":5}" )
 	private int cpuMeasurementWindowSize;
+
+	/**
+	 * Sampling period for the in-memory resource usage history exposed by /system-resources/history
+	 */
+	@Value( "${"+SETTINGS_METRICS_HISTORY_SAMPLE_PERIOD_MS+":5000}" )
+	private int metricsHistorySamplePeriodMs;
+
+	/**
+	 * Number of resource samples retained in the history ring
+	 */
+	@Value( "${"+SETTINGS_METRICS_HISTORY_SIZE+":60}" )
+	private int metricsHistorySize;
+
+	/**
+	 * Sampling period for the in-memory per-app metric history exposed by /applications/{name}/metrics-history.
+	 * Default 30s; with the default size this keeps ~12h of history. In-memory only (lost on restart).
+	 */
+	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SAMPLE_PERIOD_MS+":30000}" )
+	private int appMetricsHistorySamplePeriodMs;
+
+	/**
+	 * Number of samples retained per app in the metric history ring (1440 * 30s = 12h)
+	 */
+	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SIZE+":1440}" )
+	private int appMetricsHistorySize;
 
 	/**
 	 * Server default HTTP port
@@ -605,6 +638,38 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	public void setCpuMeasurementWindowSize(int cpuMeasurementWindowSize) {
 		this.cpuMeasurementWindowSize = cpuMeasurementWindowSize;
+	}
+
+	public int getMetricsHistorySamplePeriodMs() {
+		return metricsHistorySamplePeriodMs;
+	}
+
+	public void setMetricsHistorySamplePeriodMs(int metricsHistorySamplePeriodMs) {
+		this.metricsHistorySamplePeriodMs = metricsHistorySamplePeriodMs;
+	}
+
+	public int getMetricsHistorySize() {
+		return metricsHistorySize;
+	}
+
+	public void setMetricsHistorySize(int metricsHistorySize) {
+		this.metricsHistorySize = metricsHistorySize;
+	}
+
+	public int getAppMetricsHistorySamplePeriodMs() {
+		return appMetricsHistorySamplePeriodMs;
+	}
+
+	public void setAppMetricsHistorySamplePeriodMs(int appMetricsHistorySamplePeriodMs) {
+		this.appMetricsHistorySamplePeriodMs = appMetricsHistorySamplePeriodMs;
+	}
+
+	public int getAppMetricsHistorySize() {
+		return appMetricsHistorySize;
+	}
+
+	public void setAppMetricsHistorySize(int appMetricsHistorySize) {
+		this.appMetricsHistorySize = appMetricsHistorySize;
 	}
 
 	public int getDefaultHttpPort() {
