@@ -1,5 +1,7 @@
 package io.antmedia.statistic;
 
+import com.google.gson.JsonObject;
+
 public interface IStatsCollector {
 	public static final String BEAN_NAME = "statsCollector";
 
@@ -34,5 +36,24 @@ public interface IStatsCollector {
 	 * @return true if not exceeding the limit, false if exceeding limit
 	 */
 	public boolean enoughResource();
-	
+
+	/**
+	 * Recent system resource usage history (cpu/mem/disk/heap/db/live), oldest first.
+	 * @return metric key to value-array JSON
+	 */
+	public JsonObject getSystemResourcesHistory();
+
+	/**
+	 * Recent per-app metric history (viewers, live streams), oldest first.
+	 * @param appName application name
+	 * @return metric key to value-array JSON; empty arrays when the app is unknown
+	 */
+	public JsonObject getAppMetricsHistory(String appName);
+
+	/**
+	 * Current network throughput across physical NICs.
+	 * @return {outboundMbps, inboundMbps, uplinkMbps} JSON
+	 */
+	public JsonObject getNetworkStatus();
+
 }
