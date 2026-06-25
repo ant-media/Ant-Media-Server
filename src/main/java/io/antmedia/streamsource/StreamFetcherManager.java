@@ -583,6 +583,8 @@ public class StreamFetcherManager {
 	public void controlStreamFetchers(boolean restart) {
 		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
 
+			boolean restartThisStream = restart;
+
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
 
@@ -596,12 +598,12 @@ public class StreamFetcherManager {
 			}
 
 			boolean autoStop = false;
-			if (restart || broadcast == null ||
+			if (restartThisStream || broadcast == null ||
 					(autoStop = isToBeStoppedAutomatically(broadcast)))
 			{
 				
 				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
-						streamScheduler.getStreamId(), restart, broadcast == null, autoStop);
+						streamScheduler.getStreamId(), restartThisStream, broadcast == null, autoStop);
 				
 				stopStreaming(streamScheduler.getStreamId(), false);
 				
@@ -617,14 +619,14 @@ public class StreamFetcherManager {
 					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
 					stopStreaming(streamScheduler.getStreamId(), false);
 					//turn restart to true because we restart the stream to reconnect
-					restart = true;
+					restartThisStream = true;
 				}
 			}
 			
 			
 			
 			//start streaming if broadcast object is in db(it means not deleted)
-			if (restart && broadcast != null) 
+			if (restartThisStream && broadcast != null)
 			{	
 				//it may be still running because stop operation is async
 				//So start streaming after it's finished
