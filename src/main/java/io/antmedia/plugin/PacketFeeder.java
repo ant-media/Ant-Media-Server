@@ -2,6 +2,7 @@ package io.antmedia.plugin;
 
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
@@ -38,6 +39,17 @@ public class PacketFeeder{
 	public void writeTrailer() {
 		for (IPacketListener listener : listeners) {
 			listener.writeTrailer(streamId);
+		}
+	}
+
+	public void close() {
+		if (videoPkt != null) {
+			av_packet_free(videoPkt);
+			videoPkt = null;
+		}
+		if (audioPkt != null) {
+			av_packet_free(audioPkt);
+			audioPkt = null;
 		}
 	}
 
