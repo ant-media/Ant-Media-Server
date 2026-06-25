@@ -113,6 +113,7 @@ public class RtpTransceiver {
   private long nativeRtpTransceiver;
   private RtpSender cachedSender;
   private RtpReceiver cachedReceiver;
+  private String trackId;
 
   @CalledByNative
   protected RtpTransceiver(long nativeRtpTransceiver) {
@@ -235,6 +236,14 @@ public class RtpTransceiver {
   public void stopStandard() {
     checkRtpTransceiverExists();
     nativeStopStandard(nativeRtpTransceiver);
+  }
+
+  public String getTrackId() {
+    return trackId;
+  }
+
+  public void setTrackId(String trackId) {
+    this.trackId = trackId;
   }
 
   @CalledByNative
