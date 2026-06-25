@@ -19,6 +19,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
@@ -132,6 +133,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.streamsource.StreamSourceMonitor;
 import io.antmedia.track.ISubtrackPoller;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
@@ -566,7 +568,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			assertEquals(0, testBroadcast.getHlsViewerCount());
 			assertEquals(0, testBroadcast.getRtmpViewerCount());
 
-			assertEquals(spyAdapter.BROADCAST_STATUS_FINISHED, testBroadcast.getStatus());
+			assertEquals(spyAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, testBroadcast.getStatus());
 		}	
 	}
 
@@ -1803,6 +1805,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 		dataStore.save(broadcast);
 
 		Result result = new Result(false);
@@ -1820,16 +1823,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setStreamPlaySecurityList(new ArrayList<>());
 
 		spyAdapter.appStart(scope);
-
-		await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
-
-		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
-		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture(), anyBoolean());
-
-		broadcast = dataStore.get(broadcast.getStreamId());
-		assertNotNull(broadcastListCaptor.getValue());
-		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().getStreamId());
-		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().getStatus());
+		
+		verify(spyAdapter, timeout(StreamSourceMonitor.MONITORING_PERIOD*2)).startStreaming(broadcast);
 	}
 
 	@Test

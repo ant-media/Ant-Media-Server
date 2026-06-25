@@ -27,6 +27,8 @@ public interface IAntMediaStreamHandler {
 	public static final String BROADCAST_STATUS_ERROR = "error";
 	public static final String BROADCAST_STATUS_FAILED = "failed";
 	public static final String BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY = "terminated_unexpectedly";
+	public static final String BROADCAST_STATUS_FINISHED_ON_SHUTDOWN = "finished_on_shutdown";
+
 	
 	public static final String PUBLISH_TYPE_PULL = "Pull";
 	public static final String PUBLISH_TYPE_RTMP = "RTMP";

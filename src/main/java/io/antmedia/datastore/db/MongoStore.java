@@ -613,7 +613,7 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		long startTime = System.nanoTime();
 		List<Broadcast> streamList = Arrays.asList();
-		long now = System.currentTimeMillis();
+		long streamTimeoutThreshold = System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS;
 		synchronized(broadcastLock) {
 			try {
 
@@ -622,17 +622,19 @@ public class MongoStore extends DataStore {
 				query.filter(
 						Filters.and(
 								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
-								Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)))
+								Filters.or(
+										Filters.or(
+												Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED_ON_SHUTDOWN),
+												Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY)),
+										Filters.and(
+												Filters.ne("virtual", true),
+												Filters.in(STATUS, Arrays.asList(
+														IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING,
+														IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)),
+												Filters.lte(UPDATE_TIME_FIELD, streamTimeoutThreshold))))
 						);
 
 				streamList = query.iterator().toList();
-				final UpdateResult results = query.update(new UpdateOptions().multi(true), 
-						set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING),
-						set(UPDATE_TIME_FIELD, now));
-				long updatedCount = results.getModifiedCount();
-				if(updatedCount != streamList.size()) {
-					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
-				}
 			} catch (Exception e) {
 
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1090,6 +1092,10 @@ public class MongoStore extends DataStore {
 
 				if (broadcast.getQuality() != null) {
 					updates.add(set("quality", broadcast.getQuality()));
+				}
+				
+				if (broadcast.getOriginAdress() != null) {
+					updates.add(set(ORIGIN_ADDRESS, broadcast.getOriginAdress()));
 				}
 
 
@@ -1917,7 +1923,7 @@ public class MongoStore extends DataStore {
 							set(WEBRTC_VIEWER_COUNT, 0),
 							set(HLS_VIEWER_COUNT, 0),
 							set(RTMP_VIEWER_COUNT, 0),
-							set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)
+							set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY)
 							)
 					.execute(new UpdateOptions().multi(true))
 					.getModifiedCount();
@@ -2219,6 +2225,7 @@ public class MongoStore extends DataStore {
 		return subscriberCache;
 	}
 	
+	
 	public CaffeineCache getBroadcastCache() {
 		if(broadcastCache == null){
 			broadcastCache = (CaffeineCache) broadcastCacheManager.getCache(BROADCAST_CACHE);
@@ -2234,4 +2241,6 @@ public class MongoStore extends DataStore {
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, operationName);
 	}
+	
+	
 }
