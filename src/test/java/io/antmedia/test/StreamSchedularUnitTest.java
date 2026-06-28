@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -935,13 +937,78 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		when(fetcher.isStreamBlocked()).thenReturn(false);
 		
 		streamFetcherManager.controlStreamFetchers(false);
-		
+
 		verify(fetcher, times(1)).stopStream();
 		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());
-		
+
 	}
-	
-	
+
+	/**
+	 * Regression test: a terminated fetcher being evicted must NOT cause healthy fetchers visited
+	 * later in the same {@link StreamFetcherManager#controlStreamFetchers(boolean)} pass to be
+	 * stopped/restarted. Previously the per-stream eviction mutated the shared {@code restart}
+	 * parameter, which leaked onto every subsequent stream in the loop (the "cascade" bug).
+	 */
+	@Test
+	public void testDoNotRestartHealthyStreams() {
+
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+
+		// LinkedHashMap so the terminated stream is iterated FIRST (to reproduce the leak); values() returns a
+		// snapshot copy so the in-loop stopStreaming() removal does not throw ConcurrentModification.
+		Map<String, StreamFetcher> orderedList = new LinkedHashMap<String, StreamFetcher>() {
+			@Override
+			public Collection<StreamFetcher> values() {
+				return new ArrayList<>(super.values());
+			}
+		};
+
+		// Terminated: not alive, not blocked, status TERMINATED_UNEXPECTEDLY -> should be evicted+restarted
+		String terminatedId = "terminatedStream";
+		StreamFetcher terminatedFetcher = Mockito.mock(StreamFetcher.class);
+		when(terminatedFetcher.getStreamId()).thenReturn(terminatedId);
+		when(terminatedFetcher.isStreamAlive()).thenReturn(false);
+		when(terminatedFetcher.isStreamBlocked()).thenReturn(false);
+		Broadcast terminatedBroadcast = mock(Broadcast.class);
+		when(terminatedBroadcast.getStreamId()).thenReturn(terminatedId);
+		when(terminatedBroadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+
+		// Healthy: alive, not blocked -> must be left completely alone
+		String healthyId = "healthyStream";
+		StreamFetcher healthyFetcher = Mockito.mock(StreamFetcher.class);
+		when(healthyFetcher.getStreamId()).thenReturn(healthyId);
+		when(healthyFetcher.isStreamAlive()).thenReturn(true);
+		when(healthyFetcher.isStreamBlocked()).thenReturn(false);
+		Broadcast healthyBroadcast = mock(Broadcast.class);
+		when(healthyBroadcast.getStreamId()).thenReturn(healthyId);
+
+		orderedList.put(terminatedId, terminatedFetcher);
+		orderedList.put(healthyId, healthyFetcher);
+
+		when(dataStore.get(terminatedId)).thenReturn(terminatedBroadcast);
+		when(dataStore.get(healthyId)).thenReturn(healthyBroadcast);
+
+		// isolate the restart-leak behavior from auto-stop and async-teardown paths
+		Mockito.doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
+		Mockito.doReturn(false).when(streamFetcherManager).isStreamRunning(Mockito.any());
+		Mockito.doReturn(new Result(true)).when(streamFetcherManager).startStreaming(Mockito.any(Broadcast.class));
+
+		streamFetcherManager.setStreamFetcherList(orderedList);
+
+		// not a periodic restart - the only restart should come from the terminated eviction
+		streamFetcherManager.controlStreamFetchers(false);
+
+		// terminated is stopped and restarted
+		verify(terminatedFetcher, times(1)).stopStream();
+		verify(streamFetcherManager, times(1)).startStreaming(terminatedBroadcast);
+
+		// healthy stream is untouched - this is the assertion that fails without the fix
+		verify(healthyFetcher, Mockito.never()).stopStream();
+		verify(streamFetcherManager, Mockito.never()).startStreaming(healthyBroadcast);
+	}
+
+
 	@Test
 	public void testControlStreamFetchers() {
 		//create a test db

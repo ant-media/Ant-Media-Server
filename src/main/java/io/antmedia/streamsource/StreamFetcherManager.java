@@ -59,8 +59,6 @@ public class StreamFetcherManager {
 
 	private long streamFetcherScheduleJobName = -1L;
 
-	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
-
 	private boolean restartStreamAutomatically = true;
 
 	private Vertx vertx;
