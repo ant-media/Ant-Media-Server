@@ -102,10 +102,7 @@ public abstract class Muxer {
 
 	protected static Logger loggerStatic = LoggerFactory.getLogger(Muxer.class);
 
-	/**
-	 * Diagnostic threshold: muxer IO/header operations slower than this are logged at WARN so a
-	 * blocking output endpoint or lock contention is visible in the logs without a thread dump.
-	 */
+	//warn when muxer IO/header takes longer than this, so a blocking output shows up in logs
 	protected static final long SLOW_IO_LOG_THRESHOLD_MS = 2000;
 
 	protected AVFormatContext outputFormatContext;
@@ -392,11 +389,16 @@ public abstract class Muxer {
 			AVIOContext pb = new AVIOContext(null);
 
 			synchronized (optionDictionary) {
+				//bound the open so a stuck network output can't block forever (rw_timeout is in microseconds)
+				int rwTimeoutMs = getAppSettings().getMuxerOutputOpenTimeoutMs();
+				if (rwTimeoutMs > 0) {
+					av_dict_set(optionDictionary, "rw_timeout", String.valueOf(rwTimeoutMs * 1000L), 0);
+				}
 				long avioOpenStartMs = System.currentTimeMillis();
 				int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
 				long avioOpenElapsedMs = System.currentTimeMillis() - avioOpenStartMs;
 				if (avioOpenElapsedMs > SLOW_IO_LOG_THRESHOLD_MS) {
-					//diagnostic: a slow avio_open2 means the output endpoint (file/network) is blocking the open
+					//slow open = output endpoint is blocking
 					logger.warn("SLOW avio_open2 took {}ms for output url:{} format:{} stream:{}", avioOpenElapsedMs, url, getFormat(), streamId);
 				}
 				if (ret < 0) {
@@ -463,9 +465,7 @@ public abstract class Muxer {
 		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);
 		long writeHeaderElapsedMs = System.currentTimeMillis() - writeHeaderStartMs;
 		if (writeHeaderElapsedMs > SLOW_IO_LOG_THRESHOLD_MS) {
-			//diagnostic: avformat_write_header should be near-instant. If it's slow the time is spent in the
-			//native header write (e.g. opening the first segment to a network/S3 endpoint) - this is the call
-			//that produced the multi-second "Header is written" gaps observed in production.
+			//header write should be instant - if slow, the native write is blocking (network/S3 output)
 			logger.warn("SLOW avformat_write_header took {}ms for stream:{} format:{} url:{}", writeHeaderElapsedMs, streamId, getFormat(), getOutputURL());
 		}
 		if (ret < 0) {

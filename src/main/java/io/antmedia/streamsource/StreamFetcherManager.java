@@ -578,14 +578,6 @@ public class StreamFetcherManager {
 				
 	}
 
-	/**
-	 * Periodically checks every fetcher in this app and stops/restarts them when needed.
-	 *
-	 * @param periodicRestartAllStreams the app-wide scheduled recycle signal coming from the
-	 *        {@code restartStreamFetcherPeriod} timer. When {@code true} EVERY stream in this app is
-	 *        intentionally restarted. This is read-only here and must never be mutated, otherwise one
-	 *        stream's decision would leak onto the others in the same loop pass.
-	 */
 	public void controlStreamFetchers(boolean periodicRestartAllStreams) {
 		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
 
@@ -601,8 +593,7 @@ public class StreamFetcherManager {
 				continue;
 			}
 
-			//per-iteration decision for THIS stream only; seeded from the app-wide signal so the
-			//scheduled recycle still restarts everyone, but a zombie eviction below stays local.
+			//restart decision for this stream only, so an eviction below doesn't affect the others
 			boolean restartCurrentStream = periodicRestartAllStreams;
 
 			boolean autoStop = false;
@@ -626,7 +617,7 @@ public class StreamFetcherManager {
 					// if it's not blocked and it's not alive, stop the stream
 					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
 					stopStreaming(streamScheduler.getStreamId(), false);
-					//restart THIS stream to reconnect - scoped to this iteration so healthy streams are not affected
+					//restart this stream only
 					restartCurrentStream = true;
 				}
 			}
@@ -636,18 +627,11 @@ public class StreamFetcherManager {
 			//start streaming if broadcast object is in db(it means not deleted)
 			if (restartCurrentStream && broadcast != null)
 			{
-				//diagnostic: detect the duplicate-connection storm. If the previous worker thread is still
-				//active but isStreamRunning() is false (it was removed from the map by stopStreaming above),
-				//starting a new fetcher here opens a SECOND connection to the same source.
-				if (streamScheduler.isThreadActive() && !isStreamRunning(broadcast)) {
-					logger.warn("DUPLICATE-CONNECTION RISK for streamId:{} - (re)starting while the previous worker is still active (elapsedSinceStartMs={}). This opens a second connection to the same source.",
-							broadcast.getStreamId(), streamScheduler.getElapsedSinceStartMs());
-				}
-				//it may be still running because stop operation is async
-				//So start streaming after it's finished
-				if (isStreamRunning(broadcast)|| streamScheduler.isThreadActive())
+				//don't start a second fetcher while the old one is still tearing down or starting up
+				if (isStreamRunning(broadcast) || streamScheduler.isThreadActive())
 				{
-					logger.info("Deferring restart via finished listener for streamId:{} (previousWorkerStillActive:{}, elapsedSinceStartMs:{})", broadcast.getStreamId(), streamScheduler.isThreadActive(), streamScheduler.getElapsedSinceStartMs());					streamScheduler.setStreamFetcherListener(
+					logger.info("Restart deferred for {} until current worker finishes", broadcast.getStreamId());
+					streamScheduler.setStreamFetcherListener(
 						new IStreamFetcherListener() {
 							@Override
 							//Get the updated version because we don't know when it's called and we need up to date info

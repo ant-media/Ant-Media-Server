@@ -62,7 +62,7 @@ public class StreamFetcher {
 	 */
 	private long lastPacketReceivedTime = 0;
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
-	//wall-clock when the worker started this attempt; used for startup/prepare duration diagnostics
+	//when the worker started this attempt, for startup duration checks
 	private volatile long workerStartTimeMs = 0;
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
@@ -326,8 +326,7 @@ public class StreamFetcher {
 
 			logger.debug("open stream url: {}  " , streamUrl);
 
-			//diagnostic: time the input open. A failed open burns the full rtsp timeout (rtspTimeoutDurationMs)
-			//and is the dominant cost when a camera is unreachable - logging it makes that visible per attempt.
+			//time the input open - a failed open burns the full rtsp timeout when the camera is down
 			long openInputStartMs = System.currentTimeMillis();
 			ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary);
 			long openInputElapsedMs = System.currentTimeMillis() - openInputStartMs;
@@ -402,14 +401,12 @@ public class StreamFetcher {
 
 				inputFormatContext = new AVFormatContext(null);
 				pkt = avcodec.av_packet_alloc();
-				//diagnostic: time the whole prepare (input open + find_stream_info + muxer header writes). This is the
-				//phase that stalled for ~100s in production while no packets were read - a slow value here, combined
-				//with the per-muxer SLOW logs, tells us exactly where prepare blocks if it recurs.
+				//time the whole prepare (open + find_stream_info + header writes) - no packets are read yet here
 				long prepareStartMs = System.currentTimeMillis();
 				boolean prepared = prepareInputContext(broadcast);
 				long prepareElapsedMs = System.currentTimeMillis() - prepareStartMs;
 				if (prepareElapsedMs > 2000) {
-					logger.warn("SLOW prepareInputContext took {}ms for streamId:{} (no packets are read during prepare - check preceding SLOW prepareIO/write_header logs)", prepareElapsedMs, streamId);
+					logger.warn("SLOW prepareInputContext took {}ms for streamId:{} - check the SLOW prepareIO/write_header logs above", prepareElapsedMs, streamId);
 				}
 				else {
 					logger.info("prepareInputContext finished in {}ms for streamId:{}", prepareElapsedMs, streamId);
@@ -1243,10 +1240,7 @@ public class StreamFetcher {
 		return threadActive.get();
 	}
 
-	/**
-	 * Milliseconds since the worker started this attempt, or 0 if it hasn't started yet.
-	 * Used by the manager to detect a fetcher stuck in startup (active but not yet alive).
-	 */
+	//ms since the worker started this attempt, or 0 if not started yet
 	public long getElapsedSinceStartMs() {
 		return workerStartTimeMs == 0 ? 0 : System.currentTimeMillis() - workerStartTimeMs;
 	}
