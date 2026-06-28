@@ -969,10 +969,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			while (iterator.hasNext())
 			{
 				Muxer muxer = iterator.next();
-				if (!muxer.prepareIO())
+				//diagnostic: time each muxer's prepareIO (openIO + writeHeader). This brackets the exact region
+				//where the multi-second "Header is written" gaps appeared; a slow value here pinpoints which
+				//muxer stalls and whether the time is in IO/header (see Muxer SLOW logs) vs waiting elsewhere.
+				long prepareIoStartMs = System.currentTimeMillis();
+				boolean prepared = muxer.prepareIO();
+				long prepareIoElapsedMs = System.currentTimeMillis() - prepareIoStartMs;
+				if (prepareIoElapsedMs > 2000) {
+					logger.warn("SLOW prepareIO took {}ms for muxer:{} stream:{}", prepareIoElapsedMs, muxer.getFormat(), streamId);
+				}
+				if (!prepared)
 				{
 					iterator.remove();
-					logger.error("prepareIO returns false {} for stream: {}", muxer.getFormat(), streamId);
+					logger.error("prepareIO returns false {} for stream: {} after {}ms", muxer.getFormat(), streamId, prepareIoElapsedMs);
 				}
 			}
 		}

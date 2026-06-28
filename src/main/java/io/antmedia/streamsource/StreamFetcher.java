@@ -62,6 +62,8 @@ public class StreamFetcher {
 	 */
 	private long lastPacketReceivedTime = 0;
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
+	//wall-clock when the worker started this attempt; used for startup/prepare duration diagnostics
+	private volatile long workerStartTimeMs = 0;
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
     private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
@@ -324,27 +326,38 @@ public class StreamFetcher {
 
 			logger.debug("open stream url: {}  " , streamUrl);
 
-			if ((ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary)) < 0) {
+			//diagnostic: time the input open. A failed open burns the full rtsp timeout (rtspTimeoutDurationMs)
+			//and is the dominant cost when a camera is unreachable - logging it makes that visible per attempt.
+			long openInputStartMs = System.currentTimeMillis();
+			ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary);
+			long openInputElapsedMs = System.currentTimeMillis() - openInputStartMs;
+			if (ret < 0) {
 
 				String errorStr = Muxer.getErrorDefinition(ret);
 				result.setMessage(errorStr);
 
-				logger.error("cannot open stream: {} with error:: {} and streamId:{}",  streamUrl, result.getMessage(), streamId);
+				logger.error("cannot open stream: {} with error:: {} and streamId:{} after {}ms",  streamUrl, result.getMessage(), streamId, openInputElapsedMs);
 				av_dict_free(optionsDictionary);
 				optionsDictionary.close();
 				return result;
 			}
+			logger.info("avformat_open_input succeeded in {}ms for streamId:{}", openInputElapsedMs, streamId);
 
 			av_dict_free(optionsDictionary);
 			optionsDictionary.close();
 
 			logger.debug("find stream info: {}  " , streamUrl);
 
+			long findStreamInfoStartMs = System.currentTimeMillis();
 			ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
+			long findStreamInfoElapsedMs = System.currentTimeMillis() - findStreamInfoStartMs;
 			if (ret < 0) {
 				result.setMessage("Could not find stream information\n");
-				logger.error(result.getMessage());
+				logger.error("{} for streamId:{} after {}ms", result.getMessage(), streamId, findStreamInfoElapsedMs);
 				return result;
+			}
+			if (findStreamInfoElapsedMs > 2000) {
+				logger.warn("SLOW avformat_find_stream_info took {}ms for streamId:{}", findStreamInfoElapsedMs, streamId);
 			}
 
 			initDTSArrays(inputFormatContext.nb_streams());
@@ -384,11 +397,24 @@ public class StreamFetcher {
 
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
+				workerStartTimeMs = System.currentTimeMillis();
 				setThreadActive(true);
 
 				inputFormatContext = new AVFormatContext(null);
 				pkt = avcodec.av_packet_alloc();
-				if(prepareInputContext(broadcast))
+				//diagnostic: time the whole prepare (input open + find_stream_info + muxer header writes). This is the
+				//phase that stalled for ~100s in production while no packets were read - a slow value here, combined
+				//with the per-muxer SLOW logs, tells us exactly where prepare blocks if it recurs.
+				long prepareStartMs = System.currentTimeMillis();
+				boolean prepared = prepareInputContext(broadcast);
+				long prepareElapsedMs = System.currentTimeMillis() - prepareStartMs;
+				if (prepareElapsedMs > 2000) {
+					logger.warn("SLOW prepareInputContext took {}ms for streamId:{} (no packets are read during prepare - check preceding SLOW prepareIO/write_header logs)", prepareElapsedMs, streamId);
+				}
+				else {
+					logger.info("prepareInputContext finished in {}ms for streamId:{}", prepareElapsedMs, streamId);
+				}
+				if(prepared)
 				{
 					if(streamFetcherListener != null){
 						streamFetcherListener.streamStarted(streamFetcherListener);
@@ -1215,6 +1241,14 @@ public class StreamFetcher {
 
 	public boolean isThreadActive() {
 		return threadActive.get();
+	}
+
+	/**
+	 * Milliseconds since the worker started this attempt, or 0 if it hasn't started yet.
+	 * Used by the manager to detect a fetcher stuck in startup (active but not yet alive).
+	 */
+	public long getElapsedSinceStartMs() {
+		return workerStartTimeMs == 0 ? 0 : System.currentTimeMillis() - workerStartTimeMs;
 	}
 	public Result getCameraError() {
 		return cameraError;

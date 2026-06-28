@@ -102,6 +102,12 @@ public abstract class Muxer {
 
 	protected static Logger loggerStatic = LoggerFactory.getLogger(Muxer.class);
 
+	/**
+	 * Diagnostic threshold: muxer IO/header operations slower than this are logged at WARN so a
+	 * blocking output endpoint or lock contention is visible in the logs without a thread dump.
+	 */
+	protected static final long SLOW_IO_LOG_THRESHOLD_MS = 2000;
+
 	protected AVFormatContext outputFormatContext;
 
 	public static final String DATE_TIME_PATTERN = "yyyy-MM-dd_HH-mm-ss.SSS";
@@ -386,9 +392,15 @@ public abstract class Muxer {
 			AVIOContext pb = new AVIOContext(null);
 
 			synchronized (optionDictionary) {
+				long avioOpenStartMs = System.currentTimeMillis();
 				int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
+				long avioOpenElapsedMs = System.currentTimeMillis() - avioOpenStartMs;
+				if (avioOpenElapsedMs > SLOW_IO_LOG_THRESHOLD_MS) {
+					//diagnostic: a slow avio_open2 means the output endpoint (file/network) is blocking the open
+					logger.warn("SLOW avio_open2 took {}ms for output url:{} format:{} stream:{}", avioOpenElapsedMs, url, getFormat(), streamId);
+				}
 				if (ret < 0) {
-					logger.warn("Could not open output url: {} ",  url);
+					logger.warn("Could not open output url: {}  after {}ms",  url, avioOpenElapsedMs);
 					return false;
 				}
 				getOutputFormatContext().pb(pb);
@@ -447,16 +459,24 @@ public abstract class Muxer {
 			optionsDictionary = new AVDictionary();
 		}
 
+		long writeHeaderStartMs = System.currentTimeMillis();
 		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);
+		long writeHeaderElapsedMs = System.currentTimeMillis() - writeHeaderStartMs;
+		if (writeHeaderElapsedMs > SLOW_IO_LOG_THRESHOLD_MS) {
+			//diagnostic: avformat_write_header should be near-instant. If it's slow the time is spent in the
+			//native header write (e.g. opening the first segment to a network/S3 endpoint) - this is the call
+			//that produced the multi-second "Header is written" gaps observed in production.
+			logger.warn("SLOW avformat_write_header took {}ms for stream:{} format:{} url:{}", writeHeaderElapsedMs, streamId, getFormat(), getOutputURL());
+		}
 		if (ret < 0) {
 			if (logger.isWarnEnabled()) 	{
-				logger.warn("Could not write header. File: {} Error: {}", file.getAbsolutePath(), getErrorDefinition(ret));
+				logger.warn("Could not write header. File: {} Error: {} after {}ms", file.getAbsolutePath(), getErrorDefinition(ret), writeHeaderElapsedMs);
 			}
 			clearResource();
 			return false;
 		}
 		else {
-			logger.info("Header is written for stream:{} and url:{}", streamId, getOutputURL());
+			logger.info("Header is written for stream:{} and url:{} in {}ms", streamId, getOutputURL(), writeHeaderElapsedMs);
 		}
 		
 

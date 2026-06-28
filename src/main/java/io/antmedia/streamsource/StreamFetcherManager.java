@@ -618,7 +618,7 @@ public class StreamFetcherManager {
 			}
 			else {
 
-				logger.info("Stream:{} is alive -> {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
+				logger.info("Stream:{} is alive -> {}, is it blocked -> {}, threadActive -> {}, elapsedSinceStartMs -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked(), streamScheduler.isThreadActive(), streamScheduler.getElapsedSinceStartMs());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
 
@@ -636,12 +636,18 @@ public class StreamFetcherManager {
 			//start streaming if broadcast object is in db(it means not deleted)
 			if (restartCurrentStream && broadcast != null)
 			{
+				//diagnostic: detect the duplicate-connection storm. If the previous worker thread is still
+				//active but isStreamRunning() is false (it was removed from the map by stopStreaming above),
+				//starting a new fetcher here opens a SECOND connection to the same source.
+				if (streamScheduler.isThreadActive() && !isStreamRunning(broadcast)) {
+					logger.warn("DUPLICATE-CONNECTION RISK for streamId:{} - (re)starting while the previous worker is still active (elapsedSinceStartMs={}). This opens a second connection to the same source.",
+							broadcast.getStreamId(), streamScheduler.getElapsedSinceStartMs());
+				}
 				//it may be still running because stop operation is async
 				//So start streaming after it's finished
-				if (isStreamRunning(broadcast)) 
+				if (isStreamRunning(broadcast)|| streamScheduler.isThreadActive())
 				{
-					logger.info("Setting stream fetcher listener to restart when it's finished for streamId:{}", broadcast.getStreamId());
-					streamScheduler.setStreamFetcherListener(
+					logger.info("Deferring restart via finished listener for streamId:{} (previousWorkerStillActive:{}, elapsedSinceStartMs:{})", broadcast.getStreamId(), streamScheduler.isThreadActive(), streamScheduler.getElapsedSinceStartMs());					streamScheduler.setStreamFetcherListener(
 						new IStreamFetcherListener() {
 							@Override
 							//Get the updated version because we don't know when it's called and we need up to date info
