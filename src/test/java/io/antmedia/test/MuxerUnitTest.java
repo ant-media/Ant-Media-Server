@@ -497,6 +497,19 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
+	public void testFirstDtsGetterSetters() {
+		Muxer muxer = new Mp4Muxer(null, null, "streams");
+
+		muxer.setFirstVideoDts(101L);
+		muxer.setFirstAudioDts(202L);
+		muxer.setFirstPacketDtsMs(303L);
+
+		assertEquals(101L, muxer.getFirstVideoDts());
+		assertEquals(202L, muxer.getFirstAudioDts());
+		assertEquals(303L, muxer.getFirstPacketDtsMs());
+	}
+
+	@Test
 	public void testParseAACConfig() {
 		AACConfigParser aacParser = new AACConfigParser(aacConfig, 0);
 		assertEquals(44100, aacParser.getSampleRate());
