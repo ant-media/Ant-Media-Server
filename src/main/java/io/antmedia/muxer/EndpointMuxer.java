@@ -54,22 +54,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.WorkerExecutor;
 
 public class EndpointMuxer extends Muxer {
 
-	/**
-	 * ~3-5s of frames at typical FPS
-	 **/
+	/** ~3-5s of frames at typical FPS */
 	private static final int PACKET_QUEUE_CAPACITY = 200;
 
-	/** Sentinel posted to {@link #packetQueue} to wake the worker for shutdown. */
-	private static final Object POISON_PILL = new Object();
-
-	/**
-	 * Must exceed rw_timeout so an in-flight blocking write isn't cut short —
-	 * otherwise teardown frees the format context out from under the worker.
-	 */
-	private static final long WORKER_JOIN_TIMEOUT_MS = 20_000L;
+	/** Shared write pool; sized by the {@code endpointMuxerExecutor} bean, or the fallback below if it's absent (old config). */
+	static final String WORKER_POOL_NAME = "endpoint-muxer-pool";
 
 	private String url;
 	private volatile boolean trailerWritten = false;
@@ -79,10 +72,7 @@ public class EndpointMuxer extends Muxer {
 
 	private volatile String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
 
-	/**
-	 * Dedicated lock for status mutation so the worker doesn't contend on
-	 * other synchronized methods
-	 */
+	/** Status mutation lock kept off {@code this} so the drain job doesn't contend on the synchronized methods. */
 	private final Object statusLock = new Object();
 
 	private volatile boolean keyFrameReceived = false;
@@ -92,17 +82,15 @@ public class EndpointMuxer extends Muxer {
 
 	public String muxerType = null;
 
-	/**
-	 * Async write queue... producer clones, worker drains.
-	 * */
-	private final LinkedBlockingQueue<Object> packetQueue = new LinkedBlockingQueue<>(PACKET_QUEUE_CAPACITY);
-	private volatile boolean isWorkerRunning = false;
-	private Thread workerThread;
+	/** Producer clones packets in; the drain job writes them out. */
+	private final LinkedBlockingQueue<AVPacket> packetQueue = new LinkedBlockingQueue<>(PACKET_QUEUE_CAPACITY);
+	/** Lock for frame dropping */
+	private final Object queueLock = new Object();
+	private final AtomicBoolean drainScheduled = new AtomicBoolean(false);
+	private volatile boolean running = false;
+	private long drainTimerId = -1;
 
-	/**
-	 * Held around each native write and around teardown's free path. Safety net
-	 * if {@link #shutdownWorkerAndJoin} times out with the worker still mid-write.
-	 */
+	/** Guards each native write against the teardown free path. */
 	private final Object writeLock = new Object();
 
 	private final EndpointAnalytics analytics;
@@ -158,6 +146,7 @@ public class EndpointMuxer extends Muxer {
 			format = "mpegts";
 		}
 	}
+	
 	@Override
 	public String getOutputURL() {
 		return url;
@@ -319,7 +308,7 @@ public class EndpointMuxer extends Muxer {
 			logger.info("write header takes {} for {}:{} the bitstream filter name is {}", diff, muxerType, getOutputURL(), getBitStreamFilter());
 
 			headerWritten = true;
-			startWorkerThread();
+			startDraining();
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 
 			return true;
@@ -330,18 +319,31 @@ public class EndpointMuxer extends Muxer {
 		}
 	}
 
-	private void startWorkerThread() {
-		if (isWorkerRunning) {
+	private synchronized void startDraining() {
+		if (running) {
 			return;
 		}
-		isWorkerRunning = true;
-		String threadName = "EndpointMuxerWorker-" + (muxerType != null ? muxerType : "?") + "-" + streamId;
-		workerThread = new Thread(this::processQueue, threadName);
-		// Daemon so a leaked muxer can't block JVM shutdown. Graceful teardown
-		// still flows through shutdownWorkerAndJoin → POISON_PILL.
-		workerThread.setDaemon(true);
-		workerThread.start();
-		logger.info("Worker thread started: {}", threadName);
+
+		running = true;
+		// No bean config: fall back to 16 threads, 15s max-execute (> rtmp rw_timeout 10s).
+		final WorkerExecutor writeExecutor = vertx.createSharedWorkerExecutor(WORKER_POOL_NAME, 16, 15, TimeUnit.SECONDS);
+
+		drainTimerId = vertx.setPeriodic(10, t -> {
+			if (running && drainScheduled.compareAndSet(false, true)) {
+				writeExecutor.executeBlocking(() -> { drain(); return null; }, false)
+						.onComplete(ar -> drainScheduled.set(false));
+			}
+		});
+		
+		logger.info("Endpoint drain started for {}:{}", muxerType, url);
+	}
+
+	private synchronized void stopDraining() {
+		running = false;
+		if (drainTimerId != -1) {
+			vertx.cancelTimer(drainTimerId);
+			drainTimerId = -1;
+		}
 	}
 
 	/**
@@ -351,89 +353,37 @@ public class EndpointMuxer extends Muxer {
 	@Override
 	public synchronized void writeTrailer() {
 		cancelOpenIO.set(true);
+		stopDraining();
 
-		// Drain the worker (let it write any queued packets) and wait for it
-		// to exit before we touch the native format context.
-		shutdownWorkerAndJoin();
-
-		// The writeLock is the safety net for the case the join times out.
 		synchronized (writeLock) {
-			if(headerWritten) {
+			if (headerWritten) {
 				if (!trailerWritten) {
 					super.writeTrailer();
 					trailerWritten = true;
 				}
-			} else{
+			} else {
 				logger.info("Not writing trailer because header is not written yet");
 				super.clearResource();
 				preparedIO.set(false);
 			}
 		}
+		freeQueuedPackets();
 		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 	}
 
 	@Override
 	public synchronized void clearResource() {
-		// Worker may still be holding a reference to outputFormatContext; signal
-		// + join before super.clearResource frees it. No-op if the worker never
-		// started or has already exited.
-		shutdownWorkerAndJoin();
+		stopDraining();
 
-		// The writeLock for safety if worker is in the middle of write
 		synchronized (writeLock) {
 			super.clearResource();
 			if (!headerWritten) {
 				preparedIO.set(false);
 			}
 		}
+		freeQueuedPackets();
 
-		/**
-		 *  Don't free the allocatedExtraDataPointer because it's internally deallocated
-		 *
-		 * if (allocatedExtraDataPointer != null) {
-		 *	avutil.av_free(allocatedExtraDataPointer);
-		 *	allocatedExtraDataPointer = null;
-		 * }
-		 */
-
-		//allocatedExtraDataPointer is freed when the context is closing
-	}
-
-	/**
-	 * Idempotent (safe to call however may times)
-	 * Join may take up to {@link #WORKER_JOIN_TIMEOUT_MS} on a slow remote.
-	 **/
-	private void shutdownWorkerAndJoin() {
-		Thread t;
-		synchronized (this) {
-			if (isWorkerRunning) {
-				isWorkerRunning = false;
-				if (!packetQueue.offer(POISON_PILL)) {
-					// Queue full: free one slot so the wake-up sentinel lands.
-					Object stale = packetQueue.poll();
-					if (stale instanceof AVPacket) {
-						av_packet_free((AVPacket) stale);
-					}
-					if (!packetQueue.offer(POISON_PILL)) {
-						logger.debug("Could not enqueue poison pill for {}, relying on poll timeout", url);
-					}
-				}
-			}
-			t = workerThread;
-		}
-
-		if (t == null || t == Thread.currentThread() || !t.isAlive()) {
-			return;
-		}
-
-		try {
-			t.join(WORKER_JOIN_TIMEOUT_MS);
-			if (t.isAlive()) {
-				logger.warn("Worker thread did not exit within {}ms for {}", WORKER_JOIN_TIMEOUT_MS, url);
-			}
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
+		// allocatedExtraDataPointer is freed when the native context closes
 	}
 
 	private boolean exitIfCancelled() {
@@ -579,12 +529,13 @@ public class EndpointMuxer extends Muxer {
 	}
 
 	/**
-	 * Clones {@code src} (which shares data with {@link #getTmpPacket()}
-	 * {@link #addExtradataIfRequired} mutates tmpPacket directly) and hands it
-	 * to the worker queue.
+	 * Clones {@code src} (it shares data with {@link #getTmpPacket()}, which
+	 * {@link #addExtradataIfRequired} mutates in place) onto the drain queue.
+	 * On a full queue, drops the oldest GOP so the receiver skips cleanly to the
+	 * next keyframe instead of decoding a hole.
 	 */
 	private void enqueuePacket(AVPacket src, AVFormatContext context) {
-		if (!isWorkerRunning || cancelOpenIO.get()) {
+		if (!running || cancelOpenIO.get()) {
 			return;
 		}
 
@@ -598,84 +549,93 @@ public class EndpointMuxer extends Muxer {
 			return;
 		}
 
-		// Head-drop on full: oldest out, new in. Keeps the receiver close to live.
-		// TODO: GOP-aware drop (preserve keyframes) — see fix/RtmpMuxer-ThreadedQueue.
-		if (!packetQueue.offer(clone)) {
-			Object stale = packetQueue.poll();
-			if (stale instanceof AVPacket) {
-				av_packet_free((AVPacket) stale);
-			}
+		if (packetQueue.offer(clone)) {
+			return;
+		}
+
+		// Drop the oldest GOP to make room. queueLock keeps the boundary
+		// scan stable against the drain worker's poll.
+		synchronized (queueLock) {
+			dropOldestGop(context);
 			if (!packetQueue.offer(clone)) {
 				av_packet_free(clone);
 			}
-			analytics.recordDrop(packetQueue.size());
 		}
+		analytics.recordDrop(packetQueue.size());
 	}
 
 	/**
-	 * Worker loop.
-	 * Holds {@link #writeLock} per native write; never acquires
-	 * {@code this}, since teardown holds it while joining us.
+	 * Drops the head packet plus everything up to (not including) the next video
+	 * keyframe, leaving the queue aligned to a clean GOP. Drains the
+	 * whole queue if it holds no further keyframe (e.g. audio-only).
+	 * Caller holds {@link #queueLock}.
 	 */
-	private void processQueue() {
-		try {
-			while (isWorkerRunning) {
-				Object item;
-				try {
-					item = packetQueue.poll(10, TimeUnit.MILLISECONDS);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					break;
-				}
-				if (item == null) {
-					continue;
-				}
-				if (item == POISON_PILL) {
-					break;
-				}
-
-				AVPacket pkt = (AVPacket) item;
-				long writeStartNanos = System.nanoTime();
-				long pktDts = pkt.dts();
-				boolean wrote = false;
-				try {
-					synchronized (writeLock) {
-						// Teardown may have signalled shutdown while we waited on the lock.
-						if (!isWorkerRunning) {
-							break;
-						}
-						if (outputFormatContext != null && outputFormatContext.pb() != null) {
-							int ret = av_interleaved_write_frame(outputFormatContext, pkt);
-							wrote = true;
-							if (ret < 0) {
-								logPacketIssue("Cannot write packet for stream:{} and url:{}. Packet pts:{} dts:{} Error is {}",
-										streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
-								setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-							} else if (!IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)) {
-								setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-							}
-						}
-					}
-				} catch (Exception e) {
-					logger.error("Worker write error for {}: {}", url, e.toString());
-				} finally {
-					if (wrote) {
-						analytics.recordWrite(System.nanoTime() - writeStartNanos, pktDts, packetQueue.size());
-					}
-					av_packet_free(pkt);
-				}
-			}
-		} finally {
-			drainQueue();
+	private void dropOldestGop(AVFormatContext context) {
+		AVPacket oldest = packetQueue.poll();
+		if (oldest != null) {
+			av_packet_free(oldest);
+		}
+		AVPacket head;
+		while ((head = packetQueue.peek()) != null && !isVideoKeyFrame(head, context)) {
+			packetQueue.poll();
+			av_packet_free(head);
 		}
 	}
 
-	private void drainQueue() {
-		Object item;
-		while ((item = packetQueue.poll()) != null) {
-			if (item instanceof AVPacket) {
-				av_packet_free((AVPacket) item);
+	private static boolean isVideoKeyFrame(AVPacket pkt, AVFormatContext context) {
+		return context.streams(pkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO
+				&& (pkt.flags() & AV_PKT_FLAG_KEY) != 0;
+	}
+
+	/** Writes all queued packets to the endpoint. Runs on the write-executor pool, never holds {@code this}. */
+	private void drain() {
+		while (running) {
+			AVPacket pkt;
+			// Poll under queueLock so a concurrent GOP drop sees a stable head.
+			synchronized (queueLock) {
+				pkt = packetQueue.poll();
 			}
+			if (pkt == null) {
+				break;
+			}
+			writeToEndpoint(pkt);
+		}
+	}
+
+	private void writeToEndpoint(AVPacket pkt) {
+		long startNanos = System.nanoTime();
+		long dts = pkt.dts();
+		boolean wrote = false;
+		try {
+			synchronized (writeLock) {
+				// running re-checked under the lock: teardown may have freed the context while we waited.
+				if (running && outputFormatContext != null && outputFormatContext.pb() != null) {
+					int ret = av_interleaved_write_frame(outputFormatContext, pkt);
+					wrote = true;
+					if (ret < 0) {
+						logPacketIssue("Cannot write packet for stream:{} and url:{}. Packet pts:{} dts:{} Error is {}",
+								streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
+						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+					} else if (!IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)) {
+						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Endpoint write error for {}: {}", url, e.toString());
+		} finally {
+			if (wrote) {
+				analytics.recordWrite(System.nanoTime() - startNanos, dts, packetQueue.size());
+			}
+			av_packet_free(pkt);
+		}
+	}
+
+	/** Discards remaining queued packets on teardown. */
+	private void freeQueuedPackets() {
+		AVPacket pkt;
+		while ((pkt = packetQueue.poll()) != null) {
+			av_packet_free(pkt);
 		}
 	}
 
@@ -713,7 +673,8 @@ public class EndpointMuxer extends Muxer {
 	/**
 	 * Per-endpoint analytics stuff
 	 * {@link #recordDrop} is producer-thread (atomic+volatile);
-	 * {@link #recordWrite} is worker-thread only (plain fields).
+	 * {@link #recordWrite} is called only from the drain job, which runs one-at-a-time
+	 * (guarded by {@code drainScheduled}), so its plain fields need no synchronization.
 	 */
 	public static class EndpointAnalytics {
 		private static final Logger logger = LoggerFactory.getLogger(EndpointMuxer.class);

@@ -1564,6 +1564,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testRTMPWriteCrash() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
@@ -6588,7 +6589,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testShutdownWorkerQueueFullDrainsPacket() throws Exception {
+	public void testTeardownDrainsQueuedPackets() throws Exception {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
@@ -6601,37 +6602,154 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Field queueField = EndpointMuxer.class.getDeclaredField("packetQueue");
 		queueField.setAccessible(true);
 		@SuppressWarnings("unchecked")
-		java.util.concurrent.LinkedBlockingQueue<Object> queue =
-				(java.util.concurrent.LinkedBlockingQueue<Object>) queueField.get(muxer);
+		java.util.concurrent.LinkedBlockingQueue<AVPacket> queue =
+				(java.util.concurrent.LinkedBlockingQueue<AVPacket>) queueField.get(muxer);
 
-		// Fill to capacity with real AVPackets so the head-drop branch runs and
-		// av_packet_free is exercised on the polled stale element.
 		for (int i = 0; i < capacity; i++) {
-			AVPacket p = av_packet_alloc();
-			assertTrue(queue.offer(p));
+			assertTrue(queue.offer(av_packet_alloc()));
 		}
 		assertEquals(capacity, queue.size());
 
-		Field runningField = EndpointMuxer.class.getDeclaredField("isWorkerRunning");
+		Field runningField = EndpointMuxer.class.getDeclaredField("running");
 		runningField.setAccessible(true);
 		runningField.setBoolean(muxer, true);
 
-		// Null out workerThread so shutdownWorkerAndJoin's join branch is a no-op.
-		Field threadField = EndpointMuxer.class.getDeclaredField("workerThread");
-		threadField.setAccessible(true);
-		threadField.set(muxer, null);
+		// Teardown must stop draining and free every queued packet.
+		muxer.clearResource();
 
-		java.lang.reflect.Method shutdown = EndpointMuxer.class.getDeclaredMethod("shutdownWorkerAndJoin");
-		shutdown.setAccessible(true);
-		shutdown.invoke(muxer);
-
-		// Outer offer failed, one stale AVPacket was polled+freed, retry offer succeeded.
-		assertEquals(capacity, queue.size());
-		Field poisonField = EndpointMuxer.class.getDeclaredField("POISON_PILL");
-		poisonField.setAccessible(true);
-		Object poison = poisonField.get(null);
-		assertTrue("POISON_PILL must have landed in the queue", queue.contains(poison));
+		assertEquals(0, queue.size());
 		assertFalse(runningField.getBoolean(muxer));
+	}
+
+	@Test
+	public void testFullQueueDropsOldestGop() throws Exception {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12355?localaddr=127.0.0.1", vertx);
+		AVFormatContext ctx = newVideoAudioContext();
+		setEndpointRunning(muxer, true);
+
+		java.util.concurrent.LinkedBlockingQueue<AVPacket> queue = getEndpointQueue(muxer);
+		int capacity = getEndpointQueueCapacity();
+
+		// Fill with two equal back-to-back video GOPs: [KF, P.., KF, P..].
+		int gop = capacity / 2;
+		for (int i = 0; i < capacity; i++) {
+			queue.offer(newQueuePacket(0, i % gop == 0));
+		}
+		assertEquals(capacity, queue.size());
+
+		// One more video P-frame onto the full queue: the oldest GOP is dropped and
+		// the queue realigns onto the second keyframe before the new packet lands.
+		AVPacket src = newQueuePacket(0, false);
+		invokeEnqueuePacket(muxer, src, ctx);
+
+		assertEquals(capacity - gop + 1, queue.size());
+		boolean headIsKeyFrame = (queue.peek().flags() & AV_PKT_FLAG_KEY) != 0;
+		assertTrue("head must be a keyframe after a GOP drop", headIsKeyFrame);
+
+		av_packet_free(src);
+		drainAndFree(queue);
+	}
+
+	@Test
+	public void testFullQueueDrainsWhenNoKeyframe() throws Exception {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12356?localaddr=127.0.0.1", vertx);
+		AVFormatContext ctx = newVideoAudioContext();
+		setEndpointRunning(muxer, true);
+
+		java.util.concurrent.LinkedBlockingQueue<AVPacket> queue = getEndpointQueue(muxer);
+		int capacity = getEndpointQueueCapacity();
+
+		// Audio-only backlog has no video keyframe to realign onto. The KEY flag is
+		// set to prove isVideoKeyFrame gates on the video codec type, not the flag.
+		for (int i = 0; i < capacity; i++) {
+			queue.offer(newQueuePacket(1, true));
+		}
+
+		AVPacket src = newQueuePacket(1, true);
+		invokeEnqueuePacket(muxer, src, ctx);
+
+		// No keyframe found: the whole backlog drains and only the new packet remains.
+		assertEquals(1, queue.size());
+
+		av_packet_free(src);
+		drainAndFree(queue);
+	}
+
+	@Test
+	public void testDrainEmptiesQueue() throws Exception {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12357?localaddr=127.0.0.1", vertx);
+		setEndpointRunning(muxer, true);
+		java.util.concurrent.LinkedBlockingQueue<AVPacket> queue = getEndpointQueue(muxer);
+
+		for (int i = 0; i < 3; i++) {
+			queue.offer(av_packet_alloc());
+		}
+
+		// No output context is wired, so writeToEndpoint skips the native write and just
+		// frees each packet — drain polls every one under queueLock and the queue ends empty.
+		java.lang.reflect.Method drain = EndpointMuxer.class.getDeclaredMethod("drain");
+		drain.setAccessible(true);
+		drain.invoke(muxer);
+
+		assertEquals(0, queue.size());
+	}
+
+	private static AVFormatContext newVideoAudioContext() {
+		AVFormatContext ctx = new AVFormatContext(null);
+		avformat_alloc_output_context2(ctx, null, "flv", null);
+		avformat_new_stream(ctx, null).codecpar().codec_type(AVMEDIA_TYPE_VIDEO); // stream 0
+		avformat_new_stream(ctx, null).codecpar().codec_type(AVMEDIA_TYPE_AUDIO); // stream 1
+		return ctx;
+	}
+
+	private static AVPacket newQueuePacket(int streamIndex, boolean keyFrame) {
+		AVPacket p = av_packet_alloc();
+		p.stream_index(streamIndex);
+		if (keyFrame) {
+			p.flags(p.flags() | AV_PKT_FLAG_KEY);
+		}
+		return p;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static java.util.concurrent.LinkedBlockingQueue<AVPacket> getEndpointQueue(EndpointMuxer muxer) throws Exception {
+		Field f = EndpointMuxer.class.getDeclaredField("packetQueue");
+		f.setAccessible(true);
+		return (java.util.concurrent.LinkedBlockingQueue<AVPacket>) f.get(muxer);
+	}
+
+	private static int getEndpointQueueCapacity() throws Exception {
+		Field f = EndpointMuxer.class.getDeclaredField("PACKET_QUEUE_CAPACITY");
+		f.setAccessible(true);
+		return f.getInt(null);
+	}
+
+	private static void setEndpointRunning(EndpointMuxer muxer, boolean value) throws Exception {
+		Field f = EndpointMuxer.class.getDeclaredField("running");
+		f.setAccessible(true);
+		f.setBoolean(muxer, value);
+	}
+
+	private static void invokeEnqueuePacket(EndpointMuxer muxer, AVPacket src, AVFormatContext ctx) throws Exception {
+		java.lang.reflect.Method m = EndpointMuxer.class.getDeclaredMethod("enqueuePacket", AVPacket.class, AVFormatContext.class);
+		m.setAccessible(true);
+		m.invoke(muxer, src, ctx);
+	}
+
+	private static void drainAndFree(java.util.concurrent.LinkedBlockingQueue<AVPacket> queue) {
+		AVPacket p;
+		while ((p = queue.poll()) != null) {
+			av_packet_free(p);
+		}
 	}
 
 	@Test
