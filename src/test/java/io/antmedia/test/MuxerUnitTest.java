@@ -6646,7 +6646,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		invokeEnqueuePacket(muxer, src, ctx);
 
 		assertEquals(capacity - gop + 1, queue.size());
-		assertTrue("head must be a keyframe after a GOP drop", (queue.peek().flags() & AV_PKT_FLAG_KEY) != 0);
+		boolean headIsKeyFrame = (queue.peek().flags() & AV_PKT_FLAG_KEY) != 0;
+		assertTrue("head must be a keyframe after a GOP drop", headIsKeyFrame);
 
 		av_packet_free(src);
 		drainAndFree(queue);
