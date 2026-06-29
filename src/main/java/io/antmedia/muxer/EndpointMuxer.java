@@ -84,6 +84,8 @@ public class EndpointMuxer extends Muxer {
 
 	/** Producer clones packets in; the drain job writes them out. */
 	private final LinkedBlockingQueue<AVPacket> packetQueue = new LinkedBlockingQueue<>(PACKET_QUEUE_CAPACITY);
+	/** Lock for frame dropping */
+	private final Object queueLock = new Object();
 	private volatile WorkerExecutor writeExecutor;
 	private final AtomicBoolean drainScheduled = new AtomicBoolean(false);
 	private volatile boolean running = false;
@@ -530,6 +532,8 @@ public class EndpointMuxer extends Muxer {
 	/**
 	 * Clones {@code src} (it shares data with {@link #getTmpPacket()}, which
 	 * {@link #addExtradataIfRequired} mutates in place) onto the drain queue.
+	 * On a full queue, drops the oldest GOP so the receiver skips cleanly to the
+	 * next keyframe instead of decoding a hole.
 	 */
 	private void enqueuePacket(AVPacket src, AVFormatContext context) {
 		if (!running || cancelOpenIO.get()) {
@@ -546,24 +550,55 @@ public class EndpointMuxer extends Muxer {
 			return;
 		}
 
-		// Head-drop on full: oldest out, new in. Keeps the receiver close to live.
-		// TODO: GOP-aware drop (preserve keyframes) — see fix/RtmpMuxer-ThreadedQueue.
-		if (!packetQueue.offer(clone)) {
-			AVPacket stale = packetQueue.poll();
-			if (stale != null) {
-				av_packet_free(stale);
-			}
+		if (packetQueue.offer(clone)) {
+			return;
+		}
+
+		// Drop the oldest GOP to make room. queueLock keeps the boundary
+		// scan stable against the drain worker's poll.
+		synchronized (queueLock) {
+			dropOldestGop(context);
 			if (!packetQueue.offer(clone)) {
 				av_packet_free(clone);
 			}
-			analytics.recordDrop(packetQueue.size());
 		}
+		analytics.recordDrop(packetQueue.size());
+	}
+
+	/**
+	 * Drops the head packet plus everything up to (not including) the next video
+	 * keyframe, leaving the queue aligned to a clean GOP. Drains the
+	 * whole queue if it holds no further keyframe (e.g. audio-only).
+	 * Caller holds {@link #queueLock}.
+	 */
+	private void dropOldestGop(AVFormatContext context) {
+		AVPacket oldest = packetQueue.poll();
+		if (oldest != null) {
+			av_packet_free(oldest);
+		}
+		AVPacket head;
+		while ((head = packetQueue.peek()) != null && !isVideoKeyFrame(head, context)) {
+			packetQueue.poll();
+			av_packet_free(head);
+		}
+	}
+
+	private static boolean isVideoKeyFrame(AVPacket pkt, AVFormatContext context) {
+		return context.streams(pkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO
+				&& (pkt.flags() & AV_PKT_FLAG_KEY) != 0;
 	}
 
 	/** Writes all queued packets to the endpoint. Runs on {@link #writeExecutor}, never holds {@code this}. */
 	private void drain() {
-		AVPacket pkt;
-		while (running && (pkt = packetQueue.poll()) != null) {
+		while (running) {
+			AVPacket pkt;
+			// Poll under queueLock so a concurrent GOP drop sees a stable head.
+			synchronized (queueLock) {
+				pkt = packetQueue.poll();
+			}
+			if (pkt == null) {
+				break;
+			}
 			writeToEndpoint(pkt);
 		}
 	}
