@@ -77,6 +77,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import io.antmedia.*;
@@ -559,6 +560,44 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(aacAudio.getDecoderConfiguration());
 	}
 
+
+	@Test
+	public void testHLSPrepareIORunsHeaderWriteOffCallerThread() throws Exception {
+		//for an http endpoint, prepareIO must return immediately (not block the caller) and run openIO/writeHeader
+		//on a separate thread, so a slow endpoint can't starve the StreamFetcher/RTSP read loop.
+		HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://127.0.0.1:1/x", false));
+
+		//stub out the native bits so the test exercises only the threading/scheduling logic
+		AVFormatContext ctx = Mockito.mock(AVFormatContext.class);
+		Mockito.when(ctx.nb_streams()).thenReturn(1);
+		Mockito.doReturn(ctx).when(hlsMuxer).getOutputFormatContext();
+		Mockito.doNothing().when(hlsMuxer).installInterruptCallback();
+
+		final CountDownLatch openIoEntered = new CountDownLatch(1);
+		final CountDownLatch releaseOpenIo = new CountDownLatch(1);
+		final Thread[] ioThreadHolder = new Thread[1];
+		Mockito.doAnswer(inv -> {
+			ioThreadHolder[0] = Thread.currentThread();
+			openIoEntered.countDown();
+			releaseOpenIo.await(5, TimeUnit.SECONDS);
+			return true;
+		}).when(hlsMuxer).openIO();
+		Mockito.doReturn(true).when(hlsMuxer).writeHeader();
+
+		long start = System.currentTimeMillis();
+		assertTrue(hlsMuxer.prepareIO());
+		//must not block the caller while openIO runs
+		assertTrue("prepareIO blocked the caller", System.currentTimeMillis() - start < 1000);
+
+		//openIO is running on a different thread, header not written yet
+		assertTrue(openIoEntered.await(2, TimeUnit.SECONDS));
+		assertNotEquals(Thread.currentThread(), ioThreadHolder[0]);
+		Mockito.verify(hlsMuxer, never()).writeHeader();
+
+		//once openIO completes, the header is written on that same worker thread
+		releaseOpenIo.countDown();
+		Mockito.verify(hlsMuxer, timeout(2000).times(1)).writeHeader();
+	}
 
 	@Test
 	public void testInitBitstreamFilter() {
