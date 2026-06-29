@@ -207,12 +207,6 @@ public class EndpointMuxer extends Muxer {
 				av_dict_set(localOpts, e.getKey(), e.getValue(), 0);
 			}
 
-			//bound the open so a stuck endpoint can't block forever (rw_timeout is in microseconds)
-			int rwTimeoutMs = getAppSettings().getMuxerOutputOpenTimeoutMs();
-			if (rwTimeoutMs > 0) {
-				av_dict_set(localOpts, "rw_timeout", String.valueOf(rwTimeoutMs * 1000L), 0);
-			}
-
 			AVIOContext pb = new AVIOContext(null);
 			int ret = avformat.avio_open2(pb, getOutputURL(), AVIO_FLAG_WRITE, null, localOpts);
 			if (ret < 0) {

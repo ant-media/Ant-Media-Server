@@ -102,9 +102,6 @@ public abstract class Muxer {
 
 	protected static Logger loggerStatic = LoggerFactory.getLogger(Muxer.class);
 
-	//warn when muxer IO/header takes longer than this, so a blocking output shows up in logs
-	protected static final long SLOW_IO_LOG_THRESHOLD_MS = 2000;
-
 	protected AVFormatContext outputFormatContext;
 
 	public static final String DATE_TIME_PATTERN = "yyyy-MM-dd_HH-mm-ss.SSS";
@@ -394,15 +391,9 @@ public abstract class Muxer {
 				if (rwTimeoutMs > 0) {
 					av_dict_set(optionDictionary, "rw_timeout", String.valueOf(rwTimeoutMs * 1000L), 0);
 				}
-				long avioOpenStartMs = System.currentTimeMillis();
 				int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
-				long avioOpenElapsedMs = System.currentTimeMillis() - avioOpenStartMs;
-				if (avioOpenElapsedMs > SLOW_IO_LOG_THRESHOLD_MS) {
-					//slow open = output endpoint is blocking
-					logger.warn("SLOW avio_open2 took {}ms for output url:{} format:{} stream:{}", avioOpenElapsedMs, url, getFormat(), streamId);
-				}
 				if (ret < 0) {
-					logger.warn("Could not open output url: {}  after {}ms",  url, avioOpenElapsedMs);
+					logger.warn("Could not open output url: {}",  url);
 					return false;
 				}
 				getOutputFormatContext().pb(pb);
@@ -461,22 +452,16 @@ public abstract class Muxer {
 			optionsDictionary = new AVDictionary();
 		}
 
-		long writeHeaderStartMs = System.currentTimeMillis();
 		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);
-		long writeHeaderElapsedMs = System.currentTimeMillis() - writeHeaderStartMs;
-		if (writeHeaderElapsedMs > SLOW_IO_LOG_THRESHOLD_MS) {
-			//header write should be instant - if slow, the native write is blocking (network/S3 output)
-			logger.warn("SLOW avformat_write_header took {}ms for stream:{} format:{} url:{}", writeHeaderElapsedMs, streamId, getFormat(), getOutputURL());
-		}
 		if (ret < 0) {
 			if (logger.isWarnEnabled()) 	{
-				logger.warn("Could not write header. File: {} Error: {} after {}ms", file.getAbsolutePath(), getErrorDefinition(ret), writeHeaderElapsedMs);
+				logger.warn("Could not write header. File: {} Error: {}", file.getAbsolutePath(), getErrorDefinition(ret));
 			}
 			clearResource();
 			return false;
 		}
 		else {
-			logger.info("Header is written for stream:{} and url:{} in {}ms", streamId, getOutputURL(), writeHeaderElapsedMs);
+			logger.info("Header is written for stream:{} and url:{}", streamId, getOutputURL());
 		}
 		
 

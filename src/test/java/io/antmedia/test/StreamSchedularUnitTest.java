@@ -944,6 +944,39 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
+	@Test
+	public void testNoRestartWhileWorkerStillActive() {
+
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+
+		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
+		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
+		String streamId = "stream123456";
+		streamFetcherList.put(streamId, fetcher);
+		when(fetcher.getStreamId()).thenReturn(streamId);
+		when(fetcher.getStreamUrl()).thenReturn("streamurl");
+		when(fetcher.isStreamAlive()).thenReturn(false);
+		when(fetcher.isStreamBlocked()).thenReturn(false);
+		// worker is still starting up / tearing down
+		when(fetcher.isThreadActive()).thenReturn(true);
+
+		Broadcast broadcast = mock(Broadcast.class);
+		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
+		when(broadcast.getStreamId()).thenReturn(streamId);
+		when(broadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+
+		streamFetcherManager.controlStreamFetchers(false);
+
+		// terminated stream is stopped, but the restart is deferred via the listener instead of starting a
+		// second fetcher (no duplicate connection) while the previous worker is still active
+		verify(fetcher, times(1)).stopStream();
+		verify(fetcher, times(1)).setStreamFetcherListener(Mockito.any());
+		verify(streamFetcherManager, Mockito.never()).startStreaming(Mockito.any());
+	}
+
 	/**
 	 * Regression test: a terminated fetcher being evicted must NOT cause healthy fetchers visited
 	 * later in the same {@link StreamFetcherManager#controlStreamFetchers(boolean)} pass to be

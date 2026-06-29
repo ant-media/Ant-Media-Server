@@ -326,37 +326,27 @@ public class StreamFetcher {
 
 			logger.debug("open stream url: {}  " , streamUrl);
 
-			//time the input open - a failed open burns the full rtsp timeout when the camera is down
-			long openInputStartMs = System.currentTimeMillis();
-			ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary);
-			long openInputElapsedMs = System.currentTimeMillis() - openInputStartMs;
-			if (ret < 0) {
+			if ((ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary)) < 0) {
 
 				String errorStr = Muxer.getErrorDefinition(ret);
 				result.setMessage(errorStr);
 
-				logger.error("cannot open stream: {} with error:: {} and streamId:{} after {}ms",  streamUrl, result.getMessage(), streamId, openInputElapsedMs);
+				logger.error("cannot open stream: {} with error:: {} and streamId:{}",  streamUrl, result.getMessage(), streamId);
 				av_dict_free(optionsDictionary);
 				optionsDictionary.close();
 				return result;
 			}
-			logger.info("avformat_open_input succeeded in {}ms for streamId:{}", openInputElapsedMs, streamId);
 
 			av_dict_free(optionsDictionary);
 			optionsDictionary.close();
 
 			logger.debug("find stream info: {}  " , streamUrl);
 
-			long findStreamInfoStartMs = System.currentTimeMillis();
 			ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
-			long findStreamInfoElapsedMs = System.currentTimeMillis() - findStreamInfoStartMs;
 			if (ret < 0) {
 				result.setMessage("Could not find stream information\n");
-				logger.error("{} for streamId:{} after {}ms", result.getMessage(), streamId, findStreamInfoElapsedMs);
+				logger.error(result.getMessage());
 				return result;
-			}
-			if (findStreamInfoElapsedMs > 2000) {
-				logger.warn("SLOW avformat_find_stream_info took {}ms for streamId:{}", findStreamInfoElapsedMs, streamId);
 			}
 
 			initDTSArrays(inputFormatContext.nb_streams());
@@ -401,17 +391,7 @@ public class StreamFetcher {
 
 				inputFormatContext = new AVFormatContext(null);
 				pkt = avcodec.av_packet_alloc();
-				//time the whole prepare (open + find_stream_info + header writes) - no packets are read yet here
-				long prepareStartMs = System.currentTimeMillis();
-				boolean prepared = prepareInputContext(broadcast);
-				long prepareElapsedMs = System.currentTimeMillis() - prepareStartMs;
-				if (prepareElapsedMs > 2000) {
-					logger.warn("SLOW prepareInputContext took {}ms for streamId:{} - check the SLOW prepareIO/write_header logs above", prepareElapsedMs, streamId);
-				}
-				else {
-					logger.info("prepareInputContext finished in {}ms for streamId:{}", prepareElapsedMs, streamId);
-				}
-				if(prepared)
+				if(prepareInputContext(broadcast))
 				{
 					if(streamFetcherListener != null){
 						streamFetcherListener.streamStarted(streamFetcherListener);
