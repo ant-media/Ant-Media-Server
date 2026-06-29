@@ -63,7 +63,6 @@ public class StreamFetcher {
 	private long lastPacketReceivedTime = 0;
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
 	//when the worker started this attempt, for startup duration checks
-	private volatile long workerStartTimeMs = 0;
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
     private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
@@ -386,7 +385,6 @@ public class StreamFetcher {
 
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
-				workerStartTimeMs = System.currentTimeMillis();
 				setThreadActive(true);
 
 				inputFormatContext = new AVFormatContext(null);
@@ -1220,10 +1218,6 @@ public class StreamFetcher {
 		return threadActive.get();
 	}
 
-	//ms since the worker started this attempt, or 0 if not started yet
-	public long getElapsedSinceStartMs() {
-		return workerStartTimeMs == 0 ? 0 : System.currentTimeMillis() - workerStartTimeMs;
-	}
 	public Result getCameraError() {
 		return cameraError;
 	}
