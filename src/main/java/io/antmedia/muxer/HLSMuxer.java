@@ -9,12 +9,14 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.gson.JsonObject;
 import io.antmedia.websocket.WebSocketConstants;
@@ -26,11 +28,13 @@ import org.apache.http.impl.client.CloseableHttpClient;
 
 import org.bytedeco.ffmpeg.avcodec.*;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVIOInterruptCB;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.Loader;
+import org.bytedeco.javacpp.Pointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +98,18 @@ public class HLSMuxer extends Muxer  {
 	private AVPacket tmpPacketForSEI;
 
 	private String segmentFileNameSuffix;
+
+	//async header-write state (only used when writing to an http endpoint)
+	private static final long IO_JOIN_TIMEOUT_MS = 20_000L;
+	private final AtomicBoolean prepareIoScheduled = new AtomicBoolean(false);
+	private final AtomicBoolean cancelOpenIO = new AtomicBoolean(false);
+	private final Object ioLock = new Object();
+	private volatile CountDownLatch ioDoneLatch;
+	//the Vert.x worker running the async open/write, so teardown called from that same thread doesn't wait on itself
+	private volatile Thread ioThread;
+	//kept as fields so the JVM doesn't GC the native function pointer while FFmpeg holds it
+	private AVIOInterruptCB interruptCB;
+	private AVIOInterruptCB.Callback_Pointer interruptCallback;
 
 
 
@@ -160,12 +176,6 @@ public class HLSMuxer extends Muxer  {
 			this.subFolder = subFolder;
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
-
-			//bound segment/playlist opens (mainly the http endpoint) so a stuck write can't block forever
-			int rwTimeoutMs = getAppSettings().getMuxerOutputOpenTimeoutMs();
-			if (rwTimeoutMs > 0) {
-				options.put("rw_timeout", String.valueOf(rwTimeoutMs * 1000L));
-			}
 
 			if(hlsEncryptionKeyInfoFile != null) {
 				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
@@ -240,38 +250,80 @@ public class HLSMuxer extends Muxer  {
 
 	@Override
 	public synchronized boolean prepareIO() {
-		//when writing to an http endpoint, FFmpeg reads the existing playlist (append) during writeHeader.
-		//if that endpoint is slow, the read hangs the whole worker thread, so check it first with our own
-		//timeout and skip HLS for this attempt instead of blocking.
-		if (StringUtils.isNotBlank(httpEndpoint) && !isPlaylistEndpointResponsive()) {
-			logger.warn("Skipping HLS for stream:{} because playlist endpoint {} did not respond in time", streamId, getOutputURL());
-			clearResource();
+		//local file HLS opens/writes are fast - keep them synchronous
+		if (StringUtils.isBlank(httpEndpoint)) {
+			return super.prepareIO();
+		}
+
+		//with an http endpoint + append_list, FFmpeg reads the existing playlist (a GET) inside writeHeader.
+		//A slow endpoint would block the StreamFetcher worker thread and starve the RTSP read, so run
+		//openIO+writeHeader on a Vert.x worker. The worker thread returns immediately and keeps reading RTSP
+		//while the (possibly slow) append still happens off-thread, so the recording stays a single appended file.
+		if (!prepareIoScheduled.compareAndSet(false, true)) {
 			return false;
 		}
-		return super.prepareIO();
+		if (getOutputFormatContext().nb_streams() <= 0) {
+			prepareIoScheduled.set(false);
+			return false;
+		}
+		cancelOpenIO.set(false);
+		installInterruptCallback();
+		ioDoneLatch = new CountDownLatch(1);
+
+		//dedicated daemon thread (NOT vertx.executeBlocking) - the header write can block for a long time on a
+		//slow endpoint, which would trip the Vert.x BlockedThreadChecker and tie up a shared worker.
+		Thread headerThread = new Thread(() -> {
+			try {
+				synchronized (ioLock) {
+					if (!cancelOpenIO.get() && openIO() && !cancelOpenIO.get()) {
+						writeHeader();
+					}
+				}
+			} catch (Exception e) {
+				logger.error("HLS async prepareIO failed for stream:{} : {}", streamId, ExceptionUtils.getStackTrace(e));
+			} finally {
+				ioDoneLatch.countDown();
+			}
+		}, "hls-prepare-" + streamId);
+		headerThread.setDaemon(true);
+		ioThread = headerThread;
+		headerThread.start();
+
+		return true;
 	}
 
-	protected boolean isPlaylistEndpointResponsive() {
-		int timeoutMs = getAppSettings().getMuxerOutputOpenTimeoutMs();
-		if (timeoutMs <= 0) {
-			return true;
+	//abort the in-flight header IO ONLY when a stop arrives (cancelOpenIO). We deliberately do NOT abort on a
+	//timer - that would kill the append GET and break the single-recording requirement.
+	private void installInterruptCallback() {
+		if (interruptCB != null) {
+			return;
 		}
-		HttpURLConnection connection = null;
-		try {
-			connection = (HttpURLConnection) new URL(getOutputURL()).openConnection();
-			connection.setRequestMethod("GET");
-			connection.setConnectTimeout(timeoutMs);
-			connection.setReadTimeout(timeoutMs);
-			//any response (including 404 when there is no existing playlist yet) means the endpoint is reachable
-			connection.getResponseCode();
-			return true;
-		} catch (Exception e) {
-			logger.warn("HLS playlist endpoint {} not responsive within {}ms: {}", getOutputURL(), timeoutMs, e.getMessage());
-			return false;
-		} finally {
-			if (connection != null) {
-				connection.disconnect();
+		interruptCallback = new AVIOInterruptCB.Callback_Pointer() {
+			@Override
+			public int call(Pointer opaque) {
+				return cancelOpenIO.get() ? 1 : 0;
 			}
+		};
+		interruptCB = new AVIOInterruptCB();
+		interruptCB.callback(interruptCallback);
+		getOutputFormatContext().interrupt_callback(interruptCB);
+	}
+
+	//wait for an in-flight async prepareIO to finish before the native context is freed (avoids a teardown vs
+	//writeHeader use-after-free). cancelOpenIO makes the interrupt callback abort a slow GET so this returns quickly.
+	private void awaitPrepareIoFinished() {
+		cancelOpenIO.set(true);
+		CountDownLatch latch = ioDoneLatch;
+		//called from the IO worker itself (e.g. super.writeHeader -> clearResource on failure) - don't wait on ourselves
+		if (latch == null || Thread.currentThread() == ioThread) {
+			return;
+		}
+		try {
+			if (!latch.await(IO_JOIN_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+				logger.warn("HLS prepareIO did not finish within {}ms for stream:{}", IO_JOIN_TIMEOUT_MS, streamId);
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 		}
 	}
 
@@ -426,6 +478,10 @@ public class HLSMuxer extends Muxer  {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
+		//if a stop arrives while the async header write is still in flight, wait for it (and abort it) before
+		//touching the native context - otherwise isRunning is false and we'd return without joining -> use-after-free
+		awaitPrepareIoFinished();
+
 		if(!isRunning.get())
 			return;
 
@@ -776,7 +832,12 @@ public class HLSMuxer extends Muxer  {
 
 	@Override
 	protected synchronized void clearResource() {
-		super.clearResource();
+		//wait for any in-flight async open/write to finish, then free under ioLock so the free can't race
+		//with the worker still using the context
+		awaitPrepareIoFinished();
+		synchronized (ioLock) {
+			super.clearResource();
+		}
 		if (id3DataPkt != null) {
 			av_packet_free(id3DataPkt);
 			id3DataPkt = null;
