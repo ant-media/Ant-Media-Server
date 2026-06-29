@@ -18,20 +18,33 @@ public class EncoderSettings implements Serializable{
  */
 	private boolean  forceEncode = true;
 	
+	/*
+	 * Encode the stream even if source resolution is the same
+	 * It is different from forceEncode. This doesn't let you upscale.
+	 */
+	private boolean  forceSameResolutionEncode = false;
+	
 	public static final String RESOLUTION_HEIGHT = "height";
 	public static final String VIDEO_BITRATE = "videoBitrate";
 	public static final String AUDIO_BITRATE = "audioBitrate";
 	public static final String FORCE_ENCODE = "forceEncode";
+	public static final String FORCE_SAME_RESOLUTION_ENCODE = "forceSameResolutionEncode";
+
 
 	public EncoderSettings() {
 		
 	}
 
 	public EncoderSettings(int height, int videoBitrate, int audioBitrate, boolean forceEncode) {
+		this(height, videoBitrate, audioBitrate, forceEncode, false);
+	}
+	
+	public EncoderSettings(int height, int videoBitrate, int audioBitrate, boolean forceEncode, boolean forceSameResolutionEncode) {
 		this.height = height;
 		this.videoBitrate = videoBitrate;
 		this.audioBitrate = audioBitrate;
 		this.forceEncode = forceEncode;
+		this.forceSameResolutionEncode = forceSameResolutionEncode;
 	}
 
 	public int getHeight() {
@@ -64,6 +77,14 @@ public class EncoderSettings implements Serializable{
 
 	public void setForceEncode(boolean forceEncode) {
 		this.forceEncode = forceEncode;
+	}
+
+	public boolean isForceSameResolutionEncode() {
+		return forceSameResolutionEncode;
+	}
+
+	public void setForceSameResolutionEncode(boolean forceSameResolutionEncode) {
+		this.forceSameResolutionEncode = forceSameResolutionEncode;
 	}
 
 }

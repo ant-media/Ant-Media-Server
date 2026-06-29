@@ -280,7 +280,7 @@ public abstract class Muxer {
 
 	protected AVDictionary optionDictionary = new AVDictionary(null);
 
-	private long firstPacketDtsMs = -1;
+	protected long firstPacketDtsMs = -1;
 
 	private long audioNotWrittenCount;
 
@@ -1457,6 +1457,30 @@ public abstract class Muxer {
 		byte[] data = new byte[128];
 		av_strerror(errorCode, data, data.length);
 		return FFmpegUtilities.byteArrayToString(data);
+	}
+
+	public long getFirstVideoDts() {
+		return firstVideoDts;
+	}
+
+	public void setFirstVideoDts(long firstVideoDts) {
+		this.firstVideoDts = firstVideoDts;
+	}
+
+	public long getFirstAudioDts() {
+		return firstAudioDts;
+	}
+
+	public void setFirstAudioDts(long firstAudioDts) {
+		this.firstAudioDts = firstAudioDts;
+	}
+
+	public long getFirstPacketDtsMs() {
+		return firstPacketDtsMs;
+	}
+
+	public void setFirstPacketDtsMs(long firstPacketDtsMs) {
+		this.firstPacketDtsMs = firstPacketDtsMs;
 	}
 	
 	/**
