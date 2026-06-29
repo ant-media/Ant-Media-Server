@@ -755,6 +755,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
+			getStatsCollector().removeStreamHistory(scope.getName(), streamId);
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
 
@@ -2018,6 +2019,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				viewerCountEvent.setWebRTCViewerCount(broadcastLocal.getWebRTCViewerCount());
 
 				LoggerUtils.logAnalyticsFromServer(viewerCountEvent);
+
+				int totalViewers = broadcastLocal.getWebRTCViewerCount() + broadcastLocal.getHlsViewerCount() + broadcastLocal.getDashViewerCount();
+				getStatsCollector().addStreamSample(getScope().getName(), streamId, stats, totalViewers, currentTimeMillis);
 
 				logger.debug("update source quality for stream:{} width:{} height:{} bitrate:{} input queue size:{} encoding queue size:{} packetsLost:{} packetLostRatio:{} jitter:{} rtt:{}",
 

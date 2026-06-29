@@ -65,6 +65,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
@@ -1261,6 +1262,10 @@ public abstract class RestServiceBase {
 		}
 
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer,totalDASHViewer);
+	}
+
+	protected StreamMetricsHistory getStreamMetricsHistory(String streamId) {
+		return getApplication().getStatsCollector().getStreamMetricsHistory(getScope().getName(), streamId);
 	}
 
 	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
