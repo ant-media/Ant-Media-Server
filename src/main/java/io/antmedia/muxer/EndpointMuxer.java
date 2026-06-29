@@ -86,7 +86,6 @@ public class EndpointMuxer extends Muxer {
 	private final LinkedBlockingQueue<AVPacket> packetQueue = new LinkedBlockingQueue<>(PACKET_QUEUE_CAPACITY);
 	/** Lock for frame dropping */
 	private final Object queueLock = new Object();
-	private volatile WorkerExecutor writeExecutor;
 	private final AtomicBoolean drainScheduled = new AtomicBoolean(false);
 	private volatile boolean running = false;
 	private long drainTimerId = -1;
@@ -327,7 +326,7 @@ public class EndpointMuxer extends Muxer {
 
 		running = true;
 		// No bean config: fall back to 16 threads, 15s max-execute (> rtmp rw_timeout 10s).
-		writeExecutor = vertx.createSharedWorkerExecutor(WORKER_POOL_NAME, 16, 15, TimeUnit.SECONDS);
+		final WorkerExecutor writeExecutor = vertx.createSharedWorkerExecutor(WORKER_POOL_NAME, 16, 15, TimeUnit.SECONDS);
 
 		drainTimerId = vertx.setPeriodic(10, t -> {
 			if (running && drainScheduled.compareAndSet(false, true)) {
@@ -588,7 +587,7 @@ public class EndpointMuxer extends Muxer {
 				&& (pkt.flags() & AV_PKT_FLAG_KEY) != 0;
 	}
 
-	/** Writes all queued packets to the endpoint. Runs on {@link #writeExecutor}, never holds {@code this}. */
+	/** Writes all queued packets to the endpoint. Runs on the write-executor pool, never holds {@code this}. */
 	private void drain() {
 		while (running) {
 			AVPacket pkt;
