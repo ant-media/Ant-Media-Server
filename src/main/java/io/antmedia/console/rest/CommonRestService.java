@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -125,7 +126,8 @@ public class CommonRestService {
 
 	Gson gson = new Gson();
 
-	private AbstractConsoleDataStore dataStore;
+    @VisibleForTesting
+	AbstractConsoleDataStore dataStore;
 
 	private PasswordService passwordService = new PasswordService();
 
