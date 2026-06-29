@@ -78,6 +78,8 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	private static final String SETTINGS_APP_METRICS_HISTORY_SIZE = "server.app_metrics_history_size";
 
+	private static final String SETTINGS_STREAM_METRICS_HISTORY_SIZE = "server.stream_metrics_history_size";
+
 	private static final String SETTINGS_SERVER_DEFAULT_HTTP_PORT = "http.port";
 
 	private static final String SETTINGS_ORIGIN_PORT = "server.origin_port";
@@ -237,6 +239,15 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	 */
 	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SIZE+":1440}" )
 	private int appMetricsHistorySize;
+
+	/**
+	 * Number of samples retained per stream in the metric history ring exposed by
+	 * /broadcasts/{id}/metrics-history. Push-fed at the ~10s quality-update cadence, so 720 ~= 2h.
+	 * In-memory only (lost on restart); 0 or less disables collection. Memory grows with live stream
+	 * count - roughly 24 MB for 500 concurrent streams at this size.
+	 */
+	@Value( "${"+SETTINGS_STREAM_METRICS_HISTORY_SIZE+":720}" )
+	private int streamMetricsHistorySize;
 
 	/**
 	 * Server default HTTP port
@@ -670,6 +681,14 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	public void setAppMetricsHistorySize(int appMetricsHistorySize) {
 		this.appMetricsHistorySize = appMetricsHistorySize;
+	}
+
+	public int getStreamMetricsHistorySize() {
+		return streamMetricsHistorySize;
+	}
+
+	public void setStreamMetricsHistorySize(int streamMetricsHistorySize) {
+		this.streamMetricsHistorySize = streamMetricsHistorySize;
 	}
 
 	public int getDefaultHttpPort() {

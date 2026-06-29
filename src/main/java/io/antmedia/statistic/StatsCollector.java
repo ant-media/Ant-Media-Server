@@ -61,6 +61,7 @@ import com.google.gson.JsonObject;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.FFmpegUtilities;
 import io.antmedia.SystemUtils;
+import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.rest.CommonRestService;
@@ -75,6 +76,7 @@ import io.antmedia.rest.model.Version;
 import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.Vertx;
@@ -238,6 +240,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private int appMetricsHistorySize = 1440;
 	private long appMetricsTimerId = -1;
 	private final Map<String, Queue<AppSample>> appMetricsHistory = new ConcurrentHashMap<>();
+
+	// Per-stream metric history, keyed app -> streamId. Push-fed from setQualityParameters on each
+	// quality update (~STAT_UPDATE_PERIOD_MS), so no timer here; in-memory only (lost on restart).
+	// Memory scales with concurrent live streams * size: ~24 MB for 500 streams at the 720 (2h) default.
+	private int streamMetricsHistorySize = 720;
+	private final Map<String, Map<String, StreamHistory>> streamMetricsHistory = new ConcurrentHashMap<>();
 
 	// Network throughput, derived from cumulative NIC byte counters between samples.
 	private long prevNetRxBytes = -1;
@@ -1041,6 +1049,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 		// Drop history for apps that no longer exist so the map can't grow unbounded.
 		appMetricsHistory.keySet().retainAll(liveApps);
+		// Same safety net for per-stream history in case a stream's closeBroadcast cleanup was missed.
+		streamMetricsHistory.keySet().retainAll(liveApps);
 	}
 
 	@Override
@@ -1060,6 +1070,32 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return history;
 	}
 
+	@Override
+	public void addStreamSample(String appName, String streamId, PublishStatsEvent stats, int viewers, long timestampMs) {
+		if (streamMetricsHistorySize <= 0 || appName == null || streamId == null || stats == null) {
+			return;
+		}
+		streamMetricsHistory
+			.computeIfAbsent(appName, k -> new ConcurrentHashMap<>())
+			.computeIfAbsent(streamId, k -> new StreamHistory())
+			.append(stats, viewers, timestampMs, streamMetricsHistorySize);
+	}
+
+	@Override
+	public void removeStreamHistory(String appName, String streamId) {
+		Map<String, StreamHistory> appStreams = appName != null ? streamMetricsHistory.get(appName) : null;
+		if (appStreams != null && streamId != null) {
+			appStreams.remove(streamId);
+		}
+	}
+
+	@Override
+	public StreamMetricsHistory getStreamMetricsHistory(String appName, String streamId) {
+		Map<String, StreamHistory> appStreams = appName != null ? streamMetricsHistory.get(appName) : null;
+		StreamHistory history = appStreams != null && streamId != null ? appStreams.get(streamId) : null;
+		return history != null ? history.snapshot() : StreamHistory.empty();
+	}
+
 	private static class AppSample {
 		final int viewers;
 		final int streams;
@@ -1067,6 +1103,80 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		AppSample(int viewers, int streams) {
 			this.viewers = viewers;
 			this.streams = streams;
+		}
+	}
+
+	// One stream's bounded sample ring plus the byte/time baseline used to derive instantaneous bitrate.
+	// Appended single-threaded (one ingest per stream); the ring stays concurrent for the REST reader.
+	private static class StreamHistory {
+		private final Queue<StreamSample> samples = new ConcurrentLinkedQueue<>();
+		private long lastTotalBytes = -1;
+		private long lastTimestampMs = -1;
+
+		void append(PublishStatsEvent stats, int viewers, long timestampMs, int maxSize) {
+			long bitrate = 0;
+			long byteDelta = stats.getTotalByteReceived() - lastTotalBytes;
+			long msDelta = timestampMs - lastTimestampMs;
+			// First sample only seeds the baseline; a counter reset (negative delta) or zero gap reads as 0.
+			if (lastTotalBytes >= 0 && byteDelta > 0 && msDelta > 0) {
+				bitrate = byteDelta * 8 * 1000 / msDelta;
+			}
+			lastTotalBytes = stats.getTotalByteReceived();
+			lastTimestampMs = timestampMs;
+
+			samples.offer(new StreamSample(bitrate, viewers, stats.getSpeed(), stats.getEncodingQueueSize(),
+					stats.getDroppedPacketCountInIngestion(), stats.getDroppedFrameCountInEncoding(), stats.getPacketLostRatio()));
+			while (samples.size() > maxSize) {
+				samples.poll();
+			}
+		}
+
+		StreamMetricsHistory snapshot() {
+			List<StreamSample> snap = new ArrayList<>(samples);
+			int n = snap.size();
+			long[] bitrate = new long[n];
+			int[] viewers = new int[n];
+			double[] speed = new double[n];
+			int[] encoderQueueSize = new int[n];
+			int[] droppedPackets = new int[n];
+			int[] droppedFrames = new int[n];
+			double[] packetLostRatio = new double[n];
+			for (int i = 0; i < n; i++) {
+				StreamSample s = snap.get(i);
+				bitrate[i] = s.bitrate;
+				viewers[i] = s.viewers;
+				speed[i] = s.speed;
+				encoderQueueSize[i] = s.encoderQueueSize;
+				droppedPackets[i] = s.droppedPackets;
+				droppedFrames[i] = s.droppedFrames;
+				packetLostRatio[i] = s.packetLostRatio;
+			}
+			return new StreamMetricsHistory(bitrate, viewers, speed, encoderQueueSize, droppedPackets, droppedFrames, packetLostRatio);
+		}
+
+		static StreamMetricsHistory empty() {
+			return new StreamMetricsHistory(new long[0], new int[0], new double[0], new int[0], new int[0], new int[0], new double[0]);
+		}
+	}
+
+	private static class StreamSample {
+		final long bitrate;
+		final int viewers;
+		final double speed;
+		final int encoderQueueSize;
+		final int droppedPackets;
+		final int droppedFrames;
+		final double packetLostRatio;
+
+		StreamSample(long bitrate, int viewers, double speed, int encoderQueueSize,
+				int droppedPackets, int droppedFrames, double packetLostRatio) {
+			this.bitrate = bitrate;
+			this.viewers = viewers;
+			this.speed = speed;
+			this.encoderQueueSize = encoderQueueSize;
+			this.droppedPackets = droppedPackets;
+			this.droppedFrames = droppedFrames;
+			this.packetLostRatio = packetLostRatio;
 		}
 	}
 
@@ -1379,6 +1489,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		historySize = serverSettings.getMetricsHistorySize();
 		appMetricsSamplePeriod = serverSettings.getAppMetricsHistorySamplePeriodMs();
 		appMetricsHistorySize = serverSettings.getAppMetricsHistorySize();
+		streamMetricsHistorySize = serverSettings.getStreamMetricsHistorySize();
 		marketplace = serverSettings.getMarketplace();
 		webhookURL = serverSettings.getServerStatusWebHookURL();
 

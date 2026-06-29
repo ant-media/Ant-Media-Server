@@ -2,6 +2,9 @@ package io.antmedia.statistic;
 
 import com.google.gson.JsonObject;
 
+import io.antmedia.analytic.model.PublishStatsEvent;
+import io.antmedia.statistic.type.StreamMetricsHistory;
+
 public interface IStatsCollector {
 	public static final String BEAN_NAME = "statsCollector";
 
@@ -55,5 +58,31 @@ public interface IStatsCollector {
 	 * @return {outboundMbps, inboundMbps, uplinkMbps} JSON
 	 */
 	public JsonObject getNetworkStatus();
+
+	/**
+	 * Append one per-stream metric sample. Push-fed from the stream's quality update; bitrate is derived
+	 * from the {@code totalByteReceived} delta against the previous sample's timestamp. No-op when disabled.
+	 * @param appName application the stream belongs to
+	 * @param streamId stream id
+	 * @param stats latest publish stats for the stream
+	 * @param viewers total viewers (WebRTC + HLS + DASH)
+	 * @param timestampMs sample wall-clock time, ms
+	 */
+	public void addStreamSample(String appName, String streamId, PublishStatsEvent stats, int viewers, long timestampMs);
+
+	/**
+	 * Drop a stream's metric history, called when the stream ends.
+	 * @param appName application the stream belonged to
+	 * @param streamId stream id
+	 */
+	public void removeStreamHistory(String appName, String streamId);
+
+	/**
+	 * Recent per-stream metric history (bitrate/viewers/speed/queue/drops/loss), oldest first.
+	 * @param appName application the stream belongs to
+	 * @param streamId stream id
+	 * @return parallel value arrays; empty arrays when the stream is unknown
+	 */
+	public StreamMetricsHistory getStreamMetricsHistory(String appName, String streamId);
 
 }

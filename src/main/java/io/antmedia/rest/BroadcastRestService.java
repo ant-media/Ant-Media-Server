@@ -36,6 +36,7 @@ import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -1048,6 +1049,23 @@ public class BroadcastRestService extends RestServiceBase{
 	@Override
 	public BroadcastStatistics getBroadcastStatistics(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id) {
 		return super.getBroadcastStatistics(id);
+	}
+
+	@Operation(summary = "Get per-stream metric history",
+			description = "Recent in-memory metric history for the stream (bitrate, viewers, speed, encoder queue, drops, packet loss) as parallel oldest-to-newest arrays.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Per-stream metric history",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = StreamMetricsHistory.class)
+									))
+	}
+			)
+	@GET
+	@Path("/{id}/metrics-history")
+	@Produces(MediaType.APPLICATION_JSON)
+	public StreamMetricsHistory getStreamMetricsHistoryV2(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id) {
+		return super.getStreamMetricsHistory(id);
 	}
 
 	@Operation(summary = "Get total broadcast live statistics",
