@@ -294,7 +294,7 @@ public class HLSMuxer extends Muxer  {
 
 	//abort the in-flight header IO ONLY when a stop arrives (cancelOpenIO). We deliberately do NOT abort on a
 	//timer - that would kill the append GET and break the single-recording requirement.
-	private void installInterruptCallback() {
+	public void installInterruptCallback() {
 		if (interruptCB != null) {
 			return;
 		}
