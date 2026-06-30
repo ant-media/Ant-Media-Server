@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -236,43 +235,6 @@ public class HLSMuxer extends Muxer  {
 			return replaceDoubleSlashesWithSingleSlash(httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + File.separator + initialResourceNameWithoutExtension  + extension);
 		}
 		return super.getOutputURL();
-	}
-
-	@Override
-	public synchronized boolean prepareIO() {
-		//when writing to an http endpoint, FFmpeg reads the existing playlist (append) during writeHeader.
-		//if that endpoint is slow, the read hangs the whole worker thread, so check it first with our own
-		//timeout and skip HLS for this attempt instead of blocking.
-		if (StringUtils.isNotBlank(httpEndpoint) && !isPlaylistEndpointResponsive()) {
-			logger.warn("Skipping HLS for stream:{} because playlist endpoint {} did not respond in time", streamId, getOutputURL());
-			clearResource();
-			return false;
-		}
-		return super.prepareIO();
-	}
-
-	protected boolean isPlaylistEndpointResponsive() {
-		int timeoutMs = getAppSettings().getMuxerOutputOpenTimeoutMs();
-		if (timeoutMs <= 0) {
-			return true;
-		}
-		HttpURLConnection connection = null;
-		try {
-			connection = (HttpURLConnection) new URL(getOutputURL()).openConnection();
-			connection.setRequestMethod("GET");
-			connection.setConnectTimeout(timeoutMs);
-			connection.setReadTimeout(timeoutMs);
-			//any response (including 404 when there is no existing playlist yet) means the endpoint is reachable
-			connection.getResponseCode();
-			return true;
-		} catch (Exception e) {
-			logger.warn("HLS playlist endpoint {} not responsive within {}ms: {}", getOutputURL(), timeoutMs, e.getMessage());
-			return false;
-		} finally {
-			if (connection != null) {
-				connection.disconnect();
-			}
-		}
 	}
 
 	public AVFormatContext getOutputFormatContext() {

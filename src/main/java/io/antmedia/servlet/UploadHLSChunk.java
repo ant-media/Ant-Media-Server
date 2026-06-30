@@ -140,7 +140,7 @@ public class UploadHLSChunk extends HttpServlet{
 	}
 
 	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException 
 	{
 		logger.debug("Received GET request for HLS chunk upload: {}", req.getPathInfo());
 		StorageClient storageClient = getStorageClient(req);
