@@ -681,8 +681,19 @@ public class HLSMuxer extends Muxer  {
 
 		codecParameter.codec_type(AVMEDIA_TYPE_DATA);
 		codecParameter.codec_id(AV_CODEC_ID_TIMED_ID3);
+		id3StreamIndex = getNextAvailableStreamIndex();
 
 		return super.addStream(codecParameter, MuxAdaptor.getTimeBaseForMs(), id3StreamIndex);
+	}
+	
+	public int getNextAvailableStreamIndex() {
+		int nextAvailableStreamIndex = 0;
+		for (Integer streamIndex : registeredStreamIndexList) {
+			if (streamIndex != null && streamIndex >= nextAvailableStreamIndex) {
+				nextAvailableStreamIndex = streamIndex + 1;
+			}
+		}
+		return nextAvailableStreamIndex;
 	}
 
 	public String getHlsListSize() {

@@ -291,6 +291,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected AVFormatContext streamSourceInputFormatContext;
 	private AVCodecParameters videoCodecParameters;
 	protected AVCodecParameters audioCodecParameters;
+	protected Map<Integer, AVCodecParameters> audioCodecParametersMap = new ConcurrentHashMap<>();
+	protected Map<Integer, AVRational> audioTimeBaseMap = new ConcurrentHashMap<>();
+	protected List<Integer> audioStreamIndexList = Collections.synchronizedList(new ArrayList<>());
 	private BytePointer audioExtraDataPointer;
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
@@ -829,6 +832,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean prepareFromInputFormatContext(AVFormatContext inputFormatContext) throws Exception {
 
 		this.streamSourceInputFormatContext = inputFormatContext;
+		audioStreamIndexList.clear();
+		audioCodecParametersMap.clear();
+		audioTimeBaseMap.clear();
+		audioCodecParameters = null;
 		// Dump information about file onto standard error
 
 		int streamIndex = 0;
@@ -853,10 +860,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			else if (codecpar.codec_type() == AVMEDIA_TYPE_AUDIO) 
 			{
 				logger.info("Audio format sample rate:{} bitrate:{} for stream: {} source index:{} target index:{}",codecpar.sample_rate(), codecpar.bit_rate(), streamId, i, streamIndex);
-				audioTimeBase = inputFormatContext.streams(i).time_base();
+				AVRational streamTimeBase = inputFormatContext.streams(i).time_base();
+				audioStreamIndexList.add(i);
+				audioCodecParametersMap.put(i, codecpar);
+				audioTimeBaseMap.put(i, streamTimeBase);
+				if (audioCodecParameters == null) {
+					audioStreamIndex = streamIndex;
+					audioCodecParameters = codecpar;
+					audioTimeBase = streamTimeBase;
+				}
 				addStream2Muxers(codecpar, stream.time_base(), i);
-				audioStreamIndex = streamIndex;
-				audioCodecParameters = codecpar;
 				streamIndex++;
 			}
 			else if (codecpar.codec_type() == AVMEDIA_TYPE_DATA)
@@ -2820,6 +2833,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public int getAudioStreamIndex() {
 		return audioStreamIndex;
 	}
+	
+	public List<Integer> getAudioStreamIndexList() {
+		synchronized (audioStreamIndexList) {
+			return new ArrayList<>(audioStreamIndexList);
+		}
+	}
+	
+	public Map<Integer, AVCodecParameters> getAudioCodecParametersMap() {
+		return new HashMap<>(audioCodecParametersMap);
+	}
+	
+	public Map<Integer, AVRational> getAudioTimeBaseMap() {
+		return new HashMap<>(audioTimeBaseMap);
+	}
 
 
 	public void setAudioStreamIndex(int audioStreamIndex) {
@@ -2970,4 +2997,3 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 }
-

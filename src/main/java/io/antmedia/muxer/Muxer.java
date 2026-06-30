@@ -21,7 +21,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -142,6 +144,8 @@ public abstract class Muxer {
 	protected List<AVBSFContext> bsfFilterContextList = new ArrayList<>();
 	
 	protected Set<AVBSFContext> bsfAudioFilterContextList = new ConcurrentHashSet<>();
+	
+	protected Map<Integer, Set<AVBSFContext>> bsfAudioFilterContextMap = new ConcurrentHashMap<>();
 
 	protected int videoWidth;
 	protected int videoHeight;
@@ -163,6 +167,7 @@ public abstract class Muxer {
 	protected AVPacket tmpPacket;
 
 	protected long firstAudioDts = 0;
+	protected Map<Integer, Long> firstAudioDtsMap = new ConcurrentHashMap<>();
 	protected long firstVideoDts = 0;
 
 	protected AVPacket videoPkt;
@@ -513,6 +518,23 @@ public abstract class Muxer {
 			av_bsf_free(videoBsfFilterContext);
 		}
 		bsfFilterContextList.clear();
+		
+		Set<AVBSFContext> releasedAudioBsfFilterContextSet = new HashSet<>();
+		for (Set<AVBSFContext> audioBsfFilterContextSet : bsfAudioFilterContextMap.values()) {
+			for (AVBSFContext audioBsfFilterContext : audioBsfFilterContextSet) {
+				if (releasedAudioBsfFilterContextSet.add(audioBsfFilterContext)) {
+					av_bsf_free(audioBsfFilterContext);
+				}
+			}
+		}
+		for (AVBSFContext audioBsfFilterContext : bsfAudioFilterContextList) {
+			if (releasedAudioBsfFilterContextSet.add(audioBsfFilterContext)) {
+				av_bsf_free(audioBsfFilterContext);
+			}
+		}
+		bsfAudioFilterContextMap.clear();
+		bsfAudioFilterContextList.clear();
+		firstAudioDtsMap.clear();
 
 		/* close output */
 		if (outputFormatContext != null &&
@@ -986,7 +1008,7 @@ public abstract class Muxer {
 				codecType = "audio";
 				for (String bsfAudioName : bsfAudioNames) {
 					AVBSFContext audioBitstreamFilter = initAudioBitstreamFilter(bsfAudioName, codecParameters,
-							timebase);
+							timebase, streamIndex);
 					if (audioBitstreamFilter != null) {
 						codecParameters = audioBitstreamFilter.par_out();
 						timebase = audioBitstreamFilter.time_base_out();
@@ -999,6 +1021,9 @@ public abstract class Muxer {
 					outStream.index(), timebase.num(), timebase.den(), streamId, codecType);
 			inputTimeBaseMap.put(streamIndex, timebase);
 			inputOutputStreamIndexMap.put(streamIndex, outStream.index());
+			if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO && outStream.index() != streamIndex && bsfAudioFilterContextMap.containsKey(streamIndex)) {
+				bsfAudioFilterContextMap.put(outStream.index(), bsfAudioFilterContextMap.get(streamIndex));
+			}
 
 			outStream.codecpar().codec_tag(0);
 			result = true;
@@ -1031,6 +1056,16 @@ public abstract class Muxer {
 		
 		if (audioBsfFilterContext != null) {
 			bsfAudioFilterContextList.add(audioBsfFilterContext);
+		}
+		return audioBsfFilterContext;
+		
+	}
+	
+	public AVBSFContext initAudioBitstreamFilter(String bsfAudioName, AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
+		AVBSFContext audioBsfFilterContext = initBitstreamFilter(bsfAudioName, codecParameters, timebase);
+		
+		if (audioBsfFilterContext != null) {
+			bsfAudioFilterContextMap.computeIfAbsent(streamIndex, key -> new ConcurrentHashSet<>()).add(audioBsfFilterContext);
 		}
 		return audioBsfFilterContext;
 		
@@ -1253,25 +1288,36 @@ public abstract class Muxer {
 
 		if (codecType == AVMEDIA_TYPE_AUDIO)
 		{
+			int audioStreamIndex = pkt.stream_index();
+			long firstAudioDtsForStream;
 			//removing firstAudioDTS is required when recording/muxing has started on the fly
 			if(firstPacketDtsMs == -1) {
-				firstAudioDts = pkt.dts();
-				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimeBaseMap.get(pkt.stream_index()), MuxAdaptor.TIME_BASE_FOR_MS);
+				firstAudioDtsForStream = pkt.dts();
+				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimebase, MuxAdaptor.TIME_BASE_FOR_MS);
+				firstAudioDtsMap.put(audioStreamIndex, firstAudioDtsForStream);
+				firstAudioDts = firstAudioDtsForStream;
 				logger.debug("The first incoming packet is audio and its packet dts:{}ms streamId:{} ", firstPacketDtsMs, streamId);
 			}
 			else 
-			if (firstAudioDts == -1) {
-				firstAudioDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimeBaseMap.get(pkt.stream_index()));
+			if (!firstAudioDtsMap.containsKey(audioStreamIndex)) {
+				firstAudioDtsForStream = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimebase);
 				logger.debug("First packetDtsMs:{}ms is already received calculated the firstAudioDts:{} and incoming packet dts:{} streamId:{}", 
-								firstPacketDtsMs, firstAudioDts, pkt.dts(), streamId);
+								firstPacketDtsMs, firstAudioDtsForStream, pkt.dts(), streamId);
 				
-				if ((pkt.dts() - firstAudioDts) < 0) {
-					firstAudioDts = pkt.dts();
+				if ((pkt.dts() - firstAudioDtsForStream) < 0) {
+					firstAudioDtsForStream = pkt.dts();
+				}
+				firstAudioDtsMap.put(audioStreamIndex, firstAudioDtsForStream);
+				if (firstAudioDts == -1) {
+					firstAudioDts = firstAudioDtsForStream;
 				}
 			}
+			else {
+				firstAudioDtsForStream = firstAudioDtsMap.get(audioStreamIndex);
+			}
 			
-			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDtsForStream, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDtsForStream , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
 
 			int ret = av_packet_ref(tmpPacket , pkt);
@@ -1386,7 +1432,8 @@ public abstract class Muxer {
 			AVFormatContext context, long dts) {
 		
 		int ret;
-		for (AVBSFContext audioBsfFilterContext : bsfAudioFilterContextList) {
+		Set<AVBSFContext> audioBsfFilterContextSet = bsfAudioFilterContextMap.getOrDefault(pkt.stream_index(), Collections.emptySet());
+		for (AVBSFContext audioBsfFilterContext : audioBsfFilterContextSet) {
 			ret = av_bsf_send_packet(audioBsfFilterContext, pkt);
 			if (ret < 0) {
 				logger.warn("Cannot send packet to bit stream filter for stream:{}", streamId);
