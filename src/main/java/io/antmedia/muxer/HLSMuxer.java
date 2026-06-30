@@ -408,6 +408,7 @@ public class HLSMuxer extends Muxer  {
 	@Override
 	public boolean writeHeader() {
 		createID3StreamIfRequired();
+		logger.info("Writing hls header for stream:{} to {}", streamId, getOutputURL());
 		return super.writeHeader();
 	}
 

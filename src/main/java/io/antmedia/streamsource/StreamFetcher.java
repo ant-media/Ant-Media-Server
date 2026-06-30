@@ -395,6 +395,8 @@ public class StreamFetcher {
 						streamFetcherListener.streamStarted(streamFetcherListener);
 					}
 
+					logger.info("Prepare done, started reading packets for streamId:{}", streamId);
+
 					boolean readTheNextFrame = true;
 					//In some odd cases stopRequest is received immediately and status of the stream changed to finished
 					//after that readMore -> packetRead method calls "getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);"
