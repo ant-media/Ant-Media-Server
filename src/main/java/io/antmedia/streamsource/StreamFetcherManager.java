@@ -578,7 +578,7 @@ public class StreamFetcherManager {
 				
 	}
 
-	public void controlStreamFetchers(boolean periodicRestartAllStreams) {
+	public void controlStreamFetchers(boolean restart) {
 		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
 
 			//get the updated broadcast object
@@ -594,7 +594,7 @@ public class StreamFetcherManager {
 			}
 
 			//restart decision for this stream only, so an eviction below doesn't affect the others
-			boolean restartCurrentStream = periodicRestartAllStreams;
+			boolean restartCurrentStream = restart;
 
 			boolean autoStop = false;
 			if (restartCurrentStream || broadcast == null ||

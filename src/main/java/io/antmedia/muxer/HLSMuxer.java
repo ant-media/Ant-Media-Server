@@ -160,12 +160,6 @@ public class HLSMuxer extends Muxer  {
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
 
-			//bound segment/playlist opens (mainly the http endpoint) so a stuck write can't block forever
-			int rwTimeoutMs = getAppSettings().getMuxerOutputOpenTimeoutMs();
-			if (rwTimeoutMs > 0) {
-				options.put("rw_timeout", String.valueOf(rwTimeoutMs * 1000L));
-			}
-
 			if(hlsEncryptionKeyInfoFile != null) {
 				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
 			}
