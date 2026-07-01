@@ -13,6 +13,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
 import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
 import static org.bytedeco.ffmpeg.global.avutil.av_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
@@ -37,6 +38,7 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.javacpp.BytePointer;
@@ -851,7 +853,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				width = codecpar.width();
 				height = codecpar.height();
 
-				addStream2Muxers(codecpar, stream.time_base(), i);
+				addStream2Muxers(codecpar, stream.time_base(), i, Optional.empty());
 				videoStreamIndex = streamIndex;
 				videoCodecParameters = codecpar;
 				streamIndex++;
@@ -869,13 +871,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					audioCodecParameters = codecpar;
 					audioTimeBase = streamTimeBase;
 				}
-				addStream2Muxers(codecpar, stream.time_base(), i);
+				addStream2Muxers(codecpar, stream.time_base(), i, getLanguage(stream));
 				streamIndex++;
 			}
 			else if (codecpar.codec_type() == AVMEDIA_TYPE_DATA)
 			{
 				logger.info("Data stream detected (e.g., SCTE-35) codec Id: {} for stream: {} source index:{} target index:{}", codecpar.codec_id(), streamId, i, streamIndex);
-				addStream2Muxers(codecpar, stream.time_base(), i);
+				addStream2Muxers(codecpar, stream.time_base(), i, Optional.empty());
 				dataStreamIndex = streamIndex;
 				streamIndex++;
 			}
@@ -957,6 +959,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void addStream2Muxers(AVCodecParameters codecParameters, AVRational rat, int streamIndex) 
 	{
+		addStream2Muxers(codecParameters, rat, streamIndex, Optional.empty());
+	}
+
+	public void addStream2Muxers(AVCodecParameters codecParameters, AVRational rat, int streamIndex, Optional<String> language) 
+	{
 		synchronized (muxerList) {
 
 			Iterator<Muxer> iterator = muxerList.iterator();
@@ -964,7 +971,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			{
 				Muxer muxer = iterator.next();
 
-				if (!muxer.addStream(codecParameters, rat, streamIndex)) 
+				if (!muxer.addStream(codecParameters, rat, streamIndex, language)) 
 				{
 
 					logger.warn("addStream returns false {} for stream: {} for {} stream", muxer.getFormat(), streamId, getStreamType(codecParameters.codec_type()));
@@ -972,6 +979,18 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 
+	}
+
+	public Optional<String> getLanguage(AVStream stream) {
+		if (stream == null || stream.metadata() == null) {
+			return Optional.empty();
+		}
+		AVDictionaryEntry languageEntry = av_dict_get(stream.metadata(), "language", null, 0);
+		if (languageEntry == null || languageEntry.value() == null) {
+			return Optional.empty();
+		}
+		String language = languageEntry.value().getString();
+		return StringUtils.isBlank(language) ? Optional.empty() : Optional.of(language.trim());
 	}
 
 	public void prepareMuxerIO() 

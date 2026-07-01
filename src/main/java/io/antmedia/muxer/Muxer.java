@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -179,6 +180,8 @@ public abstract class Muxer {
 	public static final int SEGMENT_INDEX_LENGTH = 9;
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
+	
+	protected Map<Integer, Optional<String>> streamLanguageMap = new ConcurrentHashMap<>();
 
 	/**
 	 * height of the resolution
@@ -372,7 +375,7 @@ public abstract class Muxer {
 			logger.error("Cannot get codec parameters for {}", streamId);
 			return false;
 		}
-		return addStream(codecParameter, codecContext.time_base(), streamIndex);
+		return addStream(codecParameter, codecContext.time_base(), streamIndex, Optional.empty());
 	}
 
 	public String getOutputURL() {
@@ -970,6 +973,11 @@ public abstract class Muxer {
 	 */
 	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
+		return addStream(codecParameters, timebase, streamIndex, Optional.empty());
+	}
+
+	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex, Optional<String> language) 
+	{
 		if (isRunning.get()) {
 			logger.warn("It is already running and cannot add new stream while it's running for stream:{} and output:{}", streamId, getOutputURL());
 			return false;
@@ -1017,6 +1025,13 @@ public abstract class Muxer {
 			}
 
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
+			Optional<String> normalizedLanguage = normalizeLanguage(language);
+			streamLanguageMap.put(outStream.index(), normalizedLanguage);
+			normalizedLanguage.ifPresent(value -> {
+				AVDictionary metadata = new AVDictionary(null);
+				av_dict_set(metadata, "language", value, 0);
+				outStream.metadata(metadata);
+			});
 			logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{} type:{}", 
 					outStream.index(), timebase.num(), timebase.den(), streamId, codecType);
 			inputTimeBaseMap.put(streamIndex, timebase);
@@ -1049,6 +1064,17 @@ public abstract class Muxer {
 			logger.warn("Stream is not added for muxing to {} for stream:{}", getFileName(), streamId);
 		}
 		return result;
+	}
+
+	protected Optional<String> normalizeLanguage(Optional<String> language) {
+		if (language == null) {
+			return Optional.empty();
+		}
+		return language.map(String::trim).filter(value -> !value.isEmpty());
+	}
+	
+	protected Optional<String> getStreamLanguage(int outputStreamIndex) {
+		return streamLanguageMap.getOrDefault(outputStreamIndex, Optional.empty());
 	}
 	
 	public AVBSFContext initAudioBitstreamFilter(String bsfAudioName, AVCodecParameters codecParameters, AVRational timebase) {
