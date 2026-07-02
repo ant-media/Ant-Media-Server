@@ -101,8 +101,6 @@ public class HLSMuxer extends Muxer  {
 	
 	private boolean variantStreamMappingEnabled;
 	
-	private BytePointer variantOutputUrlPointer;
-
 
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
@@ -371,6 +369,15 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	@Override
+	public synchronized boolean prepareIO() {
+		// Variant HLS needs the output URL changed before FFmpeg opens IO. The
+		// header consumes var_stream_map later, but prepareIO opens the target
+		// playlist, so configure both the URL and HLS options here first.
+		configureVariantStreamMappingIfRequired();
+		return super.prepareIO();
+	}
+
+	@Override
 	public boolean writeHeader() {
 		configureVariantStreamMappingIfRequired();
 		createID3StreamIfRequired();
@@ -408,8 +415,9 @@ public class HLSMuxer extends Muxer  {
 		options.put("master_pl_name", initialResourceNameWithoutExtension + extension);
 		
 		String variantPlaylistOutputURL = getVariantPlaylistOutputURL();
-		variantOutputUrlPointer = new BytePointer(variantPlaylistOutputURL);
-		context.url(variantOutputUrlPointer);
+		av_free(context.url());
+		context.url(new BytePointer(av_malloc(variantPlaylistOutputURL.getBytes().length + 1L))
+				.putString(variantPlaylistOutputURL));
 		segmentFilename = getVariantSegmentFilename();
 		options.put("hls_segment_filename", segmentFilename);
 		variantStreamMappingEnabled = true;
@@ -879,11 +887,6 @@ public class HLSMuxer extends Muxer  {
 			tmpPacketForSEI = null;
 		}
 		
-		if (variantOutputUrlPointer != null) {
-			variantOutputUrlPointer.close();
-			variantOutputUrlPointer = null;
-		}
-
 	}
 
 	public ByteBuffer getPendingSEIData() {
