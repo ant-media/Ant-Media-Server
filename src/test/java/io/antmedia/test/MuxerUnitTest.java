@@ -33,6 +33,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
 import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -5521,6 +5522,87 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.addID3Data(data);
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
 	}
+	
+	@Test
+	public void testHLSID3StreamIndexDoesNotCollideWithMultipleAudioTracks() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+		}
+		
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, null, false);
+		hlsMuxer.init(appScope, "stream" + (int) (Math.random() * 10000), 0, null, 0);
+		
+		AVCodecParameters videoCodecParameters = new AVCodecParameters();
+		videoCodecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		videoCodecParameters.codec_id(AV_CODEC_ID_H264);
+		videoCodecParameters.width(640);
+		videoCodecParameters.height(360);
+		
+		AVCodecParameters firstAudioCodecParameters = new AVCodecParameters();
+		firstAudioCodecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
+		firstAudioCodecParameters.codec_id(AV_CODEC_ID_AAC);
+		firstAudioCodecParameters.sample_rate(48000);
+		
+		AVCodecParameters secondAudioCodecParameters = new AVCodecParameters();
+		secondAudioCodecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
+		secondAudioCodecParameters.codec_id(AV_CODEC_ID_AAC);
+		secondAudioCodecParameters.sample_rate(44100);
+		
+		AVRational timeBase = MuxAdaptor.getTimeBaseForMs();
+		assertTrue(hlsMuxer.addStream(videoCodecParameters, timeBase, 0));
+		assertTrue(hlsMuxer.addStream(firstAudioCodecParameters, timeBase, 1, Optional.of("eng")));
+		assertTrue(hlsMuxer.addStream(secondAudioCodecParameters, timeBase, 2, Optional.of("spa")));
+		assertTrue(hlsMuxer.addID3Stream());
+		
+		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(3));
+		assertEquals(4, hlsMuxer.getRegisteredStreamIndexList().size());
+	}
+	
+	@Test
+	public void testHLSVariantStreamMappingForMultipleAudioTracks() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+		}
+		
+		String streamId = "stream" + (int) (Math.random() * 10000);
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, null, false);
+		hlsMuxer.init(appScope, streamId, 0, null, 0);
+		
+		AVCodecParameters videoCodecParameters = new AVCodecParameters();
+		videoCodecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		videoCodecParameters.codec_id(AV_CODEC_ID_H264);
+		videoCodecParameters.width(640);
+		videoCodecParameters.height(360);
+		
+		AVCodecParameters firstAudioCodecParameters = new AVCodecParameters();
+		firstAudioCodecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
+		firstAudioCodecParameters.codec_id(AV_CODEC_ID_AAC);
+		firstAudioCodecParameters.sample_rate(48000);
+		
+		AVCodecParameters secondAudioCodecParameters = new AVCodecParameters();
+		secondAudioCodecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
+		secondAudioCodecParameters.codec_id(AV_CODEC_ID_AAC);
+		secondAudioCodecParameters.sample_rate(44100);
+		
+		AVRational timeBase = MuxAdaptor.getTimeBaseForMs();
+		assertTrue(hlsMuxer.addStream(videoCodecParameters, timeBase, 0));
+		assertTrue(hlsMuxer.addStream(firstAudioCodecParameters, timeBase, 1, Optional.of("eng")));
+		assertTrue(hlsMuxer.addStream(secondAudioCodecParameters, timeBase, 2, Optional.of("spa")));
+		
+		hlsMuxer.configureVariantStreamMappingIfRequired();
+		
+		Map<String, String> options = (Map<String, String>) ReflectionTestUtils.getField(hlsMuxer, "options");
+		assertEquals("v:0,agroup:audio a:0,agroup:audio,name:audio_0,language:eng,default:yes a:1,agroup:audio,name:audio_1,language:spa", options.get("var_stream_map"));
+		assertEquals(streamId + ".m3u8", options.get("master_pl_name"));
+		assertTrue(hlsMuxer.getOutputFormatContext().url().getString().endsWith(streamId + "_%v.m3u8"));
+		assertTrue(hlsMuxer.getSegmentFilename().endsWith(streamId + "_%v%09d.ts"));
+		assertEquals(streamId + ".m3u8", hlsMuxer.getFile().getName());
+		
+		String hlsFilesRegularExpression = hlsMuxer.getHLSFilesRegularExpression(hlsMuxer.getSegmentFilename().indexOf("%09d"));
+		assertTrue((streamId + "_0.m3u8").matches(hlsFilesRegularExpression));
+		assertTrue((streamId + "_audio_0.m3u8").matches(hlsFilesRegularExpression));
+		assertTrue((streamId + "_audio_0000000000.ts").matches(hlsFilesRegularExpression));
+	}
 
 	@Test
 	public void testID3Timing() {
@@ -6912,6 +6994,54 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0, muxAdaptor.getDataStreamIndex());
 		assertEquals(1, muxAdaptor.getVideoStreamIndex());
 		assertEquals(2, muxAdaptor.getAudioStreamIndex());
+	}
+	
+	@Test
+	public void testPrepareFromInputFormatContextForMultipleAudioTracks() throws Exception {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		assertEquals(1, appScope.getDepth());
+		
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), null, false, appScope));
+		muxAdaptor.setStreamId("stream " + (int) (Math.random() * 10000));
+		
+		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
+		AVStream videoStream = avformat_new_stream(inputFormatContext, null);
+		videoStream.codecpar().codec_type(AVMEDIA_TYPE_VIDEO);
+		videoStream.codecpar().codec_id(AV_CODEC_ID_H264);
+		videoStream.codecpar().width(640);
+		videoStream.codecpar().height(360);
+		videoStream.time_base().num(1).den(90000);
+		
+		AVStream firstAudioStream = avformat_new_stream(inputFormatContext, null);
+		firstAudioStream.codecpar().codec_type(AVMEDIA_TYPE_AUDIO);
+		firstAudioStream.codecpar().codec_id(AV_CODEC_ID_AAC);
+		firstAudioStream.codecpar().sample_rate(48000);
+		firstAudioStream.time_base().num(1).den(48000);
+		AVDictionary firstAudioMetadata = new AVDictionary(null);
+		av_dict_set(firstAudioMetadata, "language", "eng", 0);
+		firstAudioStream.metadata(firstAudioMetadata);
+		
+		AVStream secondAudioStream = avformat_new_stream(inputFormatContext, null);
+		secondAudioStream.codecpar().codec_type(AVMEDIA_TYPE_AUDIO);
+		secondAudioStream.codecpar().codec_id(AV_CODEC_ID_AAC);
+		secondAudioStream.codecpar().sample_rate(44100);
+		secondAudioStream.time_base().num(1).den(44100);
+		AVDictionary secondAudioMetadata = new AVDictionary(null);
+		av_dict_set(secondAudioMetadata, "language", "spa", 0);
+		secondAudioStream.metadata(secondAudioMetadata);
+		
+		muxAdaptor.prepareFromInputFormatContext(inputFormatContext);
+		
+		assertEquals(0, muxAdaptor.getVideoStreamIndex());
+		assertEquals(1, muxAdaptor.getAudioStreamIndex());
+		assertEquals(Arrays.asList(1, 2), muxAdaptor.getAudioStreamIndexList());
+		assertEquals(2, muxAdaptor.getAudioCodecParametersMap().size());
+		assertEquals(48000, muxAdaptor.getAudioCodecParametersMap().get(1).sample_rate());
+		assertEquals(44100, muxAdaptor.getAudioCodecParametersMap().get(2).sample_rate());
+		assertEquals(48000, muxAdaptor.getAudioTimeBaseMap().get(1).den());
+		assertEquals(44100, muxAdaptor.getAudioTimeBaseMap().get(2).den());
+		assertEquals(Optional.of("eng"), muxAdaptor.getLanguage(firstAudioStream));
+		assertEquals(Optional.of("spa"), muxAdaptor.getLanguage(secondAudioStream));
 	}
 
 	@Test

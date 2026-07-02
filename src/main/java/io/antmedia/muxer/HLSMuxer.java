@@ -13,6 +13,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.google.gson.JsonObject;
@@ -50,6 +53,8 @@ public class HLSMuxer extends Muxer  {
 	public static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
 
 	public static final String HLS_FILES_REGEX_MATCHER = "(\\d{9}\\.(ts|fmp4)|\\.m3u8)$";
+	
+	private static final String VARIANT_AUDIO_GROUP = "audio";
 
 
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
@@ -93,7 +98,9 @@ public class HLSMuxer extends Muxer  {
 	private AVPacket tmpPacketForSEI;
 
 	private String segmentFileNameSuffix;
-
+	
+	private boolean variantStreamMappingEnabled;
+	
 
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
@@ -247,10 +254,10 @@ public class HLSMuxer extends Muxer  {
 	@Override
 	public boolean isCodecSupported(int codecId) {
 		return (codecId == AV_CODEC_ID_H264 
-				|| codecId == AV_CODEC_ID_AAC  
-				|| codecId == AV_CODEC_ID_MP3  
-				|| codecId == AV_CODEC_ID_H265 
-				|| codecId == AV_CODEC_ID_AC3);
+					|| codecId == AV_CODEC_ID_AAC  
+					|| codecId == AV_CODEC_ID_MP3  
+					|| codecId == AV_CODEC_ID_H265 
+					|| codecId == AV_CODEC_ID_AC3);
 	}
 
 	@Override
@@ -362,9 +369,120 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	@Override
+	public synchronized boolean prepareIO() {
+		// Variant HLS needs the output URL changed before FFmpeg opens IO. The
+		// header consumes var_stream_map later, but prepareIO opens the target
+		// playlist, so configure both the URL and HLS options here first.
+		configureVariantStreamMappingIfRequired();
+		return super.prepareIO();
+	}
+
+	@Override
 	public boolean writeHeader() {
+		configureVariantStreamMappingIfRequired();
 		createID3StreamIfRequired();
 		return super.writeHeader();
+	}
+	
+	public void configureVariantStreamMappingIfRequired() {
+		AVFormatContext context = getOutputFormatContext();
+		if (context == null || variantStreamMappingEnabled) {
+			return;
+		}
+		
+		int videoStreamCount = 0;
+		List<Optional<String>> audioLanguages = new ArrayList<>();
+		for (int i = 0; i < context.nb_streams(); i++) {
+			int codecType = context.streams(i).codecpar().codec_type();
+			if (codecType == AVMEDIA_TYPE_VIDEO) {
+				videoStreamCount++;
+			}
+			else if (codecType == AVMEDIA_TYPE_AUDIO) {
+				audioLanguages.add(getStreamLanguage(context.streams(i).index()));
+			}
+		}
+		
+		if (audioLanguages.size() <= 1) {
+			return;
+		}
+		
+		String varStreamMap = buildVariantStreamMap(videoStreamCount, audioLanguages);
+		if (StringUtils.isBlank(varStreamMap)) {
+			return;
+		}
+		
+		options.put("var_stream_map", varStreamMap);
+		options.put("master_pl_name", initialResourceNameWithoutExtension + extension);
+		
+		String variantPlaylistOutputURL = getVariantPlaylistOutputURL();
+		av_free(context.url());
+		context.url(new BytePointer(av_malloc(variantPlaylistOutputURL.getBytes().length + 1L))
+				.putString(variantPlaylistOutputURL));
+		segmentFilename = getVariantSegmentFilename();
+		options.put("hls_segment_filename", segmentFilename);
+		variantStreamMappingEnabled = true;
+		
+		logger.info("HLS variant stream mapping is enabled for stream:{} output:{} var_stream_map:{}", streamId, variantPlaylistOutputURL, varStreamMap);
+	}
+	
+	public String buildVariantStreamMap(int videoStreamCount, int audioStreamCount) {
+		List<Optional<String>> audioLanguages = new ArrayList<>();
+		for (int i = 0; i < audioStreamCount; i++) {
+			audioLanguages.add(Optional.empty());
+		}
+		return buildVariantStreamMap(videoStreamCount, audioLanguages);
+	}
+	
+	public String buildVariantStreamMap(int videoStreamCount, List<Optional<String>> audioLanguages) {
+		StringBuilder varStreamMapBuilder = new StringBuilder();
+		if (videoStreamCount > 0) {
+			varStreamMapBuilder.append("v:0,agroup:").append(VARIANT_AUDIO_GROUP).append(" ");
+		}
+		
+		for (int i = 0; i < audioLanguages.size(); i++) {
+			varStreamMapBuilder.append("a:").append(i)
+					.append(",agroup:").append(VARIANT_AUDIO_GROUP)
+					.append(",name:audio_").append(i)
+					.append(",language:").append(audioLanguages.get(i).orElse("und"));
+			if (i == 0) {
+				varStreamMapBuilder.append(",default:yes");
+			}
+			if (i < audioLanguages.size() - 1) {
+				varStreamMapBuilder.append(" ");
+			}
+		}
+		
+		return varStreamMapBuilder.toString();
+	}
+	
+	public String getVariantPlaylistOutputURL() {
+		return insertVariantSpecifierBeforeExtension(getOutputURL());
+	}
+	
+	public String getVariantSegmentFilename() {
+		if (segmentFilename.contains("%v")) {
+			return segmentFilename;
+		}
+		int suffixIndex = segmentFilename.indexOf(segmentFileNameSuffix);
+		if (suffixIndex >= 0) {
+			return segmentFilename.substring(0, suffixIndex) + "_%v" + segmentFilename.substring(suffixIndex);
+		}
+		return insertVariantSpecifierBeforeExtension(segmentFilename);
+	}
+	
+	public String insertVariantSpecifierBeforeExtension(String fileName) {
+		if (fileName.contains("%v")) {
+			return fileName;
+		}
+		int extensionIndex = fileName.lastIndexOf(extension);
+		if (extensionIndex >= 0) {
+			return fileName.substring(0, extensionIndex) + "_%v" + fileName.substring(extensionIndex);
+		}
+		int dotIndex = fileName.lastIndexOf(LETTER_DOT);
+		if (dotIndex >= 0) {
+			return fileName.substring(0, dotIndex) + "_%v" + fileName.substring(dotIndex);
+		}
+		return fileName + "_%v";
 	}
 
 	public void createID3StreamIfRequired() {
@@ -414,8 +532,7 @@ public class HLSMuxer extends Muxer  {
 				int indexOfSuffix = 0;
 				indexOfSuffix = segmentFilename.indexOf(segmentFileNameSuffix);
 
-				String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
-				String regularExpression = segmentFileWithoutSuffix + ".*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
+				String regularExpression = getHLSFilesRegularExpression(indexOfSuffix);
 				File[] files = getHLSFilesInDirectory(file, regularExpression);
 
 				if (files != null)
@@ -444,6 +561,16 @@ public class HLSMuxer extends Muxer  {
 			}
 		}
 
+	}
+	
+	public String getHLSFilesRegularExpression(int indexOfSuffix) {
+		String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
+		String hlsFileExtensions = TS_EXTENSION + "|" + FMP4_EXTENSION;
+		if (variantStreamMappingEnabled) {
+			segmentFileWithoutSuffix = segmentFileWithoutSuffix.replace("%v", ".*");
+			hlsFileExtensions += "|m3u8";
+		}
+		return segmentFileWithoutSuffix + ".*\\.(?:" + hlsFileExtensions + ")$";
 	}
 
 	@SuppressWarnings("javasecurity:S2076") //because we check if input url is valid or not
@@ -661,6 +788,12 @@ public class HLSMuxer extends Muxer  {
 	@Override
 	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
+		return addStream(codecParameters, timebase, streamIndex, Optional.empty());
+	}
+
+	@Override
+	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex, Optional<String> language) 
+	{
 
 		if (codecParameters.codec_id() == AV_CODEC_ID_H264) {
 			setBitstreamFilter(BITSTREAM_FILTER_H264_MP4TOANNEXB);
@@ -673,7 +806,7 @@ public class HLSMuxer extends Muxer  {
 			setAudioBitreamFilter("aac_adtstoasc");
 		}
 
-		return super.addStream(codecParameters, timebase, streamIndex);
+		return super.addStream(codecParameters, timebase, streamIndex, language);
 	}
 
 	public boolean addID3Stream() {
@@ -681,8 +814,19 @@ public class HLSMuxer extends Muxer  {
 
 		codecParameter.codec_type(AVMEDIA_TYPE_DATA);
 		codecParameter.codec_id(AV_CODEC_ID_TIMED_ID3);
+		id3StreamIndex = getNextAvailableStreamIndex();
 
 		return super.addStream(codecParameter, MuxAdaptor.getTimeBaseForMs(), id3StreamIndex);
+	}
+	
+	public int getNextAvailableStreamIndex() {
+		int nextAvailableStreamIndex = 0;
+		for (Integer streamIndex : registeredStreamIndexList) {
+			if (streamIndex != null && streamIndex >= nextAvailableStreamIndex) {
+				nextAvailableStreamIndex = streamIndex + 1;
+			}
+		}
+		return nextAvailableStreamIndex;
 	}
 
 	public String getHlsListSize() {
@@ -742,7 +886,7 @@ public class HLSMuxer extends Muxer  {
 			av_packet_free(tmpPacketForSEI);
 			tmpPacketForSEI = null;
 		}
-
+		
 	}
 
 	public ByteBuffer getPendingSEIData() {
