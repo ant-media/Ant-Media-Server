@@ -62,6 +62,7 @@ public class StreamFetcher {
 	 */
 	private long lastPacketReceivedTime = 0;
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
+	//when the worker started this attempt, for startup duration checks
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
     private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
@@ -1216,6 +1217,7 @@ public class StreamFetcher {
 	public boolean isThreadActive() {
 		return threadActive.get();
 	}
+
 	public Result getCameraError() {
 		return cameraError;
 	}

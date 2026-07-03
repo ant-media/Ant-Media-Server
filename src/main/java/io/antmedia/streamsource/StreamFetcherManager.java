@@ -59,8 +59,6 @@ public class StreamFetcherManager {
 
 	private long streamFetcherScheduleJobName = -1L;
 
-	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
-
 	private boolean restartStreamAutomatically = true;
 
 	private Vertx vertx;
@@ -580,7 +578,7 @@ public class StreamFetcherManager {
 				
 	}
 
-	public void controlStreamFetchers(boolean restart) {
+	public void controlStreamFetchers(boolean periodicRestartAllStreams) {
 		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
 
 			//get the updated broadcast object
@@ -595,42 +593,44 @@ public class StreamFetcherManager {
 				continue;
 			}
 
+			//restart decision for this stream only, so an eviction below doesn't affect the others
+			boolean restartCurrentStream = periodicRestartAllStreams;
+
 			boolean autoStop = false;
-			if (restart || broadcast == null ||
+			if (restartCurrentStream || broadcast == null ||
 					(autoStop = isToBeStoppedAutomatically(broadcast)))
 			{
-				
-				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
-						streamScheduler.getStreamId(), restart, broadcast == null, autoStop);
-				
+
+				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}",
+						streamScheduler.getStreamId(), restartCurrentStream, broadcast == null, autoStop);
+
 				stopStreaming(streamScheduler.getStreamId(), false);
-				
+
 			}
 			else {
-				
-				logger.info("Stream:{} is alive -> {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
+
+				logger.info("Stream:{} is alive -> {}, is it blocked -> {}, threadActive -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked(), streamScheduler.isThreadActive());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
-				
+
 				if (!streamScheduler.isStreamBlocked() && !streamScheduler.isStreamAlive() && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
-					// if it's not blocked and it's not alive, stop the stream 
+					// if it's not blocked and it's not alive, stop the stream
 					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
 					stopStreaming(streamScheduler.getStreamId(), false);
-					//turn restart to true because we restart the stream to reconnect
-					restart = true;
+					//restart this stream only
+					restartCurrentStream = true;
 				}
 			}
-			
-			
-			
+
+
+
 			//start streaming if broadcast object is in db(it means not deleted)
-			if (restart && broadcast != null) 
-			{	
-				//it may be still running because stop operation is async
-				//So start streaming after it's finished
-				if (isStreamRunning(broadcast)) 
+			if (restartCurrentStream && broadcast != null)
+			{
+				//don't start a second fetcher while the old one is still tearing down or starting up
+				if (isStreamRunning(broadcast) || streamScheduler.isThreadActive())
 				{
-					logger.info("Setting stream fetcher listener to restart when it's finished for streamId:{}", broadcast.getStreamId());
+					logger.info("Restart deferred for {} until current worker finishes", broadcast.getStreamId());
 					streamScheduler.setStreamFetcherListener(
 						new IStreamFetcherListener() {
 							@Override

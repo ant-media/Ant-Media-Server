@@ -391,6 +391,16 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		testUnsetAppSettings((AppSettings) applicationContext.getBean("app.settings"));
 	}
 
+	@Test
+	public void testMuxerOutputOpenTimeoutMs() {
+		AppSettings appSettings = new AppSettings();
+		assertEquals(5000, appSettings.getMuxerOutputOpenTimeoutMs());
+		appSettings.setMuxerOutputOpenTimeoutMs(0);
+		assertEquals(0, appSettings.getMuxerOutputOpenTimeoutMs());
+		appSettings.setMuxerOutputOpenTimeoutMs(3000);
+		assertEquals(3000, appSettings.getMuxerOutputOpenTimeoutMs());
+	}
+
 	public void testUnsetAppSettings(AppSettings appSettings) {
 
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
@@ -447,6 +457,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isDisableIPv6Candidates());
 		assertEquals("3", appSettings.getRtspPullTransportType());
 		assertEquals(5000, appSettings.getRtspTimeoutDurationMs());
+		assertEquals(5000, appSettings.getMuxerOutputOpenTimeoutMs());
 		assertEquals(0, appSettings.getMaxResolutionAccept());
 		assertEquals(true, appSettings.isH264Enabled());
 		assertEquals(false, appSettings.isVp8Enabled());
@@ -694,7 +705,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
 
-				184, numberOfFields);
+				185, numberOfFields);
 	}
 
 

@@ -931,6 +931,13 @@ public class AppSettings implements Serializable{
 	private int rtspTimeoutDurationMs = 5000;
 
 	/**
+	 * rw_timeout (in ms) applied to muxer output opens so a stuck network output can't block forever.
+	 * Bounds each read/write op on the output protocol, not the whole connection. 0 disables it.
+	 */
+	@Value("${muxerOutputOpenTimeoutMs:5000}")
+	private int muxerOutputOpenTimeoutMs = 5000;
+
+	/**
 	 * Max FPS value in RTMP streams
 	 */
 	@Value("${maxFpsAccept:0}")
@@ -2344,6 +2351,14 @@ public class AppSettings implements Serializable{
 
 	public void setRtspTimeoutDurationMs(int rtspTimeoutDurationMs) {
 		this.rtspTimeoutDurationMs = rtspTimeoutDurationMs;
+	}
+
+	public int getMuxerOutputOpenTimeoutMs() {
+		return muxerOutputOpenTimeoutMs;
+	}
+
+	public void setMuxerOutputOpenTimeoutMs(int muxerOutputOpenTimeoutMs) {
+		this.muxerOutputOpenTimeoutMs = muxerOutputOpenTimeoutMs;
 	}
 
 	public int getMaxResolutionAccept() {

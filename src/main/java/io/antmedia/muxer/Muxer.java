@@ -386,9 +386,14 @@ public abstract class Muxer {
 			AVIOContext pb = new AVIOContext(null);
 
 			synchronized (optionDictionary) {
+				//bound the open so a stuck network output can't block forever (rw_timeout is in microseconds)
+				int rwTimeoutMs = getAppSettings().getMuxerOutputOpenTimeoutMs();
+				if (rwTimeoutMs > 0) {
+					av_dict_set(optionDictionary, "rw_timeout", String.valueOf(rwTimeoutMs * 1000L), 0);
+				}
 				int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
 				if (ret < 0) {
-					logger.warn("Could not open output url: {} ",  url);
+					logger.warn("Could not open output url: {}",  url);
 					return false;
 				}
 				getOutputFormatContext().pb(pb);
