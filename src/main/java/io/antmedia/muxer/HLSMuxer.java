@@ -56,6 +56,7 @@ public class HLSMuxer extends Muxer  {
 	private String  hlsListSize = "20";
 	private String hlsTime = "5";
 	private String hlsPlayListType = null;
+	private int startIndex = 1;
 
 
 	private boolean deleteFileOnExit = true;
@@ -210,6 +211,8 @@ public class HLSMuxer extends Muxer  {
 			if (this.hlsFlags != null && !this.hlsFlags.isEmpty()) {
 				options.put("hls_flags", this.hlsFlags);
 			}
+			
+			options.put("start_number", ""+startIndex);
 
 
 			tmpPacketForSEI = avcodec.av_packet_alloc();
@@ -744,6 +747,14 @@ public class HLSMuxer extends Muxer  {
 
 	public ByteBuffer getPendingSEIData() {
 		return pendingSEIData;
+	}
+
+	public int getStartIndex() {
+		return startIndex;
+	}
+
+	public void setStartIndex(int startIndex) {
+		this.startIndex = startIndex;
 	}
 
 }
