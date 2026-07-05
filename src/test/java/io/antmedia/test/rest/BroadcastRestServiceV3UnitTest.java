@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -11,12 +13,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.red5.server.scope.Scope;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.rest.BroadcastRestServiceV3;
 import io.antmedia.rest.JWTFilterV3;
+import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Response;
@@ -199,7 +203,46 @@ public class BroadcastRestServiceV3UnitTest {
 		assertEquals("alice", service.getDataStore().get(id).getOwnerId());
 	}
 
-	// ---- delete ownership (denial paths) ----
+	// ---- delete ownership ----
+
+	/**
+	 * Wires a mocked application adapter whose stopStreaming succeeds, so the delete path
+	 * (which stops the stream before removing it) can run to completion in this unit harness.
+	 */
+	private void mockApplicationForDelete() {
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.stopStreaming(any(), anyBoolean(), any())).thenReturn(new Result(true));
+		service.setApplication(app);
+	}
+
+	@Test
+	public void testOwnerCanDeleteOwnBroadcast() {
+		String id = createOwnedBroadcast("alice");
+		mockApplicationForDelete();
+		Response response = service.deleteBroadcast(id, false, request("alice", false));
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		assertNull(service.getDataStore().get(id));
+	}
+
+	@Test
+	public void testAdminCanDeleteOthersBroadcast() {
+		String id = createOwnedBroadcast("alice");
+		mockApplicationForDelete();
+		Response response = service.deleteBroadcast(id, false, request("bob", true));
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		assertNull(service.getDataStore().get(id));
+	}
+
+	@Test
+	public void testDeleteAllowedWhenNoOwnerSet() {
+		// broadcast created without a principal -> no ownerId -> any write-authorized user may delete
+		Broadcast created = (Broadcast) service
+				.createBroadcast(new Broadcast(null, "no-owner"), false, requestWithUser(null)).getEntity();
+		mockApplicationForDelete();
+		Response response = service.deleteBroadcast(created.getStreamId(), false, request("bob", false));
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		assertNull(service.getDataStore().get(created.getStreamId()));
+	}
 
 	@Test
 	public void testNonOwnerUserCannotDelete() {
