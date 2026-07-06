@@ -793,7 +793,7 @@ public class StreamFetcher {
 
 				if(streamFetcherListener != null)
 				{
-					logger.info("Calling streamFinished listener for streamId:{} and it will not restart the stream automatically because callback is getting the responsbility", streamId);
+					logger.info("Stream source {} finished. Not auto-restarting it here; its completion handler will decide the next step (reconnect or next playlist item)", streamId);
 					streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 

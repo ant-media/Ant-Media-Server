@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -942,6 +943,67 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	
+	@Test
+	public void testControlStreamFetchersRestartFlagDoesNotLeakToHealthyStreams() {
+		//controlStreamFetchers used to mutate its shared 'restart' parameter when it found a
+		//terminated stream, leaking restart=true into later iterations and bouncing healthy
+		//streams. The fix isolates the decision per stream with restartThisStream.
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+
+		//stub the stop/start machinery: we only assert the restart decision, and leaving the list
+		//unmodified during iteration lets us use an ordered LinkedHashMap deterministically
+		Mockito.doReturn(new Result(true)).when(streamFetcherManager).stopStreaming(Mockito.anyString(), Mockito.anyBoolean());
+		Mockito.doReturn(new Result(true)).when(streamFetcherManager).startStreaming(Mockito.any());
+		Mockito.doReturn(false).when(streamFetcherManager).isStreamRunning(Mockito.any());
+		Mockito.doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
+
+		//dead stream: terminated unexpectedly, not alive, not blocked -> should restart
+		String deadId = "deadStream";
+		StreamFetcher deadFetcher = Mockito.mock(StreamFetcher.class);
+		when(deadFetcher.getStreamId()).thenReturn(deadId);
+		when(deadFetcher.getStreamUrl()).thenReturn("deadUrl");
+		when(deadFetcher.isStreamAlive()).thenReturn(false);
+		when(deadFetcher.isStreamBlocked()).thenReturn(false);
+		Broadcast deadBroadcast = mock(Broadcast.class);
+		when(deadBroadcast.getStreamId()).thenReturn(deadId);
+		when(deadBroadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
+		when(deadBroadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+
+		//healthy stream: alive -> must be left untouched
+		String healthyId = "healthyStream";
+		StreamFetcher healthyFetcher = Mockito.mock(StreamFetcher.class);
+		when(healthyFetcher.getStreamId()).thenReturn(healthyId);
+		when(healthyFetcher.getStreamUrl()).thenReturn("healthyUrl");
+		when(healthyFetcher.isStreamAlive()).thenReturn(true);
+		when(healthyFetcher.isStreamBlocked()).thenReturn(false);
+		Broadcast healthyBroadcast = mock(Broadcast.class);
+		when(healthyBroadcast.getStreamId()).thenReturn(healthyId);
+		when(healthyBroadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
+		when(healthyBroadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+		when(dataStore.get(deadId)).thenReturn(deadBroadcast);
+		when(dataStore.get(healthyId)).thenReturn(healthyBroadcast);
+
+		//ordered map so the dead stream is always visited before the healthy one; the leak only
+		//manifests when a terminated stream precedes a healthy one in iteration
+		Map<String, StreamFetcher> streamFetcherList = new LinkedHashMap<>();
+		streamFetcherList.put(deadId, deadFetcher);
+		streamFetcherList.put(healthyId, healthyFetcher);
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+
+		streamFetcherManager.controlStreamFetchers(false);
+
+		//dead stream restarts
+		verify(streamFetcherManager, times(1)).stopStreaming(deadId, false);
+		verify(streamFetcherManager, times(1)).startStreaming(deadBroadcast);
+
+		//healthy stream must not be touched by a leaked restart flag
+		verify(streamFetcherManager, Mockito.never()).stopStreaming(healthyId, false);
+		verify(streamFetcherManager, Mockito.never()).startStreaming(healthyBroadcast);
+	}
+
+
 	@Test
 	public void testControlStreamFetchers() {
 		//create a test db
