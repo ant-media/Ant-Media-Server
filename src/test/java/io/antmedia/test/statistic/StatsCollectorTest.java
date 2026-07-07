@@ -10,6 +10,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.net.NetworkInterface;
@@ -22,22 +24,21 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import io.antmedia.statistic.IStatsExporter;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avutil.AVRational;
-import org.bytedeco.javacpp.Pointer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.red5.server.Launcher;
 import org.red5.server.api.IContext;
 import org.red5.server.api.IServer;
+import org.red5.server.api.listeners.IScopeListener;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
@@ -54,9 +55,12 @@ import io.antmedia.datastore.db.types.User;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.datastore.db.types.UserType;
+import io.antmedia.licence.ILicenceService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
+import io.antmedia.statistic.KafkaStatsExporter;
+import io.antmedia.statistic.PrometheusStatsExporter;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
@@ -84,6 +88,43 @@ public class StatsCollectorTest {
 	public static void afterClass() {
 		vertx.close();
 		webRTCVertx.close();
+	}
+
+	/**
+	 * Mirrors production: {@code StatsCollector} starts the stats exporter only from
+	 * {@link IScopeListener#notifyScopeCreated} when the scope name is {@code "root"}.
+	 */
+	private static void setApplicationContextAndNotifyRootScopeCreated(StatsCollector statsCollector) {
+		ServerSettings serverSettings = new ServerSettings();
+		// Defaults on ServerSettings leave cpuMeasurementPeriodMs at 0; start() uses it for Vertx timers.
+		serverSettings.setCpuMeasurementPeriodMs(1000);
+		IServer server = Mockito.mock(IServer.class);
+		final IScopeListener[] listenerHolder = new IScopeListener[1];
+		Mockito.doAnswer(invocation -> {
+			listenerHolder[0] = invocation.getArgument(0);
+			return null;
+		}).when(server).addListener(Mockito.any(IScopeListener.class));
+
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IServer.ID)).thenReturn(server);
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString()))
+				.thenReturn(Mockito.mock(ILicenceService.class));
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
+
+		statsCollector.setApplicationContext(context);
+
+		IScope rootScope = Mockito.mock(IScope.class);
+		Mockito.when(rootScope.getName()).thenReturn("root");
+		// Production root scopes have a context chain; getUserEmail() walks scopes and must not NPE.
+		IContext scopeRed5Context = Mockito.mock(IContext.class);
+		ApplicationContext scopeAppContext = Mockito.mock(ApplicationContext.class);
+		Mockito.when(rootScope.getContext()).thenReturn(scopeRed5Context);
+		Mockito.when(scopeRed5Context.getApplicationContext()).thenReturn(scopeAppContext);
+		Mockito.when(scopeAppContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(false);
+
+		listenerHolder[0].notifyScopeCreated(rootScope);
 	}
 
 	@Test
@@ -432,11 +473,166 @@ public class StatsCollectorTest {
 	}
 	
 	@Test
+	public void testStartStatsExporter() throws Exception {
+		StatsCollector kafkaOk = new StatsCollector();
+		kafkaOk.setVertx(vertx);
+		kafkaOk.setWebRTCVertx(webRTCVertx);
+		kafkaOk.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		kafkaOk.setKafkaBrokers("localhost:9092");
+		invokeStartStatsExporter(kafkaOk);
+		assertNotNull(kafkaOk.getStatsExporter());
+		assertTrue(kafkaOk.getStatsExporter() instanceof KafkaStatsExporter);
+		assertNotNull(((KafkaStatsExporter) kafkaOk.getStatsExporter()).getKafkaProducer());
+		cancelStatsTimerAndStopExporter(kafkaOk);
+
+		StatsCollector kafkaNoBrokers = new StatsCollector();
+		kafkaNoBrokers.setVertx(vertx);
+		kafkaNoBrokers.setWebRTCVertx(webRTCVertx);
+		kafkaNoBrokers.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		kafkaNoBrokers.setKafkaBrokers("");
+		invokeStartStatsExporter(kafkaNoBrokers);
+		assertNull(kafkaNoBrokers.getStatsExporter());
+
+		StatsCollector promNoAddressNull = new StatsCollector();
+		promNoAddressNull.setVertx(vertx);
+		promNoAddressNull.setWebRTCVertx(webRTCVertx);
+		promNoAddressNull.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promNoAddressNull.setPrometheusPushGatewayAddress(null);
+		invokeStartStatsExporter(promNoAddressNull);
+		assertNull(promNoAddressNull.getStatsExporter());
+
+		StatsCollector promNoAddressEmpty = new StatsCollector();
+		promNoAddressEmpty.setVertx(vertx);
+		promNoAddressEmpty.setWebRTCVertx(webRTCVertx);
+		promNoAddressEmpty.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promNoAddressEmpty.setPrometheusPushGatewayAddress("");
+		invokeStartStatsExporter(promNoAddressEmpty);
+		assertNull(promNoAddressEmpty.getStatsExporter());
+
+		StatsCollector promConfigured = new StatsCollector();
+		promConfigured.setVertx(vertx);
+		promConfigured.setWebRTCVertx(webRTCVertx);
+		promConfigured.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promConfigured.setPrometheusPushGatewayAddress("127.0.0.1:9091");
+		promConfigured.setPrometheusPushInstanceId("ams-node-7");
+		promConfigured.setUserEmail("metrics-owner@example.com");
+		invokeStartStatsExporter(promConfigured);
+		assertTrue(promConfigured.getStatsExporter() instanceof PrometheusStatsExporter);
+		PrometheusStatsExporter promEx = (PrometheusStatsExporter) promConfigured.getStatsExporter();
+		assertEquals("ams-node-7", prometheusExporterStringField(promEx, "instance"));
+		assertEquals("metrics-owner@example.com", prometheusExporterStringField(promEx, "userEmail"));
+		assertEquals("127.0.0.1:9091", prometheusExporterStringField(promEx, "pushGatewayAddress"));
+		cancelStatsTimerAndStopExporter(promConfigured);
+
+		Field hostAddressField = StatsCollector.class.getDeclaredField("hostAddress");
+		hostAddressField.setAccessible(true);
+
+		StatsCollector promInstanceNull = new StatsCollector();
+		promInstanceNull.setVertx(vertx);
+		promInstanceNull.setWebRTCVertx(webRTCVertx);
+		promInstanceNull.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promInstanceNull.setPrometheusPushGatewayAddress("127.0.0.1:9091");
+		promInstanceNull.setPrometheusPushInstanceId(null);
+		promInstanceNull.setUserEmail("u@example.org");
+		hostAddressField.set(promInstanceNull, "10.20.30.40");
+		invokeStartStatsExporter(promInstanceNull);
+		assertEquals("10.20.30.40",
+				prometheusExporterStringField((PrometheusStatsExporter) promInstanceNull.getStatsExporter(), "instance"));
+		cancelStatsTimerAndStopExporter(promInstanceNull);
+
+		StatsCollector promInstanceEmpty = new StatsCollector();
+		promInstanceEmpty.setVertx(vertx);
+		promInstanceEmpty.setWebRTCVertx(webRTCVertx);
+		promInstanceEmpty.setStatsExporterType(StatsCollector.EXPORTER_PROMETHEUS);
+		promInstanceEmpty.setPrometheusPushGatewayAddress("127.0.0.1:9091");
+		promInstanceEmpty.setPrometheusPushInstanceId("");
+		promInstanceEmpty.setUserEmail("u@example.org");
+		hostAddressField.set(promInstanceEmpty, "192.168.0.99");
+		invokeStartStatsExporter(promInstanceEmpty);
+		assertEquals("192.168.0.99",
+				prometheusExporterStringField((PrometheusStatsExporter) promInstanceEmpty.getStatsExporter(), "instance"));
+		cancelStatsTimerAndStopExporter(promInstanceEmpty);
+	}
+
+	private static void invokeStartStatsExporter(StatsCollector collector) throws Exception {
+		Method m = StatsCollector.class.getDeclaredMethod("startStatsExporter");
+		m.setAccessible(true);
+		m.invoke(collector);
+	}
+
+	private static void cancelStatsTimerAndStopExporter(StatsCollector collector) throws Exception {
+		Field statsTimerIdField = StatsCollector.class.getDeclaredField("statsTimerId");
+		statsTimerIdField.setAccessible(true);
+		long timerId = statsTimerIdField.getLong(collector);
+		if (timerId >= 0) {
+			vertx.cancelTimer(timerId);
+		}
+		if (collector.getStatsExporter() != null) {
+			collector.getStatsExporter().stop();
+		}
+	}
+
+	private static String prometheusExporterStringField(PrometheusStatsExporter exporter, String fieldName)
+			throws Exception {
+		Field f = PrometheusStatsExporter.class.getDeclaredField(fieldName);
+		f.setAccessible(true);
+		return (String) f.get(exporter);
+	}
+
+	@Test
+	public void testSendInstanceStatsIncludesEmailAndHashes() throws Exception {
+		StatsCollector statsCollector = new StatsCollector();
+		statsCollector.setVertx(vertx);
+		statsCollector.setWebRTCVertx(webRTCVertx);
+		statsCollector.setUserEmail("user@test.com");
+
+		Field licenceKeyField = StatsCollector.class.getDeclaredField("licenceKey");
+		licenceKeyField.setAccessible(true);
+		licenceKeyField.set(statsCollector, "my-license-key");
+
+		CapturingStatsExporter exporter = new CapturingStatsExporter();
+		statsCollector.setStatsExporter(exporter);
+
+		statsCollector.sendInstanceStats(new ConcurrentLinkedQueue<>());
+
+		JsonObject payload = exporter.payload;
+		assertTrue(payload.has(StatsCollector.USER_EMAIL));
+		assertTrue(payload.has(StatsCollector.USER_EMAIL_HASH));
+		assertTrue(payload.has(StatsCollector.LICENSE_KEY_HASH));
+		assertTrue(payload.get(StatsCollector.USER_EMAIL_HASH).getAsLong() > 0);
+		assertTrue(payload.get(StatsCollector.LICENSE_KEY_HASH).getAsLong() > 0);
+		assertTrue(IStatsExporter.INSTANCE_STATS.equals(exporter.type));
+	}
+
+	private static class CapturingStatsExporter implements IStatsExporter {
+		private JsonObject payload;
+		private String type;
+
+		@Override
+		public void start() {
+			// no-op
+		}
+
+		@Override
+		public void sendStats(JsonObject jsonObject, String type) {
+			this.payload = jsonObject;
+			this.type = type;
+		}
+
+		@Override
+		public void stop() {
+			// no-op
+		}
+	}
+
+	@Test
 	public void testSendInstanceKafkaStats() {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		
-		resMonitor.setVertx(vertx);
-		resMonitor.setWebRTCVertx(webRTCVertx);
+		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		resMonitor.setKafkaBrokers("9900");
+		setApplicationContextAndNotifyRootScopeCreated(resMonitor);
+		resMonitor.start();
 		
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		
@@ -456,7 +652,7 @@ public class StatsCollectorTest {
 		
 		verify(kafkaProducer).send(producerRecord.capture());
 		
-		assertEquals(StatsCollector.INSTANCE_STATS_TOPIC_NAME, producerRecord.getValue().topic());
+		assertEquals(IStatsExporter.INSTANCE_STATS, producerRecord.getValue().topic());
 	}
 	
 	@Test
@@ -475,24 +671,29 @@ public class StatsCollectorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
+		resMonitor.setKafkaBrokers("9000");
+		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		setApplicationContextAndNotifyRootScopeCreated(resMonitor);
+		resMonitor.start();
 		resMonitor.setKafkaProducer(kafkaProducer);
-		
+
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
 		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info", "192.168.1.1");
 		webRTCClientStatList.add(stats);
-		resMonitor.sendWebRTCClientStats2Kafka(webRTCClientStatList, "stream1");
+		resMonitor.sendWebRTCClientStats(webRTCClientStatList, "stream1");
 		
 		
 		verify(kafkaProducer).send(producerRecord.capture());
 		
-		assertEquals(StatsCollector.WEBRTC_STATS_TOPIC_NAME, producerRecord.getValue().topic());
+		assertEquals(IStatsExporter.WEBRTC_CLIENT_STATS, producerRecord.getValue().topic());
 	}
 	
 	@Test
 	public void testCreateKafka() {
 		StatsCollector resMonitor = new StatsCollector();
 		try {
-			Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
+			resMonitor.start();
+			resMonitor.getKafkaProducer();
 			//it should throw exception
 			fail("it shold throw exception");
 		}
@@ -501,7 +702,10 @@ public class StatsCollectorTest {
 		}
 		
 		resMonitor.setKafkaBrokers("localhost:9092");
-		Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
+		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		setApplicationContextAndNotifyRootScopeCreated(resMonitor);
+		resMonitor.start();
+		Producer<Long, String> kafkaProducer = resMonitor.getKafkaProducer();
 		assertNotNull(kafkaProducer);
 		kafkaProducer.close();
 	}
@@ -509,6 +713,10 @@ public class StatsCollectorTest {
 	@Test
 	public void testCollectAndSendWebRTCStats() {
 		StatsCollector resMonitor = new StatsCollector();
+		resMonitor.setKafkaBrokers("9000");
+		resMonitor.setStatsExporterType(StatsCollector.EXPORTER_KAFKA);
+		setApplicationContextAndNotifyRootScopeCreated(resMonitor);
+		resMonitor.start();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);
 		
@@ -560,6 +768,8 @@ public class StatsCollectorTest {
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
 		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString()))
+				.thenReturn(Mockito.mock(ILicenceService.class));
 		
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
@@ -621,6 +831,8 @@ public class StatsCollectorTest {
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
 		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString()))
+				.thenReturn(Mockito.mock(ILicenceService.class));
 		
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
