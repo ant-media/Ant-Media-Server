@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -15,6 +16,7 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -504,8 +506,86 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
+	/**
+	 * Regression test for the intermittent "app settings not loaded on restart" race.
+	 *
+	 * The app's Spring context used to be published to HTTP request threads before it finished
+	 * refreshing. HLS requests hitting that window forced a concurrent getBean("app.settings")
+	 * which, under Spring's lenient singleton locking, could hand out a half-initialized bean, so
+	 * on some restarts the app came up with DEFAULT settings even though the configured values were
+	 * persisted on disk. TomcatLoader now publishes the context only after refresh()/start().
+	 *
+	 * This test plants a non-default setting once, then restarts the server a few times while several
+	 * threads hammer the HLS endpoint (recreating the race window). After every restart the setting
+	 * must still read back its planted, non-default value.
+	 */
 	@Test
-	public void testCreateCustomApp() 
+	public void testAppSettingsSurviveRestartUnderHttpLoad() throws Exception {
+
+		final String app = "live";
+		final String hlsUrl = "http://127.0.0.1:5080/" + app + "/streams/stream.m3u8";
+		final int restarts = 3;
+		final int spamThreads = 10;
+
+		// authenticate and plant a persisted, non-default marker that must survive every restart
+		resetCookieStore();
+		assertTrue(authenticateDefaultUser().isSuccess());
+		AppSettings planted = callGetAppSettings(app);
+		planted.setHlsListSize("7");   // default is "15"
+		assertTrue(callSetAppSettings(app, planted).isSuccess());
+
+		for (int cycle = 1; cycle <= restarts; cycle++) {
+			log.info("app settings restart race, cycle {}/{}", cycle, restarts);
+
+			// hammer the HLS endpoint so requests keep landing during the whole boot / context-refresh window
+			final AtomicBoolean spam = new AtomicBoolean(true);
+			Thread[] spammers = new Thread[spamThreads];
+			for (int i = 0; i < spamThreads; i++) {
+				spammers[i] = new Thread(() -> {
+					try (CloseableHttpClient client = HttpClients.custom()
+							.setRedirectStrategy(new LaxRedirectStrategy()).build()) {
+						while (spam.get()) {
+							try {
+								client.execute(RequestBuilder.get().setUri(hlsUrl).build()).close();
+							} catch (Exception e) {
+								// connection refused while the server is down is expected
+							}
+						}
+					} catch (Exception e) {
+						// client setup/close failure is irrelevant to the assertion
+					}
+				});
+				spammers[i].start();
+			}
+
+			try {
+				assertEquals(0, AppFunctionalV2Test.execute("sudo service antmedia restart").waitFor());
+
+				// the restart drops the session, so re-auth and read the setting back, retrying until the app answers
+				AppSettings afterRestart = Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+						.until(() -> {
+							try {
+								resetCookieStore();
+								return authenticateDefaultUser().isSuccess() ? callGetAppSettings(app) : null;
+							} catch (Exception e) {
+								return null;
+							}
+						}, notNullValue(AppSettings.class));
+
+				// the planted value must not have reverted to its default
+				assertEquals("7", afterRestart.getHlsListSize(),
+						"app settings reverted to defaults after restart, cycle " + cycle);
+			} finally {
+				spam.set(false);
+				for (Thread t : spammers) {
+					t.join();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void testCreateCustomApp()
 	{
 		String appName = RandomString.make(20);
 		log.info("app:{} will be created", appName);

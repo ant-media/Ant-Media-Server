@@ -511,9 +511,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 								try {
 									Class<?> clazz = Class.forName(contextClass, true, webClassLoader);
 									appctx = (ConfigurableWebApplicationContext) clazz.newInstance();
-									// set the root webapp ctx attr on the each servlet context so spring can find it later
-									servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
-									
+
 									URL internalAppConfig = this.getClass().getClassLoader().getResource(AppConfig.INTERNAL_APP_CONFIG_LOCATION);
 																		
 									appctx.setConfigLocations(new String[] { contextConfigLocation, internalAppConfig.toString() });
@@ -532,6 +530,9 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 									}
 
 									appctx.start();
+									// publish the context only after it is refreshed and started, so request threads
+									// (filters, valves) never resolve a half-initialized context and race singleton creation
+									servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
 								} catch (Throwable e) {
 									log.error(ExceptionUtils.getStackTrace(e));
 									throw new RuntimeException("Failed to load webapplication context class", e);
@@ -670,10 +671,11 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 
 					// add the servlet context
 					appctx.setServletContext(servletContext);
-					// set the root webapp ctx attr on the each servlet context so spring can find it later
+					appctx.refresh();
+					// publish the context only after refresh, so request threads never resolve a
+					// half-initialized context and race singleton creation
 					servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
 					log.info("Setting root web app context attribute for {}", applicationName);
-					appctx.refresh();
 
 				}
 			};
