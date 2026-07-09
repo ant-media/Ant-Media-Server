@@ -1669,6 +1669,14 @@ public class AppSettings implements Serializable{
 	@Value("${writeSubscriberEventsToDatastore:false}")
 	private boolean writeSubscriberEventsToDatastore = false;
 
+	/**
+	 * Disable audio for the entire app. When true, ingested audio is dropped at
+	 * the source and the pipeline runs video-only. 
+	 * This will improve startup time and cpu performance when audio is not needed.
+	 */
+	@Value("${disableAudio:false}")
+	private boolean disableAudio = false;
+
 	//Make sure you have a default constructor because it's populated by MongoDB
 	public AppSettings() {
 		try {
@@ -3279,6 +3287,14 @@ public class AppSettings implements Serializable{
 	 */
 	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
 		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
+	}
+
+	public boolean isDisableAudio() {
+		return disableAudio;
+	}
+
+	public void setDisableAudio(boolean disableAudio) {
+		this.disableAudio = disableAudio;
 	}
 
 	/**
