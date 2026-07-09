@@ -76,6 +76,7 @@ import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.analytic.model.ViewerCountEvent;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -127,8 +128,11 @@ import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import io.antmedia.streamsource.StreamSourceMonitor;
+
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
+
 
 	public final class RTMPClusterStreamFetcherListener implements StreamFetcher.IStreamFetcherListener {
 		private final RTMPClusterStreamFetcher rtmpClusterStreamFetcher;
@@ -193,6 +197,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
+	
 	/**
 	 * Timeout value that stream is considered as finished or stuck
 	 */
@@ -324,6 +329,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	        Caffeine.newBuilder()
 	                .expireAfterAccess(10, TimeUnit.MINUTES)
 	                .build(key -> new Object());
+	
+	private StreamSourceMonitor streamSourceMonitor;
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -409,45 +416,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		}
 
-		vertx.setTimer(1000, l -> {
-
-			getStreamFetcherManager();
-			if(appSettings.isStartStreamFetcherAutomatically()) {
-				List<Broadcast> streams = getDataStore().getExternalStreamsList();
-				logger.info("Stream source size: {}", streams.size());
-				for (Broadcast broadcast : streams)
-				{
-					if (!broadcast.isAutoStartStopEnabled()) {
-						//start streaming is auto/stop is not enabled
-						streamFetcherManager.startStreaming(broadcast, true);
-					}
-				}
-			}
-
-			//Schedule Playlist items 
-			int offset = 0;
-			int batch = 50;
-			List<Broadcast> playlist;
-			long now = System.currentTimeMillis();
-			while ((playlist = getDataStore().getBroadcastList(offset, batch, AntMediaApplicationAdapter.PLAY_LIST, null, null, null)) != null ) {
-
-				if (playlist.isEmpty()) {
-					break;
-				}
-
-				for (Broadcast broadcast : playlist) 
-				{
-					schedulePlayList(now, broadcast);
-				}
-
-				offset += batch;
-
-			} 
-
-
-		});
-
-
 		AMSShutdownManager.getInstance().subscribe(this);
 
 		//With the common app structure, we won't need to null check for WebRTCAdaptor
@@ -467,10 +435,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 		logger.info("{} started", app.getName());
+		
+		streamSourceMonitor = new StreamSourceMonitor(this, clusterNotifier);
 
 		return true;
 	}
-
+	
 	public void schedulePlayList(long now, Broadcast broadcast) 
 	{
 		if (broadcast.getPlannedStartDate() != 0) 
@@ -768,6 +738,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					if(serverShuttingDown) {
+						broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED_ON_SHUTDOWN);
+					}
 					broadcastUpdate.setHlsViewerCount(0);
 					broadcastUpdate.setDashViewerCount(0);
 					broadcastUpdate.setWebRTCViewerCount(0);
@@ -2242,6 +2215,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void stopApplication(boolean deleteDB) {
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
+		
+		closeStreamSourceMonitor();
+		
 		closeStreamFetchers();
 		closeRTMPStreams();
 
@@ -2253,6 +2229,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		closeDB(deleteDB);
 
+	}
+
+	protected void closeStreamSourceMonitor() {
+		if(streamSourceMonitor != null) {
+			streamSourceMonitor.stop();
+			streamSourceMonitor = null;
+		}
 	}
 
 	public void closeDB(boolean deleteDB) {
@@ -3008,6 +2991,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		getDataStore().addSubscriber(streamId, subscriber);
 		
 	}
-
-
+	
+	public StreamSourceMonitor getStreamSourceMonitor() {
+		return streamSourceMonitor;
+	}
 }
