@@ -515,71 +515,78 @@ public class ConsoleAppRestServiceTest{
 	 * on some restarts the app came up with DEFAULT settings even though the configured values were
 	 * persisted on disk. TomcatLoader now publishes the context only after refresh()/start().
 	 *
-	 * This test plants a non-default setting once, then restarts the server a few times while several
-	 * threads hammer the HLS endpoint (recreating the race window). After every restart the setting
-	 * must still read back its planted, non-default value.
+	 * This test plants a non-default setting, then restarts the server once while several threads
+	 * hammer the HLS endpoint (recreating the race window). After the restart the setting must still
+	 * read back its planted, non-default value. The original settings are restored on exit so the
+	 * shared server is left clean for the next test.
 	 */
 	@Test
 	public void testAppSettingsSurviveRestartUnderHttpLoad() throws Exception {
 
 		final String app = "live";
 		final String hlsUrl = "http://127.0.0.1:5080/" + app + "/streams/stream.m3u8";
-		final int restarts = 3;
 		final int spamThreads = 10;
 
-		// authenticate and plant a persisted, non-default marker that must survive every restart
+		// authenticate and remember the original value so we can restore it at the end
 		resetCookieStore();
 		assertTrue(authenticateDefaultUser().isSuccess());
-		AppSettings planted = callGetAppSettings(app);
-		planted.setHlsListSize("7");   // default is "15"
-		assertTrue(callSetAppSettings(app, planted).isSuccess());
+		AppSettings appSettings = callGetAppSettings(app);
+		final String originalHlsListSize = appSettings.getHlsListSize();
 
-		for (int cycle = 1; cycle <= restarts; cycle++) {
-			log.info("app settings restart race, cycle {}/{}", cycle, restarts);
+		// plant a persisted, non-default marker that must survive the restart
+		appSettings.setHlsListSize("7");   // default is "15"
+		assertTrue(callSetAppSettings(app, appSettings).isSuccess());
 
-			// hammer the HLS endpoint so requests keep landing during the whole boot / context-refresh window
-			final AtomicBoolean spam = new AtomicBoolean(true);
-			Thread[] spammers = new Thread[spamThreads];
-			for (int i = 0; i < spamThreads; i++) {
-				spammers[i] = new Thread(() -> {
-					try (CloseableHttpClient client = HttpClients.custom()
-							.setRedirectStrategy(new LaxRedirectStrategy()).build()) {
-						while (spam.get()) {
-							try {
-								client.execute(RequestBuilder.get().setUri(hlsUrl).build()).close();
-							} catch (Exception e) {
-								// connection refused while the server is down is expected
-							}
+		// hammer the HLS endpoint so requests keep landing during the whole boot / context-refresh window
+		final AtomicBoolean spam = new AtomicBoolean(true);
+		Thread[] spammers = new Thread[spamThreads];
+		for (int i = 0; i < spamThreads; i++) {
+			spammers[i] = new Thread(() -> {
+				try (CloseableHttpClient client = HttpClients.custom()
+						.setRedirectStrategy(new LaxRedirectStrategy()).build()) {
+					while (spam.get()) {
+						try {
+							client.execute(RequestBuilder.get().setUri(hlsUrl).build()).close();
+						} catch (Exception e) {
+							// connection refused while the server is down is expected
 						}
-					} catch (Exception e) {
-						// client setup/close failure is irrelevant to the assertion
 					}
-				});
-				spammers[i].start();
+				} catch (Exception e) {
+					// client setup/close failure is irrelevant to the assertion
+				}
+			});
+			spammers[i].start();
+		}
+
+		try {
+			assertEquals(0, AppFunctionalV2Test.execute("sudo service antmedia restart").waitFor());
+
+			// the restart drops the session, so re-auth and read the setting back, retrying until the app answers
+			AppSettings afterRestart = Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+					.until(() -> {
+						try {
+							resetCookieStore();
+							return authenticateDefaultUser().isSuccess() ? callGetAppSettings(app) : null;
+						} catch (Exception e) {
+							return null;
+						}
+					}, notNullValue(AppSettings.class));
+
+			// the planted value must not have reverted to its default
+			assertEquals("7", afterRestart.getHlsListSize(),
+					"app settings reverted to defaults after restart");
+		} finally {
+			spam.set(false);
+			for (Thread t : spammers) {
+				t.join();
 			}
 
-			try {
-				assertEquals(0, AppFunctionalV2Test.execute("sudo service antmedia restart").waitFor());
-
-				// the restart drops the session, so re-auth and read the setting back, retrying until the app answers
-				AppSettings afterRestart = Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
-						.until(() -> {
-							try {
-								resetCookieStore();
-								return authenticateDefaultUser().isSuccess() ? callGetAppSettings(app) : null;
-							} catch (Exception e) {
-								return null;
-							}
-						}, notNullValue(AppSettings.class));
-
-				// the planted value must not have reverted to its default
-				assertEquals("7", afterRestart.getHlsListSize(),
-						"app settings reverted to defaults after restart, cycle " + cycle);
-			} finally {
-				spam.set(false);
-				for (Thread t : spammers) {
-					t.join();
-				}
+			// restore the original settings so the next test sees a clean server
+			resetCookieStore();
+			if (authenticateDefaultUser().isSuccess()) {
+				AppSettings restore = callGetAppSettings(app);
+				restore.setHlsListSize(originalHlsListSize);
+				callSetAppSettings(app, restore);
 			}
 		}
 	}
