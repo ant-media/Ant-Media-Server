@@ -7,10 +7,7 @@ on:
       - '**'
     tags:
       - 'ams-v*'
-  pull_request:
-    branches:
-      - '**'
-  
+  workflow_dispatch:
       
 env:
   RUNNER: ubuntu-22.04      
