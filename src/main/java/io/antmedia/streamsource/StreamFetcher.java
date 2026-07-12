@@ -365,6 +365,9 @@ public class StreamFetcher {
 
 			AVPacket pkt = null;
 			try {
+				//start clean so a stop from a previous run doesn't cancel this one
+				stopRequestReceived = false;
+
 				//update broadcast status to preparing
 
 				Broadcast broadcast = getDataStore().get(streamId);
@@ -1219,7 +1222,12 @@ public class StreamFetcher {
 
 	}
 	private boolean isReplacedByAnotherFetcher() {
-		StreamFetcher registered = getInstance().getStreamFetcherManager().getStreamFetcher(streamId);
+		AntMediaApplicationAdapter instance = getInstance();
+		if (instance == null || instance.getStreamFetcherManager() == null) {
+			//nothing to compare against, so treat this fetcher as the owner
+			return false;
+		}
+		StreamFetcher registered = instance.getStreamFetcherManager().getStreamFetcher(streamId);
 		return registered != null && registered != this;
 	}
 
