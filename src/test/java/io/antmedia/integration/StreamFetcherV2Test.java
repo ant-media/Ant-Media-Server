@@ -1,12 +1,21 @@
 package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -418,6 +427,217 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 
 	}
 
+	/**
+	 * Asserts that a dying, superseded fetcher worker must not overwrite a live broadcast's status.
+	 *
+	 * Choreography:
+	 * 1. The fetcher worker parks inside avformat_open_input against a silent TCP tarpit
+	 *    (see {@link TarpitRtmpProxy}) while the broadcast stays in PREPARING.
+	 * 2. After STREAM_TIMEOUT_MS (20 secs) the periodic checker derives terminated_unexpectedly and
+	 *    stop-flags the parked worker; the flag cannot interrupt the blocked handshake read, so the
+	 *    old worker stays parked. What happens next depends on the build: older builds restart in
+	 *    place (a second connection parks on the tarpit by itself), builds with the deferred-restart
+	 *    listener only evict. To get a second parked worker on both, the test simulates the
+	 *    customer's watchdog: it keeps POSTing start until the tarpit holds two connections. On
+	 *    deferral builds that start succeeds (fetcher evicted, derived status terminated); on older
+	 *    builds the extra start harmlessly vetoes against the already-restarted worker.
+	 * 3. The new worker's connection is released to a local "ffmpeg -rtmp_listen 1" server and the
+	 *    broadcast reaches BROADCASTING: a healthy fetcher is streaming.
+	 * 4. The old worker's held connection is closed. Its prepare fails and, because it carries the
+	 *    stop flag, it does not retry: its close path runs while the replacement owns the stream.
+	 *
+	 * Required behavior asserted below: the status stays broadcasting the whole time (never
+	 * finished) with updateTime advancing, and a start attempt is honestly vetoed because the
+	 * stream really is active. When this test fails with finished observed about a second after
+	 * the socket close, that is the status split-brain bug: the dying worker stamped FINISHED over
+	 * the live broadcast, leaving a dead-looking stream that cannot be restarted over REST.
+	 *
+	 * Note: the tarpit is required because the server's own RTMP endpoint rejects pulls immediately
+	 * when rtmpPlaybackEnabled=false (the default), which makes the fetcher fast-cycle its 3 sec
+	 * retry loop instead of parking in prepare.
+	 */
+	@Test
+	public void testFetcherStopDuringPrepareDoesNotCorruptLiveStatus() throws Exception {
+		RestServiceV2Test restService = new RestServiceV2Test();
 
+		String tarpitStreamId = "tarpit_" + RandomStringUtils.randomAlphanumeric(8);
+
+		try (TarpitRtmpProxy tarpit = new TarpitRtmpProxy()) {
+			String streamUrl = "rtmp://127.0.0.1:" + tarpit.getPort() + "/LiveApp/" + tarpitStreamId;
+			Broadcast streamSource = restService.createBroadcast("tarpitSource", AntMediaApplicationAdapter.STREAM_SOURCE, streamUrl, null);
+			assertNotNull(streamSource);
+			String streamId = streamSource.getStreamId();
+
+			Process rtmpServer = null;
+			try {
+				Result result = restService.startStreaming(streamId);
+				assertTrue(result.isSuccess());
+
+				//worker parks in avformat_open_input: tarpit accepted the connection but stays silent
+				Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					Broadcast b = RestServiceV2Test.callGetBroadcast(streamId);
+					return tarpit.getHeldConnectionCount() == 1 && b != null
+							&& AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING.equals(b.getStatus());
+				});
+
+				//spawn the rtmp server up front so release() below is instant; otherwise the next
+				//20 sec staleness cycle can stop-flag the second worker before it reaches BROADCASTING
+				int rtmpServerPort = findFreePort();
+				rtmpServer = AppFunctionalV2Test.execute(ffmpegPath
+						+ " -re -stream_loop -1 -i src/test/resources/test.flv -codec copy -f flv -rtmp_listen 1 rtmp://127.0.0.1:"
+						+ rtmpServerPort + "/LiveApp/" + tarpitStreamId);
+
+				//let the checker stop-flag the parked worker (20 secs staleness + tick), then make the
+				//second worker explicit: older builds restart in place so the second connection is
+				//already held and the extra start harmlessly vetoes; deferral builds only evict, so
+				//this watchdog-style start succeeds and parks the second worker
+				Thread.sleep(25000);
+				for (int i = 0; i < 10 && tarpit.getHeldConnectionCount() < 2; i++) {
+					restService.startStreaming(streamId);
+					Thread.sleep(3000);
+				}
+				assertEquals(2, tarpit.getHeldConnectionCount());
+
+				//release only the new worker: it completes prepare and streams
+				tarpit.release(1, rtmpServerPort);
+
+				Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					Broadcast b = RestServiceV2Test.callGetBroadcast(streamId);
+					return b != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(b.getStatus());
+				});
+
+				//kill the old worker's parked connection: its prepare fails and its close path runs
+				//while the replacement fetcher owns the stream
+				tarpit.closeHeldConnection(0);
+
+				//the dying worker must not overwrite the live status: never finished, broadcasting throughout
+				//(on the split-brain bug this fails with finished about a second after the close)
+				for (int i = 0; i < 10; i++) {
+					Thread.sleep(2500);
+					Broadcast b = RestServiceV2Test.callGetBroadcast(streamId);
+					assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, b.getStatus());
+				}
+				assertTrue(rtmpServer.isAlive());
+
+				//healthy live stream: updateTime advances while status stays broadcasting
+				long updateTimeSample = RestServiceV2Test.callGetBroadcast(streamId).getUpdateTime();
+				Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(5, TimeUnit.SECONDS).until(() -> {
+					Broadcast b = RestServiceV2Test.callGetBroadcast(streamId);
+					return b != null && b.getUpdateTime() > updateTimeSample
+							&& AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(b.getStatus());
+				});
+
+				//with a truthful status the "already active" veto is correct behavior
+				result = restService.startStreaming(streamId);
+				assertFalse(result.isSuccess());
+				assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING,
+						RestServiceV2Test.callGetBroadcast(streamId).getStatus());
+			}
+			finally {
+				if (rtmpServer != null) {
+					rtmpServer.destroy();
+				}
+				restService.stopStreaming(streamId);
+				RestServiceV2Test.callDeleteBroadcast(streamId);
+			}
+		}
+	}
+
+	private static int findFreePort() throws IOException {
+		try (ServerSocket socket = new ServerSocket(0)) {
+			return socket.getLocalPort();
+		}
+	}
+
+	/**
+	 * TCP tarpit for the stream fetcher: accepts connections and holds them silently so the
+	 * fetcher worker parks inside avformat_open_input (no timeout options are set for rtmp urls
+	 * and there is no interrupt callback). On release a held connection is piped to a local
+	 * "ffmpeg -rtmp_listen 1" server so the buffered RTMP handshake completes and data flows.
+	 */
+	private static class TarpitRtmpProxy implements Closeable {
+
+		private final ServerSocket serverSocket;
+		private final List<Socket> heldConnections = Collections.synchronizedList(new ArrayList<>());
+		private volatile boolean running = true;
+
+		TarpitRtmpProxy() throws IOException {
+			serverSocket = new ServerSocket(0, 5, InetAddress.getLoopbackAddress());
+			Thread acceptor = new Thread(() -> {
+				while (running) {
+					try {
+						heldConnections.add(serverSocket.accept());
+					} catch (IOException e) {
+						break;
+					}
+				}
+			});
+			acceptor.setDaemon(true);
+			acceptor.start();
+		}
+
+		int getPort() {
+			return serverSocket.getLocalPort();
+		}
+
+		int getHeldConnectionCount() {
+			return heldConnections.size();
+		}
+
+		void closeHeldConnection(int connectionIndex) throws IOException {
+			heldConnections.get(connectionIndex).close();
+		}
+
+		void release(int connectionIndex, int upstreamPort) throws IOException {
+			Socket downstream = heldConnections.get(connectionIndex);
+			Socket upstream = null;
+			for (int i = 0; i < 40 && upstream == null; i++) {
+				try {
+					upstream = new Socket(InetAddress.getLoopbackAddress(), upstreamPort);
+				} catch (IOException e) {
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+					}
+				}
+			}
+			if (upstream == null) {
+				throw new IOException("upstream rtmp server is not listening on port " + upstreamPort);
+			}
+			pump(downstream, upstream);
+			pump(upstream, downstream);
+		}
+
+		private static void pump(Socket from, Socket to) {
+			Thread pumpThread = new Thread(() -> {
+				try {
+					InputStream in = from.getInputStream();
+					OutputStream out = to.getOutputStream();
+					byte[] buffer = new byte[8192];
+					int read;
+					while ((read = in.read(buffer)) != -1) {
+						out.write(buffer, 0, read);
+						out.flush();
+					}
+				} catch (IOException e) {
+					//connection teardown ends the pump
+				}
+			});
+			pumpThread.setDaemon(true);
+			pumpThread.start();
+		}
+
+		@Override
+		public void close() throws IOException {
+			running = false;
+			serverSocket.close();
+			synchronized (heldConnections) {
+				for (Socket socket : heldConnections) {
+					socket.close();
+				}
+			}
+		}
+	}
 
 }

@@ -521,6 +521,11 @@ public class StreamFetcher {
 			logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 			Result result = prepare(inputFormatContext);
 
+			if (stopRequestReceived) {
+				logger.info("Stop request received while preparing streamId:{}, not initializing muxers", streamId);
+				return false;
+			}
+
 			if (result.isSuccess()) {
 				boolean audioExist = false;
 				boolean videoExist = false;
@@ -754,8 +759,12 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					
-					getInstance().closeBroadcast(streamId, null, null);
+					if (isReplacedByAnotherFetcher()) {
+						logger.warn("Skipping close broadcast for {} because a replacement fetcher owns the stream", streamId);
+					}
+					else {
+						getInstance().closeBroadcast(streamId, null, null);
+					}
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -772,12 +781,16 @@ public class StreamFetcher {
 				if(!stopRequestReceived && restartStream) {
 					logger.info("Stream fetcher will try to fetch source {} after {} ms for streamId:{}", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS, streamId);
 
-					//Update status to finished in all cases
-					
-					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
-					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+					//Update status to finished unless a replacement fetcher owns the stream
+					if (isReplacedByAnotherFetcher()) {
+						logger.warn("Skipping finished status update for {} because a replacement fetcher owns the stream", streamId);
+					}
+					else {
+						BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+						broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+						broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+						getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+					}
 					
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
@@ -792,7 +805,12 @@ public class StreamFetcher {
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
-						getInstance().closeBroadcast(streamId, null, null);
+						if (isReplacedByAnotherFetcher()) {
+							logger.warn("Skipping close broadcast for {} because a replacement fetcher owns the stream", streamId);
+						}
+						else {
+							getInstance().closeBroadcast(streamId, null, null);
+						}
 					}
 				}
 
@@ -1200,6 +1218,11 @@ public class StreamFetcher {
 		}.start();
 
 	}
+	private boolean isReplacedByAnotherFetcher() {
+		StreamFetcher registered = getInstance().getStreamFetcherManager().getStreamFetcher(streamId);
+		return registered != null && registered != this;
+	}
+
 	/**
 	 * Set timeout when establishing connection
 	 * @param timeoutMs in ms

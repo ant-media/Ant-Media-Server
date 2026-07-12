@@ -73,6 +73,8 @@ public class StreamFetcherManager {
 
 	private ServerSettings serverSettings;
 
+	private AntMediaApplicationAdapter appAdaptor;
+
 	private int waitForTestMilliseconds = 0;
 
 	public void setWaitForTestMilliseconds(int waitForTestMilliseconds) {
@@ -95,6 +97,13 @@ public class StreamFetcherManager {
 
     public void shuttingDown() {
 		serverShuttingDown = true;
+	}
+
+	private AntMediaApplicationAdapter getAppAdaptor() {
+		if (appAdaptor == null) {
+			appAdaptor = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		}
+		return appAdaptor;
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
@@ -619,6 +628,11 @@ public class StreamFetcherManager {
 					stopStreaming(streamScheduler.getStreamId(), false);
 					//restart this stream only
 					restartCurrentStream = true;
+				}
+				else if (streamScheduler.isStreamAlive() && !AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
+					//fetcher is streaming but the status got corrupted (e.g. by a dying superseded worker): heal it
+					logger.warn("Stream:{} is actively fetching but status is {}. Setting status to broadcasting", streamScheduler.getStreamId(), broadcast.getStatus());
+					getAppAdaptor().updateBroadcastStatus(streamScheduler.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 				}
 			}
 

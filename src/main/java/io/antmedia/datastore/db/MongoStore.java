@@ -306,7 +306,9 @@ public class MongoStore extends DataStore {
 				Broadcast cachedBroadcast = getBroadcastCache().get(cacheKey, Broadcast.class);
 
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
-
+				logger.info("******************************************************************** updateStatus called for streamId:{} with status:{}", id, status);
+				logger.info(ExceptionUtils.getStackTrace(new Exception()));
+				
 				Update<Broadcast> ops = query.update(set(STATUS, status));
 
 				if(cachedBroadcast != null) {
