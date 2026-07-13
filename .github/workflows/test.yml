@@ -10,6 +10,10 @@ on:
   pull_request:
     branches:
       - '**'
+
+permissions:
+  contents: read
+  checks: write
   
       
 env:
@@ -17,6 +21,7 @@ env:
       
 jobs:  
   run-unit-tests:
+    name: Run unit tests
     runs-on: ubuntu-22.04
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
@@ -74,6 +79,25 @@ jobs:
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
           mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/* -Dorg.bytedeco.javacpp.logger.debug=false org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+      - name: Publish unit test report
+        if: always()
+        uses: mikepenz/action-junit-report@v6
+        with:
+          check_name: Unit Test Report
+          report_paths: target/surefire-reports/TEST-*.xml
+          fail_on_failure: false
+          require_tests: false
+          detailed_summary: true
+          include_time_in_summary: true
       
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
@@ -91,7 +115,7 @@ jobs:
 
   check-vulnerabilities:
     runs-on: ubuntu-22.04
-    
+    name: Check vulnerabilities
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -147,6 +171,7 @@ jobs:
           sudo service redis-server status           
           
   run-integration-tests:
+    name: Run integration tests
     runs-on: ubuntu-22.04
     
     steps:
@@ -237,6 +262,25 @@ jobs:
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
           mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=*/integration/* -Dmaven.javadoc.skip=true --quiet
+
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+      - name: Publish integration test report
+        if: always()
+        uses: mikepenz/action-junit-report@v6
+        with:
+          check_name: Integration Test Report
+          report_paths: target/surefire-reports/TEST-*.xml
+          fail_on_failure: false
+          require_tests: false
+          detailed_summary: true
+          include_time_in_summary: true
       
 
       - name: Show Ant Media Server Error Log on failure

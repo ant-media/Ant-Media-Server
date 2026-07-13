@@ -1,7 +1,10 @@
 package io.antmedia.test.valves;
 
 
-import static org.junit.Assert.assertEquals;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -9,8 +12,8 @@ import java.io.IOException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.Valve;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.red5.server.api.scope.IScope;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
@@ -26,6 +29,7 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 
+@Tag("fast")
 public class DataTransferValveTest {
 
 	@InjectMocks
@@ -52,7 +56,7 @@ public class DataTransferValveTest {
     @Captor
     private ArgumentCaptor<PlayerStatsEvent> eventCaptor;
 
-    @Before
+    @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
         
