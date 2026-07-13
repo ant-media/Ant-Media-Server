@@ -1,11 +1,14 @@
 package io.antmedia.test.security;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,10 +31,10 @@ import jakarta.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -50,17 +53,18 @@ import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
 
 
+@Tag("fast")
 public class TokenFilterTest {
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterTest.class);
 
 	private TokenFilterManager tokenFilter;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		tokenFilter = new TokenFilterManager();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		tokenFilter = null;
 	}
@@ -275,7 +279,7 @@ public class TokenFilterTest {
 		ITokenService tokenService = mock(ITokenService.class);
 		AppSettings settings = new AppSettings();
 		settings.resetDefaults();
-		settings.setTimeTokenSubscriberOnly(true);
+		settings.setEnableTimeTokenForPlay(true);
 
 
 		when(context.getBean("token.service")).thenReturn(tokenService);
@@ -329,9 +333,8 @@ public class TokenFilterTest {
 		}
 	}	
 
-	private AppSettings mockAppSettings(boolean timeTokenSubscriberOnly, boolean playJwtControlEnabled, boolean enableTimeTokenForPlay, boolean playTokenControlEnabled, boolean hashControlPlayEnabled) {
+	private AppSettings mockAppSettings(boolean playJwtControlEnabled, boolean enableTimeTokenForPlay, boolean playTokenControlEnabled, boolean hashControlPlayEnabled) {
 		AppSettings appSettings = mock(AppSettings.class);
-		when(appSettings.isTimeTokenSubscriberOnly()).thenReturn(timeTokenSubscriberOnly);
 		when(appSettings.isPlayJwtControlEnabled()).thenReturn(playJwtControlEnabled);
 		when(appSettings.isEnableTimeTokenForPlay()).thenReturn(enableTimeTokenForPlay);
 		when(appSettings.isPlayTokenControlEnabled()).thenReturn(playTokenControlEnabled);
@@ -342,32 +345,32 @@ public class TokenFilterTest {
 	@Test
 	public void testIsAnySecurityEnabled() {
 
-		AppSettings appSettings = mockAppSettings(false, false, false, false, false);
+		AppSettings appSettings = mockAppSettings(false, false, false, false);
 
 		boolean result = TokenFilterManager.isAnySecurityEnabled(appSettings);
 		assertFalse(result);
 		
-		appSettings = mockAppSettings(true, false, false, false, false);
+		appSettings = mockAppSettings(false, false, false, false);
+        result = TokenFilterManager.isAnySecurityEnabled(appSettings);
+        assertFalse(result);
+        
+        appSettings = mockAppSettings(true, false, false, false);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
         
-        appSettings = mockAppSettings(false, true, false, false, false);
+        appSettings = mockAppSettings(false, true, false, false);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
         
-        appSettings = mockAppSettings(false, false, true, false, false);
+        appSettings = mockAppSettings(false, false, true, false);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
         
-        appSettings = mockAppSettings(false, false, false, true, false);
+        appSettings = mockAppSettings(false, false, false, true);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
         
-        appSettings = mockAppSettings(false, false, false, false, true);
-        result = TokenFilterManager.isAnySecurityEnabled(appSettings);
-        assertTrue(result);
-        
-        appSettings = mockAppSettings(true, true, true, true, true);
+        appSettings = mockAppSettings(true, true, true, true);
         result = TokenFilterManager.isAnySecurityEnabled(appSettings);
         assertTrue(result);
 
@@ -591,9 +594,9 @@ public class TokenFilterTest {
 
 		if (code.charAt(0) == '0') {
 			//first character can be zero.
-			assertTrue("First 4 characters are zero, this is why this test failed. It may happen with low possibility."
+			assertTrue(intCode > 100, "First 4 characters are zero, this is why this test failed. It may happen with low possibility."
 					+ "With this luck, you may meet the ice bear in the desert :)"
-					+ "Have a break and relax, then try again ;)", intCode > 100);
+					+ "Have a break and relax, then try again ;)");
 			//first 4 characters are zero, meet the ice bear in the desert :)
 		}
 		else {

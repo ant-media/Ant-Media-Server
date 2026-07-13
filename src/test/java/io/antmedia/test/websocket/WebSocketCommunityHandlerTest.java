@@ -1,9 +1,11 @@
 package io.antmedia.test.websocket;
 
+
+import org.junit.jupiter.api.Tag;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
@@ -14,8 +16,8 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.websocket.Session;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -28,13 +30,14 @@ import org.webrtc.PeerConnection;
 import java.util.ArrayList;
 import java.util.List;
 
+@Tag("fast")
 public class WebSocketCommunityHandlerTest {
 
     private WebSocketCommunityHandler webSocketCommunityHandler;
     private Session session;
     private AppSettings appSettings;
 
-    @Before
+    @BeforeEach
     public void setup() {
         session = Mockito.mock(Session.class);
         ApplicationContext context = mock(ApplicationContext.class);

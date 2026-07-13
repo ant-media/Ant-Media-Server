@@ -1,12 +1,12 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doNothing;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -22,9 +22,9 @@ import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.Scope;
@@ -32,6 +32,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
@@ -55,6 +59,7 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@Testcontainers
 public class VoDRestServiceV2UnitTest {
 
 
@@ -68,8 +73,12 @@ public class VoDRestServiceV2UnitTest {
 
 	Vertx vertx = io.vertx.core.Vertx.vertx();
 
+	@Container
+	public static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
+			.withExposedPorts(27017);
 
-	@Before
+
+	@BeforeEach
 	public void before() {
 		restServiceReal = new VoDRestService();
 		File webapps = new File("webapps");
@@ -80,103 +89,13 @@ public class VoDRestServiceV2UnitTest {
 		}
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		restServiceReal = null;
 	}
 
-	@Test
-	public void synchUserVodList()  {
-
-		Result result = new Result(false);
-
-		String vodFolder = "vodFolder";
-		VoDRestService streamSourceRest = Mockito.spy(restServiceReal);
-		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
-		InMemoryDataStore store = new InMemoryDataStore("test");
-		AppSettings settings = mock(AppSettings.class);
-
-		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
-		Mockito.doReturn(settings).when(streamSourceRest).getAppSettings();
-
-
-		when(settings.getVodFolder()).thenReturn(vodFolder);
-		Mockito.doReturn(true).when(adaptor).synchUserVoDFolder(null, vodFolder);
-
-
-		result = streamSourceRest.synchUserVodList();
-
-		assertTrue(result.isSuccess());
-	}
-
-	/**
-	 * These tests should be run with stalker db
-	 */
-	@Test
-	public void testImportVoD2Stalker() {
-		AppSettings settings = mock(AppSettings.class);
-
-		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
-		when(settings.getStalkerDBUsername()).thenReturn("stalker");
-		when(settings.getStalkerDBPassword()).thenReturn("1");
-
-		String vodFolderPath = "webapps/junit/streams/vod_folder";
-
-		File vodFolder = new File(vodFolderPath);
-		vodFolder.mkdirs();
-		assertTrue(vodFolder.exists());
-
-		Scope scope = mock(Scope.class);
-		String scopeName = "scope";
-		when(scope.getName()).thenReturn(scopeName);
-
-		restServiceReal.setScope(scope);
-
-		restServiceReal.setAppSettings(settings);
-
-		ServerSettings serverSettings = mock(ServerSettings.class);
-		when(serverSettings.getServerName()).thenReturn("localhost");
-		restServiceReal.setServerSettings(serverSettings);
-
-		//Vod vod = new Vod();
-		File file = new File(vodFolder, "test_file");
-		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 0, 6000,
-				VoD.USER_VOD,vodId,null);
-		DataStore store = new InMemoryDataStore("testdb");
-		restServiceReal.setDataStore(store);
-
-		assertNotNull(store.addVod(newVod));
-
-		Process process = mock(Process.class);
-
-		try {
-			when(process.waitFor()).thenReturn(0);
-
-			ProcessBuilderFactory factory = new ProcessBuilderFactory() {
-				@Override
-				public Process make(String... args) {
-					return process;
-				}
-			};
-			restServiceReal.setProcessBuilderFactory(factory);
-
-			Result result = restServiceReal.importVoDsToStalker();
-
-			assertFalse(result.isSuccess());
-
-			when(settings.getVodFolder()).thenReturn(vodFolderPath);
-
-			result = restServiceReal.importVoDsToStalker();
-
-			assertTrue(result.isSuccess());
-
-		}  catch (InterruptedException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
+	private String mongoUri() {
+		return "mongodb://" + mongo.getHost() + ":" + mongo.getFirstMappedPort();
 	}
 
 	@Test
@@ -276,7 +195,7 @@ public class VoDRestServiceV2UnitTest {
 		assertNull(datastore.getVoD(vodId));
 
 
-		Result result = restServiceReal.deleteVoDs(new String[] {});
+		Result result = restServiceReal.deleteVoDsBulk("");
 		assertFalse(result.isSuccess());
 
 		result = restServiceReal.deleteVoDsBulk(null);
@@ -366,8 +285,26 @@ public class VoDRestServiceV2UnitTest {
 			assertEquals(3, store.getTotalVodNumber());
 
 			assertEquals(3, restServiceReal.getTotalVodNumber().getNumber());
+
+			// Test upload with metadata
+			try (FileInputStream inputStream4 = new FileInputStream("src/test/resources/sample_MP4_480.mp4")) {
+				String testMetadata = "{\"customField\":\"value\"}";
+				Result result4 = restServiceReal.uploadVoDFile(fileName, inputStream4, testMetadata);
+				assertTrue(result4.isSuccess());
+				
+				VoD vodWithMetadata = restServiceReal.getVoD(result4.getDataId());
+				assertEquals(testMetadata, vodWithMetadata.getMetadata());
+			}
+
+			// Test upload without metadata (null) - should work, metadata should be null
+			try (FileInputStream inputStream5 = new FileInputStream("src/test/resources/sample_MP4_480.mp4")) {
+				Result result5 = restServiceReal.uploadVoDFile(fileName, inputStream5, null);
+				assertTrue(result5.isSuccess());
+				
+				VoD vodWithoutMetadata = restServiceReal.getVoD(result5.getDataId());
+				assertNull(vodWithoutMetadata.getMetadata());
+			}
 		}
-		
 
 
 	}
@@ -532,7 +469,7 @@ public class VoDRestServiceV2UnitTest {
 		MapDBStore mapDataStore = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
 		vodSorting(mapDataStore);
 
-		DataStore mongoDataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		DataStore mongoDataStore = new MongoStore(mongoUri(), "testdb");
 		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
 
 		store.find(VoD.class).delete(new DeleteOptions().multi(true));

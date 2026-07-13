@@ -1,12 +1,12 @@
 package io.antmedia.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -29,12 +29,15 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.red5.server.scope.WebScope;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.RequestClientOptions;
 import com.google.gson.Gson;
@@ -46,8 +49,11 @@ import io.antmedia.rest.RestServiceBase;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
+@ExtendWith(SpringExtension.class)
+public class AppSettingsUnitTest {
 
+	@Autowired
+	private ApplicationContext applicationContext;
 
 	protected WebScope appScope;
 	static {
@@ -186,6 +192,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//Try with new format settings
 		String newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceEncode\":"+forceEncode2+",\"audioBitrate\":"+audioBitrate2+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceEncode\":"+forceEncode3+",\"audioBitrate\":"+audioBitrate3+",\"height\":"+height3+"}]";
+		String serializedEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceSameResolutionEncode\":false,\"forceEncode\":"+forceEncode1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceSameResolutionEncode\":false,\"forceEncode\":"+forceEncode2+",\"audioBitrate\":"+audioBitrate2+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceSameResolutionEncode\":false,\"forceEncode\":"+forceEncode3+",\"audioBitrate\":"+audioBitrate3+",\"height\":"+height3+"}]";
 
 		List<EncoderSettings> list = AppSettings.encodersStr2List(newFormatEncoderSettingString);
 
@@ -202,7 +209,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(300000, list.get(2).getVideoBitrate());
 		assertEquals(32000, list.get(2).getAudioBitrate());
 
-		assertEquals(newFormatEncoderSettingString, appSettings.encodersList2Str(list));
+		assertEquals(serializedEncoderSettingString, appSettings.encodersList2Str(list));
 
 		//Try with old format settings
 		String oldFormatEncoderSettingString = height1+"," + videoBitrate1 + "," + audioBitrate1
@@ -227,7 +234,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		list.get(0).setForceEncode(false);
 		list.get(1).setForceEncode(true);
 		list.get(2).setForceEncode(false);
-		assertEquals(newFormatEncoderSettingString, appSettings.encodersList2Str(list));
+		assertEquals(serializedEncoderSettingString, appSettings.encodersList2Str(list));
+
+		String newFormatEncoderSettingStringWithoutOptionalFlags =
+				"[{\"videoBitrate\":"+videoBitrate1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+"}]";
+		list = AppSettings.encodersStr2List(newFormatEncoderSettingStringWithoutOptionalFlags);
+		assertEquals(1, list.size());
+		assertEquals(480, list.get(0).getHeight());
+		assertEquals(500000, list.get(0).getVideoBitrate());
+		assertEquals(128000, list.get(0).getAudioBitrate());
+		assertTrue(list.get(0).isForceEncode());
+		assertFalse(list.get(0).isForceSameResolutionEncode());
 	}
 
 
@@ -413,17 +430,11 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isWriteStatsToDatastore());
 		assertEquals(false, appSettings.isDashMuxingEnabled());
 		assertEquals("", appSettings.getListenerHookURL());
-		assertEquals(false, appSettings.isObjectDetectionEnabled());
-		assertEquals("", appSettings.getVodFolder());
 		assertEquals(false, appSettings.isPreviewOverwrite());
-		assertEquals("", appSettings.getStalkerDBServer());
-		assertEquals("", appSettings.getStalkerDBUsername());
-		assertEquals("", appSettings.getStalkerDBPassword());
 		assertEquals(0, appSettings.getStreamFetcherBufferTime());
 		assertEquals("delete_segments+program_date_time", appSettings.getHlsflags());
 		assertEquals("/usr/local/antmedia/mysql", appSettings.getMySqlClientPath());
 		assertEquals(false, appSettings.isPlayTokenControlEnabled());
-		assertEquals(false, appSettings.isTimeTokenSubscriberOnly());
 		assertEquals(false, appSettings.isEnableTimeTokenForPlay());
 		assertEquals("", appSettings.getMuxerFinishScript());
 		assertEquals(30, appSettings.getWebRTCFrameRate());
@@ -431,17 +442,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false, appSettings.isHashControlPlayEnabled());
 		assertEquals(60000, appSettings.getWebRTCPortRangeMax());
 		assertEquals(50000, appSettings.getWebRTCPortRangeMin());
-		assertEquals("", appSettings.getEncoderPreset());
-		assertEquals("", appSettings.getEncoderProfile());
-		assertEquals("", appSettings.getEncoderLevel());
-		assertEquals("", appSettings.getEncoderRc());
-		assertEquals("", appSettings.getEncoderSpecific());
 		assertEquals("", appSettings.getAllowedPublisherCIDR());
 		assertEquals(300000, appSettings.getExcessiveBandwidthValue());
 		assertEquals(0, appSettings.getPortAllocatorFlags());
 		assertEquals(0, appSettings.getUpdateTime());
-		assertEquals(5000, appSettings.getEncodingTimeout());
-		assertEquals(false, appSettings.isDefaultDecodersEnabled());
 		assertEquals("", appSettings.getHttpForwardingExtension());
 		assertEquals("", appSettings.getHttpForwardingBaseURL());
 		assertEquals(1500, appSettings.getMaxAnalyzeDurationMS());
@@ -458,27 +462,18 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("", appSettings.getDataChannelWebHookURL());
 		assertEquals(0, appSettings.getEncoderThreadCount());
 		assertEquals(0, appSettings.getEncoderThreadType());
-		assertEquals(null, appSettings.getH265EncoderProfile());
-		assertEquals(null, appSettings.getH265EncoderPreset());
-		assertEquals(null, appSettings.getH265EncoderLevel());
-		assertEquals(null, appSettings.getH265EncoderSpecific());
-		assertEquals(null, appSettings.getH265EncoderRc());
-		assertEquals(4, appSettings.getVp8EncoderSpeed());
-		assertEquals("realtime", appSettings.getVp8EncoderDeadline());
 		assertEquals(1, appSettings.getVp8EncoderThreadCount());
 		assertEquals("unifiedPlan", appSettings.getWebRTCSdpSemantics());
 		assertEquals(true, appSettings.isDeleteDASHFilesOnEnded());
 		assertEquals(360, appSettings.getHeightRtmpForwarding());
 		assertEquals(96000, appSettings.getAudioBitrateSFU());
 		assertEquals(true, appSettings.isAacEncodingEnabled());
-		assertEquals("23", appSettings.getConstantRateFactor());
 		assertEquals(-1, appSettings.getWebRTCViewerLimit());
 		assertEquals("", appSettings.getJwtSecretKey());
 		assertEquals(false, appSettings.isJwtControlEnabled());
 		assertEquals(true, appSettings.isIpFilterEnabled());
 		assertEquals(-1, appSettings.getIngestingStreamLimit());
 		assertEquals(60, appSettings.getTimeTokenPeriod());
-		assertEquals(false, appSettings.isToBeDeleted());
 		assertEquals(false, appSettings.isPullWarFile());
 		assertEquals("", appSettings.getJwtStreamSecretKey());
 		assertEquals(false, appSettings.isPublishJwtControlEnabled());
@@ -686,9 +681,22 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(120, appSettings.getAudioLevelThreshold());
 		appSettings.setAudioLevelThreshold(100);
 		assertEquals(100, appSettings.getAudioLevelThreshold());
+		
 		assertEquals("", appSettings.getStreamStartedScript());
 		assertEquals("", appSettings.getStreamEndedScript());
 		assertEquals("", appSettings.getStreamIdleTimeoutScript());
+		assertTrue(appSettings.isHwDecoderEnabled());
+		appSettings.setHwDecoderEnabled(false);
+		assertFalse(appSettings.isHwDecoderEnabled());
+
+		
+		assertFalse(appSettings.isAv1Enabled());
+		appSettings.setAv1Enabled(true);
+		assertTrue(appSettings.isAv1Enabled());
+
+		assertFalse(appSettings.isDisableAudio());
+		appSettings.setDisableAudio(true);
+		assertTrue(appSettings.isDisableAudio());
 
 		assertEquals("[]", appSettings.getIceServers());
 
@@ -696,8 +704,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
-		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				205, numberOfFields);
+		assertEquals(186,
+				numberOfFields, "New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.");
 	}
 
 

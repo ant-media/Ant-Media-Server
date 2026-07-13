@@ -1,11 +1,12 @@
 package io.antmedia.test.console;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
@@ -28,10 +29,10 @@ import jakarta.servlet.http.HttpSession;
 
 import org.awaitility.Awaitility;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -109,7 +110,7 @@ public class ConsoleRestV2UnitTest {
 		};
 	};
 	
-	@Before
+	@BeforeEach
 	public void before() {
 		File f = new File("server.db");
 		if (f.exists()) {
@@ -125,7 +126,7 @@ public class ConsoleRestV2UnitTest {
 		restService.setDataStore(dbStore);
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		// dbStore.clear();
 		dbStore.close();
@@ -853,47 +854,47 @@ public class ConsoleRestV2UnitTest {
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		AdminApplication adminApp = Mockito.mock(AdminApplication.class);
 		Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
-		Mockito.when(adminApp.runCommand(Mockito.anyString())).thenReturn(true);
+		Mockito.when(adminApp.runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class))).thenReturn(true);
 
 		Result result = restServiceSpy.configureSsl(null, null, null, null, null, null, null, null);
 		assertFalse(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.never()).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.never()).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 
 		result = restServiceSpy.configureSsl(null, "", null, null, null, null, null, null);
 		assertFalse(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.never()).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.never()).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 
 		result = restServiceSpy.configureSsl("", "", null, null, null, null, null, null);
 		assertFalse(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.never()).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.never()).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 		
 		result = restServiceSpy.configureSsl("example.com", "", null, null, null, null, null, null);
 		assertFalse(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.never()).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.never()).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 
 
 		result = restServiceSpy.configureSsl("", "ANTMEDIA_SUBDOMAIN", null, null, null, null, null, null);
 		assertTrue(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.times(1)).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.times(1)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 
 
 		result = restServiceSpy.configureSsl("", "CUSTOM_DOMAIN", null, null, null, null, null, null);
 		assertFalse(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.times(1)).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.times(1)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 
 		result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_DOMAIN", null, null, null, null, null, null);
 		assertTrue(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.times(2)).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.times(2)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 
 		//ignores the given domain name
 		result = restServiceSpy.configureSsl("http://example.com", "ANTMEDIA_SUBDOMAIN", null, null, null, null, null, null);
 		assertTrue(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 
 
 		result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", null, null, null, null, null, null);
 		assertFalse(result.isSuccess());
-		Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+		Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 
 		try {
 				
@@ -901,23 +902,23 @@ public class ConsoleRestV2UnitTest {
 
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, null, null, null, null, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			FormDataContentDisposition fullChainFileContent = Mockito.mock(FormDataContentDisposition.class);
 			Mockito.when(fullChainFileContent.getFileName()).thenReturn(null);
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, null, null, null, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			Mockito.when(fullChainFileContent.getFileName()).thenReturn("");
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, null, null, null, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			Mockito.when(fullChainFileContent.getFileName()).thenReturn("fullchain.pem");
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, null, null, null, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			
 			//private key file
@@ -925,23 +926,23 @@ public class ConsoleRestV2UnitTest {
 
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, null, null, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			FormDataContentDisposition privateFileContent = Mockito.mock(FormDataContentDisposition.class);
 			Mockito.when(privateFileContent.getFileName()).thenReturn(null);
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, null, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			Mockito.when(privateFileContent.getFileName()).thenReturn("");
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, null, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			Mockito.when(privateFileContent.getFileName()).thenReturn("fullchain.pem");
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, null, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 		
 			
 			//chain file
@@ -950,23 +951,23 @@ public class ConsoleRestV2UnitTest {
 
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, chainFileInputStream, null);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			FormDataContentDisposition chainFileContent = Mockito.mock(FormDataContentDisposition.class);
 			Mockito.when(chainFileContent.getFileName()).thenReturn(null);
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, chainFileInputStream, chainFileContent);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			Mockito.when(chainFileContent.getFileName()).thenReturn("");
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, chainFileInputStream, chainFileContent);
 			assertFalse(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(3)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			Mockito.when(chainFileContent.getFileName()).thenReturn("fullchain.pem");
 			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, chainFileInputStream, chainFileContent);
 			assertTrue(result.isSuccess());
-			Mockito.verify(adminApp, Mockito.times(4)).runCommand(Mockito.anyString());
+			Mockito.verify(adminApp, Mockito.times(4)).runConfiguredCommand(Mockito.eq(AdminApplication.ENABLE_SSL_COMMAND), Mockito.any(String[].class));
 			
 			
 			

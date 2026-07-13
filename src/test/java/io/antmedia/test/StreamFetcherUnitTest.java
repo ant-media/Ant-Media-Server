@@ -3,12 +3,13 @@ package io.antmedia.test;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -36,23 +37,22 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -75,7 +75,11 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
+@ExtendWith(SpringExtension.class)
+public class StreamFetcherUnitTest {
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
@@ -89,29 +93,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		System.setProperty("red5.root", ".");
 	}
 
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			System.out.println("Failed test: " + description.getMethodName() );
-			e.printStackTrace();
-		}
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		}
-	};
-
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		//	avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 
 		try {
@@ -156,7 +145,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 
 		stopCameraEmulator();
@@ -246,19 +235,77 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		workerAfter.run();
 		Mockito.verify(workerAfter, Mockito.never()).prepareInputContext(Mockito.any());
 	}
+	
+	boolean inTheThread = false;
+	@Test
+	public void testPlayListSynch() throws Exception {
+		StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
+		String streamId = String.valueOf((Math.random() * 100000));
+		
+		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
+
+		//create a broadcast
+		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
+
+		List<Broadcast.PlayListItem> broadcastList = new ArrayList<>();
+
+		broadcastList.add(broadcastItem1);
+		broadcastList.add(broadcastItem2);
+		
+		
+		//create broadcast 
+		Broadcast playlist = new Broadcast();
+		playlist.setStreamId(streamId);
+		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		playlist.setPlayListItemList(broadcastList);
+		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		app.getDataStore().save(playlist);
+		
+		manager.setWaitForTestMilliseconds(1000);
+		
+		//start play list
+		Result result = manager.startPlaylist(playlist);
+		assertTrue(result.isSuccess());
+		
+		
+		//call play next item in list
+		inTheThread = false;
+		new Thread() {
+			public void run() {
+				inTheThread = true;
+				manager.playItemInList(playlist.getStreamId(), null, 1);
+				
+			};
+		}.start();
+		
+		Awaitility.await().atMost(2000, TimeUnit.MILLISECONDS).until(() -> {
+			return inTheThread == true;
+		});
+		
+		
+		//call stopBroadcasting immediatelly
+		result = manager.stopStreaming(streamId, false);
+		
+		//check the result that it returns true
+		assertTrue(result.isSuccess());
+
+		manager.setWaitForTestMilliseconds(0);	
+
+	}
+	
 	@Test
 	public void testPlayItemInList() throws Exception {
 
 		StreamFetcherManager manager = Mockito.spy(app.getStreamFetcherManager());
 		String streamId = String.valueOf((Math.random() * 100000));
 
-		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem1 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		//create a broadcast
-		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem2 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		//create a broadcast
-		Broadcast.PlayListItem broadcastItem3 = new Broadcast.PlayListItem("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", AntMediaApplicationAdapter.VOD);
+		Broadcast.PlayListItem broadcastItem3 = new Broadcast.PlayListItem("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4", AntMediaApplicationAdapter.VOD);
 
 		List<Broadcast.PlayListItem> broadcastList = new ArrayList<>();
 
@@ -291,7 +338,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		StreamFetcher.IStreamFetcherListener listener = Mockito.mock(StreamFetcher.IStreamFetcherListener.class);
 		manager.getStreamFetcher(streamId).setStreamFetcherListener(listener);
-		manager.playItemInList(playlist,listener,1);
+		manager.playItemInList(playlist.getStreamId(),listener,1);
 
 		// stream not stoped need to wait for the thread to stop to start next playlist
 		verify(manager,timeout(10000).times(1)).createAndStartNextPlaylistItem(any(),any(),anyInt());
@@ -300,7 +347,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		// thread already start next stream directly
         doReturn(streamFetcher).when(manager).getStreamFetcher(streamId);
-		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
+		manager.playItemInList(playlist.getStreamId(),streamFetcher.getStreamFetcherListener(),1);
 		verify(manager,times(1)).createAndStartNextPlaylistItem(any(),any(),anyInt());
 
 		// invalid url
@@ -308,7 +355,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		broadcastItem1.setStreamUrl("test");
 		playlist.getPlayListItemList().set(playlist.getCurrentPlayIndex(),broadcastItem1);
         doReturn(new Result(true)).when(manager).startPlaylist(playlist);
-		manager.playItemInList(playlist,streamFetcher.getStreamFetcherListener(),1);
+		manager.playItemInList(playlist.getStreamId(),streamFetcher.getStreamFetcherListener(),1);
 		verify(manager,times(1)).stopStreaming(streamId, true);
 		verify(manager).skipNextPlaylistQueue(playlist,1);
 		verify(manager).startPlaylist(playlist);
@@ -1807,5 +1854,37 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//doReturn("test").when(mockAppSettings).getClusterCommunicationKey();
 		//assertTrue(internalStreamFetcher.getStreamUrl().startsWith("rtmp://test.com/test?token="));
         //assertEquals("rtmp://test.com/test", internalStreamFetcher.rtmpUrl);
+	}
+
+	@Test
+	public void testRTSPUrlWithSpecialChars() {
+		// This test replicates the issue where special characters like @ in the password 
+		// cause issues when UriComponentsBuilder reconstructs the URL.
+		
+		String streamId = "testStreamSpecialChar";
+		// Password is "pass@word", encoded as "pass%40word"
+		String originalUrl = "rtsp://user:pass@word@127.0.0.1:6554/stream?allowed_media_types=video";
+		
+		// The expected behavior is that the URL is cleaned of allowed_media_types 
+		// AND the password remains correctly encoded so it doesn't break the URL structure.
+		// If the @ is decoded to "pass@word", it breaks standard RTSP parsing (two @ symbols).
+		String expectedUrl = "rtsp://user:pass@word@127.0.0.1:6554/stream";
+
+		StreamFetcher streamFetcher = new StreamFetcher(originalUrl, streamId, "rtsp_source", appScope, Vertx.vertx(), 0);
+		
+		AVDictionary options = new AVDictionary();
+		// This method is expected to fail/corrupt the URL if the bug exists
+		streamFetcher.parseRtspUrlParams(options);
+		
+		logger.info("Original URL: {}", originalUrl);
+		logger.info("Resulting URL: {}", streamFetcher.getStreamUrl());
+		
+		assertEquals(expectedUrl, 
+					 streamFetcher.getStreamUrl(), "The stream URL should preserve the encoded @ character in the password to avoid ambiguity");
+		
+		// Also verify the parameter was extracted
+		AVDictionaryEntry entry = avutil.av_dict_get(options, "allowed_media_types", null, 0);
+		assertNotNull(entry, "allowed_media_types should be extracted to options");
+		assertEquals("video", entry.value().getString());
 	}
 }

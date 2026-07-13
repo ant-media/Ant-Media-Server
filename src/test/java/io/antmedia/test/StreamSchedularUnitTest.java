@@ -5,11 +5,12 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,24 +32,22 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -72,13 +71,17 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
+@ExtendWith(SpringExtension.class)
+public class StreamSchedularUnitTest {
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
 	public Application app = null;
-	public static String VALID_MP4_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL_2 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL_3 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
+	public static String VALID_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/cutting_orange_tuil_2000kbps_720p_59.94fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_2 = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/vegetables_tuil_2000kbps_720p_59.94fps_h264.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_3 = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_2/segments/Dancers_8s_2470kbps_720p_60.0fps_h264.mp4";
 	public static String INVALID_MP4_URL = "invalid_link";
 	public static String INVALID_403_MP4_URL = "https://httpstat.us/403";
 	private WebScope appScope;
@@ -91,32 +94,18 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			e.printStackTrace();
-			System.out.println("Failed test: " + description.getMethodName());
-		};
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		};
-	};
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;
 	private Vertx vertx;
 
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		//avformat.av_register_all();
 		avformat.avformat_network_init();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		File webApps = new File("webapps");
 		if (!webApps.exists()) {
@@ -146,7 +135,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 
 		try {
@@ -380,7 +369,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
 		broadcastItem1.setDurationInMs(Muxer.getDurationInMs(broadcastItem1.getStreamUrl(), ""));
 		logger.info("Duration of the stream: {}", broadcastItem1.getDurationInMs());
-		assertTrue(15045 == broadcastItem1.getDurationInMs() || 15046 == broadcastItem1.getDurationInMs());
+		assertTrue(10000 == broadcastItem1.getDurationInMs());
 
 		try {
 
@@ -546,6 +535,107 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
+	public void testServerShuttingDownForPlaylist() throws Exception {
+		BroadcastRestService service = new BroadcastRestService();
+
+		service.setApplication(app);
+
+
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		IStatsCollector statCollector = Mockito.mock(IStatsCollector.class);
+		when(statCollector.enoughResource()).thenReturn(true);
+		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
+
+
+		//create a test db
+		IDataStoreFactory dsf = (IDataStoreFactory) appScope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
+
+		DataStore dataStore = dsf.getDataStore(); //new InMemoryDataStore("dts");
+		assertNotNull(dataStore);
+		service.setDataStore(dataStore);
+		service.setAppCtx(context);
+
+		app.setDataStore(dataStore);
+
+
+		//create a stream Manager
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope)); // aaaa
+		//app.getAppAdaptor().getStreamFetcherManager();
+
+		app.setStreamFetcherManager(streamFetcherManager);
+
+		String streamId = "testPlaylistServerShuttingDownForPlaylist" + System.currentTimeMillis(); 
+
+
+
+		//create a broadcast
+		PlayListItem broadcastItem1 = new PlayListItem(VALID_LONG_DURATION_MP4_URL, AntMediaApplicationAdapter.VOD);
+
+		//create a broadcast
+		PlayListItem broadcastItem2 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_2, AntMediaApplicationAdapter.VOD);
+
+		//create a broadcast
+		PlayListItem broadcastItem3 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_3, AntMediaApplicationAdapter.VOD);
+
+		List<PlayListItem> broadcastList = new ArrayList<>();
+
+		broadcastList.add(broadcastItem1);
+		broadcastList.add(broadcastItem2);
+		broadcastList.add(broadcastItem3);
+
+		Broadcast playlist = new Broadcast();
+		playlist.setStreamId(streamId);
+		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		playlist.setPlayListItemList(broadcastList);
+		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+		dataStore.save(playlist);
+
+		{	
+			logger.info("Proceeding the last section ");
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+				return !streamFetcherManager.isStreamRunning(playlist);
+			});
+			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
+			assertTrue(startPlaylist.isSuccess());
+			
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+				return streamFetcherManager.isStreamRunning(playlist);
+			});
+			
+			logger.info("--isStreamRunning:{}", streamFetcherManager.isStreamRunning(playlist));
+			assertTrue(streamFetcherManager.isStreamRunning(playlist));
+			assertNotNull(streamFetcherManager.getStreamFetcher(streamId));
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+
+			streamFetcherManager.shuttingDown();
+
+			logger.info("StreamFetcherManager:{} and sthis streamfetchermanager :{}", app.getStreamFetcherManager(), streamFetcherManager);
+			assertNotNull(streamFetcherManager.getStreamFetcher(streamId));
+			assertNotNull(app.getStreamFetcherManager().getStreamFetcher(streamId));
+
+			Result result = service.playNextItem(streamId, -1);
+			assertFalse(result.isSuccess());
+			logger.info("result message:{}", result.getMessage());
+			assertTrue(result.getMessage().contains("server is shutting down"));
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> {
+				return !streamFetcherManager.isStreamRunning(playlist);
+			});
+
+		}
+
+		
+	}
+
+	@Test
 	public void testSkipPlaylistItem() throws Exception {
 
 		BroadcastRestService service = new BroadcastRestService();
@@ -665,32 +755,18 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		{
+			StreamFetcher streamFetcher = streamFetcherManager.getStreamFetcher(streamId);
+			assertNotNull(streamFetcher);
 			Result stopPlayList = streamFetcherManager.stopPlayList(streamId);
 			assertTrue(stopPlayList.isSuccess());
-		}
 
-		{	
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
-				return !streamFetcherManager.isStreamRunning(playlist);
-			});
-			startPlaylist = streamFetcherManager.startPlaylist(playlist);
-			assertTrue(startPlaylist.isSuccess());
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
-
-			streamFetcherManager.shuttingDown();
-
-			Result result = service.playNextItem(streamId, -1);
-			assertFalse(result.isSuccess());
-			logger.info("result message:{}", result.getMessage());
-			assertTrue(result.getMessage().contains("server is shutting down"));
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> {
-				return !streamFetcherManager.isStreamRunning(playlist);
+				return !streamFetcher.isThreadActive();
 			});
 
 		}
+
+		
 
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
@@ -732,7 +808,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testControlStreamFetchersPlayListAndRestart() {
-		DataStore dataStore = Mockito.mock(DataStore.class); 
+		DataStore dataStore = Mockito.mock(DataStore.class);
 		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
 		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
 
@@ -742,7 +818,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streamFetcherList.put(streamId, fetcher);
 		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
 		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
-		
+
 		when(fetcher.isStreamAlive()).thenReturn(true);
 		when(fetcher.isStreamBlocked()).thenReturn(false);
 
@@ -751,11 +827,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		when(broadcast.getStreamId()).thenReturn(streamId);
 		when(broadcast.getStreamUrl()).thenReturn("streamurl");
 		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.PLAY_LIST);
+		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
 
 		streamFetcherManager.setStreamFetcherList(streamFetcherList);
 
 		streamFetcherManager.controlStreamFetchers(false);
-		//it should not call anything because type is playlist
+		//it should not call isToBeStoppedAutomatically because type is playlist and autoStartStopEnabled is false
 		Mockito.verify(streamFetcherManager, Mockito.never()).isToBeStoppedAutomatically(Mockito.any());
 
 
@@ -772,6 +849,47 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		listenerCaptor.getValue().streamFinished(null);;
 		Mockito.verify(streamFetcherManager).startStreaming(broadcast);
 
+	}
+
+	@Test
+	public void testControlStreamFetchersPlayListAutoStop() {
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
+
+		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
+		String streamId = "playlistStream123";
+		String streamUrl = "streamurl";
+		streamFetcherList.put(streamId, fetcher);
+		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
+		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
+
+		when(fetcher.isStreamAlive()).thenReturn(true);
+		when(fetcher.isStreamBlocked()).thenReturn(false);
+
+		Broadcast broadcast = mock(Broadcast.class);
+		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
+		when(broadcast.getStreamId()).thenReturn(streamId);
+		when(broadcast.getStreamUrl()).thenReturn("streamurl");
+		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.PLAY_LIST);
+		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
+
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+
+		// When autoStartStopEnabled is true, isToBeStoppedAutomatically should be called for playlists
+		Mockito.doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
+		streamFetcherManager.controlStreamFetchers(false);
+		Mockito.verify(streamFetcherManager, Mockito.times(1)).isToBeStoppedAutomatically(broadcast);
+
+		// Reset and test when isToBeStoppedAutomatically returns true - should call stopPlayList
+		Mockito.reset(streamFetcherManager);
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+		Mockito.doReturn(true).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
+		Mockito.doReturn(new Result(true)).when(streamFetcherManager).stopPlayList(Mockito.any());
+
+		streamFetcherManager.controlStreamFetchers(false);
+		Mockito.verify(streamFetcherManager, Mockito.times(1)).isToBeStoppedAutomatically(broadcast);
+		Mockito.verify(streamFetcherManager, Mockito.times(1)).stopPlayList(streamId);
 	}
 	
 	
@@ -1431,5 +1549,3 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 }
-
-

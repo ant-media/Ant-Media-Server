@@ -1015,13 +1015,13 @@ public class CommonRestService {
 			sslConfigurator.setDomain(fqdn);
 			sslConfigurator.setType(sslConfigurationType);
 
-			String command = sslConfigurator.getCommand();
-			if (command != null) 
+			String[] commandArgs = sslConfigurator.getCommandArgs();
+			if (commandArgs != null)
 			{
 				AdminApplication adminApplication = getApplication();
 				if (adminApplication != null) 
 				{
-					result.setSuccess(adminApplication.runCommand(command));
+					result.setSuccess(adminApplication.runConfiguredCommand(AdminApplication.ENABLE_SSL_COMMAND, commandArgs));
 				}
 			}
 			else {
@@ -1514,11 +1514,6 @@ public class CommonRestService {
 		AppSettings appSettings = getSettings(appName);
 		logger.info("Update Application Status for {} from {} to {}", appName, appSettings.getAppStatus(), status);
 		appSettings.setAppStatus(status);
-
-		//TODO: following if statement will be removed because toBeDeleted is deprecated
-		if(AppSettings.APPLICATION_STATUS_DELETED.equals(status)) {
-			appSettings.setToBeDeleted(true);
-		}
 
 		changeSettings(appName, appSettings);
 	}

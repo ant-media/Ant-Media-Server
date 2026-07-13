@@ -1,9 +1,9 @@
 package io.antmedia.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,22 +14,21 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -43,13 +42,17 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
-public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
+@ExtendWith(SpringExtension.class)
+public class StreamFetcherV2Test {
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
 
-	public static final String BIG_BUNNY_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+	public static final String BIG_BUNNY_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
 
 	private static int OS_TYPE;
 
@@ -79,22 +82,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 
 	private static String ffmpegPath = "ffmpeg";
 
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			System.out.println("Failed test: " + description.getMethodName() );
-			e.printStackTrace();
-		};
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		};
-	};
-
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
@@ -105,7 +93,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 
 		try {
@@ -213,10 +201,10 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		//add rtmp endpoint 
 		Endpoint endpoint = new Endpoint();
 		String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
-		endpoint.setRtmpUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId); 
+		endpoint.setEndpointUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId);
 		try 
 		{
-			result = RestServiceV2Test.addEndpointV2(streamSource.getStreamId(), endpoint);
+			result = RestServiceV2Test.addEndpoint(streamSource.getStreamId(), endpoint);
 			assertTrue(result.isSuccess());
 			String endpointId = result.getDataId();
 			//check that rtmp endpoint is streaming
@@ -230,7 +218,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			});
 
 			//remove rtmp endpoint
-			result = RestServiceV2Test.removeEndpointV2(streamSource.getStreamId(), endpointId);
+			result = RestServiceV2Test.removeEndpoint(streamSource.getStreamId(), endpointId);
 
 			//check that rtmp endpoint is not streaming
 			assertTrue(result.isSuccess());
@@ -289,7 +277,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		dataStore.save(localStream);
 
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl(endpointStream.getRtmpURL());
+		endpoint.setEndpointUrl(endpointStream.getRtmpURL());
 		//add endpoint to the server
 		dataStore.addEndpoint(localStream.getStreamId(), endpoint);
 

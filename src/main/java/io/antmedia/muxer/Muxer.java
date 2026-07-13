@@ -187,6 +187,10 @@ public abstract class Muxer {
 		avRationalTimeBase.den(1);
 	}
 
+	public void setFormat(String format) {
+		this.format = format;
+	}
+
 	protected String subFolder = null;
 
 	/**
@@ -235,7 +239,7 @@ public abstract class Muxer {
 		public void setKeyFrame(boolean isKeyFrame) {
 			this.keyFrame = isKeyFrame;
 		}
-		
+
 		public ByteBuffer getEncodedVideoFrame() {
 			return encodedVideoFrame;
 		}
@@ -276,7 +280,7 @@ public abstract class Muxer {
 
 	protected AVDictionary optionDictionary = new AVDictionary(null);
 
-	private long firstPacketDtsMs = -1;
+	protected long firstPacketDtsMs = -1;
 
 	private long audioNotWrittenCount;
 
@@ -294,6 +298,10 @@ public abstract class Muxer {
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
 		logger = LoggerFactory.getLogger(this.getClass());
+	}
+
+	public List<AVBSFContext> getBsfFilterContextList() {
+		return bsfFilterContextList;
 	}
 
 	public static File getPreviewFile(IScope scope, String name, String extension) {
@@ -368,7 +376,7 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
-	
+
 
 		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0)
 		{
@@ -377,12 +385,14 @@ public abstract class Muxer {
 			String url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
-			if (ret < 0) {
-				logger.warn("Could not open output url: {} ",  url);
-				return false;
+			synchronized (optionDictionary) {
+				int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
+				if (ret < 0) {
+					logger.warn("Could not open output url: {} ",  url);
+					return false;
+				}
+				getOutputFormatContext().pb(pb);
 			}
-			getOutputFormatContext().pb(pb);
 		}
 		return true;
 	}
@@ -429,10 +439,15 @@ public abstract class Muxer {
 				av_dict_set(optionsDictionary, key, options.get(key), 0);
 			}
 
-		}	
-			
+		}
 
-		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
+		// Always pass a non-null dictionary; some libavformat output muxers misbehave
+		// when the options pointer is null on write_header.
+		if (optionsDictionary == null) {
+			optionsDictionary = new AVDictionary();
+		}
+
+		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);
 		if (ret < 0) {
 			if (logger.isWarnEnabled()) 	{
 				logger.warn("Could not write header. File: {} Error: {}", file.getAbsolutePath(), getErrorDefinition(ret));
@@ -461,7 +476,6 @@ public abstract class Muxer {
 	 *
 	 * Implement this function with synchronized keyword as the subclass
 	 *
-	 * @return
 	 */
 	public synchronized void writeTrailer() {
 		if (!isRunning.get() || outputFormatContext == null) {
@@ -513,7 +527,32 @@ public abstract class Muxer {
 			avformat_free_context(outputFormatContext);
 			outputFormatContext = null;
 		}
-		av_dict_free(optionDictionary);
+
+		// optionDictionary intentionally NOT freed here.
+		//
+		// Why: av_dict_free races with avio_open2 in openIO(). prepareIO() schedules
+		// openIO() on a vert.x worker thread, and avio_open2(..., AVDictionary**)
+		// reads / mutates / can reallocate the dict while it's blocked on the
+		// network. If the stream stops during that window (rw_timeout = 10s, dead
+		// remote endpoint → frequent), MuxAdaptor.writeTrailer reaches clearResource
+		// on a different thread and frees a dict that FFmpeg is still operating on.
+		// Result: SEGV in av_dict_free (or intermittently inside avio_open2). The
+		// initial null-guard fix only protected against double-free; this is
+		// concurrent-modification, which the guard cannot help with.
+		//
+		// Cost: leaks the dict entries — a handful of key/value strings, ~hundreds
+		// of bytes per muxer instance. Bounded, acceptable.
+		//
+		// Proper fix (TODO — schedule after the EndpointMuxer threading work
+		// stabilizes): decouple the field-level optionDictionary from openIO.
+		//   1. setOption(name, value) writes to the existing `options` Map instead
+		//      of into the shared AVDictionary.
+		//   2. openIO() builds a fresh local AVDictionary from the Map, passes it
+		//      to avio_open2, frees it locally (no race — local scope).
+		//   3. Remove this field, or keep it stub-only for getOptionDictionary()'s
+		//      test callers (build a Map-backed copy on demand).
+		// See: crash investigation 2026-04-30 (av_dict_free → av_freep SEGV after
+		// rw_timeout-bounded openIO race with writeTrailer teardown).
 	}
 
 	/**
@@ -562,7 +601,7 @@ public abstract class Muxer {
 
 	/**
 	 * Write packets to the output. This function is used in transcoding.
-	 * Previously, It's the replacement of {link {@link #writePacket(AVPacket)}
+	 * Previously, It's the replacement of writePacket(AVPacket).
 	 * @param pkt
 	 * @param codecContext
 	 */
@@ -899,7 +938,7 @@ public abstract class Muxer {
 
 	/**
 	 * Add stream to the muxer. This method is called by direct muxing. 
-	 * For instance from RTMP, SRT ingest & Stream Pull 
+	 * For instance from RTMP, SRT ingest and Stream Pull
 	 * 	to HLS, MP4, HLS, DASH WebRTC Muxing
 	 * 
 	 * @param codecParameters
@@ -1419,6 +1458,30 @@ public abstract class Muxer {
 		av_strerror(errorCode, data, data.length);
 		return FFmpegUtilities.byteArrayToString(data);
 	}
+
+	public long getFirstVideoDts() {
+		return firstVideoDts;
+	}
+
+	public void setFirstVideoDts(long firstVideoDts) {
+		this.firstVideoDts = firstVideoDts;
+	}
+
+	public long getFirstAudioDts() {
+		return firstAudioDts;
+	}
+
+	public void setFirstAudioDts(long firstAudioDts) {
+		this.firstAudioDts = firstAudioDts;
+	}
+
+	public long getFirstPacketDtsMs() {
+		return firstPacketDtsMs;
+	}
+
+	public void setFirstPacketDtsMs(long firstPacketDtsMs) {
+		this.firstPacketDtsMs = firstPacketDtsMs;
+	}
 	
 	/**
 	 * This method is called when the current context will change/deleted soon.
@@ -1451,7 +1514,6 @@ public abstract class Muxer {
 	 * 
 	 * @param codecContext
 	 * @param streamIndex
-	 * @param encoderHashCode 
 	 */
 	public synchronized void contextChanged(AVCodecContext codecContext, int streamIndex) {
 		contextChanged(codecContext, streamIndex, 0);

@@ -1,13 +1,13 @@
 package io.antmedia.test.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,9 +16,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
@@ -31,12 +31,13 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.storage.StorageClient;
 
+@Tag("fast")
 public class AppSettingsTest {
 	String appName = "TestApp";
 	String path = "webapps/"+appName+"/WEB-INF/red5-web.properties";
 	File settingsFile = new File(path);
 	
-	@Before
+	@BeforeEach
 	public void before() {
 		assertFalse(settingsFile.exists());
 		
@@ -51,7 +52,7 @@ public class AppSettingsTest {
 		assertEquals(0, settingsFile.length());
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		deleteDir(new File("webapps"));
 	}
@@ -131,19 +132,16 @@ public class AppSettingsTest {
 		
 		assertEquals(true, currentSettings.isMp4MuxingEnabled());
 		
-		verify(mockApplicationAdapter, times(1)).synchUserVoDFolder(any(), any());
 		assertNotEquals(0, settingsFile.length());
 		
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		assertTrue(savedSettings.isMp4MuxingEnabled());
 		assertEquals("15", savedSettings.getHlsListSize());
-		assertEquals("", savedSettings.getVodFolder());
 		assertEquals("2", savedSettings.getHlsTime());
 		assertEquals("", savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size());
 
 		settings.setHlsListSize("12");
-		settings.setVodFolder("/mnt/storage");
 		settings.setHlsTime("17");
 		settings.setHlsPlayListType("event");
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
@@ -161,7 +159,6 @@ public class AppSettingsTest {
 		
 		//settings should not be changed because wron encoder parameter
 		assertEquals("15", savedSettings.getHlsListSize());
-		assertEquals("", savedSettings.getVodFolder());
 		assertEquals("2", savedSettings.getHlsTime());
 		assertEquals("", savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 0
@@ -176,7 +173,6 @@ public class AppSettingsTest {
 		assertTrue(updateSettings);
 		
 		assertEquals("12", savedSettings.getHlsListSize());
-		assertEquals("/mnt/storage", savedSettings.getVodFolder());
 		assertEquals("17", savedSettings.getHlsTime());
 		assertEquals("event", savedSettings.getHlsPlayListType());
 		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1

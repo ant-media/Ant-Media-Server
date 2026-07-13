@@ -186,7 +186,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	/**
 	 * Add context for path and docbase to current host.
 	 * 
-	 * @param contextPath
+	 * @param path
 	 *            Path
 	 * @param docBase
 	 *            Document base

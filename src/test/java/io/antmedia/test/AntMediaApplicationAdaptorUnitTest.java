@@ -2,12 +2,13 @@ package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -32,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -66,10 +68,10 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -162,7 +164,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		};
 	};
 
-	@Before
+	@BeforeEach
 	public void before() {
 		adapter = new AntMediaApplicationAdapter();
 		adapter.setVertx(vertx);
@@ -192,7 +194,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		adapter = null;
 
@@ -395,7 +397,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AppSettings settings = new AppSettings();
 
 		AppSettings newSettings = Mockito.spy(new AppSettings());
-		newSettings.setVodFolder("");
 		newSettings.setListenerHookURL("");
 		newSettings.setHlsflags("delete_segments");
 		newSettings.setTokenHashSecret("");
@@ -439,7 +440,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
 		spyAdapter.setClusterNotifier(clusterNotifier);
 
-		newSettings.setVodFolder(null);
 		newSettings.setHlsPlayListType(null);
 		newSettings.setHlsflags(null);
 		spyAdapter.updateSettings(newSettings, true, false);
@@ -545,7 +545,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.save(broadcast3);
 
 		// Should 3 broadcast in DB
-		assertEquals(3, dataStore.getBroadcastCount());
+		assertEquals(3, dataStore.getTotalBroadcastNumber());
 
 		Result result = new Result(false);
 		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
@@ -558,7 +558,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 
 		// Should 2 broadcast in DB, because delete zombie stream
-		assertEquals(2, dataStore.getBroadcastCount());
+		assertEquals(2, dataStore.getTotalBroadcastNumber());
 
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null, null, null);
 		for (Broadcast testBroadcast : broadcastList) 
@@ -571,118 +571,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}	
 	}
 
-	/**
-	 * Test code for https://github.com/ant-media/Ant-Media-Server/issues/4748
-	 */
-	@Test
-	public void testSyncUserVoDBug() {
-		File streamsFolder = new File("webapps/junit/streams");
-		assertFalse(streamsFolder.exists());	
-
-		//any target
-		Path target = new File("/usr").toPath();
-		try {
-			Files.createSymbolicLink(streamsFolder.toPath(), target);
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-
-		assertTrue(streamsFolder.exists());	
-		assertTrue(Files.isSymbolicLink(streamsFolder.toPath()));
-
-
-		IScope scope = Mockito.mock(IScope.class);
-		Mockito.when(scope.getName()).thenReturn("junit");
-
-		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
-		Mockito.doReturn(scope).when(spyAdapter).getScope();
-
-		DataStore dataStore = new InMemoryDataStore("dbname");
-		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
-		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		spyAdapter.setDataStoreFactory(dsf);
-
-
-		spyAdapter.synchUserVoDFolder(null, null);
-		Mockito.verify(spyAdapter, Mockito.never()).deleteSymbolicLink(any(), any());
-		Mockito.verify(spyAdapter, Mockito.never()).createSymbolicLink(any(), any());
-
-		assertTrue(streamsFolder.exists());
-
-		//Don't delete the file if they are the same files
-		spyAdapter.deleteSymbolicLink(new File(""), streamsFolder);
-
-		assertTrue(streamsFolder.exists());
-
-
-	}
-
-	@Test
-	public void testSynchUserVoD() {
-		File streamsFolder = new File(streamsFolderPath);
-		if (!streamsFolder.exists()) {
-			assertTrue(streamsFolder.mkdirs());
-		}
-		DataStore dataStore = new InMemoryDataStore("dbname");
-		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
-		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		adapter.setDataStoreFactory(dsf);
-
-		IScope scope = Mockito.mock(IScope.class);
-		Mockito.when(scope.getName()).thenReturn("test");
-
-		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
-		Mockito.doReturn(scope).when(spyAdapter).getScope();
-
-
-
-		File realPath = new File("src/test/resources");
-		assertTrue(realPath.exists());
-
-		File[] listFiles = realPath.listFiles();
-		int numberOfFiles = 0;
-		for (File file : listFiles) {
-			String extension = FilenameUtils.getExtension(file.getName());
-			if (file.isFile() && ("mp4".equals(extension) || "flv".equals(extension) || "mkv".equals(extension))) {
-				numberOfFiles++;
-			}
-		}
-
-		String linkFilePath = streamsFolder.getAbsolutePath() + "/resources";
-		File linkFile = new File(linkFilePath);
-		//Files.isSymbolicLink(linkFile.toPath());
-		try {
-			Files.deleteIfExists(linkFile.toPath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-
-		boolean result = spyAdapter.synchUserVoDFolder(null, realPath.getAbsolutePath());
-		assertTrue(result);
-
-		//we know there are files in src/test/resources
-		//test_short.flv
-		//test_video_360p_subtitle.flv
-		//test_Video_360p.flv
-		//test.flv
-		//sample_MP4_480.mp4
-		//high_profile_delayed_video.flv
-		//test_video_360p_pcm_audio.mkv
-		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		assertEquals(numberOfFiles, vodList.size());
-
-		for (VoD voD : vodList) {
-			assertEquals("streams/resources/" + voD.getVodName(), voD.getFilePath());
-		}
-
-		linkFile = new File(streamsFolder, "resources");
-		assertTrue(linkFile.exists());
-
-	}
 
 	@Test
 	public void testMuxingFinishedWithPreview() throws Exception{
@@ -780,7 +668,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testRunMuxerScript() throws IOException {
+	public void testRunConfiguredScript() throws Exception {
 		File f = new File ("src/test/resources/hello_script");
 		if (f.exists()) { // if it exists delete it due to cache
 			Files.delete(f.toPath());
@@ -788,7 +676,25 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertFalse(f.exists());
 
 		adapter.setVertx(vertx);
-		adapter.runScript("src/test/resources/echo.sh");
+		AppSettings appSettings = new AppSettings();
+		adapter.setAppSettings(appSettings);
+
+		Method runConfiguredScript = AntMediaApplicationAdapter.class.getDeclaredMethod("runConfiguredScript", String.class, String[].class);
+		runConfiguredScript.setAccessible(true);
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[0]);
+		assertFalse(f.exists());
+
+		appSettings.setMuxerFinishScript("src/test/resources");
+		runConfiguredScript.invoke(adapter, "src/test/resources", new String[0]);
+		assertFalse(f.exists());
+
+		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[] {"echo x"});
+		assertFalse(f.exists());
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[] {"&echo"});
+		assertFalse(f.exists());
+
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[0]);
 
 		await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -850,7 +756,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 					ArgumentMatchers.eq("http://any_url"),
 					ArgumentMatchers.eq(jsonPayload),
 					ArgumentMatchers.eq(appSettings.getWebhookRetryCount() - 1), 
-					isNull(String.class)
+					isNull()
 					);
 
 			Mockito.when(statusLine.getStatusCode()).thenReturn(200);
@@ -950,7 +856,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.save(broadcast);
 
 		String subscriberId = "subscriberId";
-		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
+		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, null, null);
 
 		broadcast = dataStore.get(broadcast.getStreamId());
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(1)).getListenerHookURL(broadcast);
@@ -1313,7 +1219,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.delete(streamId);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished("streamId", anyFile, 0, 100, 480, null, null);
+		spyAdaptor.muxingFinished(dataStore.get("streamId"), "streamId", anyFile, 0, 100, 480, null, null);
 
 		await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -1370,36 +1276,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 
-	@Test
-	public void testSynchUserVodThrowException() {
-		File f = new File(streamsFolderPath);
-		assertTrue(f.mkdirs());
-
-		File emptyFile = new File(streamsFolderPath, "emptyfile");
-		emptyFile.deleteOnExit();
-		try {
-			assertTrue(emptyFile.createNewFile());
-			boolean synchUserVoDFolder = adapter.deleteSymbolicLink(new File("any_file_not_exist"), f);
-			assertFalse(synchUserVoDFolder);
-
-			synchUserVoDFolder = adapter.deleteSymbolicLink(null, f);
-			assertFalse(synchUserVoDFolder);
-
-
-			File oldDir = new File (streamsFolderPath, "dir");
-			oldDir.mkdirs();
-			Files.deleteIfExists(oldDir.toPath());
-			Files.createSymbolicLink(oldDir.toPath(), emptyFile.toPath());
-			oldDir.deleteOnExit();
-
-			synchUserVoDFolder = adapter.deleteSymbolicLink(oldDir, f);
-			assertTrue(synchUserVoDFolder);
-
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
+	
 
 	@Test
 	public void testWaitUntilLiveStreamsStopped() {
@@ -1476,7 +1353,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e1.printStackTrace();
 		}
 
-		stream2.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");		
+		stream2.setStreamUrl("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4");		
 		dataStore.save(stream2);
 
 		StreamFetcherManager sfm = new StreamFetcherManager(vertx, dataStore, scope);
@@ -1700,7 +1577,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setScope(scope);
 		adapter.setVertx(vertx);
 
-		adapter.closeBroadcast(broadcast.getStreamId());
+		adapter.closeBroadcast(broadcast.getStreamId(), null, null);
 
 		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
@@ -1742,7 +1619,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setScope(scope);
 		adapter.setVertx(vertxLocal);
 
-		adapter.closeBroadcast(broadcast.getStreamId(), "subscriberId");
+		adapter.closeBroadcast(broadcast.getStreamId(), "subscriberId", null);
 
 		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
@@ -2008,7 +1885,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		broadcast.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");
+		broadcast.setStreamUrl("https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4");
 		dataStore.save(broadcast);
 
 		boolean startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
@@ -2155,9 +2032,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(result4.isSuccess());
 
 		// Verify the async callback executed
-		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
-			verify(streamFetcherManager, times(1)).startStreaming(broadcast4);
-		});
+		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+			verify(streamFetcherManager, times(1)).startStreaming(broadcast4));
 
 		// Test Case 5: Non-cluster mode streaming
 		when(spyAdapter.isClusterMode()).thenReturn(false);
@@ -2567,7 +2443,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(spyAdapter).updateSettings(clusterStoreSettings, false, false);
 
 
-		clusterStoreSettings.setToBeDeleted(true);
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis());
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(3)).registerSettingUpdateListener(any(), any());
@@ -2645,9 +2520,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
 		subTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		subTrack2.setUpdateTime(System.currentTimeMillis());
-
-		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
-		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
 
 
 		dataStore.save(subTrack1);
@@ -2798,7 +2670,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Get the subtrackPoller using the getter and verify it's the same as the mock
 		ISubtrackPoller retrievedSubtrackPoller = adapter.getSubtrackPoller();
-		assertEquals("The retrieved subtrackPoller should match the mock instance.", mockSubtrackPoller, retrievedSubtrackPoller);
+		assertEquals(mockSubtrackPoller, retrievedSubtrackPoller, "The retrieved subtrackPoller should match the mock instance.");
 	}
 
 	@Test

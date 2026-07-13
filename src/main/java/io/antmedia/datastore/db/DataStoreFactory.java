@@ -24,9 +24,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	public static final String SETTINGS_DB_NAME = "db.name";
 	public static final String SETTINGS_DB_TYPE = "db.type";
 	public static final String SETTINGS_DB_HOST = "db.host";
-	public static final String SETTINGS_DB_USER = "db.user";
-	public static final String SETTINGS_DB_PASS = "db.password";
-
+	
 
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 	
@@ -46,12 +44,6 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	@Value( "${"+SETTINGS_DB_HOST+":#{null}}" )
 	private String dbHost;
 	
-	@Value( "${"+SETTINGS_DB_USER+":#{null}}" )
-	private String dbUser;
-	
-	@Value( "${"+SETTINGS_DB_PASS+":#{null}}" )
-	private String dbPassword;
-
 	private String hostAddress;
 	
 	private Vertx vertx;
@@ -82,24 +74,12 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	public void setDbHost(String dbHost) {
 		this.dbHost = dbHost;
 	}
-
-	public String getDbUser() {
-		return dbUser;
-	}
-
-	public void setDbUser(String dbUser) {
-		this.dbUser = dbUser;
-	}
 	
-	public void setDbPassword(String dbPassword) {
-		this.dbPassword = dbPassword;
-	}
-
 	public void init()  
 	{
 		if(DB_TYPE_MONGODB.contentEquals(dbType))
 		{
-			dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
+			dataStore = new MongoStore(dbHost, dbName);
 		}
 		else if(DB_TYPE_MAPDB .contentEquals(dbType))
 		{

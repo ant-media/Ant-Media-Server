@@ -1,9 +1,10 @@
 package io.antmedia;
 
-import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import static org.junit.Assert.assertEquals;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.junit.jupiter.api.Test;
+import org.webrtc.VideoCodecType;
 
 public class FFmpegUtilitiesTest {
 
@@ -30,4 +31,11 @@ public class FFmpegUtilitiesTest {
         avutil.av_strerror(-22, buffer, 128);
         assertEquals("Invalid argument", FFmpegUtilities.byteArrayToString(buffer));
     }
+    
+    @Test
+    public void testVideoCodecType() {
+        VideoCodecType type = VideoCodecType.AV1;
+        assertEquals(VideoCodecType.AV1.name(), type.name());
+    }
+    
 }

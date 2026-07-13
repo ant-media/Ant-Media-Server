@@ -14,8 +14,14 @@ runs:
     - name: Clone and build Ant Media Server Parent project
       shell: bash
       run: |
-          git clone --depth=1 -b ${{ inputs.branch_name }} https://github.com/ant-media/ant-media-server-parent.git || git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git
+          BRANCH="${{ inputs.branch_name }}"
+          echo "Building dependent projects for branch: ${BRANCH}"
+          if ! git clone --depth=1 -b "${BRANCH}" https://github.com/ant-media/ant-media-server-parent.git; then
+            echo "::warning::Branch '${BRANCH}' not found in ant-media-server-parent; falling back to master"
+            git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git
+          fi
           cd ant-media-server-parent
+          echo "Parent pom netty.version=$(grep -m1 '<netty.version>' pom.xml | sed 's/.*>\(.*\)<.*/\1/')"
           mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
           cd ..
      

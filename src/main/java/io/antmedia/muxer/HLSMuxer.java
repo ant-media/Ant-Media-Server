@@ -56,6 +56,7 @@ public class HLSMuxer extends Muxer  {
 	private String  hlsListSize = "20";
 	private String hlsTime = "5";
 	private String hlsPlayListType = null;
+	private int startIndex = 1;
 
 
 	private boolean deleteFileOnExit = true;
@@ -93,7 +94,6 @@ public class HLSMuxer extends Muxer  {
 
 	private String segmentFileNameSuffix;
 
-	private boolean uploadMp4ToS3 = true;
 
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
@@ -102,10 +102,6 @@ public class HLSMuxer extends Muxer  {
 
 		if((S3_CONSTANT & uploadExtensionsToS3) == 0){
 			uploadHLSToS3 = false;
-		}
-
-		if((RecordMuxer.S3_CONSTANT & uploadExtensionsToS3) == 0){
-			uploadMp4ToS3  = false;
 		}
 
 		extension = ".m3u8";
@@ -215,6 +211,8 @@ public class HLSMuxer extends Muxer  {
 			if (this.hlsFlags != null && !this.hlsFlags.isEmpty()) {
 				options.put("hls_flags", this.hlsFlags);
 			}
+			
+			options.put("start_number", ""+startIndex);
 
 
 			tmpPacketForSEI = avcodec.av_packet_alloc();
@@ -749,6 +747,14 @@ public class HLSMuxer extends Muxer  {
 
 	public ByteBuffer getPendingSEIData() {
 		return pendingSEIData;
+	}
+
+	public int getStartIndex() {
+		return startIndex;
+	}
+
+	public void setStartIndex(int startIndex) {
+		this.startIndex = startIndex;
 	}
 
 }
