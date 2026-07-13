@@ -1,12 +1,12 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doNothing;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -22,9 +22,9 @@ import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.Scope;
@@ -32,6 +32,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
@@ -55,6 +59,7 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@Testcontainers
 public class VoDRestServiceV2UnitTest {
 
 
@@ -68,8 +73,12 @@ public class VoDRestServiceV2UnitTest {
 
 	Vertx vertx = io.vertx.core.Vertx.vertx();
 
+	@Container
+	public static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
+			.withExposedPorts(27017);
 
-	@Before
+
+	@BeforeEach
 	public void before() {
 		restServiceReal = new VoDRestService();
 		File webapps = new File("webapps");
@@ -80,9 +89,13 @@ public class VoDRestServiceV2UnitTest {
 		}
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		restServiceReal = null;
+	}
+
+	private String mongoUri() {
+		return "mongodb://" + mongo.getHost() + ":" + mongo.getFirstMappedPort();
 	}
 
 	@Test
@@ -456,7 +469,7 @@ public class VoDRestServiceV2UnitTest {
 		MapDBStore mapDataStore = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
 		vodSorting(mapDataStore);
 
-		DataStore mongoDataStore = new MongoStore("127.0.0.1", "testdb");
+		DataStore mongoDataStore = new MongoStore(mongoUri(), "testdb");
 		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
 
 		store.find(VoD.class).delete(new DeleteOptions().multi(true));

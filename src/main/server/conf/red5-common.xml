@@ -7,7 +7,9 @@
     http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd 
     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <context:annotation-config></context:annotation-config>
+    <!-- Component scanning for io.antmedia.config and all subpackages, including enterprise -->
+    <context:component-scan base-package="io.antmedia.config"/>
+    <context:component-scan base-package="io.antmedia.enterprise.config"/>
 
     <!-- DO NOT FORMAT THIS FILE IN ECLIPSE -->
     
@@ -160,11 +162,5 @@
 
        <property name="memoryLimit" value="${server.memory_limit_percentage:75}" />
    	</bean>
-   	
-    <bean id="srtAdaptor" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.srt.SRTAdaptor' : 'io.antmedia.srt.SRTAdaptor' }">
-	</bean>
-   	
-   	
-    
 
 </beans>

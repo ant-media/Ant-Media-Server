@@ -1,15 +1,16 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-
+import org.junit.jupiter.api.Test;
 import jakarta.servlet.ServletException;
 
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import io.antmedia.AppSettings;
 import io.antmedia.filter.JWTFilter;
 
+@Tag("fast")
 public class JWTFilterTest {
 	
 	protected static Logger logger = LoggerFactory.getLogger(JWTFilterTest.class);
