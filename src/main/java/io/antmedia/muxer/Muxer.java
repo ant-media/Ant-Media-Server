@@ -280,7 +280,7 @@ public abstract class Muxer {
 
 	protected AVDictionary optionDictionary = new AVDictionary(null);
 
-	private long firstPacketDtsMs = -1;
+	protected long firstPacketDtsMs = -1;
 
 	private long audioNotWrittenCount;
 
@@ -476,7 +476,6 @@ public abstract class Muxer {
 	 *
 	 * Implement this function with synchronized keyword as the subclass
 	 *
-	 * @return
 	 */
 	public synchronized void writeTrailer() {
 		if (!isRunning.get() || outputFormatContext == null) {
@@ -602,7 +601,7 @@ public abstract class Muxer {
 
 	/**
 	 * Write packets to the output. This function is used in transcoding.
-	 * Previously, It's the replacement of {link {@link #writePacket(AVPacket)}
+	 * Previously, It's the replacement of writePacket(AVPacket).
 	 * @param pkt
 	 * @param codecContext
 	 */
@@ -939,7 +938,7 @@ public abstract class Muxer {
 
 	/**
 	 * Add stream to the muxer. This method is called by direct muxing. 
-	 * For instance from RTMP, SRT ingest & Stream Pull 
+	 * For instance from RTMP, SRT ingest and Stream Pull
 	 * 	to HLS, MP4, HLS, DASH WebRTC Muxing
 	 * 
 	 * @param codecParameters
@@ -1459,6 +1458,30 @@ public abstract class Muxer {
 		av_strerror(errorCode, data, data.length);
 		return FFmpegUtilities.byteArrayToString(data);
 	}
+
+	public long getFirstVideoDts() {
+		return firstVideoDts;
+	}
+
+	public void setFirstVideoDts(long firstVideoDts) {
+		this.firstVideoDts = firstVideoDts;
+	}
+
+	public long getFirstAudioDts() {
+		return firstAudioDts;
+	}
+
+	public void setFirstAudioDts(long firstAudioDts) {
+		this.firstAudioDts = firstAudioDts;
+	}
+
+	public long getFirstPacketDtsMs() {
+		return firstPacketDtsMs;
+	}
+
+	public void setFirstPacketDtsMs(long firstPacketDtsMs) {
+		this.firstPacketDtsMs = firstPacketDtsMs;
+	}
 	
 	/**
 	 * This method is called when the current context will change/deleted soon.
@@ -1491,7 +1514,6 @@ public abstract class Muxer {
 	 * 
 	 * @param codecContext
 	 * @param streamIndex
-	 * @param encoderHashCode 
 	 */
 	public synchronized void contextChanged(AVCodecContext codecContext, int streamIndex) {
 		contextChanged(codecContext, streamIndex, 0);

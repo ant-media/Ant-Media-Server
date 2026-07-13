@@ -1,11 +1,12 @@
 package io.antmedia.test.statistic;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -29,9 +30,9 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.javacpp.Pointer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -63,24 +64,24 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.Vertx;
 
 public class StatsCollectorTest {
-	
+
 	static {
 		//just init javacpp
 		AVRational rat = new AVRational();
-		
+
 	}
-	
+
 	static Vertx vertx;
 	static Vertx webRTCVertx;
-	
-	@BeforeClass
+
+	@BeforeAll
 	public static void beforeClass() {
 		vertx = Vertx.vertx();
 		webRTCVertx = Vertx.vertx();
-		
+
 	}
-	
-	@AfterClass
+
+	@AfterAll
 	public static void afterClass() {
 		vertx.close();
 		webRTCVertx.close();
@@ -90,59 +91,59 @@ public class StatsCollectorTest {
 	public void testCpuAverage() {
 		StatsCollector monitor = new StatsCollector();
 		monitor.setWindowSize(3);
-		
+
 		monitor.addCpuMeasurement(5, 3);
 		assertEquals(5, monitor.getCpuLoad());
 		assertEquals(3, StatsCollector.getProcessCpuLoad());
-		
+
 		monitor.addCpuMeasurement(7, 5);
 		assertEquals(6, monitor.getCpuLoad());
 		assertEquals(4, StatsCollector.getProcessCpuLoad());
 
-		
+
 		monitor.addCpuMeasurement(9, 7);
 		assertEquals(7, monitor.getCpuLoad());
 		assertEquals(5, StatsCollector.getProcessCpuLoad());
 
-		
+
 		monitor.addCpuMeasurement(11, 9);
 		assertEquals(9, monitor.getCpuLoad());
 		assertEquals(7, StatsCollector.getProcessCpuLoad());
 
 	}
-	
+
 	@Test
-	public void testClassCastException() 
-	{		
+	public void testClassCastException()
+	{
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
-		
+
 		Mockito.when(appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
-		
+
 		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new AdminApplication());
-		
+
 		assertNull(StatsCollector.getAppAdaptor(appContext));
-		
+
 		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new AntMediaApplicationAdapter());
-		
+
 		assertNotNull(StatsCollector.getAppAdaptor(appContext));
-		
+
 		Mockito.when(appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(false);
 		assertNull(StatsCollector.getAppAdaptor(appContext));
 	}
-	
-	
+
+
 	@Test
 	public void testThreadDump() {
 		ThreadInfo[] threadDump = StatsCollector.getThreadDump();
 		assertNotNull(threadDump);
-		
+
 		JsonArray threadDumpJSON = StatsCollector.getThreadDumpJSON();
 		assertNotNull(threadDumpJSON);
-		
+
 	}
-	
+
 	@Test
-	public void testGetUserEmail() 
+	public void testGetUserEmail()
 	{
 		ConcurrentLinkedQueue<IScope> scopes = new ConcurrentLinkedQueue<>();
 		IScope scope = Mockito.mock(IScope.class);
@@ -150,69 +151,68 @@ public class StatsCollectorTest {
 		Mockito.when(scope.getContext()).thenReturn(context);
 		AdminApplication adminApp = Mockito.mock(AdminApplication.class);
 		scopes.add(scope);
-		
+
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getApplicationContext()).thenReturn(appContext);
-		
+
 		Mockito.when(appContext.containsBean(Mockito.anyString())).thenReturn(true);
 		Mockito.when(appContext.getBean(Mockito.anyString())).thenReturn(adminApp);
-		
+
 		ConsoleDataStoreFactory dtFactory = Mockito.mock(ConsoleDataStoreFactory.class);
 		AbstractConsoleDataStore dataStore = Mockito.mock(AbstractConsoleDataStore.class);
-		
+
 		Mockito.when(dtFactory.getDataStore()).thenReturn(dataStore);
 		Mockito.when(adminApp.getDataStoreFactory()).thenReturn(dtFactory);
-		
+
 		List<User> userList = new ArrayList<>();
 		String userEmail = "test@antmedia.io";
 		User user = new User(userEmail, null, UserType.ADMIN, CommonRestService.SCOPE_SYSTEM, null);
 		userList.add(user);
 		Mockito.when(dataStore.getUserList()).thenReturn(userList);
-		
+
 		StatsCollector statsCollector = new StatsCollector();
 		statsCollector.setScopes(scopes);
-		
+
 		assertEquals(userEmail, statsCollector.getUserEmail());
-		
-		
+
+
 		userList.get(0).setUserType(UserType.READ_ONLY);
 		//it is not null because userEmail is set once
 		assertEquals(userEmail, statsCollector.getUserEmail());
-		
+
 		statsCollector.setUserEmail(null);
 		assertNull(statsCollector.getUserEmail());
-		
-		
+
+
 		statsCollector.setUserEmail(null);
 		userList.get(0).setUserType(UserType.ADMIN);
 		userList.get(0).setScope("app1");
 		assertNull(statsCollector.getUserEmail());
-		
+
 		statsCollector.setUserEmail(null);
 		userList.remove(0);
 		assertNull(statsCollector.getUserEmail());
-		
+
 		scopes.remove();
 		user = new User(userEmail, null, UserType.ADMIN, CommonRestService.SCOPE_SYSTEM, null);
 		userList.add(user);
 		assertNull(statsCollector.getUserEmail());
-		
-		
-		
+
+
 		scopes.add(scope);
 		Mockito.when(appContext.getBean(Mockito.anyString())).thenReturn(null);
 		assertNull(statsCollector.getUserEmail());
-		
+
 		Mockito.when(appContext.getBean(Mockito.anyString())).thenReturn(adminApp);
 		Mockito.when(appContext.containsBean(Mockito.anyString())).thenReturn(false);
 		assertNull(statsCollector.getUserEmail());
-		
-		
+
+
 		Mockito.when(appContext.containsBean(Mockito.anyString())).thenReturn(true);
 		assertEquals(userEmail, statsCollector.getUserEmail());
-		
+
 	}
-	
+
 	private static byte[] getMacAddress(NetworkInterface networkInterface) {
 		byte[] macAddressBytes = null;
 		try {
@@ -227,7 +227,7 @@ public class StatsCollectorTest {
 		return macAddressBytes;
 	}
 
-	
+
 	private static String getHashInstanceId() {
 		StringBuilder instanceId = new StringBuilder();
 		try {
@@ -258,55 +258,55 @@ public class StatsCollectorTest {
 		if (instanceId.length() == 0) {
 			instanceId.append(UUID.randomUUID().toString());
 		}
-		
+
 		return CommonRestService.getMD5Hash(instanceId.toString());
 	}
-	
+
 	@Test
 	public void testInstanceId() {
-		
+
 		//System.out.println("InstanceId :" + Launcher.getInstanceId());
 		
 		getHashInstanceId();
-		
+
 	}
-	
+
 	@Test
 	public void testJSObjects() {
-		
+
 		StatsCollector statsCollector = new StatsCollector();
-		
+
 		statsCollector.setVertx(vertx);
 		statsCollector.setWebRTCVertx(webRTCVertx);
-		
+
 		JsonObject jsObject = StatsCollector.getCPUInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.PROCESS_CPU_TIME));
 		assertTrue(jsObject.has(StatsCollector.SYSTEM_CPU_LOAD));
 		assertTrue(jsObject.has(StatsCollector.PROCESS_CPU_LOAD));
-		
+
 		assertTrue(jsObject.get(StatsCollector.SYSTEM_CPU_LOAD).getAsInt() <= 100);
-		
-		
+
+
 		jsObject = StatsCollector.getJVMMemoryInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.IN_USE_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.FREE_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.TOTAL_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.MAX_MEMORY));
-		
+
 
 		jsObject = StatsCollector.getFileSystemInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.IN_USE_SPACE));
 		assertTrue(jsObject.has(StatsCollector.FREE_SPACE));
 		assertTrue(jsObject.has(StatsCollector.TOTAL_SPACE));
 		assertTrue(jsObject.has(StatsCollector.USABLE_SPACE));
-		
-		
+
+
 		jsObject = StatsCollector.getSystemInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.PROCESSOR_COUNT));
 		assertTrue(jsObject.has(StatsCollector.JAVA_VERSION));
 		assertTrue(jsObject.has(StatsCollector.OS_ARCH));
 		assertTrue(jsObject.has(StatsCollector.OS_NAME));
-				
+
 		jsObject = StatsCollector.getSysteMemoryInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.VIRTUAL_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.TOTAL_MEMORY));
@@ -319,7 +319,7 @@ public class StatsCollectorTest {
 		jsObject = StatsCollector.getJVMNativeMemoryInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.IN_USE_JVM_NATIVE_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.MAX_JVM_NATIVE_MEMORY));
-		
+
 		jsObject = StatsCollector.getSystemResourcesInfo(null);
 		assertTrue(jsObject.has(StatsCollector.CPU_USAGE));
 		assertTrue(jsObject.has(StatsCollector.JVM_MEMORY_USAGE));
@@ -334,7 +334,7 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.LOCAL_LIVE_STREAMS));
 		assertTrue(jsObject.has(StatsCollector.FFMPEG_BUILD_INFO));
 
-		
+
 		GPUUtils gpuUtils = Mockito.mock(GPUUtils.class);
 		MemoryStatus memoryStatus = Mockito.mock(MemoryStatus.class);
 		Mockito.when(gpuUtils.getMemoryStatus(0)).thenReturn(memoryStatus);
@@ -346,55 +346,55 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.GPU_MEMORY_FREE));
 		assertTrue(jsObject.has(StatsCollector.GPU_MEMORY_USED));
 		assertTrue(jsObject.has(StatsCollector.GPU_DEVICE_NAME));
-		
-		
+
+
 		jsObject = StatsCollector.getThreadInfoJSONObject();
 		assertTrue(jsObject.has(StatsCollector.DEAD_LOCKED_THREAD));
 		assertTrue(jsObject.has(StatsCollector.THREAD_COUNT));
 		assertTrue(jsObject.has(StatsCollector.THREAD_PEEK_COUNT));
 
 	}
-	
+
 	@Test
 	public void testGetterSetter() {
 		StatsCollector resMonitor = new StatsCollector();
-		
+
 		assertEquals(75, resMonitor.getCpuLimit());
 		resMonitor.setCpuLimit(45);
 		assertEquals(45, resMonitor.getCpuLimit());
-		
+
 		resMonitor.setCpuLimit(150);
 		assertEquals(100, resMonitor.getCpuLimit());
-		
+
 		resMonitor.setCpuLimit(9);
 		assertEquals(10, resMonitor.getCpuLimit());
-		
+
 		assertEquals(75, resMonitor.getMemoryLimit());
 		resMonitor.setMemoryLimit(45);
 		assertEquals(45, resMonitor.getMemoryLimit());
 		resMonitor.setMemoryLimit(150);
 		assertEquals(100, resMonitor.getMemoryLimit());
-		
+
 		resMonitor.setMemoryLimit(0);
 		assertEquals(10, resMonitor.getMemoryLimit());
-		
-		
+
+
 		Vertx vertx = Vertx.vertx();
 		resMonitor.setVertx(vertx);
-		
+
 		assertEquals(vertx, resMonitor.getVertx());
-		
+
 		assertEquals(15000, resMonitor.getStaticSendPeriod());
 		resMonitor.setStaticSendPeriod(9000);
 		assertEquals(9000, resMonitor.getStaticSendPeriod());
-		
+
 		String kafkaBroker = "This is kafka broker";
 		assertNull(resMonitor.getKafkaBrokers());
 		resMonitor.setKafkaBrokers(kafkaBroker);
 		assertEquals(kafkaBroker, resMonitor.getKafkaBrokers());
-		
+
 	}
-	
+
 	@Test
 	public void testHeartbeat() {
 
@@ -402,92 +402,91 @@ public class StatsCollectorTest {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		//check default value
 		assertEquals(300000, resMonitor.getHeartbeatPeriodMs());
-		
+
 		resMonitor.setHeartbeatPeriodMs(3000);
 		resMonitor.setVertx(Vertx.vertx());
 		resMonitor.start();
-		
+
 		assertTrue(resMonitor.isHeartBeatEnabled());
-		
-		
-		Awaitility.await().pollDelay(5,TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS)
-		.pollInterval(1, TimeUnit.SECONDS)
-		.until(()->{
-			return true;
-		});
-		
+
+
+		Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS)
+				.pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					return true;
+				});
+
 		Mockito.verify(resMonitor, times(1)).startAnalytic();
-		
+
 		resMonitor.cancelHeartBeat();
-		
-		
-		
+
+
 		resMonitor.setHeartBeatEnabled(false);
 		resMonitor.start();
 		assertFalse(resMonitor.isHeartBeatEnabled());
 		Mockito.verify(resMonitor, times(1)).startAnalytic();
-		
+
 		resMonitor.cancelHeartBeat();
-		
+
 	}
-	
+
 	@Test
 	public void testSendInstanceKafkaStats() {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
-		
+
 		resMonitor.setVertx(vertx);
 		resMonitor.setWebRTCVertx(webRTCVertx);
-		
+
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
-		
+
 		Future<RecordMetadata> futureMetdata = Mockito.mock(Future.class);
-		
-		
+
+
 		//ProducerRecord<Long, String> record = new ProducerRecord<>(topicName,
 		//		gson.toJson(jsonElement));
 		
 		ArgumentCaptor<ProducerRecord<Long, String>> producerRecord = ArgumentCaptor.forClass(ProducerRecord.class);
-		
+
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
-		
+
 		resMonitor.setKafkaProducer(kafkaProducer);
 		resMonitor.sendInstanceStats(null);
-		
-		
+
+
 		verify(kafkaProducer).send(producerRecord.capture());
-		
+
 		assertEquals(StatsCollector.INSTANCE_STATS_TOPIC_NAME, producerRecord.getValue().topic());
 	}
-	
+
 	@Test
 	public void testSendWebRTCKafkaStats() {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
-		
+
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
-		
+
 		Future<RecordMetadata> futureMetdata = Mockito.mock(Future.class);
-		
-		
+
+
 		//ProducerRecord<Long, String> record = new ProducerRecord<>(topicName,
 		//		gson.toJson(jsonElement));
 		
 		ArgumentCaptor<ProducerRecord<Long, String>> producerRecord = ArgumentCaptor.forClass(ProducerRecord.class);
-		
+
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
-		
+
 		resMonitor.setKafkaProducer(kafkaProducer);
-		
+
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
 		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info", "192.168.1.1");
 		webRTCClientStatList.add(stats);
 		resMonitor.sendWebRTCClientStats2Kafka(webRTCClientStatList, "stream1");
-		
-		
+
+
 		verify(kafkaProducer).send(producerRecord.capture());
-		
+
 		assertEquals(StatsCollector.WEBRTC_STATS_TOPIC_NAME, producerRecord.getValue().topic());
 	}
-	
+
 	@Test
 	public void testCreateKafka() {
 		StatsCollector resMonitor = new StatsCollector();
@@ -497,88 +496,88 @@ public class StatsCollectorTest {
 			fail("it shold throw exception");
 		}
 		catch (NullPointerException e) {
-			
+
 		}
-		
+
 		resMonitor.setKafkaBrokers("localhost:9092");
 		Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
 		assertNotNull(kafkaProducer);
 		kafkaProducer.close();
 	}
-	
+
 	@Test
 	public void testCollectAndSendWebRTCStats() {
 		StatsCollector resMonitor = new StatsCollector();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);
-		
+
 		Future<RecordMetadata> futureMetdata = Mockito.mock(Future.class);
-		
+
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
-		
+
 		ConcurrentLinkedQueue<IScope> scopes = new ConcurrentLinkedQueue<>();
 		IScope scope = Mockito.mock(IScope.class);
 		IContext context = Mockito.mock(IContext.class);
 		Mockito.when(scope.getContext()).thenReturn(context);
-		
+
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getApplicationContext()).thenReturn(appContext);
 		Mockito.when(appContext.containsBean(any())).thenReturn(true);
-	
+
 		IWebRTCAdaptor webRTCAdaptor = Mockito.mock(IWebRTCAdaptor.class);
 		Mockito.when(appContext.getBean(Mockito.anyString())).thenReturn(webRTCAdaptor);
-		
-		Set<String> streams = new HashSet<String>(); 
+
+		Set<String> streams = new HashSet<String>();
 		streams.add("stream1");
 		Mockito.when(webRTCAdaptor.getStreams()).thenReturn(streams);
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
 		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info", "192.168.1.1");
 		webRTCClientStatList.add(stats);
-		 
+
 		Mockito.when(webRTCAdaptor.getWebRTCClientStats(any())).thenReturn(webRTCClientStatList);
-		
+
 		scopes.add(scope);
-		
+
 		resMonitor.setScopes(scopes);
 		resMonitor.setVertx(Vertx.vertx());
 		resMonitor.setStaticSendPeriod(5000);
-	
+
 		resMonitor.collectAndSendWebRTCClientsStats();
-		
+
 		verify(kafkaProducer, times(1)).send(Mockito.any());
-		
+
 	}
-	
+
 	@Test
 	public void testStatusSendUnexpectedShutdownbHook() {
 		ServerSettings serverSettings = new ServerSettings();
-		
+
 		serverSettings.setCpuMeasurementPeriodMs(10000);
 		//Create StatsCollector
 		StatsCollector statsCollector = Mockito.spy(new StatsCollector());
-		
+
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
 		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
-		
+
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
 		//Call setApplicationContext
 		statsCollector.setApplicationContext(context);
-		
+
 		statsCollector.start();
 		Mockito.verify(statsCollector, Mockito.never()).sendUnexpectedShutdownHook(Mockito.any());
-		
+
 		String httpUrl = "http://example.com";
 		serverSettings.setServerStatusWebHookURL(httpUrl);
-		
+
 		assertEquals(30000, statsCollector.getUnexpectedShutDownDelayMs());
 		statsCollector.setUnexpectedShutDownDelayMs(10);
 		statsCollector.setApplicationContext(context);
 		statsCollector.start();
 		Mockito.verify(statsCollector, Mockito.after(100).never()).sendUnexpectedShutdownHook(Mockito.any());
-		
-		
+
+
 		ConcurrentLinkedQueue<IScope> scopes = new ConcurrentLinkedQueue<>();
 		IScope scope = Mockito.mock(IScope.class);
 		IContext mockContext = Mockito.mock(IContext.class);
@@ -587,77 +586,75 @@ public class StatsCollectorTest {
 		Mockito.when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
 		Mockito.when(context.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
 		Mockito.when(mockContext.getApplicationContext()).thenReturn(context);
-		
+
 		scopes.add(scope);
 		statsCollector.setScopes(scopes);
-		
-		
+
+
 		statsCollector.setApplicationContext(context);
 		statsCollector.start();
 		Mockito.verify(statsCollector, Mockito.after(100).never()).sendUnexpectedShutdownHook(Mockito.any());
-		
+
 		appAdaptor.setShutdownProperly(false);
 		statsCollector.setApplicationContext(context);
 		statsCollector.start();
 		Mockito.verify(statsCollector, Mockito.after(500)).sendUnexpectedShutdownHook(Mockito.any());
-		
+
 	}
-	
-	
-	
-	
+
+
 	@Test
 	public void testServerSettingsInteraction() {
 		//Create server settings
 		ServerSettings serverSettings = new ServerSettings();
-		
+
 		serverSettings.setCpuMeasurementPeriodMs(10000);
 		serverSettings.setCpuMeasurementWindowSize(10);
-		
+
 		//Create StatsCollector
 		StatsCollector statsCollector = new StatsCollector();
-		
+
 		//Create ApplicaitonContext mock and bind the server settings
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
 		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
-		
+
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
 		//Call setApplicationContext
 		statsCollector.setApplicationContext(context);
-		
+
 		//Check the fields
 		assertEquals(10000, statsCollector.getMeasurementPeriod());
 		assertEquals(10, statsCollector.getWindowSize());
 	}
-	
+
 	@Test
 	public void testServertime() {
 		JsonObject serverTime = StatsCollector.getServerTime();
 		assertTrue(serverTime.has(StatsCollector.START_TIME));
 		assertTrue(serverTime.has(StatsCollector.UP_TIME));
-		
+
 		long startTime = serverTime.get(StatsCollector.START_TIME).getAsLong();
-		long upTime =  serverTime.get(StatsCollector.UP_TIME).getAsLong();
-		
+		long upTime = serverTime.get(StatsCollector.UP_TIME).getAsLong();
+
 		assertEquals(ManagementFactory.getRuntimeMXBean().getUptime(), upTime, 100);
 		assertEquals(ManagementFactory.getRuntimeMXBean().getStartTime(), startTime, 100);
-		
+
 		assertTrue(startTime > 0);
-		assertTrue(upTime > 0);	
+		assertTrue(upTime > 0);
 	}
-	
+
 	@Test
 	public void testCheckSystemResources() {
-		
+
 		StatsCollector monitor = Mockito.spy(new StatsCollector());
 		monitor.setVertx(vertx);
 		monitor.setWebRTCVertx(webRTCVertx);
-		
+
 		long minValue = 100;
 		long maxValue = 1000;
-		
+
 		//Cpu Limit = 70 & Min Free Ram Size = 50 MB
 		
 		//check default values
@@ -671,7 +668,7 @@ public class StatsCollectorTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.MAC_OS_X);
 		Mockito.when(monitor.getFreeRam()).thenReturn(100);
 		assertEquals(true, monitor.enoughResource());
@@ -681,12 +678,12 @@ public class StatsCollectorTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
+
+
 		//CPU value over 70
 		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.LINUX);
 		Mockito.when(monitor.getCpuLoad()).thenReturn(80);
-		
+
 		assertEquals(false, monitor.enoughResource());
 		try {
 			Mockito.verify(monitor, Mockito.after(100).never()).sendPOST(Mockito.any(), Mockito.any());
@@ -694,87 +691,87 @@ public class StatsCollectorTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		//RAM load is 80
 		
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		Mockito.when(monitor.getMemoryLoad()).thenReturn(80);
 		monitor.setWebhookURL("http://example.com");
-		
+
 		assertEquals(false, monitor.enoughResource());
-		
+
 		try {
 			Mockito.verify(monitor, Mockito.after(5000)).sendPOST(Mockito.any(), Mockito.any());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.MAC_OS_X);
 		Mockito.when(monitor.getFreeRam()).thenReturn(10);
 		assertEquals(false, monitor.enoughResource());
-		
+
 		try {
 			Mockito.verify(monitor, Mockito.after(5000).times(2)).sendPOST(Mockito.any(), Mockito.any());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		Mockito.when(monitor.getFreeRam()).thenReturn(-1);
 		assertEquals(true, monitor.enoughResource());
-		
+
 		try {
 			Mockito.verify(monitor, Mockito.after(5000).times(2)).sendPOST(Mockito.any(), Mockito.any());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
+
+
 		// Check false values in Max and Current physical memory
 		
 		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.LINUX);
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
-		
+
 		Mockito.when(monitor.getMemoryLoad()).thenReturn(10);
-		
-		
+
+
 		assertEquals(true, monitor.enoughResource());
-		
+
 		try {
-			
+
 			Mockito.verify(monitor, Mockito.after(100).times(2)).sendPOST(Mockito.any(), Mockito.any());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
-		
+
 	}
-	
+
 	@Test
 	public void testMemInfo() {
-		
+
 		AVRational rational = new AVRational();
-		assertTrue( 0 != SystemUtils.osAvailableMemory());
+		assertTrue(0 != SystemUtils.osAvailableMemory());
 	}
-	
+
 	@Test
-	public void testGetAppAdaptor() 
+	public void testGetAppAdaptor()
 	{
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
 		assertNull(StatsCollector.getAppAdaptor(appContext));
-		
+
 		Mockito.when(appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
 		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new AntMediaApplicationAdapter());
 		assertNotNull(StatsCollector.getAppAdaptor(appContext));
-		
+
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
 		assertEquals(adaptor, StatsCollector.getAppAdaptor(appContext));
-		
-		
+
+
 	}
 
 	@Test
@@ -792,7 +789,7 @@ public class StatsCollectorTest {
 
 			// Reset the state for containerized scenario
 			SystemUtils.containerized = null;
-			
+
 			long nonContainerizedResult = SystemUtils.osAvailableMemory();
 			assertEquals(availableMemory, nonContainerizedResult);
 
@@ -819,8 +816,8 @@ public class StatsCollectorTest {
 		Path mockCgroupPath = Path.of("/tmp/test/cgroup");
 
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class);
-			 MockedStatic<Paths> mockedPaths = mockStatic(Paths.class);
-			 ) {
+				MockedStatic<Paths> mockedPaths = mockStatic(Paths.class);
+		) {
 
 			// Setup path mocks
 			mockedPaths.when(() -> Paths.get("/.dockerenv")).thenReturn(mockDockerEnvPath);
@@ -886,7 +883,7 @@ public class StatsCollectorTest {
 
 		// Test all three scenarios using nested try-with-resources
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class);
-			 MockedStatic<Paths> mockedPaths = mockStatic(Paths.class)) {
+				MockedStatic<Paths> mockedPaths = mockStatic(Paths.class)) {
 
 			// Mock Path objects
 			Path cgroupV1UsagePathObj = mock(Path.class);
@@ -895,17 +892,17 @@ public class StatsCollectorTest {
 			Path cgroupV2LimitPathObj = mock(Path.class);
 
 			// Set up Paths.get() mocks
-			when(Paths.get(cgroupV1UsagePath)).thenReturn(cgroupV1UsagePathObj);
-			when(Paths.get(cgroupV1LimitPath)).thenReturn(cgroupV1LimitPathObj);
-			when(Paths.get(cgroupV2UsagePath)).thenReturn(cgroupV2UsagePathObj);
-			when(Paths.get(cgroupV2LimitPath)).thenReturn(cgroupV2LimitPathObj);
+			mockedPaths.when(() -> Paths.get(cgroupV1UsagePath)).thenReturn(cgroupV1UsagePathObj);
+			mockedPaths.when(() -> Paths.get(cgroupV1LimitPath)).thenReturn(cgroupV1LimitPathObj);
+			mockedPaths.when(() -> Paths.get(cgroupV2UsagePath)).thenReturn(cgroupV2UsagePathObj);
+			mockedPaths.when(() -> Paths.get(cgroupV2LimitPath)).thenReturn(cgroupV2LimitPathObj);
 
 			// Test Scenario 1: cgroups v1 exists
 			mockedFiles.when(() -> Files.exists(cgroupV1UsagePathObj)).thenReturn(true);
 			mockedFiles.when(() -> Files.exists(cgroupV1LimitPathObj)).thenReturn(true);
 
 			try (MockedStatic<SystemUtils> mockedMemoryUtils = mockStatic(SystemUtils.class,
-					CALLS_REAL_METHODS)) {
+							CALLS_REAL_METHODS)) {
 				mockedMemoryUtils.when(() -> SystemUtils.readCgroupFile(cgroupV1UsagePath))
 						.thenReturn(expectedUsageStr);
 				mockedMemoryUtils.when(() -> SystemUtils.readCgroupFile(cgroupV1LimitPath))
@@ -922,7 +919,7 @@ public class StatsCollectorTest {
 			mockedFiles.when(() -> Files.exists(cgroupV2LimitPathObj)).thenReturn(true);
 
 			try (MockedStatic<SystemUtils> mockedMemoryUtils = mockStatic(SystemUtils.class,
-					CALLS_REAL_METHODS)) {
+							CALLS_REAL_METHODS)) {
 				mockedMemoryUtils.when(() -> SystemUtils.readCgroupFile(cgroupV2UsagePath))
 						.thenReturn(expectedUsageStr);
 				mockedMemoryUtils.when(() -> SystemUtils.readCgroupFile(cgroupV2LimitPath))
@@ -937,7 +934,7 @@ public class StatsCollectorTest {
 			mockedFiles.when(() -> Files.exists(cgroupV2LimitPathObj)).thenReturn(false);
 
 			try (MockedStatic<SystemUtils> mockedMemoryUtils = mockStatic(SystemUtils.class,
-					CALLS_REAL_METHODS)) {
+							CALLS_REAL_METHODS)) {
 				mockedMemoryUtils.when(SystemUtils::osFreePhysicalMemory)
 						.thenReturn(expectedOsFreeMemory);
 
@@ -952,8 +949,8 @@ public class StatsCollectorTest {
 		final long PHYSICAL_MEMORY_SIZE = 16_000_000_000L; // 16GB
 
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class);
-			 MockedStatic<SystemUtils> mockedSystemUtils = mockStatic(SystemUtils.class,
-					 CALLS_REAL_METHODS)) {
+				MockedStatic<SystemUtils> mockedSystemUtils = mockStatic(SystemUtils.class,
+						CALLS_REAL_METHODS)) {
 
 			// Test Case 1: Non-containerized environment
 			mockedSystemUtils.when(SystemUtils::isContainerized)

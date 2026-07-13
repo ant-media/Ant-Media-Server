@@ -4,7 +4,7 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.io.ITag;
 
 /**
- * An ImmutableTag represents immutable encapsulation of flash media data. The <tt>timestamp</tt> is the only mutable field.
+ * An ImmutableTag represents immutable encapsulation of flash media data. The {@code timestamp} is the only mutable field.
  * 
  * @author Paul Gregoire (mondain@gmail.com)
  */

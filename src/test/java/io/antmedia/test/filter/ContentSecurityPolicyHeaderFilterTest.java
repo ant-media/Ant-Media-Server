@@ -1,14 +1,15 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
-
+import org.junit.jupiter.api.Test;
 import jakarta.servlet.ServletException;
 
-import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.filter.ContentSecurityPolicyHeaderFilter;
 import io.antmedia.filter.JWTFilter;
 
+@Tag("fast")
 public class ContentSecurityPolicyHeaderFilterTest {
 	
 	protected static Logger logger = LoggerFactory.getLogger(ContentSecurityPolicyHeaderFilterTest.class);

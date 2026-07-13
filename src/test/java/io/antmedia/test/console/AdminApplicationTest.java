@@ -2,6 +2,7 @@ package io.antmedia.test.console;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,9 +13,9 @@ import org.apache.catalina.Host;
 import org.apache.catalina.connector.Connector;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.coyote.UpgradeProtocol;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.LoaderBase;
@@ -37,8 +38,13 @@ import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
 
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -52,12 +58,12 @@ public class AdminApplicationTest {
 
 	static Vertx vertx;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		vertx = Vertx.vertx();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		vertx.close();
 	}
@@ -300,6 +306,31 @@ public class AdminApplicationTest {
 		assertFalse(result);
 		result = app.runConfiguredCommand(AdminApplication.CREATE_APP_COMMAND, "&echo");
 		assertFalse(result);
+	}
+
+	@Test
+	public void testCreateAppCommandArguments() throws Exception {
+		AdminApplication app = new AdminApplication();
+
+		assertTrue(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"-n", "testapp", "-m", "mongodb://user:password@127.0.0.1:27018/admin?readPreference=secondaryPreferred&authSource=admin",
+				"-p", "/usr/local/antmedia", "-w", "true", "-c", "false"));
+		assertTrue(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"testapp", "/usr/local/antmedia"));
+		assertFalse(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"-n", "test app"));
+		assertFalse(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"-m", "mongodb://127.0.0.1:27017/admin;touch/tmp/test"));
+		assertFalse(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"-x", "testapp"));
+		assertFalse(areCommandArgumentsValid(app, AdminApplication.CREATE_APP_COMMAND,
+				"testapp", "/usr/local/antmedia", "mongodb://127.0.0.1:27017/admin"));
+	}
+
+	private boolean areCommandArgumentsValid(AdminApplication app, String configuredCommand, String... args) throws Exception {
+		Method method = AdminApplication.class.getDeclaredMethod("areCommandArgumentsValid", String.class, String[].class);
+		method.setAccessible(true);
+		return (boolean) method.invoke(app, configuredCommand, args);
 	}
 
 	@Test

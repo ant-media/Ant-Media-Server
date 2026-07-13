@@ -334,9 +334,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private boolean directMuxingSupported = true;
 
+
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
-
-
 		MuxAdaptor muxAdaptor = null;
 		ApplicationContext applicationContext = scope.getContext().getApplicationContext();
 		boolean tryEncoderAdaptor = false;
@@ -553,7 +552,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("adding DASH Muxer for {}", streamId);
 
 				dashMuxer = (Muxer) dashMuxerClass.getConstructors()[0].newInstance(vertx, dashFragmentDuration, dashSegDuration, targetLatency, deleteDASHFilesOnExit, !appSettings.getEncoderSettings().isEmpty(),
-						appSettings.getDashWindowSize(), appSettings.getDashExtraWindowSize(), appSettings.islLDashEnabled(), appSettings.islLHLSEnabled(),
+						appSettings.getDashWindowSize(), appSettings.getDashExtraWindowSize(), appSettings.isLLDashEnabled(), appSettings.isLLHLSEnabled(),
 						appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint(), serverSettings.getDefaultHttpPort());
 
 
@@ -981,10 +980,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	/**
 	 * @param streamId        id of the stream
-	 * @param quality,        quality string
-	 * @param packetTime,     time of the packet in milliseconds
-	 * @param duration,       the total elapsed time in milliseconds
-	 * @param inputQueueSize, input queue size of the packets that is waiting to be processed
+	 * @param speed           stream speed
 	 */
 	public void updateStreamQualityParameters(String streamId, double speed) {
 		long now = System.currentTimeMillis();
@@ -1059,7 +1055,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public AppSettings getAppSettings() {
 
-		if (appSettings == null && scope.getContext().getApplicationContext().containsBean(AppSettings.BEAN_NAME)) {
+		if (appSettings == null && scope != null && scope.getContext().getApplicationContext().containsBean(AppSettings.BEAN_NAME)) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
@@ -1323,7 +1319,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * Check if max analyze time has been passed. 
 	 * If it initializes the prepare then isRecording is set to true in prepareParameters
 	 * 
-	 * @return
 	 */
 	public void checkMaxAnalyzeTotalTime() {
 		long totalTime = System.currentTimeMillis() - checkStreamsStartTime;
@@ -1371,15 +1366,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					enableVideo = codecInfo.hasVideo();
 					enableAudio = codecInfo.hasAudio();
 
-					getVideoDataConf(codecInfo);
-					getAudioDataConf(codecInfo);
+					boolean readyToPrepare = isStreamReadyToPrepare(codecInfo);
 
-					// Sometimes AAC Sequenece Header is received later 
-					// so that we check if we get the audio codec parameters correctly
-
-					if (enableVideo && enableAudio && getAudioCodecParameters() != null)
-					{
-						logger.info("Video and audio is enabled in stream:{} queue size: {}", streamId, queueSize.get());
+					if (readyToPrepare) {
+						logger.info("Stream is ready to prepare - stream:{} enableVideo:{} enableAudio:{} audioDisabled:{} queue size:{}", streamId, enableVideo, enableAudio, getAppSettings().isDisableAudio(), queueSize.get());
 						prepareParameters();
 					}
 					else {
@@ -1473,6 +1463,24 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				isPipeReaderJobRunning.compareAndSet(true, false);
 			}
 		}
+	}
+
+	public boolean isStreamReadyToPrepare(IStreamCodecInfo codecInfo) {
+		// Handle the stream as video-only when audio is disabled so the whole
+		// pipeline follows the standard video-only path.
+		boolean audioDisabled = getAppSettings().isDisableAudio();
+		if (audioDisabled) {
+			enableAudio = false;
+		}
+
+		getVideoDataConf(codecInfo);
+		getAudioDataConf(codecInfo);
+
+		// Sometimes the AAC sequence header is received later, so make sure the
+		// required codec parameters are available before preparing the stream.
+		return audioDisabled
+				? enableVideo && getVideoCodecParameters() != null
+				: enableVideo && enableAudio && getAudioCodecParameters() != null;
 	}
 	
 	public void clearAndStopStream() {
@@ -2078,8 +2086,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	@Override
-	public void packetReceived(IBroadcastStream stream, IStreamPacket packet) 
+	public void packetReceived(IBroadcastStream stream, IStreamPacket packet)
 	{
+		// audioDisabled: drop audio at ingest so packets are never queued
+		if (packet.getDataType() == Constants.TYPE_AUDIO_DATA && getAppSettings().isDisableAudio()) {
+			return;
+		}
 
 		lastFrameTimestamp = packet.getTimestamp();
 		if (firstReceivedFrameTimestamp  == -1) {
@@ -2974,5 +2986,3 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 }
-
-

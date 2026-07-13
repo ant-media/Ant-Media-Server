@@ -75,28 +75,24 @@ public class SystemUtils {
 	/**
 	 * Obtain Operating System's name.
 	 * 
-	 * @return OS's name
 	 */
 	public static final String osName = System.getProperty("os.name");
 
 	/**
 	 * Obtain Operating System's Architecture.
 	 * 
-	 * @return x86 (32-bit), x64 (64-bit), ...
 	 */
 	public static final String osArch = System.getProperty("os.arch");
 
 	/**
 	 * Obtain Java JRE version.
 	 * 
-	 * @return version
 	 */
 	public static final String jvmVersion = System.getProperty("java.specification.version");
 
 	/**
 	 * Obtain Operating System's processor.
 	 * 
-	 * @return Number of Processor(s)
 	 */
 	public static final int osProcessorX = Runtime.getRuntime().availableProcessors();
 
@@ -145,10 +141,6 @@ public class SystemUtils {
 	/**
 	 * Obtain JVM's Maximum Memory.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -169,10 +161,6 @@ public class SystemUtils {
 	/**
 	 * Obtain JVM's Free Memory.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -183,10 +171,6 @@ public class SystemUtils {
 	/**
 	 * Obtain JVM's In Use Memory.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -210,10 +194,6 @@ public class SystemUtils {
 	/**
 	 * Obtain Virtual Memory from Operating System's RAM.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -277,10 +257,6 @@ public class SystemUtils {
 	/**
 	 * Obtain Free Physical Memory from Operating System's RAM.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -325,10 +301,6 @@ public class SystemUtils {
 	/**
 	 * Obtain In Use Physical Memory from Operating System's RAM.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -339,10 +311,6 @@ public class SystemUtils {
 	/**
 	 * Obtain Total Swap Space from Operating System's RAM.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -365,10 +333,6 @@ public class SystemUtils {
 	/**
 	 * Obtain Free Swap Space from Operating System's RAM.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -391,10 +355,6 @@ public class SystemUtils {
 	/**
 	 * Obtain In Use Swap Space from Operating System's RAM.
 	 * 
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -417,10 +377,6 @@ public class SystemUtils {
 	 * Obtain Harddrive's Usable Space.
 	 * 
 	 * @param path actual path
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -440,10 +396,6 @@ public class SystemUtils {
 	 * Obtain Harddrive's Overall Space.
 	 * 
 	 * @param path actual path
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -463,10 +415,6 @@ public class SystemUtils {
 	 * Obtain Harddrive's Available Space.
 	 * 
 	 * @param path actual path
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */
@@ -486,10 +434,6 @@ public class SystemUtils {
 	 * Obtain Harddrive's In Use Space.
 	 * 
 	 * @param path actual path
-	 * @param size null, AUTO, B, KB, MB, GB, TB, or PB
-	 * (PetaByte does not exist yet)
-	 * Is not case sensitive.
-	 * @param txtByte true if include byte extension, false exclude extension
 	 * @return bytes size
 	 * 
 	 */

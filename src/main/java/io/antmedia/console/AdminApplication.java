@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -64,6 +65,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	public static final String CREATE_APP_COMMAND = "/bin/bash create_app.sh";
 	public static final String DELETE_APP_COMMAND = "/bin/bash delete_app.sh";
 	public static final String ENABLE_SSL_COMMAND = "sudo /bin/bash enable_ssl.sh";
+	private static final Pattern APPLICATION_NAME_PATTERN = Pattern.compile("^[A-Za-z0-9_-]+$");
+	private static final Pattern BOOLEAN_ARGUMENT_PATTERN = Pattern.compile("^(true|false)$");
+	private static final Pattern PATH_ARGUMENT_PATTERN = Pattern.compile("^[A-Za-z0-9_./~:@%+=,-]+$");
+	private static final Pattern DB_URI_ARGUMENT_PATTERN = Pattern.compile("^[A-Za-z0-9_./~:@%+=,?!#\\[\\]&-]+$");
+	private static final Pattern DEFAULT_ARGUMENT_PATTERN = Pattern.compile("^[A-Za-z0-9_./~:@%+=,?!#\\[\\]&-]+$");
 
 
 	private static final Logger log = LoggerFactory.getLogger(AdminApplication.class);
@@ -602,14 +608,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		List<String> command = new ArrayList<>();
 		Collections.addAll(command, configuredCommand.split(" "));
 		if (args != null) {
-			for (String arg : args) {
-				String commandArgument = String.valueOf(arg);
-				if (commandArgument.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) {
-					logger.warn("Discarding command because an argument includes special characters. Argument:{} and command:{}", commandArgument, configuredCommand);
-					return false;
-				}
-				command.add(commandArgument);
+			if (!areCommandArgumentsValid(configuredCommand, args)) {
+				return false;
 			}
+			Collections.addAll(command, args);
 		}
 
 		boolean result = false;
@@ -650,6 +652,75 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			Thread.currentThread().interrupt();
 		}
 		return result;
+	}
+
+	private boolean areCommandArgumentsValid(String configuredCommand, String[] args) {
+		if (CREATE_APP_COMMAND.equals(configuredCommand)) {
+			return areCreateAppArgumentsValid(args);
+		}
+
+		for (String arg : args) {
+			if (!isArgumentValid(arg, DEFAULT_ARGUMENT_PATTERN)) {
+				logger.warn("Discarding command because an argument includes invalid characters. Argument:{} and command:{}", arg, configuredCommand);
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean areCreateAppArgumentsValid(String[] args) {
+		if (args.length == 0) {
+			return true;
+		}
+
+		if (!args[0].startsWith("-")) {
+			if (args.length > 2) {
+				logger.warn("Discarding create app command because legacy arguments include extra parameters");
+				return false;
+			}
+			return isArgumentValid(args[0], APPLICATION_NAME_PATTERN) &&
+					(args.length == 1 || isArgumentValid(args[1], PATH_ARGUMENT_PATTERN));
+		}
+
+		for (int i = 0; i < args.length; i += 2) {
+			if (i + 1 >= args.length) {
+				logger.warn("Discarding create app command because argument {} does not have a value", args[i]);
+				return false;
+			}
+
+			String flag = args[i];
+			String value = args[i + 1];
+			if (!isCreateAppValueValid(flag, value)) {
+				logger.warn("Discarding create app command because argument {} has an invalid value: {}", flag, value);
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean isCreateAppValueValid(String flag, String value) {
+		switch (flag) {
+			case "-n":
+				return isArgumentValid(value, APPLICATION_NAME_PATTERN);
+			case "-w":
+			case "-c":
+				return isArgumentValid(value, BOOLEAN_ARGUMENT_PATTERN);
+			case "-p":
+			case "-f":
+				return isArgumentValid(value, PATH_ARGUMENT_PATTERN);
+			case "-m":
+				return isArgumentValid(value, DB_URI_ARGUMENT_PATTERN);
+			case "-u":
+			case "-s":
+				return isArgumentValid(value, DEFAULT_ARGUMENT_PATTERN);
+			default:
+				logger.warn("Discarding create app command because argument {} is not allowed", flag);
+				return false;
+		}
+	}
+
+	private boolean isArgumentValid(String argument, Pattern pattern) {
+		return argument != null && pattern.matcher(argument).matches();
 	}
 
 	public void setVertx(Vertx vertx) {

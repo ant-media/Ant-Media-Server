@@ -31,8 +31,8 @@ public interface IPlaylistController {
      * @param playlist
      *            The related play list.
      * @param itemIndex
-     *            The current item index. <tt>-1</tt> indicates to retrieve the first item for play.
-     * @return The next item index to play. <tt>-1</tt> reaches the end.
+     *            The current item index. {@code -1} indicates to retrieve the first item for play.
+     * @return The next item index to play. {@code -1} reaches the end.
      */
     int nextItem(IPlaylist playlist, int itemIndex);
 
@@ -42,8 +42,8 @@ public interface IPlaylistController {
      * @param playlist
      *            The related play list.
      * @param itemIndex
-     *            The current item index. <tt>IPlaylist.itemSize</tt> indicated to retrieve the last item for play.
-     * @return The previous item index to play. <tt>-1</tt> reaches the beginning.
+     *            The current item index. {@code IPlaylist.itemSize} indicated to retrieve the last item for play.
+     * @return The previous item index to play. {@code -1} reaches the beginning.
      */
     int previousItem(IPlaylist playlist, int itemIndex);
 }

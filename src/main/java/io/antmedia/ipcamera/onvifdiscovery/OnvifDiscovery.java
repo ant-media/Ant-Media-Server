@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * @author th
- * @date 2015-06-18
+ * Date: 2015-06-18
  */
 public class OnvifDiscovery {
 	

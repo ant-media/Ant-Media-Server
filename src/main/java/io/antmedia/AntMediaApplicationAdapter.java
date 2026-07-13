@@ -1420,8 +1420,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *                    {@link #HOOK_ACTION_START_LIVE_STREAM}
 	 * @param vodName     name of the vod
 	 * @param vodId       id of the vod in the datastore
-	 * @param parameters 
-	 * @return
+	 * @param parameters
 	 */
 	public void notifyHook(@NotNull String url, String id, String mainTrackId, String action, String streamName, String category,
 			String vodName, String vodId, String metadata, String subscriberId, Map<String, String> parameters) {
@@ -1607,7 +1606,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @param url
 	 * @param variables
 	 * @param retryAttempts
-	 * @param sendType the type of the entity to be sent. It can be either "application/x-www-form-urlencoded" or "application/json"
+	 * @param contentType the type of the entity to be sent. It can be either "application/x-www-form-urlencoded" or "application/json"
 	 */
 	public void sendPOST(String url, Map<String, Object> variables, int retryAttempts, String contentType) {
 		logger.info("Sending POST request to {}", url);
@@ -2141,11 +2140,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
 				if (i > 3) {
-					logger.warn("Waiting for active broadcasts number decrease to zero for app: {}"
+					logger.warn("Waiting for active broadcast number decrease to zero for app: {}"
 							+ " total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
-					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished_unexpectedly");
+					logger.error("Not all live streams stopped gracefully. It will update the streams' status to finished_unexpectedly");
 					everythingHasStopped = false;
 					break;
 				}
@@ -2618,7 +2617,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/**
 	 *
 	 * @param newSettings
-	 * @param checkUpdateTime
 	 * @return true if time are not equal, it means new settings is different than the current settings
 	 */
 	public boolean isIncomingSettingsDifferent(AppSettings newSettings)

@@ -1,11 +1,14 @@
 package io.antmedia.test.security;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,10 +31,10 @@ import jakarta.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -50,17 +53,18 @@ import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
 
 
+@Tag("fast")
 public class TokenFilterTest {
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterTest.class);
 
 	private TokenFilterManager tokenFilter;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		tokenFilter = new TokenFilterManager();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		tokenFilter = null;
 	}
@@ -590,9 +594,9 @@ public class TokenFilterTest {
 
 		if (code.charAt(0) == '0') {
 			//first character can be zero.
-			assertTrue("First 4 characters are zero, this is why this test failed. It may happen with low possibility."
+			assertTrue(intCode > 100, "First 4 characters are zero, this is why this test failed. It may happen with low possibility."
 					+ "With this luck, you may meet the ice bear in the desert :)"
-					+ "Have a break and relax, then try again ;)", intCode > 100);
+					+ "Have a break and relax, then try again ;)");
 			//first 4 characters are zero, meet the ice bear in the desert :)
 		}
 		else {
