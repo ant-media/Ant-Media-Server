@@ -4326,7 +4326,7 @@ public class ConsoleAppRestServiceTest{
 		Map<String, String> roles = new HashMap<>();
 		roles.put(appName, type.toString());
 		user.setAppNameUserType(roles);
-		assertTrue("could not create console user " + email, callCreateUser(user).isSuccess());
+		assertTrue(callCreateUser(user).isSuccess(), "could not create console user " + email);
 	}
 
 	/** Mints a v3 REST JWT via the console token endpoint (needs the admin session cookie). */
