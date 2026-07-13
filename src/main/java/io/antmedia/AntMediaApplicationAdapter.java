@@ -2140,11 +2140,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
 				if (i > 3) {
-					logger.warn("Waiting for active broadcasts number decrease to zero for app: {}"
+					logger.warn("Waiting for active broadcast number decrease to zero for app: {}"
 							+ " total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
-					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished_unexpectedly");
+					logger.error("Not all live streams stopped gracefully. It will update the streams' status to finished_unexpectedly");
 					everythingHasStopped = false;
 					break;
 				}

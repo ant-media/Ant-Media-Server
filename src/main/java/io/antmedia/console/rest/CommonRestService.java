@@ -1233,7 +1233,7 @@ public class CommonRestService {
 
 			WebApplicationContext ctxt = getContext();
 			if (ctxt != null) {
-				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BEAN_NAME);
 			}
 		}
 		return licenceService;

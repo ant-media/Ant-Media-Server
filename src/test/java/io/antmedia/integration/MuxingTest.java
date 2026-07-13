@@ -11,7 +11,11 @@ import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,12 +46,12 @@ import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -106,7 +110,7 @@ public class MuxingTest {
 		};
 	};
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
@@ -116,7 +120,7 @@ public class MuxingTest {
 
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		// runs before every test code
 		/*
@@ -126,12 +130,12 @@ public class MuxingTest {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		// runs after every test code
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		// stop red5 server
 	}
@@ -140,7 +144,7 @@ public class MuxingTest {
 
 	@Test
 	public void testRtmpAndVODStreaming() {
-		assertTrue("duplicate test AppFunctionalV2Test#testSendRTMPStream", true);
+		assertTrue(true, "duplicate test AppFunctionalV2Test#testSendRTMPStream");
 	}
 
 	
@@ -365,7 +369,7 @@ public class MuxingTest {
 	@Test
 	public void testDynamicAddRemoveRTMPV2() 
 	{
-		assertTrue("This test is merged with RestServiceV2Test#testAddEndpointCrossCheckV2", true);
+		assertTrue(true, "This test is merged with RestServiceV2Test#testAddEndpointCrossCheckV2");
 	}
 
 	
