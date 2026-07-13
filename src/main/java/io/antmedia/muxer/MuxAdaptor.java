@@ -334,9 +334,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private boolean directMuxingSupported = true;
 
+
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
-
-
 		MuxAdaptor muxAdaptor = null;
 		ApplicationContext applicationContext = scope.getContext().getApplicationContext();
 		boolean tryEncoderAdaptor = false;
@@ -553,7 +552,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("adding DASH Muxer for {}", streamId);
 
 				dashMuxer = (Muxer) dashMuxerClass.getConstructors()[0].newInstance(vertx, dashFragmentDuration, dashSegDuration, targetLatency, deleteDASHFilesOnExit, !appSettings.getEncoderSettings().isEmpty(),
-						appSettings.getDashWindowSize(), appSettings.getDashExtraWindowSize(), appSettings.islLDashEnabled(), appSettings.islLHLSEnabled(),
+						appSettings.getDashWindowSize(), appSettings.getDashExtraWindowSize(), appSettings.isLLDashEnabled(), appSettings.isLLHLSEnabled(),
 						appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint(), serverSettings.getDefaultHttpPort());
 
 

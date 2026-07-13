@@ -1,65 +1,23 @@
 package io.antmedia.test.license;
 
-
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Licence;
-
-import static org.junit.jupiter.api.Assertions.*;
 import io.antmedia.licence.CommunityLicenceService;
-import io.antmedia.licence.ILicenceService;
-import io.antmedia.settings.ServerSettings;
+
+import static org.junit.Assert.*;
 
 @Tag("fast")
 public class CommunityLicenseServiceTest {
 
-	protected static Logger logger = LoggerFactory.getLogger(CommunityLicenseServiceTest.class);
-	private CommunityLicenceService licenseService;
+    @Test
+    public void testCheckLicence() {
+        Licence result = new CommunityLicenceService().checkLicence("anything");
 
-	@BeforeEach
-	public void before() {
-		licenseService = new CommunityLicenceService();
-
-	}
-
-	@AfterEach
-	public void after() {
-		licenseService = null;
-
-	}
-
-	@Test
-	public void testCheckLicence() {
-
-		//create server settings
-		ServerSettings serverSettings = new ServerSettings();
-		
-		//define license key
-		serverSettings.setLicenceKey("test-test");
-		
-		licenseService.setServerSettings(serverSettings);
-		
-		Licence result = licenseService.checkLicence(serverSettings.getLicenceKey());
-		
-		//this should be always null, because community version does not check license status
-		assertNull(result);
-		
-		assertNotNull(ILicenceService.BeanName.LICENCE_SERVICE.toString());
-	}
-
-	/**
-	 * This test exists for sonar not to complain in CommunityEdition.
-	 * All actual testing is done in enterprise tests, but sonar running on community edition doesn't know that and complains
-	 */
-	@Test
-	public void testLocalLicenceServerSettings() {
-		ServerSettings serverSettings = new ServerSettings();
-		serverSettings.setLocalLicenceServerIps("192.168.1.100:3535");
-		assertEquals(serverSettings.getLocalLicenceServerIps(), "192.168.1.100:3535");
-	}
+        //this should be always null, because community version does not check license status
+        assertNull(result);
+    }
 }

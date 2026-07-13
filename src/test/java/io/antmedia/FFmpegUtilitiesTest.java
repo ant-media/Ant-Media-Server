@@ -1,8 +1,11 @@
 package io.antmedia;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacpp.Pointer;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.webrtc.VideoCodecType;
 
@@ -36,6 +39,12 @@ public class FFmpegUtilitiesTest {
     public void testVideoCodecType() {
         VideoCodecType type = VideoCodecType.AV1;
         assertEquals(VideoCodecType.AV1.name(), type.name());
+    }
+
+    @Test
+    void testNativePointerNullCheck() {
+        assertTrue(FFmpegUtilities.isNull(null), "null should be treated as null");
+        assertTrue(FFmpegUtilities.isNull(new Pointer()), "empty pointer should be treated as null");
     }
     
 }

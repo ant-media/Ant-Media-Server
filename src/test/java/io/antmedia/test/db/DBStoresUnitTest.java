@@ -82,7 +82,7 @@ public class DBStoresUnitTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(DBStoresUnitTest.class);
 
-	private Vertx vertx = Vertx.vertx();
+	private final Vertx vertx = Vertx.vertx();
 
 	private AppSettings appSettings;
 
@@ -110,7 +110,6 @@ public class DBStoresUnitTest {
 			try {
 				Files.delete(f.toPath());
 			} catch (IOException e) {
-				e.printStackTrace();
 				fail(e.getMessage());
 			}
 		}
@@ -1722,7 +1721,7 @@ public class DBStoresUnitTest {
 		assertTrue(result, "Should  successfully remove endpoint by URL");
 
 		broadcast2 = dataStore.get(streamId);
-		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0, 
+		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0,
 			"endPointList should be empty or null after removal");
 
 		// Test Case 7: Successfully remove endpoint by ServiceId
@@ -1742,7 +1741,7 @@ public class DBStoresUnitTest {
 
 		broadcast2 = dataStore.get(streamId);
 		assertEquals(1, broadcast2.getEndPointList().size(), "Should have 1 endpoint remaining");
-		assertEquals("service-002", broadcast2.getEndPointList().get(0).getEndpointServiceId(), 
+		assertEquals("service-002", broadcast2.getEndPointList().get(0).getEndpointServiceId(),
 			"Remaining endpoint should have service-002");
 
 		// Test Case 8: Remove last endpoint
@@ -1750,7 +1749,7 @@ public class DBStoresUnitTest {
 		assertTrue(result, "Should successfully remove last endpoint");
 
 		broadcast2 = dataStore.get(streamId);
-		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0, 
+		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0,
 			"endPointList should be empty or null after removing last endpoint");
 	}
 
@@ -3471,19 +3470,17 @@ public class DBStoresUnitTest {
 		String dbName = "deleteMapdb";
 		MongoStore dataStore = new MongoStore(mongoUri(), dbName);
 
-		MongoClient client = MongoClients.create(dataStore.getMongoConnectionUri(mongoUri()));
+		try (MongoClient client = MongoClients.create(mongoUri())) {
+			ArrayList<String> dbNames = new ArrayList<>();
+			client.listDatabaseNames().forEach(dbNames::add);
+			assertTrue(dbNames.contains(dbName));
 
+			dataStore.close(true);
 
-		ArrayList<String> dbNames = new ArrayList<String>();
-		client.listDatabaseNames().forEach(c-> dbNames.add(c));
-		assertTrue(dbNames.contains(dbName));
-
-		dataStore.close(true);
-
-		dbNames.clear();
-		client.listDatabaseNames().forEach(c-> dbNames.add(c));
-		assertFalse(dbNames.contains(dbName));
-		client.close();
+			dbNames.clear();
+			client.listDatabaseNames().forEach(dbNames::add);
+			assertFalse(dbNames.contains(dbName));
+		}
 
 	}
 
@@ -3492,7 +3489,7 @@ public class DBStoresUnitTest {
 		final String INITIAL_DATA  = "initial meta data";
 		final String UPDATED_DATA  = "updated meta data";
 
-		String id = RandomStringUtils.randomAlphanumeric(8);
+		String id = RandomStringUtils.insecure().nextAlphanumeric(8);
 
 		Broadcast broadcast= new Broadcast();
 		try {
@@ -3510,7 +3507,7 @@ public class DBStoresUnitTest {
 
 		assertEquals(UPDATED_DATA, dataStore.get(id).getMetaData());
 
-		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
+		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.insecure().nextAlphanumeric(8), UPDATED_DATA));
 
 	}
 
@@ -3519,7 +3516,7 @@ public class DBStoresUnitTest {
 		final String INITIAL_ROLE  = "INITIAL_ROLE";
 		final String UPDATED_ROLE  = "UPDATED_ROLE";
 
-		String id = RandomStringUtils.randomAlphanumeric(8);
+		String id = RandomStringUtils.insecure().nextAlphanumeric(8);
 
 		Broadcast broadcast= new Broadcast();
 		try {
@@ -3622,7 +3619,7 @@ public class DBStoresUnitTest {
 	private void testSubscriberMetaData(DataStore dataStore) {
 		//save subscriberMetadata to the data store
 
-		String subscriberId = RandomStringUtils.randomAlphanumeric(12);
+		String subscriberId = RandomStringUtils.insecure().nextAlphanumeric(12);
 
 		SubscriberMetadata subscriberMetaData = dataStore.getSubscriberMetaData(subscriberId);
 		assertNull(subscriberMetaData);
@@ -3650,7 +3647,7 @@ public class DBStoresUnitTest {
 		String tokenValue2 = RandomStringUtils.randomAlphabetic(65);
 
 		PushNotificationToken token2 = new PushNotificationToken(tokenValue2, PushNotificationServiceTypes.APPLE_PUSH_NOTIFICATION.toString());
-		String extraData = RandomStringUtils.randomAlphanumeric(12);
+		String extraData = RandomStringUtils.insecure().nextAlphanumeric(12);
 		token2.setExtraData(extraData);
 		subscriberMetaData.getPushNotificationTokens().put(tokenValue2, token2);
 
@@ -3674,7 +3671,7 @@ public class DBStoresUnitTest {
 
 	public void testUpdateBroadcastEncoderSettings(DataStore dataStore) {
 
-		String id = RandomStringUtils.randomAlphanumeric(16);
+		String id = RandomStringUtils.insecure().nextAlphanumeric(16);
 
 		Broadcast broadcast= new Broadcast();
 		try {
@@ -3754,7 +3751,7 @@ public class DBStoresUnitTest {
 
 	private void testGetSubtracks(DataStore dataStore) 
 	{
-		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String mainTrackId = RandomStringUtils.insecure().nextAlphanumeric(8);
 		String role1 = "role1";
 		String role2 = "role2";
 
@@ -3820,13 +3817,13 @@ public class DBStoresUnitTest {
 		String role1 = "role1";
 		String role2 = "role2";
 
-		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String mainTrackId = RandomStringUtils.insecure().nextAlphanumeric(8);
 
 		for (int i = 0; i < 100; i++) {
 			Broadcast broadcast = new Broadcast();
 			broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
 			try {
-				broadcast.setStreamId("subtrack" + RandomStringUtils.randomAlphanumeric(24));
+				broadcast.setStreamId("subtrack" + RandomStringUtils.insecure().nextAlphanumeric(24));
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -3887,7 +3884,7 @@ public class DBStoresUnitTest {
 	
 	public void testGetSubtracksWithOrdering(DataStore dataStore) {
 
-		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String mainTrackId = RandomStringUtils.insecure().nextAlphanumeric(8);
 
 		for (int i = 0; i < 100; i++) {
 			Broadcast broadcast = new Broadcast();
@@ -3923,7 +3920,7 @@ public class DBStoresUnitTest {
 	
 	public void testGetSubtracksWithSearch(DataStore dataStore) {
 
-		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String mainTrackId = RandomStringUtils.insecure().nextAlphanumeric(8);
 
 		for (int i = 0; i < 100; i++) {
 			Broadcast broadcast = new Broadcast();
@@ -3971,7 +3968,7 @@ public class DBStoresUnitTest {
 	public void testSubscriberCache(DataStore dataStore) {
 		long initalExecutedQueryCount = dataStore.getExecutedQueryCount();
 
-		String streamId = "stream"+RandomStringUtils.randomNumeric(6);;
+		String streamId = "stream"+RandomStringUtils.insecure().nextNumeric(6);
 
 		Subscriber subscriber1 = new Subscriber();
 		String subscriberId1 = "subscriberId1";
@@ -4077,7 +4074,7 @@ public class DBStoresUnitTest {
 		assertNotEquals(mongoDataStore.getBroadcastCache(), mongoDataStore.getSubscriberCache());
 
 
-		String streamId = "stream"+RandomStringUtils.randomNumeric(6);;
+		String streamId = "stream"+RandomStringUtils.insecure().nextNumeric(6);
 
 		Broadcast broadcast = new Broadcast();
 		try {
@@ -4153,7 +4150,7 @@ public class DBStoresUnitTest {
 		AppSettings appSettings2 = new AppSettings();
 		mongoStore2.setAppSettings(appSettings2);
 
-		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+		String streamId = "stream" + RandomStringUtils.insecure().nextNumeric(6);
 
 		// Step 1: Save a broadcast with a stale updateTime via mongoStore1
 		Broadcast broadcast = new Broadcast();
@@ -4259,7 +4256,7 @@ public class DBStoresUnitTest {
 		AppSettings appSettings2 = new AppSettings();
 		mongoStore2.setAppSettings(appSettings2);
 
-		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+		String streamId = "stream" + RandomStringUtils.insecure().nextNumeric(6);
 
 		// Step 1: Save a broadcasting stream via mongoStore1
 		Broadcast broadcast = new Broadcast();
@@ -4330,7 +4327,7 @@ public class DBStoresUnitTest {
 	}
 
 	public void testConnectedSubscribers(DataStore dataStore) {
-		String streamId = "stream"+RandomStringUtils.randomNumeric(6);
+		String streamId = "stream"+RandomStringUtils.insecure().nextNumeric(6);
 		
 		int connectedSubscriberCount = (int) (Math.random()*100);
 		
@@ -4355,7 +4352,7 @@ public class DBStoresUnitTest {
 		int someOtherSubscribersCount = (int) (Math.random()*100);
 		for (int i = 0; i < inconnectedSubscriberCount; i++) {
 			Subscriber subscriber = new Subscriber();
-			subscriber.setStreamId("something"+RandomStringUtils.randomNumeric(6));
+			subscriber.setStreamId("something"+RandomStringUtils.insecure().nextNumeric(6));
 			subscriber.setConnected(inconnectedSubscriberCount%2 == 0);
 			subscriber.setSubscriberId("oth"+i);
 			dataStore.addSubscriber(streamId, subscriber);
@@ -4381,7 +4378,7 @@ public class DBStoresUnitTest {
 	 * Test custom TOTP expiry periods per subscriber
 	 */
 	public void testCustomTotpExpiry(DataStore dataStore) {
-		String streamId = "stream" + RandomStringUtils.randomNumeric(6);
+		String streamId = "stream" + RandomStringUtils.insecure().nextNumeric(6);
 		
 		// Test 1: Subscriber with custom expiry time
 		Subscriber subscriber1 = new Subscriber();
