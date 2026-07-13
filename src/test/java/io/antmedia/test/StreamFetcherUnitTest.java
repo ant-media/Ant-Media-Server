@@ -263,8 +263,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		DataStore dataStore = getInstance().getDataStore();
 
+		// VOD type paces local-file reads to 1.0x; stream_source would EOF in ~2 s and legitimately write finished mid-assertion
 		Broadcast broadcast = new Broadcast("streamSource1", "127.0.0.1:8080", "admin", "admin",
-				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.STREAM_SOURCE);
+				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.VOD);
 		String streamId = dataStore.save(broadcast);
 		assertNotNull(streamId);
 
@@ -356,8 +357,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		DataStore dataStore = getInstance().getDataStore();
 
+		// VOD type paces local-file reads to 1.0x; stream_source would EOF in ~2 s and legitimately write finished mid-assertion
 		Broadcast broadcast = new Broadcast("streamSource1", "127.0.0.1:8080", "admin", "admin",
-				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.STREAM_SOURCE);
+				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.VOD);
 		String streamId = dataStore.save(broadcast);
 		assertNotNull(streamId);
 
