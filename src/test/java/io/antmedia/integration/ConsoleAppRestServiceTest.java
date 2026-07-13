@@ -4294,4 +4294,204 @@ public class ConsoleAppRestServiceTest{
 
 		return gson.fromJson(result.toString(), Broadcast.class);
 	}
+
+	// ---------------------------------------------------------------------------------------------
+	// v3 JWT REST — end-to-end tests. These exercise what the mock-based filter test cannot: the
+	// real cross-webapp lookup of the console user (algorithm step 3) and token revocation.
+	// The @Before of this class logs in as the system admin, so the cookie session is available.
+	// ---------------------------------------------------------------------------------------------
+
+	private static final String V3_TEST_SECRET = "v3-integration-test-secret-key";
+	private static final String V3_APP = "LiveApp";
+
+	private static String v3BroadcastsUrl() {
+		return "http://" + SERVER_ADDR + ":5080/" + V3_APP + "/rest/v3/broadcasts";
+	}
+
+	/** Turns on server JWT with a known secret and returns the prior settings so a test can restore them. */
+	private static ServerSettings enableServerJwt() throws Exception {
+		ServerSettings previous = callGetServerSettings();
+		ServerSettings toSet = callGetServerSettings();
+		toSet.setJwtServerControlEnabled(true);
+		toSet.setJwtServerSecretKey(V3_TEST_SECRET);
+		callSetServerSettings(toSet);
+		return previous;
+	}
+
+	private static void createConsoleUser(String email, String appName, UserType type) throws Exception {
+		callDeleteUser(email); // clean slate if a previous run left it behind
+		User user = new User();
+		user.setEmail(email);
+		user.setPassword(TEST_USER_PASS);
+		Map<String, String> roles = new HashMap<>();
+		roles.put(appName, type.toString());
+		user.setAppNameUserType(roles);
+		assertTrue("could not create console user " + email, callCreateUser(user).isSuccess());
+	}
+
+	/** Mints a v3 REST JWT via the console token endpoint (needs the admin session cookie). */
+	private static String callCreateV3Jwt(String userId, List<String> scopes) throws Exception {
+		Map<String, Object> body = new HashMap<>();
+		body.put("type", "rest");
+		body.put("user_id", userId);
+		body.put("scopes", scopes);
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
+		HttpUriRequest post = RequestBuilder.post().setUri("http://" + SERVER_ADDR + ":5080/rest/v3/jwts")
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(body))).build();
+		HttpResponse response = client.execute(post);
+		StringBuffer result = readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			return null;
+		}
+		Object jwt = gson.fromJson(result.toString(), Map.class).get("jwt");
+		return jwt != null ? jwt.toString() : null;
+	}
+
+	/** A v3 REST call authenticated by a bearer token only (no session cookie). */
+	private static V3Response callV3(String method, String url, String jwt, String jsonBody) throws Exception {
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		RequestBuilder builder = RequestBuilder.create(method).setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+		if (jwt != null) {
+			builder.setHeader("Authorization", "Bearer " + jwt);
+		}
+		if (jsonBody != null) {
+			builder.setEntity(new StringEntity(jsonBody));
+		}
+		CloseableHttpResponse response = client.execute(builder.build());
+		StringBuffer result = readResponse(response);
+		return new V3Response(response.getStatusLine().getStatusCode(), result.toString());
+	}
+
+	/** Deletes a broadcast with a fresh admin token, for cleanup independent of the test user. */
+	private static void adminDeleteBroadcast(String streamId) throws Exception {
+		if (streamId == null) {
+			return;
+		}
+		String adminJwt = callCreateV3Jwt(TEST_USER_EMAIL, Arrays.asList("admin:system"));
+		if (adminJwt != null) {
+			callV3("DELETE", v3BroadcastsUrl() + "/" + streamId, adminJwt, null);
+		}
+	}
+
+	private static class V3Response {
+		final int status;
+		final String body;
+		V3Response(int status, String body) {
+			this.status = status;
+			this.body = body;
+		}
+	}
+
+	@Test
+	public void testV3CreateBroadcastAndOwnerStamped() throws Exception {
+		ServerSettings previous = enableServerJwt();
+		String userEmail = "v3owner@antmedia.io";
+		String streamId = null;
+		try {
+			createConsoleUser(userEmail, V3_APP, UserType.USER);
+			String jwt = callCreateV3Jwt(userEmail, Arrays.asList("user:application:" + V3_APP));
+			assertNotNull(jwt);
+
+			String body = "{\"name\":\"v3-owner-test\"}";
+			// wait until the setting change reaches the app filter's shared ServerSettings bean
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+					.until(() -> callV3("POST", v3BroadcastsUrl(), jwt, body).status == 200);
+
+			V3Response created = callV3("POST", v3BroadcastsUrl(), jwt, body);
+			assertEquals(200, created.status);
+			Broadcast createdBroadcast = gson.fromJson(created.body, Broadcast.class);
+			streamId = createdBroadcast.getStreamId();
+			// the authenticated user is stamped as the owner
+			assertEquals(userEmail, createdBroadcast.getOwnerId());
+
+			// the same token can read it back
+			assertEquals(200, callV3("GET", v3BroadcastsUrl() + "/" + streamId, jwt, null).status);
+		} finally {
+			adminDeleteBroadcast(streamId);
+			callDeleteUser(userEmail);
+			callSetServerSettings(previous);
+		}
+	}
+
+	@Test
+	public void testV3UserDeletionRevokesToken() throws Exception {
+		ServerSettings previous = enableServerJwt();
+		String userEmail = "v3revoke@antmedia.io";
+		String streamId = null;
+		try {
+			createConsoleUser(userEmail, V3_APP, UserType.USER);
+			String jwt = callCreateV3Jwt(userEmail, Arrays.asList("user:application:" + V3_APP));
+			assertNotNull(jwt);
+
+			String body = "{\"name\":\"v3-revoke-test\"}";
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+					.until(() -> callV3("POST", v3BroadcastsUrl(), jwt, body).status == 200);
+
+			V3Response created = callV3("POST", v3BroadcastsUrl(), jwt, body);
+			assertEquals(200, created.status);
+			streamId = gson.fromJson(created.body, Broadcast.class).getStreamId();
+
+			// delete the user; the still-valid token must now be rejected (step 3 revocation)
+			assertTrue(callDeleteUser(userEmail).isSuccess());
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+					.until(() -> callV3("POST", v3BroadcastsUrl(), jwt, body).status == 403);
+		} finally {
+			adminDeleteBroadcast(streamId);
+			callDeleteUser(userEmail);
+			callSetServerSettings(previous);
+		}
+	}
+
+	@Test
+	public void testV3ReadOnlyRoleBlocksWriteAllowsRead() throws Exception {
+		ServerSettings previous = enableServerJwt();
+		String userEmail = "v3readonly@antmedia.io";
+		try {
+			createConsoleUser(userEmail, V3_APP, UserType.READ_ONLY);
+			// over-privileged token; step 3 must clamp access to the live read_only role
+			String jwt = callCreateV3Jwt(userEmail, Arrays.asList("admin:system"));
+			assertNotNull(jwt);
+
+			// read is allowed for read_only; also confirms v3 is now effective
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+					.until(() -> callV3("GET", v3BroadcastsUrl(), jwt, null).status == 200);
+
+			// write is denied despite admin:system in the token
+			assertEquals(403, callV3("POST", v3BroadcastsUrl(), jwt, "{\"name\":\"should-fail\"}").status);
+		} finally {
+			callDeleteUser(userEmail);
+			callSetServerSettings(previous);
+		}
+	}
+
+	@Test
+	public void testV3UserRoleCannotReassignOwner() throws Exception {
+		ServerSettings previous = enableServerJwt();
+		String userEmail = "v3demote@antmedia.io";
+		String streamId = null;
+		try {
+			createConsoleUser(userEmail, V3_APP, UserType.USER);
+			// over-privileged token; live role is only USER
+			String jwt = callCreateV3Jwt(userEmail, Arrays.asList("admin:system"));
+			assertNotNull(jwt);
+
+			String body = "{\"name\":\"v3-demote-test\"}";
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+					.until(() -> callV3("POST", v3BroadcastsUrl(), jwt, body).status == 200);
+
+			V3Response created = callV3("POST", v3BroadcastsUrl(), jwt, body);
+			assertEquals(200, created.status); // write allowed: a USER may create
+			streamId = gson.fromJson(created.body, Broadcast.class).getStreamId();
+
+			// owner reassignment is admin-only; ADMIN_ACCESS is recomputed from the live USER role -> 403
+			V3Response reassign = callV3("PUT", v3BroadcastsUrl() + "/" + streamId, jwt, "{\"ownerId\":\"someone-else\"}");
+			assertEquals(403, reassign.status);
+		} finally {
+			adminDeleteBroadcast(streamId);
+			callDeleteUser(userEmail);
+			callSetServerSettings(previous);
+		}
+	}
 }

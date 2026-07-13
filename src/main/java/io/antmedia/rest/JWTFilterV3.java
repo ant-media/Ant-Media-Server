@@ -1,5 +1,10 @@
 package io.antmedia.rest;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -13,6 +18,8 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
+import io.antmedia.datastore.db.types.User;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import jakarta.annotation.Priority;
@@ -69,6 +76,9 @@ public class JWTFilterV3 implements ContainerRequestFilter {
 	@Context
 	private ServletContext servletContext;
 
+	/** Resolves the live console user; lazily built, overridable in tests. */
+	private ConsoleUserResolver userResolver;
+
 	@Override
 	public void filter(ContainerRequestContext requestContext) {
 
@@ -106,18 +116,40 @@ public class JWTFilterV3 implements ContainerRequestFilter {
 		}
 
 		// GET is a read, anything else is a write.
+		boolean read = HttpMethod.GET.equals(requestContext.getMethod());
 		String appName = getApplicationName();
-		boolean granted = HttpMethod.GET.equals(requestContext.getMethod())
-				? hasReadAccess(scopeClaim.asString(), appName)
-				: hasWriteAccess(scopeClaim.asString(), appName);
-		if (!granted) {
+		if (!isGranted(scopeClaim.asString(), appName, read)) {
 			abort(requestContext, Status.FORBIDDEN, "JWT scope does not grant access to this application");
 			return;
 		}
 
-		// Hand the already-parsed identity/role to downstream resources so they don't re-parse the token.
+		// Step 3: verify the user still exists and still has the role. Access is driven by the
+		// live role from here on, so a deleted or downgraded user is denied even with a valid token.
+		User user = getUserResolver().getUser(jwt.getSubject());
+		if (user == null) {
+			abort(requestContext, Status.FORBIDDEN, "User is no longer valid");
+			return;
+		}
+		String liveScope = scopeFromUser(user);
+		if (!isGranted(liveScope, appName, read)) {
+			abort(requestContext, Status.FORBIDDEN, "User no longer has permission for this application");
+			return;
+		}
+
+		// Hand the verified identity/role to downstream resources so they don't re-parse the token.
 		requestContext.setProperty(AUTHENTICATED_USER_ID, jwt.getSubject());
-		requestContext.setProperty(ADMIN_ACCESS, hasAdminAccess(scopeClaim.asString(), appName));
+		requestContext.setProperty(ADMIN_ACCESS, hasAdminAccess(liveScope, appName));
+	}
+
+	private static boolean isGranted(String scope, String appName, boolean read) {
+		return read ? hasReadAccess(scope, appName) : hasWriteAccess(scope, appName);
+	}
+
+	private ConsoleUserResolver getUserResolver() {
+		if (userResolver == null) {
+			userResolver = new ConsoleUserResolver(servletContext);
+		}
+		return userResolver;
 	}
 
 	private DecodedJWT verify(String token, String secret) {
@@ -155,6 +187,57 @@ public class JWTFilterV3 implements ContainerRequestFilter {
 	 */
 	public static boolean hasReadAccess(String scopeClaim, String appName) {
 		return hasAccess(scopeClaim, appName, PERMISSION_ADMIN, PERMISSION_USER, PERMISSION_READ_ONLY);
+	}
+
+	/**
+	 * Renders a user's live role into the scope string this filter authorizes against, so the
+	 * live check reuses {@link #hasReadAccess}/{@link #hasWriteAccess}/{@link #hasAdminAccess}.
+	 * Legacy single scope wins over the appNameUserType map (as the console AuthenticationFilter
+	 * does). Empty when no known role is found, which denies access.
+	 */
+	public static String scopeFromUser(User user) {
+		if (user == null) {
+			return "";
+		}
+		List<String> scopes = new ArrayList<>();
+		if (user.getScope() != null) {
+			// legacy (pre-2.9.1): single scope + user type
+			String permission = permissionOf(user.getUserType());
+			if (permission != null) {
+				scopes.add(scopeToken(permission, user.getScope()));
+			}
+		}
+		else if (user.getAppNameUserType() != null) {
+			for (Map.Entry<String, String> entry : user.getAppNameUserType().entrySet()) {
+				String permission = permissionOf(entry.getValue());
+				if (entry.getKey() != null && permission != null) {
+					scopes.add(scopeToken(permission, entry.getKey()));
+				}
+			}
+		}
+		return String.join(" ", scopes);
+	}
+
+	private static String scopeToken(String permission, String resource) {
+		// resource is "system" or an app name
+		return RESOURCE_SYSTEM.equals(resource)
+				? permission + ":" + RESOURCE_SYSTEM
+				: permission + ":" + RESOURCE_APPLICATION + ":" + resource;
+	}
+
+	private static String permissionOf(UserType userType) {
+		return userType != null ? permissionOf(userType.toString()) : null;
+	}
+
+	private static String permissionOf(String userTypeName) {
+		if (userTypeName == null) {
+			return null;
+		}
+		String permission = userTypeName.toLowerCase(Locale.ENGLISH);
+		if (PERMISSION_ADMIN.equals(permission) || PERMISSION_USER.equals(permission) || PERMISSION_READ_ONLY.equals(permission)) {
+			return permission;
+		}
+		return null;
 	}
 
 	private static boolean hasAccess(String scopeClaim, String appName, String... allowedPermissions) {

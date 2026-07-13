@@ -14,7 +14,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,6 +29,9 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.algorithms.Algorithm;
 
+import io.antmedia.datastore.db.types.User;
+import io.antmedia.datastore.db.types.UserType;
+import io.antmedia.rest.ConsoleUserResolver;
 import io.antmedia.rest.JWTFilterV3;
 import io.antmedia.settings.ServerSettings;
 import jakarta.servlet.ServletContext;
@@ -113,6 +118,63 @@ public class JWTFilterV3Test {
 		assertFalse(JWTFilterV3.hasReadAccess("garbage", "live"));
 	}
 
+	private static User user(Map<String, String> appNameUserType) {
+		User u = new User();
+		u.setAppNameUserType(appNameUserType);
+		return u;
+	}
+
+	private static User legacyUser(String scope, UserType type) {
+		User u = new User();
+		u.setScope(scope);
+		u.setUserType(type);
+		return u;
+	}
+
+	@Test
+	public void testScopeFromUserSystemAdmin() {
+		assertEquals("admin:system", JWTFilterV3.scopeFromUser(user(Map.of("system", "ADMIN"))));
+	}
+
+	@Test
+	public void testScopeFromUserAppScoped() {
+		assertEquals("user:application:live", JWTFilterV3.scopeFromUser(user(Map.of("live", "USER"))));
+		assertEquals("read_only:application:live", JWTFilterV3.scopeFromUser(user(Map.of("live", "READ_ONLY"))));
+	}
+
+	@Test
+	public void testScopeFromUserMultipleApps() {
+		// map order isn't guaranteed — assert on derived access, not the exact string
+		String scope = JWTFilterV3.scopeFromUser(user(Map.of("app1", "USER", "app2", "READ_ONLY")));
+		assertTrue(JWTFilterV3.hasWriteAccess(scope, "app1"));
+		assertFalse(JWTFilterV3.hasWriteAccess(scope, "app2"));
+		assertTrue(JWTFilterV3.hasReadAccess(scope, "app2"));
+		assertFalse(JWTFilterV3.hasReadAccess(scope, "app3"));
+	}
+
+	@Test
+	public void testScopeFromUserLegacyForm() {
+		assertEquals("admin:system", JWTFilterV3.scopeFromUser(legacyUser("system", UserType.ADMIN)));
+		assertEquals("user:application:live", JWTFilterV3.scopeFromUser(legacyUser("live", UserType.USER)));
+	}
+
+	@Test
+	public void testScopeFromUserLegacyScopeTakesPrecedence() {
+		// legacy scope wins over the map
+		User u = legacyUser("system", UserType.ADMIN);
+		u.setAppNameUserType(Map.of("live", "READ_ONLY"));
+		assertEquals("admin:system", JWTFilterV3.scopeFromUser(u));
+	}
+
+	@Test
+	public void testScopeFromUserEmptyOrUnknownDenied() {
+		assertEquals("", JWTFilterV3.scopeFromUser(null));
+		assertEquals("", JWTFilterV3.scopeFromUser(new User()));
+		assertEquals("", JWTFilterV3.scopeFromUser(user(Map.of("live", "SUPERUSER"))));
+		// derived empty scope grants nothing
+		assertFalse(JWTFilterV3.hasReadAccess(JWTFilterV3.scopeFromUser(new User()), "live"));
+	}
+
 	// ---- filter() decision tree ----
 
 	private static String token(String aud, String sub, String scope, Date exp, String secret) {
@@ -128,8 +190,15 @@ public class JWTFilterV3Test {
 		return token("rest", "testuser", scope, new Date(System.currentTimeMillis() + 3600_000), SECRET);
 	}
 
-	/** Runs the filter and returns the abort Response, or null if the request was allowed through. */
+	/**
+	 * Runs the filter and returns the abort Response, or null if allowed through. The live user
+	 * (step 3) mirrors the token's scope, so a valid token maps to a user with the same role.
+	 */
 	private Response runFilter(boolean controlEnabled, String settingsSecret, String authHeader, String httpMethod) {
+		return runFilter(controlEnabled, settingsSecret, authHeader, httpMethod, userFromToken(authHeader));
+	}
+
+	private Response runFilter(boolean controlEnabled, String settingsSecret, String authHeader, String httpMethod, User liveUser) {
 		ServletContext servletContext = mock(ServletContext.class);
 		when(servletContext.getContextPath()).thenReturn("/" + APP);
 
@@ -139,8 +208,12 @@ public class JWTFilterV3Test {
 		when(settings.getJwtServerSecretKey()).thenReturn(settingsSecret);
 		when(webContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(settings);
 
+		ConsoleUserResolver resolver = mock(ConsoleUserResolver.class);
+		when(resolver.getUser(any())).thenReturn(liveUser);
+
 		JWTFilterV3 filter = new JWTFilterV3();
 		ReflectionTestUtils.setField(filter, "servletContext", servletContext);
+		ReflectionTestUtils.setField(filter, "userResolver", resolver);
 
 		ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
 		when(requestContext.getHeaderString(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
@@ -155,6 +228,50 @@ public class JWTFilterV3Test {
 		verify(requestContext, atLeast(0)).abortWith(captor.capture());
 		List<Response> aborts = captor.getAllValues();
 		return aborts.isEmpty() ? null : aborts.get(0);
+	}
+
+	/** Builds a user whose live role reproduces the given scope string (inverse of scopeFromUser). */
+	private static User userForScope(String scope) {
+		Map<String, String> map = new HashMap<>();
+		if (scope != null) {
+			for (String tok : scope.trim().split("\\s+")) {
+				String[] p = tok.split(":");
+				String type = p.length >= 1 ? typeName(p[0]) : null;
+				if (p.length < 2 || type == null) {
+					continue;
+				}
+				if ("system".equals(p[1])) {
+					map.put("system", type);
+				}
+				else if ("application".equals(p[1]) && p.length >= 3) {
+					map.put(p[2], type);
+				}
+			}
+		}
+		return user(map);
+	}
+
+	private static String typeName(String permission) {
+		switch (permission) {
+			case "admin": return "ADMIN";
+			case "user": return "USER";
+			case "read_only": return "READ_ONLY";
+			default: return null;
+		}
+	}
+
+	/** Decodes the token in the header and mirrors its scope to a user, or null if undecodable. */
+	private static User userFromToken(String authHeader) {
+		if (authHeader == null) {
+			return null;
+		}
+		String t = authHeader.toLowerCase().startsWith("bearer") ? authHeader.substring("Bearer".length()).trim() : authHeader;
+		try {
+			return userForScope(JWT.decode(t).getClaim("scope").asString());
+		}
+		catch (Exception e) {
+			return null;
+		}
 	}
 
 	// write request (POST) unless stated otherwise
@@ -300,6 +417,10 @@ public class JWTFilterV3Test {
 	}
 
 	private ContainerRequestContext runSuccess(String sub, String scope) {
+		return runSuccess(sub, scope, userForScope(scope));
+	}
+
+	private ContainerRequestContext runSuccess(String sub, String scope, User liveUser) {
 		String token = token("rest", sub, scope, new Date(System.currentTimeMillis() + 3600_000), SECRET);
 
 		ServletContext servletContext = mock(ServletContext.class);
@@ -310,8 +431,12 @@ public class JWTFilterV3Test {
 		when(settings.getJwtServerSecretKey()).thenReturn(SECRET);
 		when(webContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(settings);
 
+		ConsoleUserResolver resolver = mock(ConsoleUserResolver.class);
+		when(resolver.getUser(any())).thenReturn(liveUser);
+
 		JWTFilterV3 filter = new JWTFilterV3();
 		ReflectionTestUtils.setField(filter, "servletContext", servletContext);
+		ReflectionTestUtils.setField(filter, "userResolver", resolver);
 
 		ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
 		when(requestContext.getHeaderString(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer " + token);
@@ -321,5 +446,30 @@ public class JWTFilterV3Test {
 			filter.filter(requestContext);
 		}
 		return requestContext;
+	}
+
+	// ---- step 3: live user verification ----
+
+	@Test
+	public void testDeletedUserForbidden() {
+		// valid token, but the user no longer exists in the console store
+		assertStatus(Status.FORBIDDEN, runFilter(true, SECRET, "Bearer " + validToken("admin:system"), "POST", null));
+	}
+
+	@Test
+	public void testDowngradedUserForbiddenForWrite() {
+		// token still says admin:system, but the live user is only read_only now
+		User downgraded = user(Map.of("system", "READ_ONLY"));
+		assertStatus(Status.FORBIDDEN, runFilter(true, SECRET, "Bearer " + validToken("admin:system"), "POST", downgraded));
+	}
+
+	@Test
+	public void testDowngradedAdminLosesAdminAccess() {
+		// token says admin:system, but the live user is only a USER: write is allowed, admin is not
+		User demoted = user(Map.of("system", "USER"));
+		ContainerRequestContext requestContext = runSuccess("owner-123", "admin:system", demoted);
+		verify(requestContext, never()).abortWith(any());
+		verify(requestContext).setProperty(JWTFilterV3.AUTHENTICATED_USER_ID, "owner-123");
+		verify(requestContext).setProperty(JWTFilterV3.ADMIN_ACCESS, false);
 	}
 }
