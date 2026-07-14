@@ -320,7 +320,7 @@ public class StreamFetcherUnitTest {
 			// the restart was not rejected as "already active"
 			boolean alreadyActiveLogged = logWatcher.list.stream()
 					.anyMatch(e -> e.getFormattedMessage().contains("already active"));
-			assertFalse("restart must not be rejected as 'already active'", alreadyActiveLogged);
+			assertFalse(alreadyActiveLogged, "restart must not be rejected as 'already active'");
 		}
 		finally {
 			mgrLogger.detachAppender(logWatcher);
@@ -402,9 +402,9 @@ public class StreamFetcherUnitTest {
 
 			// status stays broadcasting and the fetcher keeps running (never flips to finished)
 			for (int i = 0; i < 20; i++) {
-				assertEquals("old worker must not overwrite the live status",
-						AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, dataStore.get(streamId).getStatus());
-				assertTrue("fetcher must keep running", manager.getStreamFetcher(streamId).isStreamAlive());
+				assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, dataStore.get(streamId).getStatus(),
+						"old worker must not overwrite the live status");
+				assertTrue(manager.getStreamFetcher(streamId).isStreamAlive(), "fetcher must keep running");
 				Thread.sleep(500);
 			}
 
