@@ -120,6 +120,11 @@ public class EndpointMuxer extends Muxer {
 		this.url = url;
 		this.analytics = new EndpointAnalytics(url, PACKET_QUEUE_CAPACITY);
 
+		// Base inits these to 0 while its own rebase branches guard on -1, so that
+		// logic is dead. -1 marks "origin not captured yet" for captureFirstDts.
+		this.firstVideoDts = -1;
+		this.firstAudioDts = -1;
+
 		parseEndpointURL(this.url);
 	}
 
@@ -488,6 +493,53 @@ public class EndpointMuxer extends Muxer {
 	}
 
 	/**
+	 * Endpoints are added on the fly, so by the time a push starts the source dts
+	 * is already far from zero. Passing it through hands the receiver a stream
+	 * claiming to start N seconds in, which some ingests turn into N seconds of
+	 * buffer.
+	 *
+	 * Both streams rebase against a single origin, otherwise the A/V skew shifts.
+	 * The base muxer does the same, but neither half of its version runs here: the
+	 * audio half sits in the writePacket override this class replaces, and the
+	 * video half sits behind firstKeyFrameReceived, which only RecordMuxer and
+	 * HLSMuxer clear.
+	 */
+	private long captureFirstDts(AVPacket pkt, AVRational inputTimebase, int codecType) {
+		if (codecType != AVMEDIA_TYPE_AUDIO && codecType != AVMEDIA_TYPE_VIDEO) {
+			return 0;
+		}
+		boolean isAudio = codecType == AVMEDIA_TYPE_AUDIO;
+
+		if (firstPacketDtsMs == -1) {
+			firstPacketDtsMs = av_rescale_q(pkt.dts(), inputTimebase, MuxAdaptor.TIME_BASE_FOR_MS);
+			if (isAudio) {
+				firstAudioDts = pkt.dts();
+			}
+			else {
+				firstVideoDts = pkt.dts();
+			}
+			logger.info("Rebasing {} push from first {} packet dts:{}ms for {}", muxerType,
+					isAudio ? "audio" : "video", firstPacketDtsMs, url);
+		}
+
+		long firstDts = isAudio ? firstAudioDts : firstVideoDts;
+		if (firstDts == -1) {
+			firstDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimebase);
+			// The other stream can start behind the origin. Clamp so it can't go negative.
+			if ((pkt.dts() - firstDts) < 0) {
+				firstDts = pkt.dts();
+			}
+			if (isAudio) {
+				firstAudioDts = firstDts;
+			}
+			else {
+				firstVideoDts = firstDts;
+			}
+		}
+		return firstDts;
+	}
+
+	/**
 	 * Extracted so unit tests can stub it or spy...
 	 */
 	public boolean inStartupGracePeriod() {
@@ -506,8 +558,10 @@ public class EndpointMuxer extends Muxer {
 		long duration = pkt.duration();
 		long pos = pkt.pos();
 
-		pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-		pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+		long firstDts = captureFirstDts(pkt, inputTimebase, codecType);
+
+		pkt.pts(av_rescale_q_rnd(pkt.pts() - firstDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+		pkt.dts(av_rescale_q_rnd(pkt.dts() - firstDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.duration(av_rescale_q(pkt.duration(), inputTimebase, outputTimebase));
 		pkt.pos(-1);
 		int ret = 0;
