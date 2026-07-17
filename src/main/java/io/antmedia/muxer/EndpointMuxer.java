@@ -31,7 +31,6 @@ import org.bytedeco.ffmpeg.global.avutil;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
@@ -54,15 +53,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.WorkerExecutor;
 
 public class EndpointMuxer extends Muxer {
 
 	/** ~3-5s of frames at typical FPS */
 	private static final int PACKET_QUEUE_CAPACITY = 200;
-
-	/** Shared write pool; sized by the {@code endpointMuxerExecutor} bean, or the fallback below if it's absent (old config). */
-	static final String WORKER_POOL_NAME = "endpoint-muxer-pool";
 
 	private String url;
 	private volatile boolean trailerWritten = false;
@@ -123,7 +118,7 @@ public class EndpointMuxer extends Muxer {
 			muxerType = "rtmp";
 			// Cap AVIO blocking so a dead/slow remote can't wedge us for the
 			// kernel TCP retransmit window (~75s) on open or indefinitely on writes.
-			options.put("rw_timeout", "10000000");
+			options.put("rw_timeout", "5000000");
 
 			// Publisher-side tunings. NODE: rtmp_live/rtmp_buffer are subscriber-only
 			options.put("tcp_nodelay", "1");
@@ -325,12 +320,10 @@ public class EndpointMuxer extends Muxer {
 		}
 
 		running = true;
-		// No bean config: fall back to 16 threads, 15s max-execute (> rtmp rw_timeout 10s).
-		final WorkerExecutor writeExecutor = vertx.createSharedWorkerExecutor(WORKER_POOL_NAME, 16, 15, TimeUnit.SECONDS);
 
 		drainTimerId = vertx.setPeriodic(10, t -> {
 			if (running && drainScheduled.compareAndSet(false, true)) {
-				writeExecutor.executeBlocking(() -> { drain(); return null; }, false)
+				vertx.executeBlocking(() -> { drain(); return null; }, false)
 						.onComplete(ar -> drainScheduled.set(false));
 			}
 		});
