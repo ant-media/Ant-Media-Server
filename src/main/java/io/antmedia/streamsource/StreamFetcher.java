@@ -762,12 +762,7 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					if (isReplacedByAnotherFetcher()) {
-						logger.warn("Skipping close broadcast for {} because a replacement fetcher owns the stream", streamId);
-					}
-					else {
-						getInstance().closeBroadcast(streamId, null, null);
-					}
+					closeBroadcastIfOwner();
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -785,16 +780,8 @@ public class StreamFetcher {
 					logger.info("Stream fetcher will try to fetch source {} after {} ms for streamId:{}", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS, streamId);
 
 					//Update status to finished unless a replacement fetcher owns the stream
-					if (isReplacedByAnotherFetcher()) {
-						logger.warn("Skipping finished status update for {} because a replacement fetcher owns the stream", streamId);
-					}
-					else {
-						BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-						broadcastUpdate.setUpdateTime(System.currentTimeMillis());
-						broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-						getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
-					}
-					
+					updateStatusToFinishedIfOwner();
+
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
@@ -808,12 +795,7 @@ public class StreamFetcher {
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
-						if (isReplacedByAnotherFetcher()) {
-							logger.warn("Skipping close broadcast for {} because a replacement fetcher owns the stream", streamId);
-						}
-						else {
-							getInstance().closeBroadcast(streamId, null, null);
-						}
+						closeBroadcastIfOwner();
 					}
 				}
 
@@ -825,6 +807,35 @@ public class StreamFetcher {
 				logger.error(ExceptionUtils.getStackTrace(e));
 
 			}
+		}
+
+		private void closeBroadcastIfOwner() {
+			if (isReplacedByAnotherFetcher()) {
+				logger.warn("Skipping close broadcast for {} because a replacement fetcher owns the stream", streamId);
+				return;
+			}
+			getInstance().closeBroadcast(streamId, null, null);
+		}
+
+		private void updateStatusToFinishedIfOwner() {
+			if (isReplacedByAnotherFetcher()) {
+				logger.warn("Skipping finished status update for {} because a replacement fetcher owns the stream", streamId);
+				return;
+			}
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+			broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+		}
+
+		private boolean isReplacedByAnotherFetcher() {
+			AntMediaApplicationAdapter instance = getInstance();
+			if (instance == null || instance.getStreamFetcherManager() == null) {
+				//nothing to compare against, so treat this fetcher as the owner
+				return false;
+			}
+			StreamFetcher registered = instance.getStreamFetcherManager().getStreamFetcher(streamId);
+			return registered != null && registered != StreamFetcher.this;
 		}
 
 		private void writeAllBufferedPackets()
@@ -1220,15 +1231,6 @@ public class StreamFetcher {
 			}
 		}.start();
 
-	}
-	private boolean isReplacedByAnotherFetcher() {
-		AntMediaApplicationAdapter instance = getInstance();
-		if (instance == null || instance.getStreamFetcherManager() == null) {
-			//nothing to compare against, so treat this fetcher as the owner
-			return false;
-		}
-		StreamFetcher registered = instance.getStreamFetcherManager().getStreamFetcher(streamId);
-		return registered != null && registered != this;
 	}
 
 	/**

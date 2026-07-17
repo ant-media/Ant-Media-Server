@@ -312,10 +312,9 @@ public class StreamFetcherUnitTest {
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
 
 			// the stopped worker did not overwrite the new one's status with finished
-			for (int i = 0; i < 10; i++) {
-				assertNotEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, dataStore.get(streamId).getStatus());
-				Thread.sleep(300);
-			}
+			// during() asserts the status never flips to finished across the whole window
+			Awaitility.await().during(3, TimeUnit.SECONDS).atMost(8, TimeUnit.SECONDS).until(() ->
+					!AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get(streamId).getStatus()));
 
 			// the restart was not rejected as "already active"
 			boolean alreadyActiveLogged = logWatcher.list.stream()
@@ -401,12 +400,10 @@ public class StreamFetcherUnitTest {
 			prepareLatch.countDown();
 
 			// status stays broadcasting and the fetcher keeps running (never flips to finished)
-			for (int i = 0; i < 20; i++) {
-				assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, dataStore.get(streamId).getStatus(),
-						"old worker must not overwrite the live status");
-				assertTrue(manager.getStreamFetcher(streamId).isStreamAlive(), "fetcher must keep running");
-				Thread.sleep(500);
-			}
+			// during() asserts both hold continuously: live status and an alive fetcher
+			Awaitility.await().during(10, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus())
+							&& manager.getStreamFetcher(streamId).isStreamAlive());
 
 			// restarting now is correctly rejected, since the stream really is running
 			Result restartResult = manager.startStreaming(broadcast);

@@ -11,7 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,7 +28,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomUtils;
@@ -936,11 +938,11 @@ public class StreamSchedularUnitTest {
 	@Test
 	public void testNoRestartWhileWorkerStillActive() {
 
-		DataStore dataStore = Mockito.mock(DataStore.class);
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+		DataStore dataStore = mock(DataStore.class);
+		StreamFetcherManager streamFetcherManager = spy(new StreamFetcherManager(vertx, dataStore, appScope));
 
 		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
-		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
+		StreamFetcher fetcher = mock(StreamFetcher.class);
 		String streamId = "stream123456";
 		streamFetcherList.put(streamId, fetcher);
 		when(fetcher.getStreamId()).thenReturn(streamId);
@@ -963,7 +965,7 @@ public class StreamSchedularUnitTest {
 		// second fetcher (no duplicate connection) while the previous worker is still active
 		verify(fetcher, times(1)).stopStream();
 		verify(fetcher, times(1)).setStreamFetcherListener(Mockito.any());
-		verify(streamFetcherManager, Mockito.never()).startStreaming(Mockito.any());
+		verify(streamFetcherManager, never()).startStreaming(Mockito.any());
 	}
 
 	/**
@@ -975,8 +977,8 @@ public class StreamSchedularUnitTest {
 	@Test
 	public void testDoNotRestartHealthyStreams() {
 
-		DataStore dataStore = Mockito.mock(DataStore.class);
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+		DataStore dataStore = mock(DataStore.class);
+		StreamFetcherManager streamFetcherManager = spy(new StreamFetcherManager(vertx, dataStore, appScope));
 
 		// LinkedHashMap so the terminated stream is iterated FIRST (to reproduce the leak); values() returns a
 		// snapshot copy so the in-loop stopStreaming() removal does not throw ConcurrentModification.
@@ -989,7 +991,7 @@ public class StreamSchedularUnitTest {
 
 		// Terminated: not alive, not blocked, status TERMINATED_UNEXPECTEDLY -> should be evicted+restarted
 		String terminatedId = "terminatedStream";
-		StreamFetcher terminatedFetcher = Mockito.mock(StreamFetcher.class);
+		StreamFetcher terminatedFetcher = mock(StreamFetcher.class);
 		when(terminatedFetcher.getStreamId()).thenReturn(terminatedId);
 		when(terminatedFetcher.isStreamAlive()).thenReturn(false);
 		when(terminatedFetcher.isStreamBlocked()).thenReturn(false);
@@ -999,7 +1001,7 @@ public class StreamSchedularUnitTest {
 
 		// Healthy: alive, not blocked -> must be left completely alone
 		String healthyId = "healthyStream";
-		StreamFetcher healthyFetcher = Mockito.mock(StreamFetcher.class);
+		StreamFetcher healthyFetcher = mock(StreamFetcher.class);
 		when(healthyFetcher.getStreamId()).thenReturn(healthyId);
 		when(healthyFetcher.isStreamAlive()).thenReturn(true);
 		when(healthyFetcher.isStreamBlocked()).thenReturn(false);
@@ -1013,9 +1015,9 @@ public class StreamSchedularUnitTest {
 		when(dataStore.get(healthyId)).thenReturn(healthyBroadcast);
 
 		// isolate the restart-leak behavior from auto-stop and async-teardown paths
-		Mockito.doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
-		Mockito.doReturn(false).when(streamFetcherManager).isStreamRunning(Mockito.any());
-		Mockito.doReturn(new Result(true)).when(streamFetcherManager).startStreaming(Mockito.any(Broadcast.class));
+		doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
+		doReturn(false).when(streamFetcherManager).isStreamRunning(Mockito.any());
+		doReturn(new Result(true)).when(streamFetcherManager).startStreaming(Mockito.any(Broadcast.class));
 
 		streamFetcherManager.setStreamFetcherList(orderedList);
 
@@ -1027,8 +1029,8 @@ public class StreamSchedularUnitTest {
 		verify(streamFetcherManager, times(1)).startStreaming(terminatedBroadcast);
 
 		// healthy stream is untouched - this is the assertion that fails without the fix
-		verify(healthyFetcher, Mockito.never()).stopStream();
-		verify(streamFetcherManager, Mockito.never()).startStreaming(healthyBroadcast);
+		verify(healthyFetcher, never()).stopStream();
+		verify(streamFetcherManager, never()).startStreaming(healthyBroadcast);
 	}
 
 	@Test

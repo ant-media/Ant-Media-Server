@@ -17,10 +17,12 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.jupiter.api.BeforeAll;
@@ -479,11 +481,14 @@ public class StreamFetcherV2Test {
 				//second worker explicit: older builds restart in place so the second connection is
 				//already held and the extra start harmlessly vetoes; deferral builds only evict, so
 				//this watchdog-style start succeeds and parks the second worker
-				Thread.sleep(25000);
-				for (int i = 0; i < 10 && tarpit.getHeldConnectionCount() < 2; i++) {
-					restService.startStreaming(streamId);
-					Thread.sleep(3000);
-				}
+				//pure delay: the stop-flag isn't observable over REST, so there is no condition to poll on
+				Awaitility.await().pollDelay(25, TimeUnit.SECONDS).atMost(26, TimeUnit.SECONDS).until(() -> true);
+				Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
+					if (tarpit.getHeldConnectionCount() < 2) {
+						restService.startStreaming(streamId);
+					}
+					return tarpit.getHeldConnectionCount() == 2;
+				});
 				assertEquals(2, tarpit.getHeldConnectionCount());
 
 				//release only the new worker: it completes prepare and streams
@@ -500,11 +505,9 @@ public class StreamFetcherV2Test {
 
 				//the dying worker must not overwrite the live status: never finished, broadcasting throughout
 				//(on the split-brain bug this fails with finished about a second after the close)
-				for (int i = 0; i < 10; i++) {
-					Thread.sleep(2500);
-					Broadcast b = RestServiceV2Test.callGetBroadcast(streamId);
-					assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, b.getStatus());
-				}
+				//during() asserts the status holds broadcasting continuously for the whole window
+				Awaitility.await().during(25, TimeUnit.SECONDS).atMost(30, TimeUnit.SECONDS).until(() ->
+						AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(RestServiceV2Test.callGetBroadcast(streamId).getStatus()));
 				assertTrue(rtmpServer.isAlive());
 
 				//healthy live stream: updateTime advances while status stays broadcasting
@@ -578,19 +581,13 @@ public class StreamFetcherV2Test {
 
 		void release(int connectionIndex, int upstreamPort) throws IOException {
 			Socket downstream = heldConnections.get(connectionIndex);
-			Socket upstream = null;
-			for (int i = 0; i < 40 && upstream == null; i++) {
-				try {
-					upstream = new Socket(InetAddress.getLoopbackAddress(), upstreamPort);
-				} catch (IOException e) {
-					try {
-						Thread.sleep(500);
-					} catch (InterruptedException ie) {
-						Thread.currentThread().interrupt();
-					}
-				}
-			}
-			if (upstream == null) {
+			Socket upstream;
+			try {
+				//retry the upstream connect until the rtmp server is listening (was a 40x500ms sleep loop)
+				upstream = Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS)
+						.ignoreExceptions()
+						.until(() -> new Socket(InetAddress.getLoopbackAddress(), upstreamPort), Objects::nonNull);
+			} catch (ConditionTimeoutException e) {
 				throw new IOException("upstream rtmp server is not listening on port " + upstreamPort);
 			}
 			pump(downstream, upstream);
