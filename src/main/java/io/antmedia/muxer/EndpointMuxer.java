@@ -29,6 +29,7 @@ import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -58,8 +59,45 @@ import io.vertx.core.WorkerExecutor;
 
 public class EndpointMuxer extends Muxer {
 
-	/** ~3-5s of frames at typical FPS */
-	private static final int PACKET_QUEUE_CAPACITY = 200;
+	/** ~1-2s of frames at typical FPS */
+	private static final int PACKET_QUEUE_CAPACITY = 100;
+
+	/** {@link #videoStreamIndex} before the output streams are known, and once it turns out there are none. */
+	private static final int STREAM_UNRESOLVED = -2;
+	private static final int NO_VIDEO_STREAM = -1;
+
+	/**
+	 * Fallback so a drop cycle cannot wait forever. A drop normally ends on the next
+	 * video keyframe, but a source whose video died while audio keeps flowing will never
+	 * send one, and waiting on it would keep the endpoint silent for good. After this
+	 * much media time the cycle resumes on whatever arrives instead: brief artifacts,
+	 * but alive.
+	 */
+	private static final long RESUME_WAIT_LIMIT_MS = 10_000L;
+
+	/**
+	 * Absorb publisher-side gaps: an incoming dts jump above this many seconds is
+	 * charged to {@link #dropOffsetMs} like a drop, so the endpoint sees an unbroken
+	 * timeline instead of the gap. -1 disables. Must stay well above the source frame
+	 * interval: a source slower than one frame per this period reads as a permanent gap
+	 * and gets its timeline compressed, growing latency without bound.
+	 */
+	private static final int ABSORB_SOURCE_GAP_SECONDS = 1;
+	private static final long SOURCE_GAP_MS = ABSORB_SOURCE_GAP_SECONDS * 1000L;
+
+	/**
+	 * Enforce a live edge. An upstream stall whose packets got buffered (a blocked
+	 * publisher that kept encoding) arrives late as a burst with continuous timestamps:
+	 * no queue fills and no dts jumps, yet the endpoint replays the backlog seconds
+	 * behind live for good. When arrivals lag wall clock by more than this many seconds,
+	 * skip forward until they are near live again. -1 disables. A source that is
+	 * persistently slower than realtime accumulates lag legitimately and gets a jump
+	 * cut each time it reaches this budget; that is what enforcing a live edge means.
+	 */
+	private static final int ABSORB_SOURCE_LAG_SECONDS = 3;
+	private static final long SOURCE_LAG_MS = ABSORB_SOURCE_LAG_SECONDS * 1000L;
+	/** Where a lag skip aims to land, well under the trigger so it does not re-fire. */
+	private static final long LAG_RESUME_TARGET_MS = 1000L;
 
 	/** Shared write pool; sized by the {@code endpointMuxerExecutor} bean, or the fallback below if it's absent (old config). */
 	static final String WORKER_POOL_NAME = "endpoint-muxer-pool";
@@ -86,6 +124,29 @@ public class EndpointMuxer extends Muxer {
 	private final LinkedBlockingQueue<AVPacket> packetQueue = new LinkedBlockingQueue<>(PACKET_QUEUE_CAPACITY);
 	/** Lock for frame dropping */
 	private final Object queueLock = new Object();
+	/** Media time removed by drops, subtracted on the way out. Guarded by {@link #queueLock}. */
+	private long dropOffsetMs = 0;
+	/** Set while a drop is in progress, cleared on the packet the endpoint restarts from. Producer-thread only. */
+	private boolean waitingForResumePoint = false;
+	/** Media time the in-progress drop cut from, AV_NOPTS_VALUE when idle. Producer-thread only. */
+	private long dropStartMs = avutil.AV_NOPTS_VALUE;
+	/** Last incoming dts on any stream, for publisher gap detection. Producer-thread only. */
+	private long lastInputDtsMs = avutil.AV_NOPTS_VALUE;
+	/** Furthest incoming dts on any stream. Lag is measured from this, so interleave skew cannot read as lateness. Producer-thread only. */
+	private long maxInputDtsMs = avutil.AV_NOPTS_VALUE;
+	/** Learned inter-packet step, cushions where a gap resume re-anchors. Producer-thread only. */
+	private long inputStepMs = 33;
+	/** Set for gap cycles: nothing was discarded, so any video packet resumes, no keyframe wait. Producer-thread only. */
+	private boolean resumeOnAnyVideo = false;
+	/** Wall/media reference lag is measured against, re-anchored at every resume and whenever arrivals run ahead. Producer-thread only. */
+	private long wallStartMs = 0;
+	private long dtsStartMs = avutil.AV_NOPTS_VALUE;
+	/** Lag cycles only: the resume keyframe must reach this dts, so one cycle skips the whole stale backlog. Producer-thread only. */
+	private long skipToDtsMs = avutil.AV_NOPTS_VALUE;
+	/** Output index of the video stream. Producer-thread only. */
+	private int videoStreamIndex = STREAM_UNRESOLVED;
+	/** Last dts written per output stream. Drain-thread only, guarded by {@link #writeLock}. */
+	private long[] lastWrittenDts;
 	private final AtomicBoolean drainScheduled = new AtomicBoolean(false);
 	private volatile boolean running = false;
 	private long drainTimerId = -1;
@@ -585,78 +646,362 @@ public class EndpointMuxer extends Muxer {
 	/**
 	 * Clones {@code src} (it shares data with {@link #getTmpPacket()}, which
 	 * {@link #addExtradataIfRequired} mutates in place) onto the drain queue.
-	 * On a full queue, drops the oldest GOP so the receiver skips cleanly to the
-	 * next keyframe instead of decoding a hole.
+	 *
+	 * A full queue means the endpoint is behind for good: the backlog can only leave at
+	 * timestamp pace, so keeping it keeps its whole duration as latency. Drop it instead
+	 * and restart at the next resume point, relabelled so the endpoint never sees the hole.
 	 */
 	private void enqueuePacket(AVPacket src, AVFormatContext context) {
 		if (!running || cancelOpenIO.get()) {
 			return;
 		}
 
-		boolean isKeyFrame = (src.flags() & AV_PKT_FLAG_KEY) != 0;
-		if (context.streams(src.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-			addExtradataIfRequired(src, isKeyFrame);
+		detectSourceStall(src, context);
+
+		// Mid-drop: discard without cloning until the endpoint can pick the stream back up.
+		if (waitingForResumePoint && !tryResume(src, context)) {
+			return;
+		}
+
+		if (src.stream_index() == getVideoStreamIndex(context)) {
+			addExtradataIfRequired(src, (src.flags() & AV_PKT_FLAG_KEY) != 0);
 		}
 
 		AVPacket clone = av_packet_clone(src);
 		if (clone == null) {
 			return;
 		}
-
 		if (packetQueue.offer(clone)) {
 			return;
 		}
 
-		// Drop the oldest GOP to make room. queueLock keeps the boundary
-		// scan stable against the drain worker's poll.
-		synchronized (queueLock) {
-			dropOldestGop(context);
-			if (!packetQueue.offer(clone)) {
-				av_packet_free(clone);
-			}
+		dropBacklog(context);
+		// src may be a resume point itself, so restart on it rather than spend another GOP
+		// waiting for the next one.
+		if (waitingForResumePoint && !tryResume(src, context)) {
+			av_packet_free(clone);
+			return;
 		}
-		analytics.recordDrop(packetQueue.size());
+		if (!packetQueue.offer(clone)) {
+			av_packet_free(clone);
+		}
 	}
 
 	/**
-	 * Drops the head packet plus everything up to (not including) the next video
-	 * keyframe, leaving the queue aligned to a clean GOP. Drains the
-	 * whole queue if it holds no further keyframe (e.g. audio-only).
-	 * Caller holds {@link #queueLock}.
+	 * Drops the whole backlog and holds the queue empty until the stream can restart
+	 * cleanly. Records the dts the drain would have written next: it sits one frame past
+	 * the last dts actually written, so resuming from it lands the new timeline flush
+	 * against the old one, with no gap and no overlap.
+	 *
+	 * The queue is FIFO over what the drain has not written yet, so that marker is simply
+	 * the oldest queued video packet, or the oldest of any stream when no video is queued
+	 * (video stalled at the source, or an audio-only endpoint).
 	 */
-	private void dropOldestGop(AVFormatContext context) {
-		AVPacket oldest = packetQueue.poll();
-		if (oldest != null) {
-			av_packet_free(oldest);
+	private void dropBacklog(AVFormatContext context) {
+		int videoIndex = getVideoStreamIndex(context);
+		long videoMs = avutil.AV_NOPTS_VALUE;
+		long anyMs = avutil.AV_NOPTS_VALUE;
+		// queueLock keeps the drain from polling a packet this scan already accounted for.
+		synchronized (queueLock) {
+			AVPacket pkt;
+			while ((pkt = packetQueue.poll()) != null) {
+				try {
+					long ms = dtsMs(pkt, context);
+					if (ms == avutil.AV_NOPTS_VALUE) {
+						continue;
+					}
+					if (anyMs == avutil.AV_NOPTS_VALUE) {
+						anyMs = ms;
+					}
+					if (videoMs == avutil.AV_NOPTS_VALUE && pkt.stream_index() == videoIndex) {
+						videoMs = ms;
+					}
+				}
+				finally {
+					av_packet_free(pkt);
+				}
+			}
 		}
-		AVPacket head;
-		while ((head = packetQueue.peek()) != null && !isVideoKeyFrame(head, context)) {
-			packetQueue.poll();
-			av_packet_free(head);
+		dropStartMs = videoMs != avutil.AV_NOPTS_VALUE ? videoMs : anyMs;
+		// Undelivered frames were just discarded, so this cycle must wait for a keyframe.
+		resumeOnAnyVideo = false;
+		// No marker means the drain emptied the queue between the failed offer and this
+		// scan: nothing was lost, so there is nothing to charge and nothing to wait for.
+		// Entering the drop cycle here would punch a real hole for no reason.
+		waitingForResumePoint = dropStartMs != avutil.AV_NOPTS_VALUE;
+		if (waitingForResumePoint) {
+			analytics.recordDrop(packetQueue.size());
 		}
 	}
 
-	private static boolean isVideoKeyFrame(AVPacket pkt, AVFormatContext context) {
-		return context.streams(pkt.stream_index()).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO
-				&& (pkt.flags() & AV_PKT_FLAG_KEY) != 0;
+	/**
+	 * A publisher-side stall reaches this muxer in one of two shapes, and the endpoint
+	 * reacts to both exactly as badly as to a drop-made gap (see {@link #dropBacklog}).
+	 *
+	 * GAP: the publisher dropped frames, so dts jumps. Open a resume cycle re-anchored
+	 * one step past the last delivered packet; nothing was discarded by us, so any video
+	 * packet resumes, and the charge lands the stream flush against what was written.
+	 *
+	 * LAG: the publisher buffered and is delivering late, timestamps continuous. No
+	 * queue fills and no dts jumps, so only wall clock exposes it: arrivals fall behind
+	 * the wall/media reference. Skip forward by discarding until a keyframe near live
+	 * ({@code skipToDtsMs}), charging the skipped span. The reference re-anchors whenever
+	 * arrivals run ahead of it, so a fast source cannot bank margin that would mask a
+	 * later stall, and at every resume, which is what grants a persistently slow source
+	 * a fresh budget instead of discarding it forever.
+	 *
+	 * Detection watches every stream and the charge always waits for the resume point:
+	 * after a stall either stream can arrive first, and a packet written before the
+	 * charge exists would run ahead of the re-anchored timeline, after which the
+	 * monotonic guard would mute its whole stream for the length of the stall. With a
+	 * backlog queued both shapes fold into a normal drop cycle, one combined charge,
+	 * keyframe aligned. While a drop is already waiting there is nothing to do, the
+	 * resume charge spans whatever happened.
+	 */
+	private void detectSourceStall(AVPacket src, AVFormatContext context) {
+		if (waitingForResumePoint) {
+			return;
+		}
+		long dts = dtsMs(src, context);
+		if (dts == avutil.AV_NOPTS_VALUE) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		long previous = lastInputDtsMs;
+		lastInputDtsMs = dts;
+		if (previous == avutil.AV_NOPTS_VALUE) {
+			wallStartMs = now;
+			dtsStartMs = dts;
+			maxInputDtsMs = dts;
+			return;
+		}
+
+		long delta = dts - previous;
+		// The gap branch runs on the pre-gap maxInputDtsMs: this packet's own dts sits
+		// PAST the jump, and anchoring there would charge nothing and ship the gap.
+		if (SOURCE_GAP_MS > 0 && delta > SOURCE_GAP_MS) {
+			logger.info("Detected {}ms publisher gap for {}", delta, url);
+			openStallCycle(context, true);
+			return;
+		}
+		if (dts > maxInputDtsMs) {
+			maxInputDtsMs = dts;
+		}
+		// The step cushion only ever spans one packet interval; a gap must not teach it.
+		if (delta > 0 && delta <= 1000) {
+			inputStepMs = delta;
+		}
+
+		if (SOURCE_LAG_MS <= 0) {
+			return;
+		}
+		long lag = (now - wallStartMs) - (maxInputDtsMs - dtsStartMs);
+		if (lag < 0) {
+			wallStartMs = now;
+			dtsStartMs = maxInputDtsMs;
+			return;
+		}
+		if (lag > SOURCE_LAG_MS) {
+			logger.info("Arrivals lag live by {}ms for {}, skipping forward", lag, url);
+			skipToDtsMs = maxInputDtsMs + (lag - LAG_RESUME_TARGET_MS);
+			openStallCycle(context, false);
+		}
+	}
+
+	/**
+	 * Opens a resume cycle for a detected stall, anchored one step past the furthest
+	 * delivered packet so the resume charge lands the stream flush against what was
+	 * written. A gap discarded nothing of ours, so any video packet may resume; a lag
+	 * skip discards delivered frames, so it must wait for a keyframe.
+	 */
+	private void openStallCycle(AVFormatContext context, boolean nothingDiscarded) {
+		if (packetQueue.isEmpty()) {
+			dropStartMs = maxInputDtsMs + inputStepMs;
+			resumeOnAnyVideo = nothingDiscarded;
+			waitingForResumePoint = true;
+		}
+		else {
+			dropBacklog(context);
+		}
+	}
+
+	/**
+	 * Restarts the queue on the first packet the endpoint can decode from, charging the
+	 * dropped span to {@link #dropOffsetMs} so the output timeline stays unbroken. A real
+	 * gap costs more latency than the drop that caused it, because the receiver waits it
+	 * out rather than skipping to live.
+	 *
+	 * The charge comes off video, so video resumes exactly where it left off. Audio takes
+	 * the same offset, which is what keeps A/V sync exact: one shared offset maps both
+	 * streams' media time the same way. Audio's own arrival skew against video survives as
+	 * a sub-frame step that {@link #isMonotonic} absorbs.
+	 */
+	private boolean tryResume(AVPacket src, AVFormatContext context) {
+		long dts = dtsMs(src, context);
+		// A packet with no timestamp cannot anchor a resume: the drop would go uncharged,
+		// handing the endpoint the very gap this cycle exists to prevent.
+		if (dts == avutil.AV_NOPTS_VALUE) {
+			return false;
+		}
+		boolean resumable = isResumePoint(src, context)
+				&& (skipToDtsMs == avutil.AV_NOPTS_VALUE || dts >= skipToDtsMs);
+		if (!resumable && !waitedOut(dts)) {
+			return false;
+		}
+		if (dropStartMs != avutil.AV_NOPTS_VALUE) {
+			long dropped = Math.max(0, dts - dropStartMs);
+			long total;
+			synchronized (queueLock) {
+				dropOffsetMs += dropped;
+				total = dropOffsetMs;
+			}
+			logger.info("Endpoint queue resumed for {}: dropped {}ms, offset now {}ms", url, dropped, total);
+		}
+		// Restart stall tracking from here: the charge above covered everything up to
+		// this packet, so a stale pre-drop dts must not read as a second gap, and the
+		// lag reference gets a fresh budget.
+		lastInputDtsMs = dts;
+		maxInputDtsMs = dts;
+		wallStartMs = System.currentTimeMillis();
+		dtsStartMs = dts;
+		skipToDtsMs = avutil.AV_NOPTS_VALUE;
+		resumeOnAnyVideo = false;
+		waitingForResumePoint = false;
+		dropStartMs = avutil.AV_NOPTS_VALUE;
+		return true;
+	}
+
+	/**
+	 * Where the endpoint can restart without decoding into a hole. After a backlog drop
+	 * video must resume on a keyframe, because frames the decoder needs were thrown away.
+	 * After a publisher gap nothing was, so any video packet restarts the stream. An
+	 * audio-only endpoint has no GOP to respect, and waiting on a keyframe that can never
+	 * arrive would wedge it for good, so there any packet will do.
+	 */
+	private boolean isResumePoint(AVPacket pkt, AVFormatContext context) {
+		int videoIndex = getVideoStreamIndex(context);
+		if (videoIndex == NO_VIDEO_STREAM) {
+			return true;
+		}
+		return pkt.stream_index() == videoIndex
+				&& (resumeOnAnyVideo || (pkt.flags() & AV_PKT_FLAG_KEY) != 0);
+	}
+
+	/**
+	 * Give up waiting for a resume point the source is evidently not going to send: a
+	 * video stall while audio keeps arriving, or a lag skip target past what the source
+	 * delivers, would otherwise hold the endpoint silent for good. Restarting mid-GOP
+	 * costs artifacts until the next keyframe, which is what the old drop did on every
+	 * overflow.
+	 *
+	 * Absolute distance, because a source dts reset (encoder restart) lands far BELOW
+	 * the anchor. Resuming hands it to the writer, whose error path drives the normal
+	 * republish; discarding would hold the endpoint silent with no error ever raised.
+	 */
+	private boolean waitedOut(long dts) {
+		return dts != avutil.AV_NOPTS_VALUE
+				&& dropStartMs != avutil.AV_NOPTS_VALUE
+				&& Math.abs(dts - dropStartMs) > RESUME_WAIT_LIMIT_MS;
+	}
+
+	/**
+	 * Output index of the video stream, or {@link #NO_VIDEO_STREAM} when the endpoint
+	 * carries none. Streams are fixed by the time anything is queued, so this resolves
+	 * once. Matching on the index also keeps the hot path off {@code codecpar}, which a
+	 * stream index out of range would dereference past the end of the stream array.
+	 */
+	private int getVideoStreamIndex(AVFormatContext context) {
+		if (videoStreamIndex != STREAM_UNRESOLVED) {
+			return videoStreamIndex;
+		}
+		int found = NO_VIDEO_STREAM;
+		int count = context.nb_streams();
+		for (int i = 0; i < count; i++) {
+			if (context.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+				found = i;
+				break;
+			}
+		}
+		// Only latch an answer once the context actually holds streams, so a torn-down
+		// context can't cache "no video" over an endpoint that has it.
+		if (count > 0) {
+			videoStreamIndex = found;
+			logger.info("Endpoint {} resolved video stream index:{}", url, found);
+		}
+		return found;
+	}
+
+	/** @return the packet's dts in ms, or AV_NOPTS_VALUE when it carries none. */
+	private static long dtsMs(AVPacket pkt, AVFormatContext context) {
+		if (pkt.dts() == avutil.AV_NOPTS_VALUE) {
+			return avutil.AV_NOPTS_VALUE;
+		}
+		return av_rescale_q(pkt.dts(), context.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+	}
+
+	/**
+	 * Slides a packet back onto the timeline the drops removed time from.
+	 * AV_NOPTS_VALUE is Long.MIN_VALUE, so subtracting from it would overflow into a
+	 * large positive timestamp rather than leave it absent.
+	 */
+	private static void shiftBack(AVPacket pkt, long offsetMs, AVFormatContext context) {
+		if (offsetMs == 0) {
+			return;
+		}
+		long offset = av_rescale_q(offsetMs, MuxAdaptor.TIME_BASE_FOR_MS, context.streams(pkt.stream_index()).time_base());
+		if (pkt.pts() != avutil.AV_NOPTS_VALUE) {
+			pkt.pts(pkt.pts() - offset);
+		}
+		if (pkt.dts() != avutil.AV_NOPTS_VALUE) {
+			pkt.dts(pkt.dts() - offset);
+		}
+	}
+
+	/**
+	 * FFmpeg rejects a backward dts, and the endpoint republishes on that error, so the
+	 * few ms of arrival skew a resume can leave on audio would cost a reconnect. Dropping
+	 * the packet costs a frame of audio instead. Video never lands here: a resume starts
+	 * on a keyframe, which is always past what was written.
+	 *
+	 * Caller holds {@link #writeLock}.
+	 */
+	private boolean isMonotonic(AVPacket pkt, AVFormatContext context) {
+		if (lastWrittenDts == null) {
+			lastWrittenDts = new long[context.nb_streams()];
+			Arrays.fill(lastWrittenDts, avutil.AV_NOPTS_VALUE);
+		}
+		long dts = pkt.dts();
+		int index = pkt.stream_index();
+		if (dts == avutil.AV_NOPTS_VALUE || index < 0 || index >= lastWrittenDts.length) {
+			return true;
+		}
+		if (lastWrittenDts[index] != avutil.AV_NOPTS_VALUE && dts < lastWrittenDts[index]) {
+			return false;
+		}
+		lastWrittenDts[index] = dts;
+		return true;
 	}
 
 	/** Writes all queued packets to the endpoint. Runs on the write-executor pool, never holds {@code this}. */
 	private void drain() {
 		while (running) {
 			AVPacket pkt;
-			// Poll under queueLock so a concurrent GOP drop sees a stable head.
+			long offsetMs;
+			// Poll under queueLock so a concurrent drop sees a stable head, and sample
+			// the offset with it: a drop landing mid-write must not re-stamp a packet
+			// that predates it.
 			synchronized (queueLock) {
 				pkt = packetQueue.poll();
+				offsetMs = dropOffsetMs;
 			}
 			if (pkt == null) {
 				break;
 			}
-			writeToEndpoint(pkt);
+			writeToEndpoint(pkt, offsetMs);
 		}
 	}
 
-	private void writeToEndpoint(AVPacket pkt) {
+	private void writeToEndpoint(AVPacket pkt, long offsetMs) {
 		long startNanos = System.nanoTime();
 		long dts = pkt.dts();
 		boolean wrote = false;
@@ -664,6 +1009,13 @@ public class EndpointMuxer extends Muxer {
 			synchronized (writeLock) {
 				// running re-checked under the lock: teardown may have freed the context while we waited.
 				if (running && outputFormatContext != null && outputFormatContext.pb() != null) {
+					// Shifted here rather than at poll: the context is only safe to touch under this lock.
+					shiftBack(pkt, offsetMs, outputFormatContext);
+					dts = pkt.dts();
+					if (!isMonotonic(pkt, outputFormatContext)) {
+						logPacketIssue("Dropping backward dts:{} on stream:{} for {}", dts, pkt.stream_index(), url);
+						return;
+					}
 					int ret = av_interleaved_write_frame(outputFormatContext, pkt);
 					wrote = true;
 					if (ret < 0) {
@@ -746,7 +1098,7 @@ public class EndpointMuxer extends Muxer {
 		private long writeAccumNanos = 0L;
 		private long writeMaxNanos = 0L;
 		private int writeCount = 0;
-		/** EWMA of per-window averages — multi-window baseline for spike detection. */
+		/** EWMA of per-window averages, a multi-window baseline for spike detection. */
 		private long writeEwmaNanos = 0L;
 		private long lastWriteStatsLogMs = 0L;
 
@@ -787,7 +1139,7 @@ public class EndpointMuxer extends Muxer {
 
 		/**
 		 * Records per-write timing, detects burst-flushes, and emits periodic stats.
-		 * Worker-thread only — fields are unsynchronized by design.
+		 * Worker-thread only, so fields are unsynchronized by design.
 		 */
 		public void recordWrite(long durNanos, long pktDts, int queueDepth) {
 			writeAccumNanos += durNanos;
