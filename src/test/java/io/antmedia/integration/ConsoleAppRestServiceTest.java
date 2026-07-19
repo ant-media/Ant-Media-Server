@@ -4305,7 +4305,8 @@ public class ConsoleAppRestServiceTest{
 	private static final String V3_APP = "LiveApp";
 
 	private static String v3BroadcastsUrl() {
-		return "http://" + SERVER_ADDR + ":5080/" + V3_APP + "/rest/v3/broadcasts";
+		// app REST must be called over localhost: the app IPFilter allows only localhost (like SERVICE_URL).
+		return "http://localhost:5080/" + V3_APP + "/rest/v3/broadcasts";
 	}
 
 	/** Turns on server JWT with a known secret and returns the prior settings so a test can restore them. */
