@@ -35,12 +35,15 @@ import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Muxer;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Application Settings for each application running in Ant Media Server.
  * Each setting should have a default value with @Value annotation. Otherwise it breaks compatibility 
  *
- * These settings are set for each applications and stored in the file {@code <AMS_DIR>/webapps/<AppName>/WEB_INF/red5-web.properties}.
+ * These settings are set for each application and stored in the file {@code <AMS_DIR>/webapps/<AppName>/WEB_INF/red5-web.properties}.
  * Click on any field to see its default value.
  *
  * @author mekya
@@ -51,7 +54,9 @@ import io.antmedia.muxer.Muxer;
 
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AppSettings implements Serializable{
+@Getter
+@Setter
+public class AppSettings implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
@@ -62,6 +67,7 @@ public class AppSettings implements Serializable{
 
 	@JsonIgnore
 	@Id
+	@Setter(AccessLevel.NONE)
 	private ObjectId dbId;
 
 	/**
@@ -133,7 +139,7 @@ public class AppSettings implements Serializable{
 
 			+ "}";
 	
-	//use lower case for theses fields because they are used in extension as well
+	//use lower case for these fields because they are used in extension as well
 	public static final String PREVIEW_FORMAT_PNG = "png";
 	public static final String PREVIEW_FORMAT_JPG = "jpg";
 	public static final String PREVIEW_FORMAT_WEBP = "webp";
@@ -312,7 +318,7 @@ public class AppSettings implements Serializable{
 	private String targetLatency="3.5";
 
 	/**
-	 * DASH window size, Number of files in manifest
+	 * DASH window size, number of files in manifest
 	 */
 	@Value ( "${dashWindowSize:5}" )
 	private String dashWindowSize="5";
@@ -324,19 +330,19 @@ public class AppSettings implements Serializable{
 	private String dashExtraWindowSize="5";
 
 	/**
-	 * Enable low latency dash, This settings is effective if dash is enabled
+	 * Enable low latency DASH, this setting is effective if DASH is enabled
 	 */
 	@Value ( "${dashEnableLowLatency:true}" )
 	private boolean lLDashEnabled=true;
 
 	/**
-	 * Enable low latency hls via dash muxer, LLHLS is effective if dash is enabled.
+	 * Enable low latency HLS via DASH muxer, LL-HLS is effective if DASH is enabled.
 	 */
 	@Value ( "${hlsEnableLowLatency:false}" )
 	private boolean lLHLSEnabled=false;
 
 	/**
-	 * Enable hls through DASH muxer, LLHLS is effective if dash is enabled.
+	 * Enable hls through DASH muxer, LL-HLS is effective if dash is enabled.
 	 */
 	@Value ( "${hlsEnabledViaDash:false}" )
 	private boolean hlsEnabledViaDash=false;
@@ -822,7 +828,6 @@ public class AppSettings implements Serializable{
 	private int excessiveBandwidthValue = 300000;
 
 
-
 	/**
 	 * The excessive bandwidth call threshold value
 	 */
@@ -1062,7 +1067,6 @@ public class AppSettings implements Serializable{
 	public static final String APPLICATION_STATUS_INSTALLED = "installed";
 	public static final String APPLICATION_STATUS_DELETED = "deleted";
 	public static final String APPLICATION_STATUS_INSTALLATION_FAILED = "installationFailed";
-
 
 
 	/**
@@ -1421,10 +1425,6 @@ public class AppSettings implements Serializable{
 	@Value("${playWebRTCStreamOnceForEachSession:true}")
 	private boolean playWebRTCStreamOnceForEachSession = true;
 
-	public boolean isWriteStatsToDatastore() {
-		return writeStatsToDatastore;
-	}
-
 
 	/**
 	 * Enables the WebRTC statistics based Adaptive Bitrate switch algorithm
@@ -1462,7 +1462,7 @@ public class AppSettings implements Serializable{
 	 * In initialization no matter if spring or field definition is effective, the important thing is that having some random value
 	 */
 	@Value("${clusterCommunicationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
-	private String clusterCommunicationKey = RandomStringUtils.randomAlphanumeric(32);
+	private String clusterCommunicationKey = RandomStringUtils.secure().nextAlphanumeric(32);
 
 	/**
 	 * Enables the ID3 Tag support for HLS
@@ -1529,8 +1529,7 @@ public class AppSettings implements Serializable{
 	 *
 	 */
 	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
-	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
-
+	private String subscriberAuthenticationKey = RandomStringUtils.secure().nextAlphanumeric(32);
 
 
 	/**
@@ -1565,7 +1564,7 @@ public class AppSettings implements Serializable{
 	private int webhookRetryCount = 0;
 
 	/**
-	 * If it's false, jwt token should be send in analytic events to the AnalyticsEventLogger.
+	 * If it's false, jwt token should be sent in analytic events to the AnalyticsEventLogger.
 	 * It uses {@link AppSettings#jwtSecretKey} for the secret key
 	 */
 	@Value("${secureAnalyticEndpoint:false}")
@@ -1578,7 +1577,7 @@ public class AppSettings implements Serializable{
 	private long webhookRetryDelay = 1000;
 	
 	/**
-	 * The period that server send stream status to the webhook
+	 * The period that server sends stream status to the webhook
 	 * Default value is -1 which means disabled. 
 	 * 
 	 * Consume the webhook as soon as possible and don't make it wait.
@@ -1631,7 +1630,7 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Relay RTMP metadata to muxers. It's true by default
-	 * RTMP can have metadata and it can be used for playback synchronization.
+	 * RTMP can have metadata, and it can be used for playback synchronization.
 	 *
 	 * If it's true, Ant Media Server relays the metadata to muxers. 
 	 * Currently, HLSMuxer supports this feature through {@link Muxer#writeMetaData(String, long)}
@@ -1671,13 +1670,24 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Disable audio for the entire app. When true, ingested audio is dropped at
-	 * the source and the pipeline runs video-only. 
+	 * the source and the pipeline runs video-only.
 	 * This will improve startup time and cpu performance when audio is not needed.
 	 */
 	@Value("${disableAudio:false}")
 	private boolean disableAudio = false;
 
-	//Make sure you have a default constructor because it's populated by MongoDB
+    /**
+     * The map of NDI sources that this application should connect to and broadcast
+     * automatically on startup. The keys can be exact source names or if prefixed
+     * with regex:xxxxxx they are considered to be regular expressions.
+     * The values are the streamIds used to publish the NDI stream. Empty/null value means no renaming, the
+     * NDI source name will be used as-is for the broadcast name.
+     * Use the special value regex:.* to broadcast any NDI source automatically.
+     */
+    @Value("${ndiSources:}")
+    private Map<String, String> ndiSources;
+
+    //Make sure you have a default constructor because it's populated by MongoDB
 	public AppSettings() {
 		try {
 			this.participantVisibilityMatrix = (Map) new JSONParser().parse(DEFAULT_VISIBILITY_MATRIX);
@@ -1693,125 +1703,6 @@ public class AppSettings implements Serializable{
 	public void setCustomSetting(String key, Object value) {
 		customSettings.put(key, value);
 	}
-
-	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
-		this.writeStatsToDatastore = writeStatsToDatastore;
-	}
-
-	public boolean isAddDateTimeToMp4FileName() {
-		return addDateTimeToMp4FileName;
-	}
-
-	public void setAddDateTimeToMp4FileName(boolean addDateTimeToMp4FileName) {
-		this.addDateTimeToMp4FileName = addDateTimeToMp4FileName;
-	}
-
-	public boolean isMp4MuxingEnabled() {
-		return mp4MuxingEnabled;
-	}
-
-	public void setMp4MuxingEnabled(boolean mp4MuxingEnabled) {
-		this.mp4MuxingEnabled = mp4MuxingEnabled;
-	}
-
-	public void setFileNameFormat(String fileNameFormat) {
-		this.fileNameFormat = fileNameFormat;
-	}
-	public String getFileNameFormat() {
-		return fileNameFormat;
-	}
-
-	public boolean isHlsMuxingEnabled() {
-		return hlsMuxingEnabled;
-	}
-
-	public void setHlsMuxingEnabled(boolean hlsMuxingEnabled) {
-		this.hlsMuxingEnabled = hlsMuxingEnabled;
-	}
-
-	public boolean isDashMuxingEnabled() {
-		return dashMuxingEnabled;
-	}
-
-	public void setSignalingEnabled(boolean signalingEnabled){
-		this.signalingEnabled = signalingEnabled;
-	}
-
-	public boolean isSignalingEnabled(){
-		return signalingEnabled;
-	}
-
-	public void setSignalingAddress(String signalingAddress){
-		this.signalingAddress = signalingAddress;
-	}
-	public String getSignalingAddress(){
-		return signalingAddress;
-	}
-
-	public void setDashMuxingEnabled(boolean dashMuxingEnabled) {
-		this.dashMuxingEnabled = dashMuxingEnabled;
-	}
-
-	public int getEndpointRepublishLimit(){
-		return endpointRepublishLimit;
-	}
-	public void setEndpointRepublishLimit(int endpointRepublishLimit){
-		this.endpointRepublishLimit = endpointRepublishLimit;
-	}
-	public int getEndpointHealthCheckPeriodMs(){
-		return endpointHealthCheckPeriodMs;
-	}
-	public void setEndpointHealthCheckPeriodMs(int endpointHealthCheckPeriodMs){
-		this.endpointHealthCheckPeriodMs = endpointHealthCheckPeriodMs;
-	}
-
-	public String getHlsPlayListType() {
-		return hlsPlayListType;
-	}
-
-	public void setHlsPlayListType(String hlsPlayListType) {
-		this.hlsPlayListType = hlsPlayListType;
-	}
-
-	public void setUploadExtensionsToS3(int uploadExtensionsToS3){
-		this.uploadExtensionsToS3 = uploadExtensionsToS3;
-	}
-
-	public int getUploadExtensionsToS3(){
-		return this.uploadExtensionsToS3;
-	}
-
-	public void setS3StorageClass(String s3StorageClass){
-		this.s3StorageClass = s3StorageClass;
-	}
-	public String getS3StorageClass(){
-		return this.s3StorageClass;
-	}
-
-	public String getHlsTime() {
-		return hlsTime;
-	}
-
-	public void setHlsTime(String hlsTime) {
-		this.hlsTime = hlsTime;
-	}
-
-	public String getHlsListSize() {
-		return hlsListSize;
-	}
-
-	public void setHlsListSize(String hlsListSize) {
-		this.hlsListSize = hlsListSize;
-	}
-
-	public boolean isWebRTCEnabled() {
-		return webRTCEnabled;
-	}
-
-	public void setWebRTCEnabled(boolean webRTCEnabled) {
-		this.webRTCEnabled = webRTCEnabled;
-	}
-
 
 
 	public static String encodersList2Str(List<EncoderSettings> encoderSettingsList)
@@ -1885,10 +1776,6 @@ public class AppSettings implements Serializable{
 		return value instanceof Boolean ? (Boolean) value : defaultValue;
 	}
 
-	public String getEncoderSettingsString() {
-		return encoderSettingsString;
-	}
-
 	public List<EncoderSettings> getEncoderSettings() {
 		return encodersStr2List(encoderSettingsString);
 	}
@@ -1897,164 +1784,6 @@ public class AppSettings implements Serializable{
 		encoderSettingsString = encodersList2Str(settings);
 	}
 
-	public void setEncoderSettingsString(String encoderSettingsString) {
-		this.encoderSettingsString = encoderSettingsString;
-	}
-
-	public boolean isDeleteHLSFilesOnEnded() {
-		return deleteHLSFilesOnEnded;
-	}
-
-	public void setDeleteHLSFilesOnEnded(boolean deleteHLSFilesOnEnded) {
-		this.deleteHLSFilesOnEnded = deleteHLSFilesOnEnded;
-	}
-
-	public String getListenerHookURL() {
-		return listenerHookURL;
-	}
-
-	public void setListenerHookURL(String listenerHookURL) {
-		this.listenerHookURL = listenerHookURL;
-	}
-
-	public boolean isAcceptOnlyStreamsInDataStore() {
-		return acceptOnlyStreamsInDataStore;
-	}
-
-	public void setAcceptOnlyStreamsInDataStore(boolean acceptOnlyStreamsInDataStore) {
-		this.acceptOnlyStreamsInDataStore = acceptOnlyStreamsInDataStore;
-	}
-
-	public boolean isAcceptOnlyRoomsInDataStore() {
-		return acceptOnlyRoomsInDataStore;
-	}
-
-	public void setAcceptOnlyRoomsInDataStore(boolean acceptOnlyRoomsInDataStore) {
-		this.acceptOnlyRoomsInDataStore = acceptOnlyRoomsInDataStore;
-	}
-
-	public int getCreatePreviewPeriod() {
-		return createPreviewPeriod;
-	}
-
-	public void setCreatePreviewPeriod(int period) {
-		this.createPreviewPeriod = period;
-	}
-
-	public boolean isPreviewOverwrite() {
-		return previewOverwrite;
-	}
-
-	public void setPreviewOverwrite(boolean previewOverwrite) {
-		this.previewOverwrite = previewOverwrite;
-	}
-
-	public int getRestartStreamFetcherPeriod() {
-		return this.restartStreamFetcherPeriod ;
-	}
-
-	public void setRestartStreamFetcherPeriod(int restartStreamFetcherPeriod) {
-		this.restartStreamFetcherPeriod = restartStreamFetcherPeriod;
-	}
-
-	public int getStreamFetcherBufferTime() {
-		return streamFetcherBufferTime;
-	}
-
-	public void setStreamFetcherBufferTime(int streamFetcherBufferTime) {
-		this.streamFetcherBufferTime = streamFetcherBufferTime;
-	}
-
-	public String getHlsflags() {
-		return hlsflags;
-	}
-
-	public void setHlsflags(String hlsflags) {
-		this.hlsflags = hlsflags;
-	}
-
-	public String getMySqlClientPath() {
-		return this.mySqlClientPath;
-
-	}
-
-	public void setMySqlClientPath(String mySqlClientPath) {
-		this.mySqlClientPath = mySqlClientPath;
-	}
-
-
-	public boolean isPublishTokenControlEnabled() {
-		return publishTokenControlEnabled;
-	}
-
-	public void setPublishTokenControlEnabled(boolean publishTokenControlEnabled) {
-		this.publishTokenControlEnabled = publishTokenControlEnabled;
-	}
-
-	public boolean isPlayTokenControlEnabled() {
-		return playTokenControlEnabled;
-	}
-
-	public void setPlayTokenControlEnabled(boolean playTokenControlEnabled) {
-		this.playTokenControlEnabled = playTokenControlEnabled;
-	}
-
-	public boolean isEnableTimeTokenForPlay() {
-		return enableTimeTokenForPlay;
-	}
-
-	public void setEnableTimeTokenForPlay(boolean enableTimeTokenForPlay) {
-		this.enableTimeTokenForPlay = enableTimeTokenForPlay;
-	}
-	public boolean isEnableTimeTokenForPublish() {
-		return enableTimeTokenForPublish;
-	}
-
-	public void setEnableTimeTokenForPublish(boolean enableTimeTokenForPublish) {
-		this.enableTimeTokenForPublish = enableTimeTokenForPublish;
-	}
-
-	public String getMuxerFinishScript() {
-		return muxerFinishScript;
-	}
-
-	public void setMuxerFinishScript(String muxerFinishScript) {
-		this.muxerFinishScript = muxerFinishScript;
-	}
-
-	public int getWebRTCFrameRate() {
-		return webRTCFrameRate;
-	}
-
-	public void setWebRTCFrameRate(int webRTCFrameRate) {
-		this.webRTCFrameRate = webRTCFrameRate;
-	}
-
-
-	public String getTokenHashSecret() {
-		return tokenHashSecret;
-	}
-
-	public void setTokenHashSecret(String tokenHashSecret) {
-		this.tokenHashSecret = tokenHashSecret;
-	}
-
-
-	public boolean isHashControlPlayEnabled() {
-		return hashControlPlayEnabled;
-	}
-
-	public void setHashControlPlayEnabled(boolean hashControlPlayEnabled) {
-		this.hashControlPlayEnabled = hashControlPlayEnabled;
-	}
-
-	public boolean isHashControlPublishEnabled() {
-		return hashControlPublishEnabled;
-	}
-
-	public void setHashControlPublishEnabled(boolean hashControlPublishEnabled) {
-		this.hashControlPublishEnabled = hashControlPublishEnabled;
-	}
 
 	public void resetDefaults() {
 		mp4MuxingEnabled = false;
@@ -2087,62 +1816,6 @@ public class AppSettings implements Serializable{
 		recordingSubfolder = null;
 	}
 
-	public int getWebRTCPortRangeMax() {
-		return webRTCPortRangeMax;
-	}
-
-	public void setWebRTCPortRangeMax(int webRTCPortRangeMax) {
-		this.webRTCPortRangeMax = webRTCPortRangeMax;
-	}
-
-	public int getWebRTCPortRangeMin() {
-		return webRTCPortRangeMin;
-	}
-
-	public void setWebRTCPortRangeMin(int webRTCPortRangeMin) {
-		this.webRTCPortRangeMin = webRTCPortRangeMin;
-	}
-
-	public String getStunServerURI() {
-		return stunServerURI;
-	}
-
-	public void setStunServerURI(String stunServerURI) {
-		this.stunServerURI = stunServerURI;
-	}
-
-	public boolean isWebRTCTcpCandidatesEnabled() {
-		return webRTCTcpCandidatesEnabled;
-	}
-
-	public void setWebRTCTcpCandidatesEnabled(boolean webRTCTcpCandidatesEnabled) {
-		this.webRTCTcpCandidatesEnabled = webRTCTcpCandidatesEnabled;
-	}
-
-	public String getEncoderName() {
-		return encoderName;
-	}
-
-	public void setEncoderName(String encoderName) {
-		this.encoderName = encoderName;
-	}
-
-	public int getPreviewHeight() {
-		return previewHeight;
-	}
-
-	public void setPreviewHeight(int previewHeight) {
-		this.previewHeight = previewHeight;
-	}
-
-	public boolean isUseOriginalWebRTCEnabled() {
-		return useOriginalWebRTCEnabled;
-	}
-
-	public void setUseOriginalWebRTCEnabled(boolean useOriginalWebRTCEnabled) {
-		this.useOriginalWebRTCEnabled = useOriginalWebRTCEnabled;
-	}
-
 	public synchronized String getRemoteAllowedCIDR() {
 		return remoteAllowedCIDR;
 	}
@@ -2164,14 +1837,6 @@ public class AppSettings implements Serializable{
 		return allowedCIDRList;
 	}
 
-	public String getAllowedPublisherCIDR() {
-		return allowedPublisherCIDR;
-	}
-
-	public void setAllowedPublisherCIDR(String allowedPublisherCIDR)
-	{
-		this.allowedPublisherCIDR = allowedPublisherCIDR;
-	}
 
 	@JsonIgnore
 	public synchronized Queue<NetMask> getAllowedPublisherCIDRList()
@@ -2211,1171 +1876,10 @@ public class AppSettings implements Serializable{
 		return Collections.unmodifiableList(messages);
 	}
 
-	public String getEncoderSelectionPreference() {
-		return encoderSelectionPreference;
-	}
-
-	public void setEncoderSelectionPreference(String encoderSelectionPreference) {
-		this.encoderSelectionPreference = encoderSelectionPreference;
-	}
-
-	public int getExcessiveBandwidthCallThreshold() {
-		return excessiveBandwidthCallThreshold;
-	}
-
-	public void setExcessiveBandwidthCallThreshold(int excessiveBandwidthCallThreshold) {
-		this.excessiveBandwidthCallThreshold = excessiveBandwidthCallThreshold;
-	}
-
-	public int getExcessiveBandwidthValue() {
-		return excessiveBandwidthValue;
-	}
-
-	public void setExcessiveBandwidthValue(int excessiveBandwidthValue) {
-		this.excessiveBandwidthValue = excessiveBandwidthValue;
-	}
-
-	public int getPortAllocatorFlags() {
-		return portAllocatorFlags;
-	}
-
-	public void setPortAllocatorFlags(int flags) {
-		this.portAllocatorFlags = flags;
-	}
-
-	public int getExcessiveBandwithTryCountBeforeSwitchback() {
-		return excessiveBandwithTryCountBeforeSwitchback;
-	}
-
-	public boolean isExcessiveBandwidthAlgorithmEnabled() {
-		return excessiveBandwidthAlgorithmEnabled;
-	}
-
-	public int getPacketLossDiffThresholdForSwitchback() {
-		return packetLossDiffThresholdForSwitchback;
-	}
-
-	public int getRttMeasurementDiffThresholdForSwitchback() {
-		return rttMeasurementDiffThresholdForSwitchback;
-	}
-
-	public void setExcessiveBandwithTryCountBeforeSwitchback(int excessiveBandwithTryCountBeforeSwitchback) {
-		this.excessiveBandwithTryCountBeforeSwitchback = excessiveBandwithTryCountBeforeSwitchback;
-	}
-
-	public void setExcessiveBandwidthAlgorithmEnabled(boolean excessiveBandwidthAlgorithmEnabled) {
-		this.excessiveBandwidthAlgorithmEnabled = excessiveBandwidthAlgorithmEnabled;
-	}
-
-	public void setPacketLossDiffThresholdForSwitchback(int packetLossDiffThresholdForSwitchback) {
-		this.packetLossDiffThresholdForSwitchback = packetLossDiffThresholdForSwitchback;
-	}
-
-	public void setRttMeasurementDiffThresholdForSwitchback(int rttMeasurementDiffThresholdForSwitchback) {
-		this.rttMeasurementDiffThresholdForSwitchback = rttMeasurementDiffThresholdForSwitchback;
-	}
-
-	public boolean isReplaceCandidateAddrWithServerAddr() {
-		return this.replaceCandidateAddrWithServerAddr;
-	}
-
-	public void setReplaceCandidateAddrWithServerAddr(boolean replaceCandidateAddrWithServerAddr) {
-		this.replaceCandidateAddrWithServerAddr = replaceCandidateAddrWithServerAddr;
-	}
-
-	public long getUpdateTime() {
-		return updateTime;
-	}
-
-	public void setUpdateTime(long updateTime) {
-		this.updateTime = updateTime;
-	}
-
-	public void setAppName(String appName) {
-		this.appName = appName;
-	}
-
-	public String getAppName() {
-		return appName;
-	}
-
-	public String getHttpForwardingExtension() {
-		return httpForwardingExtension;
-	}
-
-	public void setHttpForwardingExtension(String httpForwardingExtension) {
-		this.httpForwardingExtension = httpForwardingExtension;
-	}
-
-	public String getHttpForwardingBaseURL() {
-		return httpForwardingBaseURL;
-	}
-
-	public void setHttpForwardingBaseURL(String httpForwardingBaseURL) {
-		this.httpForwardingBaseURL = httpForwardingBaseURL;
-	}
-
-	public int getMaxAnalyzeDurationMS() {
-		return maxAnalyzeDurationMS;
-	}
-
-	public void setMaxAnalyzeDurationMS(int maxAnalyzeDurationMS) {
-		this.maxAnalyzeDurationMS = maxAnalyzeDurationMS;
-	}
-
-	public boolean isGeneratePreview() {
-		return generatePreview;
-	}
-
-	public void setGeneratePreview(boolean generatePreview) {
-		this.generatePreview = generatePreview;
-	}
-
-	public boolean isDisableIPv6Candidates() {
-		return disableIPv6Candidates;
-	}
-
-	public void setDisableIPv6Candidates(boolean disableIPv6Candidates) {
-		this.disableIPv6Candidates = disableIPv6Candidates;
-	}
-
-	public String getRtspPullTransportType() {
-		return rtspPullTransportType;
-	}
-
-	public void setRtspPullTransportType(String rtspPullTransportType) {
-		this.rtspPullTransportType = rtspPullTransportType;
-	}
-	public int getRtspTimeoutDurationMs() {
-		return rtspTimeoutDurationMs;
-	}
-
-	public void setRtspTimeoutDurationMs(int rtspTimeoutDurationMs) {
-		this.rtspTimeoutDurationMs = rtspTimeoutDurationMs;
-	}
-
-	public int getMaxResolutionAccept() {
-		return maxResolutionAccept;
-	}
-
-	public void setMaxResolutionAccept(int maxResolutionAccept) {
-		this.maxResolutionAccept = maxResolutionAccept;
-	}
-
-	public boolean isH264Enabled() {
-		return h264Enabled;
-	}
-
-	public void setH264Enabled(boolean h264Enabled) {
-		this.h264Enabled = h264Enabled;
-	}
-
-	public boolean isVp8Enabled() {
-		return vp8Enabled;
-	}
-
-	public void setAv1Enabled(boolean av1Enabled) {
-		this.av1Enabled = av1Enabled;
-	}
-	
-	public boolean isAv1Enabled() {
-		return av1Enabled;
-	}
-
-	public void setVp8Enabled(boolean vp8Enabled) {
-		this.vp8Enabled = vp8Enabled;
-	}
-
-	public boolean isH265Enabled() {
-		return h265Enabled;
-	}
-
-	public void setH265Enabled(boolean h265Enabled) {
-		this.h265Enabled = h265Enabled;
-	}
-
-	public boolean isDataChannelEnabled() {
-		return dataChannelEnabled;
-	}
-
-	public void setDataChannelEnabled(boolean dataChannelEnabled) {
-		this.dataChannelEnabled = dataChannelEnabled;
-	}
-
-	public String getDataChannelPlayerDistribution() {
-		return dataChannelPlayerDistribution;
-	}
-
-	public void setDataChannelPlayerDistribution(String dataChannelPlayerDistribution) {
-		this.dataChannelPlayerDistribution = dataChannelPlayerDistribution;
-	}
-
-	public long getRtmpIngestBufferTimeMs() {
-		return rtmpIngestBufferTimeMs;
-	}
-
-	public void setRtmpIngestBufferTimeMs(long rtmpIngestBufferTimeMs) {
-		this.rtmpIngestBufferTimeMs = rtmpIngestBufferTimeMs;
-	}
-
-
-	public void setDataChannelWebHookURL(String dataChannelWebHookURL) {
-		this.dataChannelWebHookURL = dataChannelWebHookURL;
-	}
-
-	public int getEncoderThreadCount() {
-		return encoderThreadCount;
-	}
-
-	public void setEncoderThreadCount(int encoderThreadCount) {
-		this.encoderThreadCount = encoderThreadCount;
-	}
-
-	public int getEncoderThreadType() {
-		return encoderThreadType;
-	}
-
-	public void setEncoderThreadType(int encoderThreadType) {
-		this.encoderThreadType = encoderThreadType;
-	}
-
-	public int getWebRTCClientStartTimeoutMs() {
-		return webRTCClientStartTimeoutMs;
-	}
-
-	public void setWebRTCClientStartTimeoutMs(int webRTCClientStartTimeout) {
-		this.webRTCClientStartTimeoutMs = webRTCClientStartTimeout;
-	}
-
-	public boolean isWebMMuxingEnabled() {
-		return webMMuxingEnabled;
-	}
-
-	public void setWebMMuxingEnabled(boolean webMMuxingEnabled) {
-		this.webMMuxingEnabled = webMMuxingEnabled;
-	}
-
-	public int getVp8EncoderThreadCount() {
-		return vp8EncoderThreadCount;
-	}
-
-	public void setVp8EncoderThreadCount(int vp8EncoderThreadCount) {
-		this.vp8EncoderThreadCount = vp8EncoderThreadCount;
-	}
-
-	public String getWebRTCSdpSemantics() {
-		return webRTCSdpSemantics;
-	}
-
-	public void setWebRTCSdpSemantics(String webRTCSdpSemantics) {
-		this.webRTCSdpSemantics = webRTCSdpSemantics;
-	}
-
-	public boolean isStartStreamFetcherAutomatically() {
-		return startStreamFetcherAutomatically;
-	}
-
-	public void setStartStreamFetcherAutomatically(boolean startStreamFetcherAutomatically) {
-		this.startStreamFetcherAutomatically = startStreamFetcherAutomatically;
-	}
-
-	public boolean isDeleteDASHFilesOnEnded() {
-		return deleteDASHFilesOnEnded;
-	}
-
-	public void setDeleteDASHFilesOnEnded(boolean deleteDASHFilesOnEnded) {
-		this.deleteDASHFilesOnEnded = deleteDASHFilesOnEnded;
-	}
-
-	public String getTargetLatency() {
-		return targetLatency;
-	}
-
-	public void setTargetLatency(String targetLatency) {
-		this.targetLatency = targetLatency;
-	}
-
-	public int getHeightRtmpForwarding() {
-		return heightRtmpForwarding;
-	}
-
-	public void setHeightRtmpForwarding(int heightRtmpForwarding) {
-		this.heightRtmpForwarding = heightRtmpForwarding;
-	}
-
-	public int getAudioBitrateSFU() {
-		return audioBitrateSFU;
-	}
-
-	public void setAudioBitrateSFU(int audioBitrateSFU) {
-		this.audioBitrateSFU = audioBitrateSFU;
-	}
-
-	public void setAacEncodingEnabled(boolean aacEncodingEnabled){
-		this.aacEncodingEnabled=aacEncodingEnabled;
-	}
-
-	public boolean isAacEncodingEnabled() {
-		return aacEncodingEnabled;
-	}
-
-	public int getGopSize() {
-		return gopSize;
-	}
-
-	public void setGopSize(int gopSize) {
-		this.gopSize = gopSize;
-	}
-
-	public int getWebRTCViewerLimit() {
-		return webRTCViewerLimit;
-	}
-
-	public void setWebRTCViewerLimit(int webRTCViewerLimit) {
-		this.webRTCViewerLimit = webRTCViewerLimit;
-	}
-
-	public String getDashFragmentDuration() {
-		return dashFragmentDuration;
-	}
-
-	public void setDashFragmentDuration(String dashFragmentDuration) {
-		this.dashFragmentDuration = dashFragmentDuration;
-	}
-
-	public String getDashSegDuration() {
-		return dashSegDuration;
-	}
-
-	public void setDashSegDuration(String dashSegDuration) {
-		this.dashSegDuration = dashSegDuration;
-	}
-
-	public String getDashWindowSize() {
-		return dashWindowSize;
-	}
-
-	public void setDashWindowSize(String dashWindowSize) {
-		this.dashWindowSize = dashWindowSize;
-	}
-
-	public String getDashExtraWindowSize() {
-		return dashExtraWindowSize;
-	}
-
-	public void setDashExtraWindowSize(String dashExtraWindowSize) {
-		this.dashExtraWindowSize = dashExtraWindowSize;
-	}
-
-	public String getJwtSecretKey() {
-		return jwtSecretKey;
-	}
-
-	public void setJwtSecretKey(String jwtSecretKey) {
-		this.jwtSecretKey = jwtSecretKey;
-	}
-
-	public boolean isJwtControlEnabled() {
-		return jwtControlEnabled;
-	}
-
-	public void setJwtControlEnabled(boolean jwtControlEnabled) {
-		this.jwtControlEnabled = jwtControlEnabled;
-	}
-
-	public boolean isIpFilterEnabled() {
-		return ipFilterEnabled;
-	}
-
-	public void setIpFilterEnabled(boolean ipFilterEnabled) {
-		this.ipFilterEnabled = ipFilterEnabled;
-	}
-
-	public int getIngestingStreamLimit() {
-		return ingestingStreamLimit;
-	}
-
-	public void setIngestingStreamLimit(int ingestingStreamLimit) {
-		this.ingestingStreamLimit = ingestingStreamLimit;
-	}
-
-	public int getTimeTokenPeriod() {
-		return timeTokenPeriod;
-	}
-
-	public void setTimeTokenPeriod(int timeTokenPeriod) {
-		this.timeTokenPeriod = timeTokenPeriod;
-	}
-
-	public String getAppStatus() {
-		return appStatus;
-	}
-
-	public void setAppStatus(String appStatus) {
-		this.appStatus = appStatus;
-	}
-
-	public boolean isPullWarFile() {
-		return pullWarFile;
-	}
-
-	public void setPullWarFile(boolean pullWarFile) {
-		this.pullWarFile = pullWarFile;
-	}
-
-	public int getWebRTCKeyframeTime() {
-		return webRTCKeyframeTime;
-	}
-
-	public void setWebRTCKeyframeTime(int webRTCKeyframeTime) {
-		this.webRTCKeyframeTime = webRTCKeyframeTime;
-	}
-
-	public String getJwtStreamSecretKey() {
-		return jwtStreamSecretKey;
-	}
-
-	public void setJwtStreamSecretKey(String jwtStreamSecretKey) {
-		this.jwtStreamSecretKey = jwtStreamSecretKey;
-	}
-
-	public boolean isPublishJwtControlEnabled() {
-		return publishJwtControlEnabled;
-	}
-
-	public void setPublishJwtControlEnabled(boolean publishJwtControlEnabled) {
-		this.publishJwtControlEnabled = publishJwtControlEnabled;
-	}
-
-	public boolean isPlayJwtControlEnabled() {
-		return playJwtControlEnabled;
-	}
-
-	public void setPlayJwtControlEnabled(boolean playJwtControlEnabled) {
-		this.playJwtControlEnabled = playJwtControlEnabled;
-	}
-
-	public boolean islLDashEnabled() {
-		return lLDashEnabled;
-	}
-
-	public void setlLDashEnabled(boolean lLDashEnabled) {
-		this.lLDashEnabled = lLDashEnabled;
-	}
-
-	public boolean islLHLSEnabled() {
-		return lLHLSEnabled;
-	}
-
-	public void setlLHLSEnabled(boolean lLHLSEnabled) {
-		this.lLHLSEnabled = lLHLSEnabled;
-	}
-
-	public boolean isHlsEnabledViaDash() {
-		return hlsEnabledViaDash;
-	}
-
-	public void setHlsEnabledViaDash(boolean hlsEnabledViaDash) {
-		this.hlsEnabledViaDash = hlsEnabledViaDash;
-	}
-
-	public boolean isUseTimelineDashMuxing() {
-		return useTimelineDashMuxing;
-	}
-
-	public void setUseTimelineDashMuxing(boolean useTimelineDashMuxing) {
-		this.useTimelineDashMuxing = useTimelineDashMuxing;
-	}
-
-	public boolean isDashHttpStreaming() {
-		return dashHttpStreaming;
-	}
-
-	public void setDashHttpStreaming(boolean dashHttpStreaming) {
-		this.dashHttpStreaming = dashHttpStreaming;
-	}
-
-	public String getS3StreamsFolderPath() {
-		return s3StreamsFolderPath;
-	}
-
-	public String getDashHttpEndpoint() {
-		return dashHttpEndpoint;
-	}
-
-
-	public boolean isS3RecordingEnabled() { return s3RecordingEnabled; }
-
-	public void setS3RecordingEnabled(boolean s3RecordingEnabled) {
-		this.s3RecordingEnabled = s3RecordingEnabled;
-	}
-
-	public String getS3SecretKey() {
-		return s3SecretKey;
-	}
-
-	public void setS3SecretKey(String s3SecretKey) { this.s3SecretKey = s3SecretKey; }
-
-	public String getS3AccessKey() {
-		return s3AccessKey;
-	}
-
-	public void setS3AccessKey(String s3AccessKey) {
-		this.s3AccessKey = s3AccessKey;
-	}
-
-	public String getS3RegionName() {
-		return s3RegionName;
-	}
-
-	public void setS3RegionName(String s3RegionName) {
-		this.s3RegionName = s3RegionName;
-	}
-
-	public String getS3BucketName() {
-		return s3BucketName;
-	}
-
-	public void setS3BucketName(String s3BucketName) {
-		this.s3BucketName = s3BucketName;
-	}
-
-	public String getS3Endpoint() {
-		return s3Endpoint;
-	}
-
-	public void setS3Endpoint(String s3Endpoint) {
-		this.s3Endpoint = s3Endpoint;
-	}
-
-	public String getS3CacheControl() {
-		return s3CacheControl;
-	}
-
-	public void setS3CacheControl(String s3CacheControl) {
-		this.s3CacheControl = s3CacheControl;
-	}
-
-	public boolean isS3PathStyleAccessEnabled() {
-		return s3PathStyleAccessEnabled;
-	}
-
-	public void setS3PathStyleAccessEnabled(boolean s3PathStyleAccessEnabled) {
-		this.s3PathStyleAccessEnabled = s3PathStyleAccessEnabled;
-	}
-
-	public void setDashHttpEndpoint(String dashHttpEndpoint) {
-		this.dashHttpEndpoint = dashHttpEndpoint;
-	}
-
-	public String getHlsEncryptionKeyInfoFile() {
-		return hlsEncryptionKeyInfoFile;
-	}
-
-	public void setHlsEncryptionKeyInfoFile(String hlsEncryptionKeyInfoFile) {
-		this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
-	}
-
-	public void setS3StreamsFolderPath(String s3StreamsFolderPath) {
-		this.s3StreamsFolderPath = s3StreamsFolderPath;
-	}
-
-	public String getS3PreviewsFolderPath() {
-		return s3PreviewsFolderPath;
-	}
-
-	public void setS3PreviewsFolderPath(String s3PreviewsFolderPath) {
-		this.s3PreviewsFolderPath = s3PreviewsFolderPath;
-	}
-
-	public boolean isForceDecoding() {
-		return forceDecoding;
-	}
-
-	public void setForceDecoding(boolean forceDecoding) {
-		this.forceDecoding = forceDecoding;
-	}
-
-	public boolean isAddOriginalMuxerIntoHLSPlaylist() {
-		return addOriginalMuxerIntoHLSPlaylist;
-	}
-
-	public void setAddOriginalMuxerIntoHLSPlaylist(boolean addOriginalMuxerIntoHLSPlaylist) {
-		this.addOriginalMuxerIntoHLSPlaylist = addOriginalMuxerIntoHLSPlaylist;
-	}
-
-	public String getJwksURL() {
-		return jwksURL;
-	}
-
-	public void setJwksURL(String jwksURL) {
-		this.jwksURL = jwksURL;
-	}
-
-
-	public String getWebhookAuthenticateURL(){
-		return webhookAuthenticateURL;
-	}
-
-	public void setWebhookAuthenticateURL(String webhookAuthenticateURL) {
-		this.webhookAuthenticateURL = webhookAuthenticateURL;
-	}
-
-	public boolean isForceAspectRatioInTranscoding() {
-		return forceAspectRatioInTranscoding;
-	}
-
-	public void setForceAspectRatioInTranscoding(boolean forceAspectRatioInTranscoding) {
-		this.forceAspectRatioInTranscoding = forceAspectRatioInTranscoding;
-
-	}
-
-	public String getS3Permission() {
-		return s3Permission;
-	}
-
-	public void setS3Permission(String s3Permission) {
-		this.s3Permission = s3Permission;
-	}
-
-	public int getMaxAudioTrackCount() {
-		return maxAudioTrackCount;
-	}
-
-	public void setMaxAudioTrackCount(int maxAudioTrackCount) {
-		this.maxAudioTrackCount = maxAudioTrackCount;
-	}
-
-	public String getWarFileOriginServerAddress() {
-		return warFileOriginServerAddress;
-	}
-
-	public void setWarFileOriginServerAddress(String warFileOriginServerAddress) {
-		this.warFileOriginServerAddress = warFileOriginServerAddress;
-	}
-
-
-	public void setVodUploadFinishScript(String vodUploadFinishScript) {
-		this.vodUploadFinishScript = vodUploadFinishScript;
-	}
-
-	public int getMaxVideoTrackCount() {
-		return maxVideoTrackCount;
-	}
-
-	public void setMaxVideoTrackCount(int maxVideoTrackCount) {
-		this.maxVideoTrackCount = maxVideoTrackCount;
-	}
-
-	public String getContentSecurityPolicyHeaderValue() {
-		return contentSecurityPolicyHeaderValue;
-	}
-
-	public void setContentSecurityPolicyHeaderValue(String contentSecurityPolicyHeaderValue) {
-		this.contentSecurityPolicyHeaderValue = contentSecurityPolicyHeaderValue;
-	}
-
-	public String getTurnServerUsername() {
-		return turnServerUsername;
-	}
-
-	public void setTurnServerUsername(String turnServerUsername) {
-		this.turnServerUsername = turnServerUsername;
-	}
-
-	public String getTurnServerCredential() {
-		return turnServerCredential;
-	}
-
-	public void setTurnServerCredential(String turnServerCredential) {
-		this.turnServerCredential = turnServerCredential;
-	}
-
-	public String getHlsHttpEndpoint() {
-		return hlsHttpEndpoint;
-	}
-
-	public void setHlsHttpEndpoint(String hlsHttpEndpoint) {
-		this.hlsHttpEndpoint = hlsHttpEndpoint;
-	}
-
-	public boolean isRtmpPlaybackEnabled() {
-		return rtmpPlaybackEnabled;
-	}
-
-	public void setRtmpPlaybackEnabled(boolean rtmpPlaybackEnabled) {
-		this.rtmpPlaybackEnabled = rtmpPlaybackEnabled;
-	}
-
-	public int getOriginEdgeIdleTimeout() {
-		return originEdgeIdleTimeout;
-	}
-
-	public void setOriginEdgeIdleTimeout(int originEdgeIdleTimeout) {
-		this.originEdgeIdleTimeout = originEdgeIdleTimeout;
-	}
-
-	public boolean isAddDateTimeToHlsFileName() {
-		return addDateTimeToHlsFileName;
-	}
-
-	public void setAddDateTimeToHlsFileName(boolean addDateTimeToHlsFileName) {
-		this.addDateTimeToHlsFileName = addDateTimeToHlsFileName;
-	}
-
-	public boolean isPlayWebRTCStreamOnceForEachSession() {
-		return playWebRTCStreamOnceForEachSession;
-	}
-
-	public void setPlayWebRTCStreamOnceForEachSession(boolean playWebRTCStreamOnceForEachSession) {
-		this.playWebRTCStreamOnceForEachSession = playWebRTCStreamOnceForEachSession;
-	}
-
-	public boolean isStatsBasedABREnabled() {
-		return statsBasedABREnabled;
-	}
-
-	public void setStatsBasedABREnabled(boolean statsBasedABREnabled) {
-		this.statsBasedABREnabled = statsBasedABREnabled;
-	}
-
-	public float getAbrDownScalePacketLostRatio() {
-		return abrDownScalePacketLostRatio;
-	}
-
-	public void setAbrDownScalePacketLostRatio(float abrDownScalePacketLostRatio) {
-		this.abrDownScalePacketLostRatio = abrDownScalePacketLostRatio;
-	}
-
-	public float getAbrUpScalePacketLostRatio() {
-		return abrUpScalePacketLostRatio;
-	}
-
-	public void setAbrUpScalePacketLostRatio(float abrUpScalePacketLostRatio) {
-		this.abrUpScalePacketLostRatio = abrUpScalePacketLostRatio;
-	}
-
-	public int getAbrUpScaleRTTMs() {
-		return abrUpScaleRTTMs;
-	}
-
-	public void setAbrUpScaleRTTMs(int abrUpScaleRTTMs) {
-		this.abrUpScaleRTTMs = abrUpScaleRTTMs;
-	}
-
-	public int getAbrUpScaleJitterMs() {
-		return abrUpScaleJitterMs;
-	}
-
-	public void setAbrUpScaleJitterMs(int abrUpScaleJitterMs) {
-		this.abrUpScaleJitterMs = abrUpScaleJitterMs;
-	}
-
-	public String getClusterCommunicationKey() {
-		return clusterCommunicationKey;
-	}
-
-	public void setClusterCommunicationKey(String clusterCommunicationKey) {
-		this.clusterCommunicationKey = clusterCommunicationKey;
-	}
-
-	public int getMaxFpsAccept() {
-		return maxFpsAccept;
-	}
-
-	public void setMaxFpsAccept(int maxFpsAccept) {
-		this.maxFpsAccept = maxFpsAccept;
-	}
-
-	public String getDataChannelWebHookURL() {
-		return dataChannelWebHookURL;
-	}
-
-	public String getVodUploadFinishScript() {
-		return vodUploadFinishScript;
-	}
-
-	public boolean isId3TagEnabled() {
-		return id3TagEnabled;
-	}
-
-	public void setId3TagEnabled(boolean id3TagEnabled) {
-		this.id3TagEnabled = id3TagEnabled;
-	}
-
-	public boolean isSendAudioLevelToViewers() {
-		return sendAudioLevelToViewers;
-	}
-
-	public void setSendAudioLevelToViewers(boolean sendAudioLevelToViewers) {
-		this.sendAudioLevelToViewers = sendAudioLevelToViewers;
-	}
-
-	public String getTimeTokenSecretForPublish() {
-		return timeTokenSecretForPublish;
-	}
-
-	public void setTimeTokenSecretForPublish(String timeTokenSecretForPublish) {
-		this.timeTokenSecretForPublish = timeTokenSecretForPublish;
-	}
-
-	public String getTimeTokenSecretForPlay() {
-		return timeTokenSecretForPlay;
-	}
-
-	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
-		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
-	}
-
-	public boolean isHwScalingEnabled() {
-		return hwScalingEnabled;
-	}
-
-	public void setHwScalingEnabled(boolean hwScalingEnabled) {
-		this.hwScalingEnabled = hwScalingEnabled;
-	}
-
-	public boolean isHwDecoderEnabled() {
-		return hwDecoderEnabled;
-	}
-
-	public void setHwDecoderEnabled(boolean hwDecoderEnabled) {
-		this.hwDecoderEnabled = hwDecoderEnabled;
-	}
-
-	public String getFirebaseAccountKeyJSON() {
-		return firebaseAccountKeyJSON;
-	}
-
-	public void setFirebaseAccountKeyJSON(String firebaseAccountKeyJSON) {
-		this.firebaseAccountKeyJSON = firebaseAccountKeyJSON;
-	}
-
-	public String getSubscriberAuthenticationKey() {
-		return subscriberAuthenticationKey;
-	}
-
-	public void setSubscriberAuthenticationKey(String subscriberAuthenticationKey) {
-		this.subscriberAuthenticationKey = subscriberAuthenticationKey;
-	}
-
-	public String getApnsServer() {
-		return apnsServer;
-	}
-
-	public String getApnPrivateKey() {
-		return apnPrivateKey;
-	}
-
-	public String getApnKeyId() {
-		return apnKeyId;
-	}
-
-	public String getApnTeamId() {
-		return apnTeamId;
-	}
-
-	public void setApnTeamId(String apnTeamId) {
-		this.apnTeamId = apnTeamId;
-	}
-
-	public void setApnPrivateKey(String apnPrivateKey) {
-		this.apnPrivateKey = apnPrivateKey;
-	}
-
-	public void setApnKeyId(String apnKeyId) {
-		this.apnKeyId = apnKeyId;
-	}
-
-	public void setApnsServer(String apnsServer) {
-		this.apnsServer = apnsServer;
-	}
-
-	public int getWebhookRetryCount() {
-		return webhookRetryCount;
-	}
-
-	public void setWebhookRetryCount(int webhookRetryCount) {
-		this.webhookRetryCount = webhookRetryCount;
-	}
-
-	public long getWebhookRetryDelay() {
-		return webhookRetryDelay;
-	}
-
-	public void setWebhookRetryDelay(long webhookRetryDelay) {
-		this.webhookRetryDelay = webhookRetryDelay;
-	}
 
 	@JsonIgnore
 	public boolean isWebhookPlayAuthEnabled() {
 		return getWebhookPlayAuthUrl() != null && !getWebhookPlayAuthUrl().isEmpty();
 	}
 
-	public String getWebhookPlayAuthUrl() {
-		return webhookPlayAuthUrl;
-	}
-
-	public void setWebhookPlayAuthUrl(String webhookPlayAuthUrl) {
-		this.webhookPlayAuthUrl = webhookPlayAuthUrl;
-	}
-
-	public boolean isSecureAnalyticEndpoint() {
-		return secureAnalyticEndpoint;
-	}
-
-	public void setSecureAnalyticEndpoint(boolean secureAnalyticEndpoint) {
-		this.secureAnalyticEndpoint = secureAnalyticEndpoint;
-	}
-
-	public String getHlsSegmentType() {
-		return hlsSegmentType;
-	}
-
-	public void setHlsSegmentType(String hlsSegmentType) {
-		this.hlsSegmentType = hlsSegmentType;
-	}
-
-	public String getRecordingSubfolder() {
-		return recordingSubfolder;
-	}
-
-	public void setRecordingSubfolder(String recordingSubfolder) {
-		this.recordingSubfolder = recordingSubfolder;
-	}
-
-	public String getWebhookContentType() {
-		return webhookContentType;
-	}
-
-	public void setWebhookContentType(String webhookContentType) {
-		this.webhookContentType = webhookContentType;
-	}
-
-	public Map<String, List<String>> getParticipantVisibilityMatrix() {
-		return participantVisibilityMatrix;
-	}
-	
-	public void setParticipantVisibilityMatrix(Map<String, List<String>> participantVisibilityMatrix) {
-        this.participantVisibilityMatrix = participantVisibilityMatrix;
-    }
-
-	public long getIceGatheringTimeoutMs() {
-		return iceGatheringTimeoutMs;
-	}
-
-	public void setIceGatheringTimeoutMs(long iceGatheringTimeoutMs) {
-		this.iceGatheringTimeoutMs = iceGatheringTimeoutMs;
-	}
-
-	public Map<String, Object> getCustomSettings() {
-		return customSettings;
-	}
-
-	public void setCustomSettings(Map<String, Object> customSettings) {
-		this.customSettings = customSettings;
-	}
-
-	/**
-	 * @return the relayRTMPMetaDataToMuxers
-	 */
-	public boolean isRelayRTMPMetaDataToMuxers() {
-		return relayRTMPMetaDataToMuxers;
-	}
-
-	/**
-	 * @param relayRTMPMetaDataToMuxers the relayRTMPMetaDataToMuxers to set
-	 */
-	public void setRelayRTMPMetaDataToMuxers(boolean relayRTMPMetaDataToMuxers) {
-		this.relayRTMPMetaDataToMuxers = relayRTMPMetaDataToMuxers;
-	}
-
-	/**
-	 * @return the dropWebRTCIngestIfNoPacketReceived
-	 */
-	public boolean isDropWebRTCIngestIfNoPacketReceived() {
-		return dropWebRTCIngestIfNoPacketReceived;
-	}
-
-	/**
-	 * @param dropWebRTCIngestIfNoPacketReceived the dropWebRTCIngestIfNoPacketReceived to set
-	 */
-	public void setDropWebRTCIngestIfNoPacketReceived(boolean dropWebRTCIngestIfNoPacketReceived) {
-		this.dropWebRTCIngestIfNoPacketReceived = dropWebRTCIngestIfNoPacketReceived;
-	}
-
-
-	/**
-	 * @return the dbId
-	 */
-	@JsonIgnore
-	public ObjectId getDbId() {
-		return dbId;
-	}
-
-
-	public int getSrtReceiveLatencyInMs() {
-		return srtReceiveLatencyInMs;
-	}
-
-	public void setSrtReceiveLatencyInMs(int srtReceiveLatencyInMs) {
-		this.srtReceiveLatencyInMs = srtReceiveLatencyInMs;
-	}
-
-	public long getWebhookStreamStatusUpdatePeriodMs() {
-		return webhookStreamStatusUpdatePeriodMs;
-	}
-	
-	public void setWebhookStreamStatusUpdatePeriodMs(long webhookStreamStatusUpdatePeriodMs) {
-		this.webhookStreamStatusUpdatePeriodMs = webhookStreamStatusUpdatePeriodMs;
-	}
-
-
-    public int getEncodingQueueSize() {
-        return encodingQueueSize;
-    }
-
-    public void setEncodingQueueSize(int encodingQueueSize) {
-        this.encodingQueueSize = encodingQueueSize;
-    }
-
-	public String getSubFolder() {
-		return subFolder;
-	}
-
-	public void setSubFolder(String subFolder) {
-		this.subFolder = subFolder;
-	}
-
-	/**
-	 * @return the previewFormat
-	 */
-	public String getPreviewFormat() {
-		return previewFormat;
-	}
-
-	/**
-	 * @param previewFormat the previewFormat to set
-	 */
-	public void setPreviewFormat(String previewFormat) {
-		this.previewFormat = previewFormat;
-	}
-
-	/**
-	 * @return the previewQuality
-	 */
-	public int getPreviewQuality() {
-		return previewQuality;
-	}
-
-	/**
-	 * @param previewQuality the previewQuality to set
-	 */
-	public void setPreviewQuality(int previewQuality) {
-		this.previewQuality = previewQuality;
-	}
-
-	/**
-	 * @return the writeSubscriberEventsToDatastore
-	 */
-	public boolean isWriteSubscriberEventsToDatastore() {
-		return writeSubscriberEventsToDatastore;
-	}
-
-	/**
-	 * @param writeSubscriberEventsToDatastore the writeSubscriberEventsToDatastore to set
-	 */
-	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
-		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
-	}
-
-	public boolean isDisableAudio() {
-		return disableAudio;
-	}
-
-	public void setDisableAudio(boolean disableAudio) {
-		this.disableAudio = disableAudio;
-	}
-
-	/**
-	 * @return the appInstallationTime
-	 */
-	public long getAppInstallationTime() {
-		return appInstallationTime;
-	}
-
-	/**
-	 * @param appInstallationTime the appInstallationTime to set
-	 */
-	public void setAppInstallationTime(long appInstallationTime) {
-		this.appInstallationTime = appInstallationTime;
-	}
-
-	public int getS3TransferBufferSizeInBytes() {
-		return s3TransferBufferSizeInBytes;
-	}
-
-	public void setS3TransferBufferSizeInBytes(int s3TransferBufferSizeInBytes) {
-		this.s3TransferBufferSizeInBytes = s3TransferBufferSizeInBytes;
-	}
-
-	/**
-	 * @return the encoderParameters
-	 */
-	public Map<String, Map<String,String>> getEncoderParameters() {
-		return encoderParameters;
-	}
-
-	/**
-	 * @param encoderParameters the encoderParameters to set
-	 */
-	public void setEncoderParameters(Map<String, Map<String,String>> encoderParameters) {
-		this.encoderParameters = encoderParameters;
-	}
-
-	/**
-	 * @return the hlsSegmentFileSuffixFormat
-	 */
-	public String getHlsSegmentFileSuffixFormat() {
-		return hlsSegmentFileSuffixFormat;
-	}
-
-	/**
-	 * @param hlsSegmentFileSuffixFormat the hlsSegmentFileSuffixFormat to set
-	 */
-	public void setHlsSegmentFileSuffixFormat(String hlsSegmentFileSuffixFormat) {
-		this.hlsSegmentFileSuffixFormat = hlsSegmentFileSuffixFormat;
-	}
-
-	public int getAudioLevelThreshold() {
-		return audioLevelThreshold;
-	}
-
-	public void setAudioLevelThreshold(int audioLevelThreshold) {
-		this.audioLevelThreshold = audioLevelThreshold;
-	}
-
-	public String getStreamStartedScript() {
-		return streamStartedScript;
-	}
-
-	public void setStreamStartedScript(String streamStartedScript) {
-		this.streamStartedScript = streamStartedScript;
-	}
-
-	public String getStreamEndedScript() {
-		return streamEndedScript;
-	}
-
-	public void setStreamEndedScript(String streamEndedScript) {
-		this.streamEndedScript = streamEndedScript;
-	}
-
-	public String getStreamIdleTimeoutScript() {
-		return streamIdleTimeoutScript;
-	}
-
-	public void setStreamIdleTimeoutScript(String streamIdleTimeoutScript) {
-		this.streamIdleTimeoutScript = streamIdleTimeoutScript;
-	}
 }

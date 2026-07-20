@@ -53,7 +53,7 @@ public class AcceptOnlyStreamsInDataStoreTest {
 		IContext context = Mockito.mock(IContext.class);
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
 		
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(context.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		Mockito.when(scope.getContext()).thenReturn(context);		
 		
 		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null, null, null, null);

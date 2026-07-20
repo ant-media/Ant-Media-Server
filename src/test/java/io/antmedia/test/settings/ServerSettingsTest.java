@@ -123,9 +123,9 @@ public class ServerSettingsTest {
 		settings.setApplicationContext(applicationContext);
 		assertEquals("144.123.45.67", settings.getHostAddress());
 		
-		Mockito.when(applicationContext.containsBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(true);
+		Mockito.when(applicationContext.containsBean(ILicenceService.BEAN_NAME)).thenReturn(true);
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
-		Mockito.when(applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(applicationContext.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		Mockito.when(licenseService.getLicenseType()).thenReturn(ILicenceService.LICENCE_TYPE_MARKETPLACE);
 		settings.setApplicationContext(applicationContext);
 		

@@ -24,7 +24,6 @@ import java.util.Queue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -38,9 +37,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import com.amazonaws.RequestClientOptions;
-import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -68,7 +64,7 @@ public class AppSettingsUnitTest {
 		if (appScope == null) 
 		{
 			appScope = (WebScope) applicationContext.getBean("web.scope");
-			assertTrue(appScope.getDepth() == 1);
+            assertEquals(1, appScope.getDepth());
 		}
 
 		AppSettings appSettings = (AppSettings) applicationContext.getBean("app.settings");
@@ -77,18 +73,18 @@ public class AppSettingsUnitTest {
 		assertEquals("6", appSettings.getDashSegDuration());
 
 		assertEquals("stun:stun1.l.google.com:19302", appSettings.getStunServerURI());
-		assertEquals(false, appSettings.isWebRTCTcpCandidatesEnabled());
+        assertFalse(appSettings.isWebRTCTcpCandidatesEnabled());
 		assertEquals("", appSettings.getEncoderName());
 		assertEquals(480, appSettings.getPreviewHeight());
 		assertFalse(appSettings.isUseOriginalWebRTCEnabled());
 		assertEquals(5000, appSettings.getCreatePreviewPeriod());
 
 		//check default value
-		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
+        assertFalse(appSettings.isForceAspectRatioInTranscoding());
 		appSettings.setForceAspectRatioInTranscoding(true);
-		assertEquals(true, appSettings.isForceAspectRatioInTranscoding());
+        assertTrue(appSettings.isForceAspectRatioInTranscoding());
 		appSettings.setForceAspectRatioInTranscoding(false);
-		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
+        assertFalse(appSettings.isForceAspectRatioInTranscoding());
 
 		Queue<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
@@ -108,9 +104,9 @@ public class AppSettingsUnitTest {
 		assertEquals("turnservercredential", appSettings.getTurnServerCredential());
 
 
-		assertEquals(false, appSettings.isRtmpPlaybackEnabled());
+        assertFalse(appSettings.isRtmpPlaybackEnabled());
 		appSettings.setRtmpPlaybackEnabled(true);
-		assertEquals(true, appSettings.isRtmpPlaybackEnabled());
+        assertTrue(appSettings.isRtmpPlaybackEnabled());
 		appSettings.setRtmpPlaybackEnabled(false);
 
 
@@ -121,7 +117,7 @@ public class AppSettingsUnitTest {
 		JSONObject visibilityMatrix = (JSONObject) new JSONParser().parse("{\"default\":[\"default\"]}");
 
 		appSettings.setParticipantVisibilityMatrix(visibilityMatrix);
-		Map participantVisibilityMatrix = appSettings.getParticipantVisibilityMatrix();
+		Map<String, List<String>> participantVisibilityMatrix = appSettings.getParticipantVisibilityMatrix();
 		assertEquals(1, participantVisibilityMatrix.size());
 		JSONArray jsonArray = (JSONArray) participantVisibilityMatrix.get("default");
 		assertEquals("default", jsonArray.get(0));
@@ -290,18 +286,18 @@ public class AppSettingsUnitTest {
 		appSettings.setMaxVideoTrackCount(10);
 		assertEquals(10, appSettings.getMaxVideoTrackCount());
 
-		int idleTimeOut = RandomUtils.nextInt();
+		int idleTimeOut = RandomUtils.insecure().randomInt();
 		appSettings.setOriginEdgeIdleTimeout(idleTimeOut);
 		assertEquals(idleTimeOut, appSettings.getOriginEdgeIdleTimeout());
 
 		appSettings.setAddDateTimeToHlsFileName(true);
-		assertEquals(true, appSettings.isAddDateTimeToHlsFileName());
+        assertTrue(appSettings.isAddDateTimeToHlsFileName());
 
 		appSettings.setPlayWebRTCStreamOnceForEachSession(false);
 		assertFalse(appSettings.isPlayWebRTCStreamOnceForEachSession());
 
 		appSettings.setStatsBasedABREnabled(false);
-		assertEquals(false, appSettings.isStatsBasedABREnabled());
+        assertFalse(appSettings.isStatsBasedABREnabled());
 		appSettings.setAbrDownScalePacketLostRatio(2);
 		assertEquals(2, appSettings.getAbrDownScalePacketLostRatio(), 0.0001);
 		appSettings.setAbrUpScalePacketLostRatio(0.2f);
@@ -325,9 +321,9 @@ public class AppSettingsUnitTest {
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
 
 
-		assertEquals(false, appSettings.isHwScalingEnabled());
+        assertFalse(appSettings.isHwScalingEnabled());
 		appSettings.setHwScalingEnabled(false);
-		assertEquals(false, appSettings.isHwScalingEnabled());
+        assertFalse(appSettings.isHwScalingEnabled());
 
 		String apnKeyId = "apnkeyid";
 		appSettings.setApnKeyId(apnKeyId);
@@ -427,19 +423,19 @@ public class AppSettingsUnitTest {
 
 		assertEquals(4, appSettings.getExcessiveBandwithTryCountBeforeSwitchback());
 		assertEquals(20, appSettings.getRttMeasurementDiffThresholdForSwitchback());
-		assertEquals(true, appSettings.isWriteStatsToDatastore());
-		assertEquals(false, appSettings.isDashMuxingEnabled());
+        assertTrue(appSettings.isWriteStatsToDatastore());
+        assertFalse(appSettings.isDashMuxingEnabled());
 		assertEquals("", appSettings.getListenerHookURL());
-		assertEquals(false, appSettings.isPreviewOverwrite());
+        assertFalse(appSettings.isPreviewOverwrite());
 		assertEquals(0, appSettings.getStreamFetcherBufferTime());
 		assertEquals("delete_segments+program_date_time", appSettings.getHlsflags());
 		assertEquals("/usr/local/antmedia/mysql", appSettings.getMySqlClientPath());
-		assertEquals(false, appSettings.isPlayTokenControlEnabled());
-		assertEquals(false, appSettings.isEnableTimeTokenForPlay());
+        assertFalse(appSettings.isPlayTokenControlEnabled());
+        assertFalse(appSettings.isEnableTimeTokenForPlay());
 		assertEquals("", appSettings.getMuxerFinishScript());
 		assertEquals(30, appSettings.getWebRTCFrameRate());
 		assertEquals("", appSettings.getTokenHashSecret());
-		assertEquals(false, appSettings.isHashControlPlayEnabled());
+        assertFalse(appSettings.isHashControlPlayEnabled());
 		assertEquals(60000, appSettings.getWebRTCPortRangeMax());
 		assertEquals(50000, appSettings.getWebRTCPortRangeMin());
 		assertEquals("", appSettings.getAllowedPublisherCIDR());
@@ -449,55 +445,55 @@ public class AppSettingsUnitTest {
 		assertEquals("", appSettings.getHttpForwardingExtension());
 		assertEquals("", appSettings.getHttpForwardingBaseURL());
 		assertEquals(1500, appSettings.getMaxAnalyzeDurationMS());
-		assertEquals(false, appSettings.isGeneratePreview());
-		assertEquals(true, appSettings.isDisableIPv6Candidates());
+        assertFalse(appSettings.isGeneratePreview());
+        assertTrue(appSettings.isDisableIPv6Candidates());
 		assertEquals("3", appSettings.getRtspPullTransportType());
 		assertEquals(5000, appSettings.getRtspTimeoutDurationMs());
 		assertEquals(0, appSettings.getMaxResolutionAccept());
-		assertEquals(true, appSettings.isH264Enabled());
-		assertEquals(false, appSettings.isVp8Enabled());
-		assertEquals(false, appSettings.isH265Enabled());
-		assertEquals(true, appSettings.isDataChannelEnabled());
+        assertTrue(appSettings.isH264Enabled());
+        assertFalse(appSettings.isVp8Enabled());
+        assertFalse(appSettings.isH265Enabled());
+        assertTrue(appSettings.isDataChannelEnabled());
 		assertEquals(0, appSettings.getRtmpIngestBufferTimeMs());
 		assertEquals("", appSettings.getDataChannelWebHookURL());
 		assertEquals(0, appSettings.getEncoderThreadCount());
 		assertEquals(0, appSettings.getEncoderThreadType());
 		assertEquals(1, appSettings.getVp8EncoderThreadCount());
 		assertEquals("unifiedPlan", appSettings.getWebRTCSdpSemantics());
-		assertEquals(true, appSettings.isDeleteDASHFilesOnEnded());
+        assertTrue(appSettings.isDeleteDASHFilesOnEnded());
 		assertEquals(360, appSettings.getHeightRtmpForwarding());
 		assertEquals(96000, appSettings.getAudioBitrateSFU());
-		assertEquals(true, appSettings.isAacEncodingEnabled());
+        assertTrue(appSettings.isAacEncodingEnabled());
 		assertEquals(-1, appSettings.getWebRTCViewerLimit());
 		assertEquals("", appSettings.getJwtSecretKey());
-		assertEquals(false, appSettings.isJwtControlEnabled());
-		assertEquals(true, appSettings.isIpFilterEnabled());
+        assertFalse(appSettings.isJwtControlEnabled());
+        assertTrue(appSettings.isIpFilterEnabled());
 		assertEquals(-1, appSettings.getIngestingStreamLimit());
 		assertEquals(60, appSettings.getTimeTokenPeriod());
-		assertEquals(false, appSettings.isPullWarFile());
+        assertFalse(appSettings.isPullWarFile());
 		assertEquals("", appSettings.getJwtStreamSecretKey());
-		assertEquals(false, appSettings.isPublishJwtControlEnabled());
-		assertEquals(false, appSettings.isPlayJwtControlEnabled());
+        assertFalse(appSettings.isPublishJwtControlEnabled());
+        assertFalse(appSettings.isPlayJwtControlEnabled());
 		assertEquals("", appSettings.getDashHttpEndpoint());
-		assertEquals(false, appSettings.isS3RecordingEnabled());
+        assertFalse(appSettings.isS3RecordingEnabled());
 		assertEquals("", appSettings.getS3SecretKey());
 		assertEquals("", appSettings.getS3AccessKey());
 		assertEquals("", appSettings.getS3RegionName());
 		assertEquals("", appSettings.getS3BucketName());
 		assertEquals("no-store, no-cache, must-revalidate, max-age=0", appSettings.getS3CacheControl());
 		assertEquals("", appSettings.getS3Endpoint());
-		assertEquals(false, appSettings.isForceDecoding());
-		assertEquals(true, appSettings.isAddOriginalMuxerIntoHLSPlaylist());
+        assertFalse(appSettings.isForceDecoding());
+        assertTrue(appSettings.isAddOriginalMuxerIntoHLSPlaylist());
 		assertEquals("", appSettings.getWebhookAuthenticateURL());
 		assertEquals("", appSettings.getVodUploadFinishScript());
 		assertEquals("%r%b", appSettings.getFileNameFormat());
-		assertEquals(false, appSettings.isSignalingEnabled());
+        assertFalse(appSettings.isSignalingEnabled());
 		assertEquals("", appSettings.getSignalingAddress());
-		assertEquals(false, appSettings.isMp4MuxingEnabled());
-		assertEquals(false, appSettings.isAddDateTimeToMp4FileName());
-		assertEquals(true, appSettings.isHlsMuxingEnabled());
-		assertEquals(true, appSettings.isWebRTCEnabled());
-		assertEquals(true, appSettings.isDeleteHLSFilesOnEnded());
+        assertFalse(appSettings.isMp4MuxingEnabled());
+        assertFalse(appSettings.isAddDateTimeToMp4FileName());
+        assertTrue(appSettings.isHlsMuxingEnabled());
+        assertTrue(appSettings.isWebRTCEnabled());
+        assertTrue(appSettings.isDeleteHLSFilesOnEnded());
 		assertEquals("15", appSettings.getHlsListSize());
 		assertEquals("", appSettings.getHlsPlayListType());
 		assertEquals(0, appSettings.getEncoderSettings().size());
@@ -509,20 +505,20 @@ public class AppSettingsUnitTest {
 		assertEquals("3.5", appSettings.getTargetLatency());
 		assertEquals("5", appSettings.getDashWindowSize());
 		assertEquals("5", appSettings.getDashExtraWindowSize());
-		assertEquals(true, appSettings.islLDashEnabled());
-		assertEquals(false, appSettings.islLHLSEnabled());
-		assertEquals(false, appSettings.isHlsEnabledViaDash());
-		assertEquals(false, appSettings.isUseTimelineDashMuxing());
+        assertTrue(appSettings.isLLDashEnabled());
+        assertFalse(appSettings.isLLHLSEnabled());
+        assertFalse(appSettings.isHlsEnabledViaDash());
+        assertFalse(appSettings.isUseTimelineDashMuxing());
 		assertEquals(2000, appSettings.getWebRTCKeyframeTime());
-		assertEquals(true, appSettings.isDashHttpStreaming());
+        assertTrue(appSettings.isDashHttpStreaming());
 		assertEquals("streams", appSettings.getS3StreamsFolderPath());
 		assertEquals("previews", appSettings.getS3PreviewsFolderPath());
 		assertEquals("public-read", appSettings.getS3Permission());
 		assertEquals("127.0.0.1", appSettings.getRemoteAllowedCIDR());
-		assertEquals(false, appSettings.isWebMMuxingEnabled());
+        assertFalse(appSettings.isWebMMuxingEnabled());
 		assertEquals("", appSettings.getEncoderSettingsString());
 		assertEquals("127.0.0.1", appSettings.getAllowedCIDRList().poll().toString());
-		assertEquals(false, appSettings.isUseOriginalWebRTCEnabled());
+        assertFalse(appSettings.isUseOriginalWebRTCEnabled());
 		assertEquals(5000, appSettings.getCreatePreviewPeriod());
 		assertEquals("stun:stun1.l.google.com:19302", appSettings.getStunServerURI());
 		assertEquals("", appSettings.getEncoderName());
@@ -531,44 +527,44 @@ public class AppSettingsUnitTest {
 		assertEquals("", appSettings.getAppName());
 		assertEquals(0, appSettings.getGopSize());
 		assertEquals("", appSettings.getJwksURL());
-		assertEquals(false, appSettings.isWebRTCTcpCandidatesEnabled());
-		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
+        assertFalse(appSettings.isWebRTCTcpCandidatesEnabled());
+        assertFalse(appSettings.isForceAspectRatioInTranscoding());
 		assertEquals(2000, appSettings.getEndpointHealthCheckPeriodMs());
-		assertEquals(false, appSettings.isAcceptOnlyStreamsInDataStore());
-		assertEquals(false, appSettings.isAcceptOnlyRoomsInDataStore());
+        assertFalse(appSettings.isAcceptOnlyStreamsInDataStore());
+        assertFalse(appSettings.isAcceptOnlyRoomsInDataStore());
 		assertEquals(0, appSettings.getRestartStreamFetcherPeriod());
-		assertEquals(false, appSettings.isPublishTokenControlEnabled());
-		assertEquals(false, appSettings.isEnableTimeTokenForPublish());
-		assertEquals(false, appSettings.isHashControlPublishEnabled());
+        assertFalse(appSettings.isPublishTokenControlEnabled());
+        assertFalse(appSettings.isEnableTimeTokenForPublish());
+        assertFalse(appSettings.isHashControlPublishEnabled());
 		assertEquals(0, appSettings.getAllowedPublisherCIDRList().size());
 		assertEquals("gpu_and_cpu", appSettings.getEncoderSelectionPreference());
 		assertEquals(3, appSettings.getExcessiveBandwidthCallThreshold());
-		assertEquals(false, appSettings.isExcessiveBandwidthAlgorithmEnabled());
+        assertFalse(appSettings.isExcessiveBandwidthAlgorithmEnabled());
 		assertEquals(10, appSettings.getPacketLossDiffThresholdForSwitchback());
-		assertEquals(false, appSettings.isReplaceCandidateAddrWithServerAddr());
+        assertFalse(appSettings.isReplaceCandidateAddrWithServerAddr());
 		assertEquals("all", appSettings.getDataChannelPlayerDistribution());
 		assertEquals(10000, appSettings.getWebRTCClientStartTimeoutMs());
-		assertEquals(false, appSettings.isStartStreamFetcherAutomatically());
+        assertFalse(appSettings.isStartStreamFetcherAutomatically());
 		assertEquals("", appSettings.getHlsEncryptionKeyInfoFile());
 		assertEquals("", appSettings.getWarFileOriginServerAddress());
 		assertEquals("", appSettings.getContentSecurityPolicyHeaderValue());
 		assertEquals("", appSettings.getTurnServerCredential());
 		assertEquals("", appSettings.getTurnServerUsername());
 		assertEquals("", appSettings.getHlsHttpEndpoint());
-		assertEquals(false, appSettings.isRtmpPlaybackEnabled());
+        assertFalse(appSettings.isRtmpPlaybackEnabled());
 		assertEquals(-1, appSettings.getMaxAudioTrackCount());
 		assertEquals(-1, appSettings.getMaxVideoTrackCount());
 		assertEquals(2, appSettings.getOriginEdgeIdleTimeout());
-		assertEquals(false, appSettings.isAddDateTimeToHlsFileName());
-		assertEquals(true, appSettings.isPlayWebRTCStreamOnceForEachSession());
-		assertEquals(true, appSettings.isStatsBasedABREnabled());
+        assertFalse(appSettings.isAddDateTimeToHlsFileName());
+        assertTrue(appSettings.isPlayWebRTCStreamOnceForEachSession());
+        assertTrue(appSettings.isStatsBasedABREnabled());
 		assertEquals(1, appSettings.getAbrDownScalePacketLostRatio(), 0.0001);
 		assertEquals(0.1, appSettings.getAbrUpScalePacketLostRatio(), 0.0001);
 		assertEquals(30, appSettings.getAbrUpScaleJitterMs(), 0.0001);
 		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 		assertNotNull(appSettings.getClusterCommunicationKey());
-		assertEquals(false, appSettings.isId3TagEnabled());
-		assertEquals(false, appSettings.isSendAudioLevelToViewers());
+        assertFalse(appSettings.isId3TagEnabled());
+        assertFalse(appSettings.isSendAudioLevelToViewers());
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
 
@@ -608,7 +604,7 @@ public class AppSettingsUnitTest {
 		
 		assertEquals(4, trackSelectionMode.size());
 		assertEquals(1, trackSelectionMode.get("default").size());
-		assertEquals(Arrays.asList("default"), trackSelectionMode.get("default"));
+		assertEquals(List.of("default"), trackSelectionMode.get("default"));
 		
 		assertEquals(2, trackSelectionMode.get("speaker").size());
 		assertEquals(Arrays.asList("speaker", "active_attendee"), trackSelectionMode.get("speaker"));
@@ -620,7 +616,7 @@ public class AppSettingsUnitTest {
 		assertEquals(Arrays.asList("active_attendee", "speaker"), trackSelectionMode.get("active_attendee"));
 
 
-		Map map = appSettings.getCustomSettings();
+		Map<String, Object> map = appSettings.getCustomSettings();
 		assertNotNull(map);
 		assertEquals(0, map.size());
 
@@ -702,7 +698,7 @@ public class AppSettingsUnitTest {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
-		assertEquals(185, 
+		assertEquals(186,
 				numberOfFields, "New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.");
 	}
 
