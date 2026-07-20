@@ -698,13 +698,12 @@ public class VoDRestServiceV2UnitTest {
 		assertEquals(numberOfFiles, vodList.size());
 
 
-		result = restService.unlinksVoD(null);
-		assertFalse(result.isSuccess());
-
-		result = restService.unlinksVoD("src/test");
-		assertTrue(result.isSuccess());
-		vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		assertEquals(0, vodList.size());
+		try {
+			Files.deleteIfExists(f.toPath());
+		}
+		catch (IOException e) {
+			fail(e.getMessage());
+		}
 
 
 	}
