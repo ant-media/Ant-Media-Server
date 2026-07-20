@@ -1,10 +1,13 @@
 package io.antmedia.servlet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -41,6 +44,22 @@ class PrometheusMetricsServletTest extends UnitTestBase<PrometheusMetricsServlet
         verify(response).setStatus(HttpServletResponse.SC_OK);
         verify(response).setContentType("text/plain; version=0.0.4; charset=utf-8");
         assertThat(body.toString()).contains("antmedia_test_requests_total 1.0");
+    }
+
+    @Test
+    void shouldHandleExceptionWhileGettingResponseWriter() throws Exception {
+        PrometheusMetricsServlet servlet = initializeServlet(
+                new PrometheusMeterRegistry(PrometheusConfig.DEFAULT));
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        when(response.getWriter()).thenThrow(new IOException("Writer is unavailable"));
+
+        assertThatCode(() -> servlet.doGet(request, response)).doesNotThrowAnyException();
+
+        verify(response, never()).setStatus(HttpServletResponse.SC_OK);
+        verify(response).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        verify(response).setContentType("text/plain; version=0.0.4; charset=utf-8");
     }
 
     private PrometheusMetricsServlet initializeServlet(PrometheusMeterRegistry registry) throws Exception {

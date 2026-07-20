@@ -3,6 +3,8 @@ package io.antmedia.servlet;
 import java.io.IOException;
 import java.io.Serial;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
@@ -18,6 +20,7 @@ public class PrometheusMetricsServlet extends HttpServlet {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    private static final Logger logger = LoggerFactory.getLogger(PrometheusMetricsServlet.class);
     private static final String CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8";
 
     private transient PrometheusMeterRegistry meterRegistry;
@@ -31,8 +34,14 @@ public class PrometheusMetricsServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(CONTENT_TYPE);
-        response.getWriter().write(meterRegistry.scrape());
+        try {
+            var writer = response.getWriter();
+            response.setStatus(HttpServletResponse.SC_OK);
+            writer.write(meterRegistry.scrape());
+        } catch (IOException e) {
+            logger.error("Could not write Prometheus metrics response", e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 }
