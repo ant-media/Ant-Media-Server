@@ -554,9 +554,9 @@ public class StreamFetcherUnitTest {
 		broadcast.setUpdateTime(System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 10_000);
 		dataStore.save(broadcast);
 
-		assertEquals("Dashboard view: getStatus() should auto-degrade to TERMINATED_UNEXPECTEDLY when updateTime is stale",
-				AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY,
-				dataStore.get(streamId).getStatus());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY,
+				dataStore.get(streamId).getStatus(),
+				"Dashboard view: getStatus() should auto-degrade to TERMINATED_UNEXPECTEDLY when updateTime is stale");
 
 		StreamFetcher zombie = Mockito.mock(StreamFetcher.class);
 		when(zombie.getStreamId()).thenReturn(streamId);
