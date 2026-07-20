@@ -32,8 +32,4 @@ public class PrometheusMetricsServlet extends HttpServlet {
         response.setContentType(CONTENT_TYPE);
         response.getWriter().write(meterRegistry.scrape());
     }
-
-    void setMeterRegistry(PrometheusMeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-    }
 }

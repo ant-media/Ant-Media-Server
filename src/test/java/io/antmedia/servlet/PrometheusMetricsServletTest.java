@@ -10,6 +10,10 @@ import java.io.StringWriter;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockServletConfig;
+import org.springframework.mock.web.MockServletContext;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.StaticWebApplicationContext;
 
 import io.antmedia.test.UnitTestBase;
 import io.micrometer.prometheusmetrics.PrometheusConfig;
@@ -25,8 +29,7 @@ class PrometheusMetricsServletTest extends UnitTestBase<PrometheusMetricsServlet
         PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         registry.counter("antmedia_test_requests").increment();
 
-        PrometheusMetricsServlet servlet = new PrometheusMetricsServlet();
-        servlet.setMeterRegistry(registry);
+        PrometheusMetricsServlet servlet = initializeServlet(registry);
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -38,5 +41,17 @@ class PrometheusMetricsServletTest extends UnitTestBase<PrometheusMetricsServlet
         verify(response).setStatus(HttpServletResponse.SC_OK);
         verify(response).setContentType("text/plain; version=0.0.4; charset=utf-8");
         assertThat(body.toString()).contains("antmedia_test_requests_total 1.0");
+    }
+
+    private PrometheusMetricsServlet initializeServlet(PrometheusMeterRegistry registry) throws Exception {
+        StaticWebApplicationContext applicationContext = new StaticWebApplicationContext();
+        applicationContext.getBeanFactory().registerSingleton("prometheusMeterRegistry", registry);
+
+        MockServletContext servletContext = new MockServletContext();
+        servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, applicationContext);
+
+        PrometheusMetricsServlet servlet = new PrometheusMetricsServlet();
+        servlet.init(new MockServletConfig(servletContext));
+        return servlet;
     }
 }
