@@ -1191,6 +1191,67 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 	}
 
+	public int getLocalLiveStreams() {
+		int count = 0;
+		for (IScope scope : scopes) {
+			AntMediaApplicationAdapter adaptor = getAppAdaptor(scope.getContext().getApplicationContext());
+			if (adaptor != null) {
+				count += adaptor.getMuxAdaptors().size();
+			}
+		}
+		return count;
+	}
+
+	public int getLocalWebRTCLiveStreams() {
+		return getWebRTCMetric(IWebRTCAdaptor::getNumberOfLiveStreams);
+	}
+
+	public int getLocalWebRTCViewers() {
+		return getWebRTCMetric(IWebRTCAdaptor::getNumberOfTotalViewers);
+	}
+
+	private int getWebRTCMetric(java.util.function.ToIntFunction<IWebRTCAdaptor> metric) {
+		int count = 0;
+		for (IScope scope : scopes) {
+			ApplicationContext context = scope.getContext().getApplicationContext();
+			if (context.containsBean(IWebRTCAdaptor.BEAN_NAME)) {
+				count += metric.applyAsInt((IWebRTCAdaptor) context.getBean(IWebRTCAdaptor.BEAN_NAME));
+			}
+		}
+		return count;
+	}
+
+	public int getLocalHLSViewers() {
+		return scopes.stream().mapToInt(StatsCollector::getHLSViewers).sum();
+	}
+
+	public int getLocalDASHViewers() {
+		return scopes.stream().mapToInt(StatsCollector::getDASHViewers).sum();
+	}
+
+	public int getEncodersBlocked() {
+		return getAdaptorMetric(AntMediaApplicationAdapter::getNumberOfEncodersBlocked);
+	}
+
+	public int getEncodersNotOpened() {
+		return getAdaptorMetric(AntMediaApplicationAdapter::getNumberOfEncoderNotOpenedErrors);
+	}
+
+	public int getPublishTimeoutErrors() {
+		return getAdaptorMetric(AntMediaApplicationAdapter::getNumberOfPublishTimeoutError);
+	}
+
+	private int getAdaptorMetric(java.util.function.ToIntFunction<AntMediaApplicationAdapter> metric) {
+		int count = 0;
+		for (IScope scope : scopes) {
+			AntMediaApplicationAdapter adaptor = getAppAdaptor(scope.getContext().getApplicationContext());
+			if (adaptor != null) {
+				count += metric.applyAsInt(adaptor);
+			}
+		}
+		return count;
+	}
+
 	private static int getHLSViewers(IScope scope) {
 		if (scope.getContext().getApplicationContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) scope.getContext().getApplicationContext().getBean(HlsViewerStats.BEAN_NAME);
