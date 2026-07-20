@@ -143,38 +143,20 @@ public class VoDRestService extends RestServiceBase{
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces(MediaType.APPLICATION_JSON)
     @Override
-    public Result uploadVoDFile(
+	    public Result uploadVoDFile(
             @Parameter(description = "Name of the VoD File", required = true) @QueryParam("name") String fileName,
             @Parameter(description = "VoD file", required = true) @FormDataParam("file") InputStream inputStream,
             @Parameter(description = "Custom metadata for the VoD file", required = false) @FormDataParam("metadata") String metadata) {
-        return super.uploadVoDFile(fileName, inputStream, metadata);
-    }
+	        return super.uploadVoDFile(fileName, inputStream, metadata);
+	    }
 
-
-    @Operation(summary = "Import VoD files from a directory and make them streamable.", description = "Imports VoD files from a directory to the datastore and links them to the streams.", responses = {
-            @ApiResponse(responseCode = "200", description = "VoD files imported successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
-    })
-    @POST
-    @Path("/directory")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Override
-    public Result importVoDs(
-            @Parameter(description = "The full path of the directory that VoD files will be imported to the datastore and linked to the streams", required = true) @QueryParam("directory") String directory) {
-        return super.importVoDs(directory);
-    }
-
-
-
-    @Operation(summary = "Unlinks VoD path from streams directory and delete the database record.", description = "Deletes the database record associated with the specified directory, without deleting the files themselves.", responses = {
-            @ApiResponse(responseCode = "200", description = "VoD records unlinked successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
-    })
-    @DELETE
-    @Path("/directory")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Override
-    public Result unlinksVoD(
-            @Parameter(description = "The full path of the directory from which imported VoD files will be deleted from the database", required = true) @QueryParam("directory") String directory) {
-        return super.unlinksVoD(directory);
-    }
-
+	@Operation(summary = "Re-scan VoD assets", description = "Reconciles the VoD datastore with assets in the configured vodFolder.", responses = {
+			@ApiResponse(responseCode = "200", description = "VoD assets scanned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
+	})
+	@POST
+	@Path("/rescan")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result rescanVodAssets() {
+		return super.rescanVodAssets();
+	}
 }

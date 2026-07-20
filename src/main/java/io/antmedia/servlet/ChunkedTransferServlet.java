@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -27,9 +28,11 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
+import io.antmedia.AppSettings;
 import io.antmedia.servlet.cmafutils.AtomParser;
 import io.antmedia.servlet.cmafutils.AtomParser.MockAtomParser;
 import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
@@ -42,6 +45,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 	public static final String STREAMS = "/streams";
 	public static final String WEBAPPS = "webapps";
 	protected static Logger logger = LoggerFactory.getLogger(ChunkedTransferServlet.class);
+	private volatile AppSettings appSettings;
 
 
 	public static class ChunkListener implements ICMAFChunkListener {
@@ -376,7 +380,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 		if (appContext != null && appContext.isRunning()) 
 		{
 
-			File file = new File(WEBAPPS + File.separator + req.getRequestURI());
+			File file = resolveFileForRead(req, appContext);
 
 			try 
 			{    
@@ -425,6 +429,47 @@ public class ChunkedTransferServlet extends HttpServlet {
 			logger.warn("AppContext is not running for get request {}", req.getRequestURI());
 			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 		}
+	}
+
+	File resolveFileForRead(HttpServletRequest request, ApplicationContext applicationContext) {
+		AppSettings settings = getAppSettings(applicationContext);
+		File externalFile = resolveExternalVodFile(request.getServletPath(),
+				settings != null ? settings.getVodFolder() : null);
+		if (externalFile != null && externalFile.isFile() && externalFile.canRead()) {
+			return externalFile;
+		}
+		return new File(WEBAPPS + File.separator + request.getRequestURI());
+	}
+
+	private AppSettings getAppSettings(ApplicationContext applicationContext) {
+		AppSettings settings = appSettings;
+		if (settings == null) {
+			settings = applicationContext.getBean(AppSettings.class);
+			appSettings = settings;
+		}
+		return settings;
+	}
+
+	File resolveExternalVodFile(String servletPath, String vodFolder) {
+		if (servletPath == null || vodFolder == null || vodFolder.isBlank()
+				|| "streams".equals(vodFolder) || STREAMS.equals(vodFolder)) {
+			return null;
+		}
+
+		File configuredFolder = new File(vodFolder);
+		if (!configuredFolder.isAbsolute() || !configuredFolder.isDirectory() || !configuredFolder.canRead()) {
+			return null;
+		}
+
+		String streamsPrefix = STREAMS + "/";
+		int streamsIndex = servletPath.indexOf(streamsPrefix);
+		if (streamsIndex == -1) {
+			return null;
+		}
+
+		Path root = configuredFolder.toPath().toAbsolutePath().normalize();
+		Path candidate = root.resolve(servletPath.substring(streamsIndex + streamsPrefix.length())).normalize();
+		return candidate.startsWith(root) ? candidate.toFile() : null;
 	}
 
 	public void writeChunks(File file, IChunkedCacheManager cacheManager, AsyncContext asyncContext,

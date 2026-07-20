@@ -18,8 +18,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
@@ -303,6 +305,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected boolean serverShuttingDown = false;
 
 	protected StorageClient storageClient;
+	private final Object vodRescanLock = new Object();
 
 	protected Queue<IStreamListener> streamListeners = new ConcurrentLinkedQueue<>();
 
@@ -605,51 +608,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	public Result unlinksVoD(String directory)
-	{
-		//check the directory exist
-		File folder = new File(directory == null ? "" : directory);
-		Result result = null;
-		if (folder.exists() && folder.isDirectory()) {
-
-			File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
-			//check the symbolic links exists and delete it
-
-			deleteSymbolicLink(folder, streamsFolder);
-
-			int deletedRecords = deleteUserVoDByStreamId(folder.getName());
-			result = new Result(true, deletedRecords + " of records are deleted");
-		}
-		else {
-			result = new Result(false, directory + " does not exist or it's not a directory");
-		}
-		return result;
-	}
-
-	private int deleteUserVoDByStreamId(String streamId)
-	{
-		int numberOfDeletedRecords = 0;
-		List<VoD> vodList;
-		do {
-			vodList = getDataStore().getVodList(0, 50, null, null, streamId, null);
-
-			if (vodList != null && !vodList.isEmpty())
-			{
-				for (VoD voD : vodList) {
-					if (VoD.USER_VOD.equals(voD.getType()))
-					{
-						if (getDataStore().deleteVod(voD.getVodId())) {
-							numberOfDeletedRecords++;
-						}
-					}
-
-				}
-			}
-		} while(vodList != null && !vodList.isEmpty());
-
-		return numberOfDeletedRecords;
-	}
-
 	public int importToDB(File subDirectory, File baseDirectory)
 	{
 		File[] listOfFiles = subDirectory.listFiles();
@@ -691,32 +649,119 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return numberOfFilesImported;
 	}
 
-	/**
-	 * Deletes the symbolic link under the streams directory
-	 * @param vodDirectory
-	 * @param streamsFolder
-	 * @return
-	 * @throws IOException
-	 */
-	private boolean deleteSymbolicLink(File vodDirectory, File streamsFolder){
-		boolean result = false;
-		try {
-			if (vodDirectory != null && streamsFolder != null)
-			{
-				File linkFile = new File(streamsFolder.getAbsolutePath(), vodDirectory.getName());
+	public Result rescanVodAssets() {
+		synchronized (vodRescanLock) {
+			return rescanVodAssetsInternal();
+		}
+	}
 
-				if (!streamsFolder.getAbsolutePath().equals(linkFile.getAbsolutePath())
-						&&
-						Files.isSymbolicLink(linkFile.toPath()))
-				{
-					Files.delete(linkFile.toPath());
-					result = true;
+	private Result rescanVodAssetsInternal() {
+		File vodRoot = getVodFolderForScanning();
+		if (vodRoot == null || !vodRoot.isDirectory() || !vodRoot.canRead()) {
+			return new Result(false, "VoD folder is not a readable directory");
+		}
+
+		Map<String, File> discoveredFiles = new HashMap<>();
+		collectVodFiles(vodRoot, vodRoot, discoveredFiles, new HashSet<>());
+
+		List<VoD> existingVods = getAllVods();
+		Map<String, VoD> existingVodsByPath = new HashMap<>();
+		for (VoD vod : existingVods) {
+			if (StringUtils.isNotBlank(vod.getFilePath())) {
+				existingVodsByPath.put(normalizeVodPath(vod.getFilePath()), vod);
+			}
+		}
+
+		int added = 0;
+		for (Entry<String, File> entry : discoveredFiles.entrySet()) {
+			if (!existingVodsByPath.containsKey(entry.getKey())) {
+				File file = entry.getValue();
+				String vodId = RandomStringUtils.secure().nextNumeric(24);
+				VoD vod = new VoD(file.getName(), vodRoot.getName(), entry.getKey(), file.getName(),
+						file.lastModified(), 0, Muxer.getDurationInMs(file, null), file.length(),
+						VoD.USER_VOD, vodId, null);
+				if (getDataStore().addVod(vod) != null) {
+					added++;
 				}
 			}
-		} catch (IOException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
 		}
-		return result;
+
+		int removed = 0;
+		for (VoD vod : existingVods) {
+			if (VoD.USER_VOD.equals(vod.getType())
+					&& !discoveredFiles.containsKey(normalizeVodPath(vod.getFilePath()))
+					&& getDataStore().deleteVod(vod.getVodId())) {
+				removed++;
+			}
+		}
+
+		return new Result(true, String.format("%d VoD assets discovered, %d added, %d removed",
+				discoveredFiles.size(), added, removed));
+	}
+
+	private File getVodFolderForScanning() {
+		String vodFolder = getAppSettings().getVodFolder();
+		if (StringUtils.isBlank(vodFolder) || STREAMS.equals(vodFolder) || "/streams".equals(vodFolder)) {
+			String appName = getScope() != null ? getScope().getName() : null;
+			if (StringUtils.isBlank(appName)) {
+				return null;
+			}
+			return new File(System.getProperty("red5.root", "."), "webapps/" + appName + "/streams");
+		}
+		File configuredFolder = new File(vodFolder);
+		return configuredFolder.isAbsolute() ? configuredFolder : null;
+	}
+
+	private void collectVodFiles(File directory, File root, Map<String, File> files, Set<String> visitedDirectories) {
+		try {
+			if (!visitedDirectories.add(directory.getCanonicalPath())) {
+				return;
+			}
+		}
+		catch (IOException e) {
+			logger.warn("Cannot resolve VoD directory {}", directory, e);
+			return;
+		}
+
+		File[] children = directory.listFiles();
+		if (children == null) {
+			return;
+		}
+		for (File child : children) {
+			if (child.isDirectory()) {
+				collectVodFiles(child, root, files, visitedDirectories);
+			}
+			else if (child.isFile() && isSupportedVodFile(child)) {
+				String relativePath = root.toPath().relativize(child.toPath()).toString().replace(File.separatorChar, '/');
+				files.put("streams/" + relativePath, child);
+			}
+		}
+	}
+
+	private boolean isSupportedVodFile(File file) {
+		String extension = FilenameUtils.getExtension(file.getName()).toLowerCase(Locale.ROOT);
+		return switch (extension) {
+			case "mp4", "webm", "mov", "avi", "mp3", "wmv", "flv", "mkv", "m3u8", "mpd" -> true;
+			default -> false;
+		};
+	}
+
+	private List<VoD> getAllVods() {
+		List<VoD> vods = new ArrayList<>();
+		int offset = 0;
+		List<VoD> page;
+		do {
+			page = getDataStore().getVodList(offset, 50, null, null, null, null);
+			if (page != null) {
+				vods.addAll(page);
+				offset += page.size();
+			}
+		} while (page != null && page.size() == 50);
+		return vods;
+	}
+
+	private String normalizeVodPath(String path) {
+		return path == null ? "" : path.replace('\\', '/');
 	}
 
 	public String getListenerHookURL(Broadcast broadcast)
@@ -2496,6 +2541,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster, boolean checkUpdateTime) {
 
 		boolean result = false;
+		String previousVodFolder = appSettings.getVodFolder();
 
 		if (checkUpdateTime && !isIncomingSettingsDifferent(newSettings)) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
@@ -2536,6 +2582,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		 *   {@link #updateAppSettingsFile} && {@link #updateAppSettingsBean} should be updated
 		 */
 		updateAppSettingsBean(appSettings, newSettings, notifyCluster);
+		boolean vodFolderChanged = !StringUtils.equals(previousVodFolder, appSettings.getVodFolder());
 
 		if (notifyCluster && clusterNotifier != null) {
 			//we should set to the status here because app deletion fully depends on the cluster synch
@@ -2557,7 +2604,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		notifySettingsUpdateListeners(appSettings);
 
+		rescanVodAssetsIfFolderChanged(vodFolderChanged);
+
 		return result;
+	}
+
+	void rescanVodAssetsIfFolderChanged(boolean vodFolderChanged) {
+		if (vodFolderChanged) {
+			Result scanResult = rescanVodAssets();
+			if (!scanResult.isSuccess()) {
+				logger.warn("Cannot re-scan VoD assets after vodFolder update: {}", scanResult.getMessage());
+			}
+		}
 	}
 
 	public void notifySettingsUpdateListeners(AppSettings appSettings) {
