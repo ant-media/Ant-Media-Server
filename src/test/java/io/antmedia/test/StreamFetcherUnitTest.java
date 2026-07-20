@@ -547,12 +547,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	 *  - isStreamBlocked()=true, isStreamAlive()=false
 	 *  - DB updateTime is stale, so Broadcast.getStatus() auto-degrades to
 	 *    TERMINATED_UNEXPECTEDLY -> dashboard correctly shows offline.
-	 *
-	 * Today the test FAILS because StreamFetcherManager.isStreamRunning at L125 only checks
-	 * streamFetcherList.containsKey(...) -> returns true -> startStreaming returns the
-	 * "already active" message. After a fix (e.g. teach isStreamRunning to also check
-	 * fetcher.isStreamAlive(), or evict zombies before the containsKey check), the
-	 * assertion below should pass.
 	 */
 	@Test
 	public void testStartStreamingRecoversFromZombieFetcher() {
