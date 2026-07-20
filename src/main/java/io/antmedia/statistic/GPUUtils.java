@@ -18,6 +18,8 @@ import org.bytedeco.javacpp.Loader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+
 public class GPUUtils {
 
 	private static Logger logger = LoggerFactory.getLogger(GPUUtils.class);
@@ -126,7 +128,7 @@ public class GPUUtils {
 	} 
 	
 
-
+    @Nullable
 	public MemoryStatus getMemoryStatus(int deviceNo) {
 		nvmlDevice_st device = null;
 		if ((device = getDevice(deviceNo)) != null) {

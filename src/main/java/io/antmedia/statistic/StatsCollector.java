@@ -601,10 +601,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(GPU_DECODER_UTILIZATION, gpuUtils.getDecoderUtilization(deviceIndex));
 
 		MemoryStatus memoryStatus = gpuUtils.getMemoryStatus(deviceIndex);
-		jsonObject.addProperty(GPU_MEMORY_TOTAL, memoryStatus.getMemoryTotal());
-		jsonObject.addProperty(GPU_MEMORY_FREE, memoryStatus.getMemoryFree());
-		jsonObject.addProperty(GPU_MEMORY_USED, memoryStatus.getMemoryUsed());
 		jsonObject.addProperty(GPU_DEVICE_NAME, GPUUtils.getInstance().getDeviceName(deviceIndex));
+		if(memoryStatus != null) {
+			jsonObject.addProperty(GPU_MEMORY_TOTAL, memoryStatus.getMemoryTotal());
+			jsonObject.addProperty(GPU_MEMORY_FREE, memoryStatus.getMemoryFree());
+			jsonObject.addProperty(GPU_MEMORY_USED, memoryStatus.getMemoryUsed());
+		}
 
 		return jsonObject;
 	}

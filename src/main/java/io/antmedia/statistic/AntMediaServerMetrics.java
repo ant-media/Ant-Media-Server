@@ -37,12 +37,12 @@ public class AntMediaServerMetrics implements MeterBinder {
                 "Average datastore query duration in milliseconds", StatsCollector::getDBQueryAverageTimeMs);
 
         Gauge.builder("antmedia.vertx.worker.queue.size", statsCollector,
-                        collector -> collector.getVertWorkerQueueSize())
+                        StatsCollector::getVertWorkerQueueSize)
                 .description("Vert.x worker queue size")
                 .tag("pool", "server")
                 .register(registry);
         Gauge.builder("antmedia.vertx.worker.queue.size", statsCollector,
-                        collector -> collector.getWebRTCVertxWorkerQueueSize())
+                        StatsCollector::getWebRTCVertxWorkerQueueSize)
                 .description("Vert.x worker queue size")
                 .tag("pool", "webrtc")
                 .register(registry);
