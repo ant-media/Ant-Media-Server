@@ -48,19 +48,62 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
+        BRANCH: ${{ inputs.branch_name }}
+        REF_TYPE: ${{ github.ref_type }}
       run: |
-          repo="ant-media/management-panel-reborn"
-          if gh release download -R "$repo" --pattern '*.zip' --dir /tmp --clobber; then
-            echo "Using latest published panel release."
-          elif gh release download snapshot -R "$repo" --pattern '*.zip' --dir /tmp --clobber; then
-            echo "::warning::No published panel release yet; using snapshot pre-release."
+          # Puts the web panel (legacy console + reborn) into webapps/root by downloading a
+          # prebuilt zip from the panel repo's releases. Which zip depends on what is building:
+          #   tag ams-vX.Y.Z -> the published panel release with the same tag, else FAIL the build
+          #   master         -> panel-master.zip from the WORK-BRANCHES pre-release
+          #   other branch   -> same-name branch snapshot build if fresh and exists,
+          #                     if not fresh, trigger a new build. If no branch available or the
+          #                     build fails, take latest master snapshot.
+          # version.json in panel zip is a CI-only staleness stamp, always excluded from extraction.
+
+          PANEL="ant-media/management-panel-reborn"
+          slug="$(printf '%s' "$BRANCH" | sed 's/[^A-Za-z0-9._-]/-/g')"
+          dl() { gh release download "$1" -R "$PANEL" --pattern "$2" --dir /tmp --clobber; }
+          dl_master() {
+            dl WORK-BRANCHES "panel-master.zip" \
+              || { echo "::error::panel-master.zip missing from WORK-BRANCHES at $PANEL."; exit 1; }
+            zip="/tmp/panel-master.zip"
+          }
+          build_local() {
+            echo "Building panel locally from branch '$BRANCH'."
+            rm -rf /tmp/panel-src
+            git clone --depth=1 -b "$BRANCH" "https://github.com/$PANEL.git" /tmp/panel-src \
+              && (corepack enable 2>/dev/null || sudo corepack enable) \
+              && (cd /tmp/panel-src && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 PANEL_CHANNEL=SNAPSHOT OUT_ZIP="/tmp/panel-$slug.zip" ./release.sh)
+          }
+
+          if [[ "$REF_TYPE" == "tag" && "$BRANCH" == ams-v* ]]; then
+            ver="${BRANCH#ams-v}"
+            dl "$BRANCH" "panel-release-$ver.zip" \
+              || { echo "::error::Panel release '$BRANCH' not published at $PANEL. Run the panel Release workflow with AMS version $ver, publish the draft, then re-run this build."; exit 1; }
+            zip="/tmp/panel-release-$ver.zip"
+            echo "::notice::Web panel: release $BRANCH (panel-release-$ver.zip)"
+          elif [ "$BRANCH" = "master" ]; then
+            dl_master
+            echo "::notice::Web panel: master snapshot (panel-master.zip)"
           else
-            echo "::error::No panel release or snapshot found at $repo. Publish a panel release."; exit 1
+            head="$(git ls-remote "https://github.com/$PANEL" "refs/heads/$BRANCH" | cut -f1 || true)"
+            if [ -z "$head" ]; then
+              dl_master
+              echo "::notice::Web panel: no panel branch '$BRANCH'; using panel-master.zip"
+            elif dl WORK-BRANCHES "panel-$slug.zip" \
+                 && [ "$(unzip -p "/tmp/panel-$slug.zip" version.json | jq -r .commit)" = "$head" ]; then
+              zip="/tmp/panel-$slug.zip"
+              echo "::notice::Web panel: branch snapshot panel-$slug.zip (commit ${head:0:7})"
+            elif build_local; then
+              zip="/tmp/panel-$slug.zip"
+              echo "::notice::Web panel: built locally from panel branch $BRANCH (${head:0:7})"
+            else
+              echo "::warning::Web panel: local build for '$BRANCH' failed; using panel-master.zip"
+              dl_master
+            fi
           fi
-          zip="$(ls /tmp/panel-release-*.zip 2>/dev/null | head -1)"
-          [ -n "$zip" ] || { echo "::error::Panel downloaded but no panel-release-*.zip asset found."; exit 1; }
-          echo "Using panel: $(basename "$zip")"
-          unzip -o -q "$zip" -d src/main/server/webapps/root/
+
+          unzip -o -q "$zip" -x version.json -d src/main/server/webapps/root/
                   
  
     - name: Replace ffmpeg builds
