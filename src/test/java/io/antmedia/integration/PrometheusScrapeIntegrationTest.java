@@ -30,6 +30,7 @@ class PrometheusScrapeIntegrationTest {
     private static final int PROMETHEUS_HTTP_PORT = 9090;
     private static final String PROMETHEUS_IMAGE = "prom/prometheus:v2.55.1";
     private static final String METRIC_NAME = "antmedia_streams_live";
+    private static final String PROMETHEUS_JOB = "ant-media-server";
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -71,11 +72,11 @@ class PrometheusScrapeIntegrationTest {
                   scrape_interval: 1s
                   scrape_timeout: 1s
                 scrape_configs:
-                  - job_name: ant-media-server
+                  - job_name: %s
                     metrics_path: /metrics
                     static_configs:
                       - targets: ['host.testcontainers.internal:9090']
-                """;
+                """.formatted(PROMETHEUS_JOB);
 
         return new GenericContainer<>(DockerImageName.parse(PROMETHEUS_IMAGE))
                 .withExposedPorts(PROMETHEUS_HTTP_PORT)
@@ -89,7 +90,7 @@ class PrometheusScrapeIntegrationTest {
         assertThat(response.statusCode())
                 .as("Ant Media Server must already be running with its Prometheus endpoint enabled")
                 .isEqualTo(200);
-        assertThat(response.body()).contains(METRIC_NAME);
+        assertThat(response.body()).containsPattern("(?m)^" + METRIC_NAME + "(?:\\{[^}]*})?\\s+[-+]?\\d");
     }
 
     private void assertTargetIsHealthy(String prometheusUrl) throws IOException, InterruptedException {
@@ -110,7 +111,7 @@ class PrometheusScrapeIntegrationTest {
     }
 
     private void assertMetricWasScraped(String prometheusUrl) throws IOException, InterruptedException {
-        String query = URLEncoder.encode(METRIC_NAME, StandardCharsets.UTF_8);
+        String query = URLEncoder.encode("up{job=\"" + PROMETHEUS_JOB + "\"}", StandardCharsets.UTF_8);
         HttpResponse<String> response = get(prometheusUrl + "/api/v1/query?query=" + query);
 
         assertThat(response.statusCode()).isEqualTo(200);
@@ -118,9 +119,10 @@ class PrometheusScrapeIntegrationTest {
         assertThat(body.get("status").getAsString()).isEqualTo("success");
 
         JsonArray result = body.getAsJsonObject("data").getAsJsonArray("result");
-        assertThat(result).as("Prometheus query result for %s", METRIC_NAME).isNotEmpty();
-        assertThat(result.get(0).getAsJsonObject().getAsJsonObject("metric").get("job").getAsString())
-                .isEqualTo("ant-media-server");
+        assertThat(result).as("Prometheus scrape status for job %s", PROMETHEUS_JOB).hasSize(1);
+        JsonObject series = result.get(0).getAsJsonObject();
+        assertThat(series.getAsJsonObject("metric").get("job").getAsString()).isEqualTo(PROMETHEUS_JOB);
+        assertThat(series.getAsJsonArray("value").get(1).getAsString()).isEqualTo("1");
     }
 
     private HttpResponse<String> get(String url) throws IOException, InterruptedException {
