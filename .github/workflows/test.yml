@@ -14,6 +14,7 @@ on:
 permissions:
   contents: read
   checks: write
+  packages: read
   
       
 env:
@@ -24,8 +25,8 @@ jobs:
     name: Compare cached and GitHub SRT artifacts
     runs-on: ubuntu-22.04
     env:
-      GITHUB_MAVEN_REPO_USER: ${{ secrets.GITHUB_MAVEN_REPO_USER }}
-      GITHUB_MAVEN_REPO_PASSWORD: ${{ secrets.GITHUB_MAVEN_REPO_PASSWORD }}
+      GITHUB_MAVEN_REPO_USER: ${{ github.actor }}
+      GITHUB_MAVEN_REPO_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

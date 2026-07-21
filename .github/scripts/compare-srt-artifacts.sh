@@ -25,11 +25,6 @@ for artifact in "${ARTIFACTS[@]}"; do
   fi
 done
 
-if [[ -f "${REPORT_DIRECTORY}/missing-ci-artifacts.txt" ]]; then
-  echo "The restored CI Maven cache does not contain the complete SRT artifact set." >&2
-  exit 1
-fi
-
 cat > "${EXPERIMENT_POM}" <<'EOF'
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
@@ -66,6 +61,12 @@ comparison_failed=0
 for artifact in "${ARTIFACTS[@]}"; do
   ci_file="${CI_REPOSITORY}/${artifact}"
   github_file="${GITHUB_REPOSITORY}/${artifact}"
+
+  if [[ ! -f "${ci_file}" ]]; then
+    echo "MISSING_FROM_CI_CACHE ${artifact}" | tee -a "${REPORT_DIRECTORY}/comparison.txt"
+    comparison_failed=1
+    continue
+  fi
 
   if [[ ! -f "${github_file}" ]]; then
     echo "MISSING_FROM_GITHUB ${artifact}" | tee -a "${REPORT_DIRECTORY}/comparison.txt"
