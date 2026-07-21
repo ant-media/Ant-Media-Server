@@ -47,7 +47,6 @@
 	<servlet>
 		<servlet-name>prometheus</servlet-name>
 		<servlet-class>io.antmedia.servlet.PrometheusMetricsServlet</servlet-class>
-		<load-on-startup>1</load-on-startup>
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>prometheus</servlet-name>

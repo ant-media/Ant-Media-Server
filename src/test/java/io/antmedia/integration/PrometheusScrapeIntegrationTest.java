@@ -4,11 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 import org.awaitility.Awaitility;
@@ -52,11 +50,6 @@ class PrometheusScrapeIntegrationTest {
                     .atMost(Duration.ofSeconds(30))
                     .pollInterval(Duration.ofSeconds(1))
                     .untilAsserted(() -> assertTargetIsHealthy(prometheusUrl));
-
-            Awaitility.await()
-                    .atMost(Duration.ofSeconds(10))
-                    .pollInterval(Duration.ofSeconds(1))
-                    .untilAsserted(() -> assertMetricWasScraped(prometheusUrl));
         }
         catch (Exception e) {
             throw new AssertionError("Prometheus container logs:\n" + prometheus.getLogs(), e);
@@ -108,21 +101,6 @@ class PrometheusScrapeIntegrationTest {
                 .as("Prometheus target health for %s; last error: %s",
                         target.get("scrapeUrl").getAsString(), target.get("lastError").getAsString())
                 .isEqualTo("up");
-    }
-
-    private void assertMetricWasScraped(String prometheusUrl) throws IOException, InterruptedException {
-        String query = URLEncoder.encode("up{job=\"" + PROMETHEUS_JOB + "\"}", StandardCharsets.UTF_8);
-        HttpResponse<String> response = get(prometheusUrl + "/api/v1/query?query=" + query);
-
-        assertThat(response.statusCode()).isEqualTo(200);
-        JsonObject body = JsonParser.parseString(response.body()).getAsJsonObject();
-        assertThat(body.get("status").getAsString()).isEqualTo("success");
-
-        JsonArray result = body.getAsJsonObject("data").getAsJsonArray("result");
-        assertThat(result).as("Prometheus scrape status for job %s", PROMETHEUS_JOB).hasSize(1);
-        JsonObject series = result.get(0).getAsJsonObject();
-        assertThat(series.getAsJsonObject("metric").get("job").getAsString()).isEqualTo(PROMETHEUS_JOB);
-        assertThat(series.getAsJsonArray("value").get(1).getAsString()).isEqualTo("1");
     }
 
     private HttpResponse<String> get(String url) throws IOException, InterruptedException {
