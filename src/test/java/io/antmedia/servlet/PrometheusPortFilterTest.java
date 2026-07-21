@@ -27,7 +27,7 @@ class PrometheusPortFilterTest extends UnitTestBase<PrometheusPortFilter> {
     private FilterChain chain;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         ServerSettings serverSettings = new ServerSettings();
         serverSettings.setPrometheusPort(PROMETHEUS_PORT);
 

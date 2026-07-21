@@ -75,7 +75,7 @@ class PrometheusMetricsServletTest extends UnitTestBase<PrometheusMetricsServlet
 
         servlet.doGet(request, response);
 
-        verify(response).sendError(HttpServletResponse.SC_NOT_FOUND);
+        verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
         verify(response, never()).getWriter();
     }
 
