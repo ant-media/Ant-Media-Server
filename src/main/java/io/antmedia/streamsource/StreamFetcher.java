@@ -959,9 +959,11 @@ public class StreamFetcher {
 								if (pktTimeDifferenceMs < passedTime)
 								{
 
-									writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
-									bufferQueue.remove(tempPacket); //remove the packet from the queue
-									unReferencePacket(tempPacket);
+									tempPacket = bufferQueue.pollFirst();
+									if (tempPacket != null) {
+										writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
+										unReferencePacket(tempPacket);
+									}
 								}
 								else {
 									//break the loop and don't block the thread because it's not correct time to send the packet
