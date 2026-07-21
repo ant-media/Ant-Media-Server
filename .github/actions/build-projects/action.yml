@@ -44,59 +44,23 @@ runs:
           mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
           cd ..
 
-    - name: Install NVM (Node Version Manager)
+    - name: Fetch web panel
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-          ls -la
-          pwd
-      shell: bash
-        
-    - name: Cache node_modules directtory for Web Panel Angular project
-      uses: actions/cache@v4
-      with:
-           key: ${{ runner.os }}-node_modules-cache
-           path: |
-             ~/ManagementConsole_AngularApp-node_modules-cache     
-        
-    - name: Clone  Management Console Web Panel Angular project
-      shell: bash
-      run: git clone --depth=1 -b ${{ inputs.branch_name }} https://github.com/ant-media/ManagementConsole_AngularApp.git || git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
-        
-    - name: Copy node_modules from cache directory if exists
-      shell: bash
-      run: | 
-           ls -la
-           ls ..
-           pwd
-           if [ -d "$HOME/ManagementConsole_AngularApp-node_modules-cache" ]; then
-              echo "Copy node_modules from cache directory to ManagementConsole_AngularApp directory"
-              cp -a $HOME/ManagementConsole_AngularApp-node_modules-cache/. ManagementConsole_AngularApp/node_modules/
-           else
-               echo "No cache directory found at $HOME"
-           fi   
-
-    - name: Clone and build Management Console Web Panel Angular project
-      shell: bash
-      run: |
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          nvm install 16.20.2 # install node.js version for angular 
-          nvm use 16.20.2 # use node.js version for angular
-          
-          npm install -g @angular/cli@10.0.5
-          cd ManagementConsole_AngularApp
-          . $NVM_DIR/nvm.sh
-          
-          npm install
-          ng build --prod
-          cp -a ./dist/. ../src/main/server/webapps/root/
-          cd ..
-          
-    - name: Copy node_modules to cache directory
-      shell: bash
-      run: |
-        rm -rf ~/ManagementConsole_AngularApp-node_modules-cache/
-        cp -a  ManagementConsole_AngularApp/node_modules/. ~/ManagementConsole_AngularApp-node_modules-cache/
+          repo="ant-media/management-panel-reborn"
+          if gh release download -R "$repo" --pattern '*.zip' --dir /tmp --clobber; then
+            echo "Using latest published panel release."
+          elif gh release download snapshot -R "$repo" --pattern '*.zip' --dir /tmp --clobber; then
+            echo "::warning::No published panel release yet; using snapshot pre-release."
+          else
+            echo "::error::No panel release or snapshot found at $repo. Publish a panel release."; exit 1
+          fi
+          zip="$(ls /tmp/panel-release-*.zip 2>/dev/null | head -1)"
+          [ -n "$zip" ] || { echo "::error::Panel downloaded but no panel-release-*.zip asset found."; exit 1; }
+          echo "Using panel: $(basename "$zip")"
+          unzip -o -q "$zip" -d src/main/server/webapps/root/
                   
  
     - name: Replace ffmpeg builds
