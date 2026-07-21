@@ -50,7 +50,15 @@ class PrometheusScrapeIntegrationTest {
             Awaitility.await()
                     .atMost(Duration.ofSeconds(30))
                     .pollInterval(Duration.ofSeconds(1))
+                    .untilAsserted(() -> assertTargetIsHealthy(prometheusUrl));
+
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10))
+                    .pollInterval(Duration.ofSeconds(1))
                     .untilAsserted(() -> assertMetricWasScraped(prometheusUrl));
+        }
+        catch (Exception e) {
+            throw new AssertionError("Prometheus container logs:\n" + prometheus.getLogs(), e);
         }
         finally {
             prometheus.stop();
@@ -82,6 +90,23 @@ class PrometheusScrapeIntegrationTest {
                 .as("Ant Media Server must already be running with its Prometheus endpoint enabled")
                 .isEqualTo(200);
         assertThat(response.body()).contains(METRIC_NAME);
+    }
+
+    private void assertTargetIsHealthy(String prometheusUrl) throws IOException, InterruptedException {
+        HttpResponse<String> response = get(prometheusUrl + "/api/v1/targets");
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        JsonObject body = JsonParser.parseString(response.body()).getAsJsonObject();
+        assertThat(body.get("status").getAsString()).isEqualTo("success");
+
+        JsonArray activeTargets = body.getAsJsonObject("data").getAsJsonArray("activeTargets");
+        assertThat(activeTargets).as("Prometheus active targets").hasSize(1);
+
+        JsonObject target = activeTargets.get(0).getAsJsonObject();
+        assertThat(target.get("health").getAsString())
+                .as("Prometheus target health for %s; last error: %s",
+                        target.get("scrapeUrl").getAsString(), target.get("lastError").getAsString())
+                .isEqualTo("up");
     }
 
     private void assertMetricWasScraped(String prometheusUrl) throws IOException, InterruptedException {
