@@ -20,6 +20,34 @@ env:
   RUNNER: ubuntu-22.04      
       
 jobs:  
+  compare-srt-artifacts:
+    name: Compare cached and GitHub SRT artifacts
+    runs-on: ubuntu-22.04
+    env:
+      GITHUB_MAVEN_REPO_USER: ${{ secrets.GITHUB_MAVEN_REPO_USER }}
+      GITHUB_MAVEN_REPO_PASSWORD: ${{ secrets.GITHUB_MAVEN_REPO_PASSWORD }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 and restore the CI Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Compare SRT artifacts byte-for-byte
+        run: .github/scripts/compare-srt-artifacts.sh
+
+      - name: Upload SRT comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: srt-artifact-comparison
+          path: /tmp/srt-artifact-comparison/
+          if-no-files-found: warn
+
   run-unit-tests:
     name: Run unit tests
     runs-on: ubuntu-22.04
