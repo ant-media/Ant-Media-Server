@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import io.antmedia.settings.ServerSettings;
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -24,16 +25,29 @@ public class PrometheusMetricsServlet extends HttpServlet {
     private static final String CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8";
 
     private transient PrometheusMeterRegistry meterRegistry;
+    private transient ServerSettings serverSettings;
 
     @Override
     public void init() throws ServletException {
         WebApplicationContext context = WebApplicationContextUtils
                 .getRequiredWebApplicationContext(getServletContext());
         meterRegistry = context.getBean(PrometheusMeterRegistry.class);
+        serverSettings = context.getBean(ServerSettings.BEAN_NAME, ServerSettings.class);
+        if (serverSettings.isPrometheusEnabled()) {
+            logger.info("Prometheus metrics are available at http://localhost:{}/metrics",
+                    serverSettings.getPrometheusPort());
+        } else {
+            logger.info("Prometheus metrics are disabled.");
+        }
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (!serverSettings.isPrometheusEnabled()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
         response.setContentType(CONTENT_TYPE);
         try {
             var writer = response.getWriter();

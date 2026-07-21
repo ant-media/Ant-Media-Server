@@ -26,7 +26,7 @@ import com.google.gson.JsonParser;
 
 class PrometheusScrapeIntegrationTest {
 
-    private static final int ANT_MEDIA_HTTP_PORT = 5080;
+    private static final int ANT_MEDIA_PROMETHEUS_PORT = 9090;
     private static final int PROMETHEUS_HTTP_PORT = 9090;
     private static final String PROMETHEUS_IMAGE = "prom/prometheus:v2.55.1";
     private static final String METRIC_NAME = "antmedia_streams_live";
@@ -39,7 +39,7 @@ class PrometheusScrapeIntegrationTest {
     @Timeout(120)
     void shouldScrapeAntMediaMetrics() throws Exception {
         assertAntMediaPrometheusEndpointIsAvailable();
-        Testcontainers.exposeHostPorts(ANT_MEDIA_HTTP_PORT);
+        Testcontainers.exposeHostPorts(ANT_MEDIA_PROMETHEUS_PORT);
 
         GenericContainer<?> prometheus = createPrometheusContainer();
         try {
@@ -64,9 +64,9 @@ class PrometheusScrapeIntegrationTest {
                   scrape_timeout: 1s
                 scrape_configs:
                   - job_name: ant-media-server
-                    metrics_path: /actuator/prometheus
+                    metrics_path: /metrics
                     static_configs:
-                      - targets: ['host.testcontainers.internal:5080']
+                      - targets: ['host.testcontainers.internal:9090']
                 """;
 
         return new GenericContainer<>(DockerImageName.parse(PROMETHEUS_IMAGE))
@@ -76,7 +76,7 @@ class PrometheusScrapeIntegrationTest {
     }
 
     private void assertAntMediaPrometheusEndpointIsAvailable() throws IOException, InterruptedException {
-        HttpResponse<String> response = get("http://localhost:" + ANT_MEDIA_HTTP_PORT + "/actuator/prometheus");
+        HttpResponse<String> response = get("http://localhost:" + ANT_MEDIA_PROMETHEUS_PORT + "/metrics");
 
         assertThat(response.statusCode())
                 .as("Ant Media Server must already be running with its Prometheus endpoint enabled")

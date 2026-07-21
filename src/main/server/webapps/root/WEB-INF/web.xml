@@ -51,8 +51,16 @@
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>prometheus</servlet-name>
-		<url-pattern>/actuator/prometheus</url-pattern>
+		<url-pattern>/metrics</url-pattern>
 	</servlet-mapping>
+	<filter>
+		<filter-name>PrometheusPortFilter</filter-name>
+		<filter-class>io.antmedia.servlet.PrometheusPortFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>PrometheusPortFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
 <!-- strict-transport-security -->
 	<filter>
 		<filter-name>httpHeaderSecurity</filter-name>
