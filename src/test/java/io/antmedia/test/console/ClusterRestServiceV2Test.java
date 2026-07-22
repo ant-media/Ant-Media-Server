@@ -4,6 +4,7 @@ package io.antmedia.test.console;
 import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -71,7 +72,39 @@ public class ClusterRestServiceV2Test {
 		Mockito.when(clusterStore.deleteNode("any_id")).thenReturn(true);
 		Result deleteNode = restService.deleteNode("any_id");
 		assertTrue(deleteNode.isSuccess());
-		
+
+	}
+
+	@Test
+	public void testClusterNode()
+	{
+		ClusterNode node = new ClusterNode("192.168.1.1", "node-1");
+		assertEquals("192.168.1.1", node.getIp());
+		assertEquals("node-1", node.getId());
+		assertNull(node.getNote());
+
+		node.setId("node-2");
+		node.setIp("10.0.0.5");
+		node.setMemory("2048");
+		node.setCpu("50");
+		node.setDbQueryAveargeTimeMs(7);
+		node.setLastUpdateTime(12345L);
+		node.setNote("origin node in eu-west-1");
+
+		assertEquals("node-2", node.getId());
+		assertEquals("10.0.0.5", node.getIp());
+		assertEquals("2048", node.getMemory());
+		assertEquals("50", node.getCpu());
+		assertEquals(7, node.getDbQueryAveargeTimeMs());
+		assertEquals(12345L, node.getLastUpdateTime());
+		assertEquals("origin node in eu-west-1", node.getNote());
+
+		// status is derived from how stale the last heartbeat is
+		node.setLastUpdateTime(System.currentTimeMillis());
+		assertEquals(ClusterNode.ALIVE, node.getStatus());
+
+		node.setLastUpdateTime(System.currentTimeMillis() - ClusterNode.NODE_UPDATE_PERIOD * 5);
+		assertEquals(ClusterNode.DEAD, node.getStatus());
 	}
 
 }
