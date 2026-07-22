@@ -1266,14 +1266,13 @@ public abstract class RestServiceBase {
 
 	protected StreamMetricsHistory getStreamMetricsHistory(String streamId) {
 		AntMediaApplicationAdapter application = getApplication();
-		IScope scope = getScope();
+		IScope currentScope = getScope();
 		IStatsCollector statsCollector = application != null ? application.getStatsCollector() : null;
-		if (statsCollector == null || scope == null) {
-			// This should technically never happen, but sonar complains. So we have this fix.
-			logger.warn("No stats collector or scope found for streamId: {} . Returning empty.", streamId);
+		if (statsCollector == null || currentScope == null) {
+			logger.warn("No stats collector or scope available, returning empty stream metrics history");
 			return StreamMetricsHistory.empty();
 		}
-		return statsCollector.getStreamMetricsHistory(scope.getName(), streamId);
+		return statsCollector.getStreamMetricsHistory(currentScope.getName(), streamId);
 	}
 
 	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
