@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -95,6 +96,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
@@ -725,6 +727,25 @@ public class BroadcastRestServiceV2UnitTest {
 		List<Result> sourceResults = (List<Result>) restServiceReal.createBroadcastList(sourceList, null).getEntity();
 		assertEquals("failed", findById(sourceResults, "bad-source").getMessage());
 		assertNull(store.get("bad-source"));
+	}
+
+	@Test
+	public void testGetStreamMetricsHistoryV2() {
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("scope");
+		restServiceReal.setScope(scope);
+
+		IStatsCollector statsCollector = mock(IStatsCollector.class);
+		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+		doReturn(statsCollector).when(app).getStatsCollector();
+		restServiceReal.setApplication(app);
+
+		StreamMetricsHistory history = new StreamMetricsHistory(new long[]{1000}, new int[]{2}, new double[]{1.0},
+				new int[]{0}, new int[]{0}, new int[]{0}, new double[]{0.0});
+		// scope name and stream id must both reach the collector, or the stub won't match
+		when(statsCollector.getStreamMetricsHistory("scope", "stream1")).thenReturn(history);
+
+		assertSame(history, restServiceReal.getStreamMetricsHistoryV2("stream1"));
 	}
 
 

@@ -107,4 +107,31 @@ public class ClusterRestServiceV2Test {
 		assertEquals(ClusterNode.DEAD, node.getStatus());
 	}
 
+	@Test
+	public void testUpdateNodeNote()
+	{
+		// no cluster store -> rejected
+		Mockito.doReturn(null).when(restService).getClusterStore();
+		assertFalse(restService.updateNodeNote("node-1", "hello").isSuccess());
+
+		clusterStore = Mockito.mock(IClusterStore.class);
+		Mockito.doReturn(clusterStore).when(restService).getClusterStore();
+		Mockito.when(clusterStore.updateClusterNodeNote(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
+
+		// over the limit -> rejected before the store is touched
+		String tooLong = "x".repeat(ClusterRestServiceV2.MAX_NODE_NOTE_LENGTH + 1);
+		assertFalse(restService.updateNodeNote("node-1", tooLong).isSuccess());
+		Mockito.verify(clusterStore, Mockito.never()).updateClusterNodeNote(Mockito.anyString(), Mockito.anyString());
+
+		// exactly at the limit is allowed
+		String maxLen = "x".repeat(ClusterRestServiceV2.MAX_NODE_NOTE_LENGTH);
+		assertTrue(restService.updateNodeNote("node-1", maxLen).isSuccess());
+
+		// note is trimmed, and a null note clears it with an empty string
+		restService.updateNodeNote("node-1", "  hello  ");
+		Mockito.verify(clusterStore).updateClusterNodeNote("node-1", "hello");
+		restService.updateNodeNote("node-1", null);
+		Mockito.verify(clusterStore).updateClusterNodeNote("node-1", "");
+	}
+
 }
