@@ -746,6 +746,10 @@ public class BroadcastRestServiceV2UnitTest {
 		when(statsCollector.getStreamMetricsHistory("scope", "stream1")).thenReturn(history);
 
 		assertSame(history, restServiceReal.getStreamMetricsHistoryV2("stream1"));
+
+		// no stats collector -> empty history instead of an NPE
+		doReturn(null).when(app).getStatsCollector();
+		assertEquals(0, restServiceReal.getStreamMetricsHistoryV2("stream1").getBitrate().length);
 	}
 
 

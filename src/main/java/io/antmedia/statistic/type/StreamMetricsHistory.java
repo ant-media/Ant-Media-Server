@@ -41,6 +41,10 @@ public class StreamMetricsHistory {
 		this.packetLostRatio = packetLostRatio;
 	}
 
+	public static StreamMetricsHistory empty() {
+		return new StreamMetricsHistory(new long[0], new int[0], new double[0], new int[0], new int[0], new int[0], new double[0]);
+	}
+
 	public long[] getBitrate() {
 		return bitrate;
 	}

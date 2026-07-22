@@ -1,6 +1,7 @@
 package io.antmedia.test.statistic.type;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -31,5 +32,18 @@ public class StreamMetricsHistoryTest {
 		assertArrayEquals(droppedPackets, history.getDroppedPackets());
 		assertArrayEquals(droppedFrames, history.getDroppedFrames());
 		assertArrayEquals(packetLostRatio, history.getPacketLostRatio(), 0.0);
+	}
+
+	@Test
+	public void testEmptyHasZeroLengthArrays() {
+		StreamMetricsHistory empty = StreamMetricsHistory.empty();
+
+		assertEquals(0, empty.getBitrate().length);
+		assertEquals(0, empty.getViewers().length);
+		assertEquals(0, empty.getSpeed().length);
+		assertEquals(0, empty.getEncoderQueueSize().length);
+		assertEquals(0, empty.getDroppedPackets().length);
+		assertEquals(0, empty.getDroppedFrames().length);
+		assertEquals(0, empty.getPacketLostRatio().length);
 	}
 }

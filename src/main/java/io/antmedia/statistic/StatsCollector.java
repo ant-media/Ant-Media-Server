@@ -1093,7 +1093,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public StreamMetricsHistory getStreamMetricsHistory(String appName, String streamId) {
 		Map<String, StreamHistory> appStreams = appName != null ? streamMetricsHistory.get(appName) : null;
 		StreamHistory history = appStreams != null && streamId != null ? appStreams.get(streamId) : null;
-		return history != null ? history.snapshot() : StreamHistory.empty();
+		return history != null ? history.snapshot() : StreamMetricsHistory.empty();
 	}
 
 	private static class AppSample {
@@ -1152,10 +1152,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				packetLostRatio[i] = s.packetLostRatio;
 			}
 			return new StreamMetricsHistory(bitrate, viewers, speed, encoderQueueSize, droppedPackets, droppedFrames, packetLostRatio);
-		}
-
-		static StreamMetricsHistory empty() {
-			return new StreamMetricsHistory(new long[0], new int[0], new double[0], new int[0], new int[0], new int[0], new double[0]);
 		}
 	}
 
