@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -394,8 +395,8 @@ public class ConsoleAppRestServiceTest{
 		return null;
 	}
 
-	boolean threadStarted = false;
-	boolean breakThread = false;
+	volatile boolean threadStarted = false;
+	volatile boolean breakThread = false;
 
 	/**
 	 * Bug fix test
@@ -411,6 +412,7 @@ public class ConsoleAppRestServiceTest{
 		int appCount = applications.applications.length;
 
 		threadStarted = false;
+		breakThread = false;
 		Thread thread = new Thread() {
 			@Override
 			public void run() {
@@ -426,15 +428,13 @@ public class ConsoleAppRestServiceTest{
 						//send http request to m3u8
 						String url = "http://127.0.0.1:5080/live/streams/stream.m3u8";
 
-						CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
-
 						HttpUriRequest get = RequestBuilder.get().setUri(url)
 								.build();
 
-						client.execute(get);
-
-						Thread.sleep(10);
+						try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+								CloseableHttpResponse ignored = client.execute(get)) {
+							Thread.sleep(10);
+						}
 
 						i++;
 
@@ -456,51 +456,57 @@ public class ConsoleAppRestServiceTest{
 
 		thread.start();
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return threadStarted;
-		});
-		//restart the server
+		try {
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return threadStarted;
+			});
+			//restart the server
 
-		Process process = AppFunctionalV2Test.execute("sudo service antmedia restart");
-		assertEquals(0, process.exitValue());
+			Process process = AppFunctionalV2Test.execute("sudo service antmedia restart");
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+					.until(() -> !process.isAlive());
+			assertThat(process.exitValue()).isZero();
 
-		//check that live is started
-		Awaitility.await().atMost(30,  TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
-		.until(() -> 
-		{	
-			try {
-				User user = new User();
-				user.setEmail(TEST_USER_EMAIL);
-				user.setPassword(TEST_USER_PASS);
-				return callAuthenticateUser(user).isSuccess();
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-
-			}
-			return false;
-		});
-
-		Awaitility.await().atMost(30,  TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
-		.until(() -> {
-			Applications applicationsTmp = getApplications();
-			if (applicationsTmp.applications.length == appCount) {
-				for (String app : applicationsTmp.applications) {
-					if (app.equals("live")) {
-						return true;
-					}
+			//check that live is started
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+			.until(() ->
+			{
+				try {
+					User user = new User();
+					user.setEmail(TEST_USER_EMAIL);
+					user.setPassword(TEST_USER_PASS);
+					return callAuthenticateUser(user).isSuccess();
+				}
+				catch (Exception e) {
+					log.debug("AMS is not ready yet", e);
 
 				}
-			}
-			else {
-				log.info("applications length is not {}: {}", appCount, applicationsTmp.applications);
-			}
+				return false;
+			});
 
-			return false;
-		});
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+			.until(() -> {
+				Applications applicationsTmp = getApplications();
+				if (applicationsTmp.applications.length == appCount) {
+					for (String app : applicationsTmp.applications) {
+						if (app.equals("live")) {
+							return true;
+						}
 
-		//finish thread
-		this.breakThread = true;
+					}
+				}
+				else {
+					log.info("applications length is not {}: {}", appCount, applicationsTmp.applications);
+				}
+
+				return false;
+			});
+		}
+		finally {
+			breakThread = true;
+			thread.interrupt();
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !thread.isAlive());
+		}
 
 	}
 
