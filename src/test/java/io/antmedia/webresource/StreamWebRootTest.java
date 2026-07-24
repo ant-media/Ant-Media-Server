@@ -1,6 +1,12 @@
 package io.antmedia.webresource;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,7 +16,8 @@ import org.apache.catalina.core.StandardContext;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mockito;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.test.UnitTestBase;
@@ -23,7 +30,7 @@ class StreamWebRootTest extends UnitTestBase<StreamWebRoot> {
 
 	@Test
 	void testGetResourceType() {
-		StreamWebRoot webroot = Mockito.spy(new StreamWebRoot());
+		StreamWebRoot webroot = spy(new StreamWebRoot());
 
 		webroot.getResource("test.mpd");
 		assertThat(webroot.isStreamingResource()).isTrue();
@@ -40,7 +47,7 @@ class StreamWebRootTest extends UnitTestBase<StreamWebRoot> {
 		webroot.getResource("/previews/test.png");
 		assertThat(webroot.isStreamingResource()).isTrue();
 
-		Mockito.doReturn(null).when(webroot).getResourceDefault(Mockito.anyString());
+		doReturn(null).when(webroot).getResourceDefault(anyString());
 
 		webroot.getResource("/anydir/test.png");
 		assertThat(webroot.isStreamingResource()).isFalse();
@@ -57,11 +64,13 @@ class StreamWebRootTest extends UnitTestBase<StreamWebRoot> {
 		Path applicationDirectory = Files.createDirectory(temporaryDirectory.resolve("application"));
 		Path applicationStreams = Files.createDirectory(applicationDirectory.resolve("streams"));
 		Path externalVodFolder = Files.createDirectory(temporaryDirectory.resolve("external"));
+		Path replacementVodFolder = Files.createDirectory(temporaryDirectory.resolve("replacement"));
 
 		Files.writeString(applicationStreams.resolve("shared.mp4"), "application", StandardCharsets.UTF_8);
 		Files.writeString(applicationStreams.resolve("fallback.mp4"), "fallback", StandardCharsets.UTF_8);
 		Files.writeString(externalVodFolder.resolve("shared.mp4"), "external", StandardCharsets.UTF_8);
 		Files.writeString(externalVodFolder.resolve("playlist.m3u8"), "external playlist", StandardCharsets.UTF_8);
+		Files.writeString(replacementVodFolder.resolve("replacement.mp4"), "replacement", StandardCharsets.UTF_8);
 
 		StreamWebRoot webRoot = startWebRoot(applicationDirectory);
 		try {
@@ -73,6 +82,10 @@ class StreamWebRootTest extends UnitTestBase<StreamWebRoot> {
 					.isEqualTo("fallback".getBytes(StandardCharsets.UTF_8));
 			assertThat(webRoot.getResource("/streams/playlist.m3u8").getContent())
 					.isEqualTo("external playlist".getBytes(StandardCharsets.UTF_8));
+
+			setVodFolder(webRoot, replacementVodFolder.toString());
+			assertThat(webRoot.getResource("/streams/replacement.mp4").getContent())
+					.isEqualTo("replacement".getBytes(StandardCharsets.UTF_8));
 		}
 		finally {
 			webRoot.stop();
@@ -88,6 +101,8 @@ class StreamWebRootTest extends UnitTestBase<StreamWebRoot> {
 
 		StreamWebRoot webRoot = startWebRoot(applicationDirectory);
 		try {
+			webRoot.configureVodFolder(null);
+			webRoot.configureVodFolder(" ");
 			setVodFolder(webRoot, "streams");
 			assertThat(webRoot.getResource("/streams/asset.mp4").getContent())
 					.isEqualTo("application".getBytes(StandardCharsets.UTF_8));
@@ -100,6 +115,29 @@ class StreamWebRootTest extends UnitTestBase<StreamWebRoot> {
 			webRoot.stop();
 			webRoot.destroy();
 		}
+	}
+
+	@Test
+	void testDiscoversSettingsFromApplicationContextAndRejectsInvalidFolder() {
+		AppSettings settings = new AppSettings();
+		settings.setVodFolder(temporaryDirectory.resolve("missing").toString());
+		ApplicationContext applicationContext = mock(ApplicationContext.class);
+		when(applicationContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+		when(applicationContext.getBean(AppSettings.BEAN_NAME, AppSettings.class)).thenReturn(settings);
+
+		org.apache.catalina.Context context = mock(org.apache.catalina.Context.class);
+		jakarta.servlet.ServletContext servletContext = mock(jakarta.servlet.ServletContext.class);
+		when(context.getServletContext()).thenReturn(servletContext);
+		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+				.thenReturn(applicationContext);
+
+		StreamWebRoot webRoot = spy(new StreamWebRoot());
+		webRoot.setContext(context);
+		doReturn(mock(org.apache.catalina.WebResource.class))
+				.when(webRoot).getResourceDefault(anyString());
+		webRoot.getResource("/streams/missing.mp4");
+
+		verify(applicationContext).getBean(AppSettings.BEAN_NAME, AppSettings.class);
 	}
 
 	private StreamWebRoot startWebRoot(Path applicationDirectory) throws Exception {

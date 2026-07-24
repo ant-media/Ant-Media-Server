@@ -156,6 +156,7 @@ public class VoDRestService extends RestServiceBase{
 	@POST
 	@Path("/rescan")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result rescanVodAssets() {
 		return super.rescanVodAssets();
 	}

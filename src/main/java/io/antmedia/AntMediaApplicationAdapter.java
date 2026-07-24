@@ -255,6 +255,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_NO_ACTIVE_SUBTRACKS_LEFT_IN_THE_MAINTRACK = "noActiveSubtracksLeftInMainTrack";
 
 	public static final String STREAMS = "streams";
+	public static final String STREAMS_PATH = File.separator + STREAMS;
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
 
@@ -582,7 +583,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @return
 	 */
 	public Result importVoDFolder(String vodFolderPath) {
-		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
+		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + STREAMS_PATH);
 		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
 
 		File allowedDirectory = new File(VOD_IMPORT_ALLOWED_DIRECTORY);
@@ -701,12 +702,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private File getVodFolderForScanning() {
 		String vodFolder = getAppSettings().getVodFolder();
-		if (StringUtils.isBlank(vodFolder) || STREAMS.equals(vodFolder) || "/streams".equals(vodFolder)) {
+		if (StringUtils.isBlank(vodFolder) || STREAMS.equals(vodFolder) || STREAMS_PATH.equals(vodFolder)) {
 			String appName = getScope() != null ? getScope().getName() : null;
 			if (StringUtils.isBlank(appName)) {
 				return null;
 			}
-			return new File(System.getProperty("red5.root", "."), "webapps/" + appName + "/streams");
+			return new File(System.getProperty("red5.root", "."), "webapps/" + appName + STREAMS_PATH);
 		}
 		File configuredFolder = new File(vodFolder);
 		return configuredFolder.isAbsolute() ? configuredFolder : null;

@@ -2,6 +2,7 @@ package io.antmedia.webresource;
 
 import java.io.File;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleState;
@@ -23,8 +24,8 @@ public class StreamWebRoot extends StandardRoot {
 	private static final String STREAMS_PATH = "/streams";
 	private static final String DEFAULT_VOD_FOLDER = "streams";
 
-	private volatile AppSettings appSettings;
-	private volatile WebResourceSet vodResources;
+	private final AtomicReference<AppSettings> appSettings = new AtomicReference<>();
+	private final AtomicReference<WebResourceSet> vodResources = new AtomicReference<>();
 	private volatile String configuredVodFolder = DEFAULT_VOD_FOLDER;
 	private volatile String observedVodFolder = DEFAULT_VOD_FOLDER;
 
@@ -58,7 +59,7 @@ public class StreamWebRoot extends StandardRoot {
 			configureVodFolder(settings.getVodFolder());
 		}
 
-		WebResourceSet resources = vodResources;
+		WebResourceSet resources = vodResources.get();
 		return resources != null ? resources.getResource(path) : null;
 	}
 
@@ -67,21 +68,21 @@ public class StreamWebRoot extends StandardRoot {
 	}
 
 	private AppSettings getAppSettings() {
-		AppSettings settings = appSettings;
+		AppSettings settings = appSettings.get();
 		if (settings == null && getContext() != null && getContext().getServletContext() != null) {
 			Object contextAttribute = getContext().getServletContext()
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 			if (contextAttribute instanceof ApplicationContext applicationContext
 					&& applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 				settings = applicationContext.getBean(AppSettings.BEAN_NAME, AppSettings.class);
-				appSettings = settings;
+				appSettings.set(settings);
 			}
 		}
 		return settings;
 	}
 
 	void setAppSettings(AppSettings appSettings) {
-		this.appSettings = appSettings;
+		this.appSettings.set(appSettings);
 	}
 
 	public void configureVodFolder(String vodFolder) {
@@ -103,8 +104,7 @@ public class StreamWebRoot extends StandardRoot {
 			return;
 		}
 
-		WebResourceSet previousResources = vodResources;
-		vodResources = null;
+		WebResourceSet previousResources = vodResources.getAndSet(null);
 		configuredVodFolder = normalizedVodFolder;
 
 		if (!DEFAULT_VOD_FOLDER.equals(normalizedVodFolder)) {
@@ -113,7 +113,7 @@ public class StreamWebRoot extends StandardRoot {
 				DirResourceSet replacement = new DirResourceSet(this, STREAMS_PATH,
 						folder.getAbsolutePath(), "/");
 				replacement.setReadOnly(true);
-				vodResources = replacement;
+				vodResources.set(replacement);
 				logger.info("Mounting VoD folder {} under {} with priority over application resources",
 						folder.getAbsolutePath(), STREAMS_PATH);
 			}
