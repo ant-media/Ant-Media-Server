@@ -45,7 +45,6 @@ public class ChunkedTransferServlet extends HttpServlet {
 	public static final String STREAMS = "/streams";
 	public static final String WEBAPPS = "webapps";
 	protected static Logger logger = LoggerFactory.getLogger(ChunkedTransferServlet.class);
-	private volatile AppSettings appSettings;
 
 
 	public static class ChunkListener implements ICMAFChunkListener {
@@ -442,12 +441,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 	private AppSettings getAppSettings(ApplicationContext applicationContext) {
-		AppSettings settings = appSettings;
-		if (settings == null) {
-			settings = applicationContext.getBean(AppSettings.class);
-			appSettings = settings;
-		}
-		return settings;
+		return applicationContext.getBean(AppSettings.class);
 	}
 
 	File resolveExternalVodFile(String servletPath, String vodFolder) {

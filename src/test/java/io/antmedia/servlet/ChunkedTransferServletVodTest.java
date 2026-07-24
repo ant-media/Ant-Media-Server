@@ -61,7 +61,7 @@ class ChunkedTransferServletVodTest extends UnitTestBase<ChunkedTransferServlet>
 		settings.setVodFolder(temporaryDirectory.toString());
 		assertThat(servlet.resolveFileForRead(request, applicationContext))
 				.isEqualTo(new File("webapps//LiveApp/streams/asset.m4s"));
-		verify(applicationContext, times(1)).getBean(AppSettings.class);
+		verify(applicationContext, times(2)).getBean(AppSettings.class);
 	}
 
 	@Test
@@ -69,5 +69,7 @@ class ChunkedTransferServletVodTest extends UnitTestBase<ChunkedTransferServlet>
 		ChunkedTransferServlet servlet = new ChunkedTransferServlet();
 		assertThat(servlet.resolveExternalVodFile("/streams/../secret.mpd", temporaryDirectory.toString()))
 				.isNull();
+		assertThat(servlet.resolveExternalVodFile("/streams/asset.mpd", "relative/videos")).isNull();
+		assertThat(servlet.resolveExternalVodFile("/preview/asset.mpd", temporaryDirectory.toString())).isNull();
 	}
 }

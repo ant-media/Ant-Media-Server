@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doReturn;
@@ -90,6 +91,38 @@ class AntMediaApplicationAdapterVodTest extends UnitTestBase<AntMediaApplication
 	}
 
 	@Test
+	void testRescanUsesDefaultApplicationStreamsFolder() throws Exception {
+		AntMediaApplicationAdapter adapter = new AntMediaApplicationAdapter();
+		adapter.setDataStore(new InMemoryDataStore("default-vod-rescan"));
+		AppSettings settings = new AppSettings();
+		settings.setVodFolder(AntMediaApplicationAdapter.STREAMS);
+		adapter.setAppSettings(settings);
+
+		assertThat(adapter.rescanVodAssets().isSuccess()).isFalse();
+
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("LiveApp");
+		adapter.setScope(scope);
+		Path streamsDirectory = Files.createDirectories(temporaryDirectory.resolve("webapps/LiveApp/streams"));
+		Files.writeString(streamsDirectory.resolve("default.mp4"), "asset");
+		String previousRed5Root = System.getProperty("red5.root");
+		try {
+			System.setProperty("red5.root", temporaryDirectory.toString());
+			assertThat(adapter.rescanVodAssets().isSuccess()).isTrue();
+			assertThat(adapter.getDataStore().getVodList(0, 50, null, null, null, null))
+					.extracting(VoD::getFilePath).containsExactly("streams/default.mp4");
+		}
+		finally {
+			if (previousRed5Root == null) {
+				System.clearProperty("red5.root");
+			}
+			else {
+				System.setProperty("red5.root", previousRed5Root);
+			}
+		}
+	}
+
+	@Test
 	void testVodFolderSettingChangeTriggersRescan() {
 		AntMediaApplicationAdapter adapter = spy(new AntMediaApplicationAdapter());
 		doReturn(new Result(true)).when(adapter).rescanVodAssets();
@@ -99,5 +132,9 @@ class AntMediaApplicationAdapterVodTest extends UnitTestBase<AntMediaApplication
 
 		adapter.rescanVodAssetsIfFolderChanged(true);
 		verify(adapter).rescanVodAssets();
+
+		doReturn(new Result(false, "scan failed")).when(adapter).rescanVodAssets();
+		adapter.rescanVodAssetsIfFolderChanged(true);
+		verify(adapter, times(2)).rescanVodAssets();
 	}
 }

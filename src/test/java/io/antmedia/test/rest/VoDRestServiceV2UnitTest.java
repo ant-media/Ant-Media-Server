@@ -1,5 +1,6 @@
 package io.antmedia.test.rest;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -698,12 +699,7 @@ public class VoDRestServiceV2UnitTest {
 		assertEquals(numberOfFiles, vodList.size());
 
 
-		try {
-			Files.deleteIfExists(f.toPath());
-		}
-		catch (IOException e) {
-			fail(e.getMessage());
-		}
+		assertThatCode(() -> Files.deleteIfExists(f.toPath())).doesNotThrowAnyException();
 
 
 	}
