@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   update-owasp-db:
     runs-on: ubuntu-22.04
@@ -50,11 +54,11 @@ jobs:
             -DnvdValidForHours=20 \
             -DdataDirectory=$HOME/.dependency-check-data
 
-      - name: Verify OWASP DB before caching
+      - name: Verify OWASP DB before publishing
         run: |
           DATA_DIR="$HOME/.dependency-check-data"
           if [ ! -d "$DATA_DIR" ] || [ -z "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
-            echo "::error::OWASP data directory is empty after update; refusing to save cache."
+            echo "::error::OWASP data directory is empty after update; refusing to publish."
             exit 1
           fi
           ls -lah "$DATA_DIR"
@@ -62,7 +66,7 @@ jobs:
           echo "OWASP DB size: ${SIZE_KB} KB"
           # Compressed cache is ~113MB; refuse obviously incomplete DBs.
           if [ "$SIZE_KB" -lt 51200 ]; then
-            echo "::error::OWASP DB looks too small (${SIZE_KB} KB); refusing to save cache."
+            echo "::error::OWASP DB looks too small (${SIZE_KB} KB); refusing to publish."
             exit 1
           fi
           du -sh "$DATA_DIR"
@@ -73,3 +77,19 @@ jobs:
         with:
           path: ~/.dependency-check-data
           key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
+
+      # Survives a failed later nightly update: PR checks download the newest successful run.
+      - name: Package last-known-good OWASP DB
+        if: success()
+        run: |
+          tar -czf /tmp/owasp-db-latest.tar.gz -C "$HOME" .dependency-check-data
+          ls -lh /tmp/owasp-db-latest.tar.gz
+
+      - name: Upload last-known-good OWASP DB artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-db-latest
+          path: /tmp/owasp-db-latest.tar.gz
+          retention-days: 30
+          if-no-files-found: error

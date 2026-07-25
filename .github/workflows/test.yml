@@ -14,11 +14,12 @@ on:
 permissions:
   contents: read
   checks: write
-  
-      
+  # Needed to download last-known-good OWASP DB artifacts from the update workflow.
+  actions: read
+
 env:
-  RUNNER: ubuntu-22.04      
-      
+  RUNNER: ubuntu-22.04
+
 jobs:  
   run-unit-tests:
     name: Run unit tests
@@ -113,7 +114,7 @@ jobs:
           sudo service mongod status
           sudo service redis-server status
 
-  # Hard gate for deploy: fail-fast on missing DB cache; never download from NVD.
+  # Hard gate for deploy. Never hit NVD here: use cache, else last successful nightly artifact.
   check-vulnerabilities:
     runs-on: ubuntu-22.04
     name: Check vulnerabilities
@@ -146,11 +147,65 @@ jobs:
           restore-keys: |
             owasp-dependency-check-db-${{ runner.os }}-
 
-      - name: Verify OWASP DB cache is present
+      - name: Check whether local OWASP DB is usable
+        id: owasp-db
+        run: |
+          DATA_DIR="$HOME/.dependency-check-data"
+          if [ -d "$DATA_DIR" ] && [ -n "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+            SIZE_KB=$(du -sk "$DATA_DIR" | cut -f1)
+            echo "Restored OWASP DB size: ${SIZE_KB} KB"
+            if [ "$SIZE_KB" -ge 51200 ]; then
+              echo "has_db=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Restored cache looks too small; will try last-known-good artifact."
+          else
+            echo "No usable cache; will try last-known-good artifact."
+          fi
+          echo "has_db=false" >> "$GITHUB_OUTPUT"
+
+      - name: Restore last-known-good OWASP DB artifact
+        if: steps.owasp-db.outputs.has_db != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID=$(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow "update-owasp.yml" \
+            --branch master \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId // empty')
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No successful Update OWASP Dependency DB run found on master. Branch checks need a last-known-good DB artifact."
+            exit 1
+          fi
+          echo "Downloading owasp-db-latest from successful run $RUN_ID"
+          rm -rf /tmp/owasp-db-artifact "$HOME/.dependency-check-data"
+          mkdir -p /tmp/owasp-db-artifact
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name owasp-db-latest \
+            --dir /tmp/owasp-db-artifact
+          if [ ! -f /tmp/owasp-db-artifact/owasp-db-latest.tar.gz ]; then
+            echo "::error::Artifact owasp-db-latest.tar.gz missing from run $RUN_ID. Re-run Update OWASP Dependency DB once after merging this change."
+            exit 1
+          fi
+          tar -xzf /tmp/owasp-db-artifact/owasp-db-latest.tar.gz -C "$HOME"
+
+      - name: Verify OWASP DB is present
         run: |
           DATA_DIR="$HOME/.dependency-check-data"
           if [ ! -d "$DATA_DIR" ] || [ -z "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
-            echo "::error::OWASP Dependency Check DB cache is missing. Refusing to hit NVD from PR/push checks. Inspect the nightly 'Update OWASP Dependency DB' workflow."
+            echo "::error::OWASP Dependency Check DB is missing after cache/artifact restore. Refusing to hit NVD from PR/push checks."
+            exit 1
+          fi
+          SIZE_KB=$(du -sk "$DATA_DIR" | cut -f1)
+          echo "OWASP DB size: ${SIZE_KB} KB"
+          if [ "$SIZE_KB" -lt 51200 ]; then
+            echo "::error::OWASP DB looks too small (${SIZE_KB} KB)."
             exit 1
           fi
           ls -lah "$DATA_DIR"
