@@ -217,7 +217,156 @@ jobs:
             -Dnoupdate=true \
             -DautoUpdate=false \
             -DdataDirectory=$HOME/.dependency-check-data \
+            -Dformat=ALL \
             -DfailOnError=true
+
+      - name: Write vulnerability Step Summary
+        if: always()
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          from collections import defaultdict
+          from pathlib import Path
+
+          report = Path("target/dependency-check-report.json")
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          threshold = 7.0
+
+          def cvss_score(vuln: dict) -> float:
+              for key in ("cvssv4", "cvssv3", "cvssv2"):
+                  block = vuln.get(key) or {}
+                  if isinstance(block, dict):
+                      for score_key in ("baseScore", "score"):
+                          value = block.get(score_key)
+                          if value is not None:
+                              try:
+                                  return float(value)
+                              except (TypeError, ValueError):
+                                  pass
+              for key in ("cvssScore", "severityScore"):
+                  value = vuln.get(key)
+                  if value is not None:
+                      try:
+                          return float(value)
+                      except (TypeError, ValueError):
+                          pass
+              return 0.0
+
+          def dep_name(dep: dict) -> tuple[str, str]:
+              packages = dep.get("packages") or []
+              if packages:
+                  pkg = packages[0]
+                  coords = (pkg.get("id") or "").replace("pkg:maven/", "")
+                  if "@" in coords:
+                      name, version = coords.rsplit("@", 1)
+                      return name, version
+              file_name = dep.get("fileName") or dep.get("filePath") or "unknown"
+              return file_name, ""
+
+          if not report.is_file():
+              summary.write_text(
+                  "## OWASP Dependency Check\n\n"
+                  "No `target/dependency-check-report.json` was produced.\n",
+                  encoding="utf-8",
+              )
+              raise SystemExit(0)
+
+          data = json.loads(report.read_text(encoding="utf-8"))
+          rows = []
+          for dep in data.get("dependencies") or []:
+              name, version = dep_name(dep)
+              for vuln in dep.get("vulnerabilities") or []:
+                  score = cvss_score(vuln)
+                  if score < threshold:
+                      continue
+                  rows.append(
+                      {
+                          "dependency": name,
+                          "version": version,
+                          "cve": vuln.get("name") or "unknown",
+                          "severity": vuln.get("severity") or "",
+                          "cvss": score,
+                      }
+                  )
+
+          rows.sort(key=lambda r: (-r["cvss"], r["dependency"], r["cve"]))
+          by_dep = defaultdict(lambda: {"max": 0.0, "count": 0, "version": ""})
+          for row in rows:
+              key = row["dependency"]
+              by_dep[key]["count"] += 1
+              by_dep[key]["max"] = max(by_dep[key]["max"], row["cvss"])
+              by_dep[key]["version"] = row["version"] or by_dep[key]["version"]
+
+          lines = [
+              "## OWASP Dependency Check",
+              "",
+              f"Gate: **CVSS ≥ {threshold:.1f}** (`failBuildOnCVSS`).",
+              "",
+          ]
+
+          if not rows:
+              lines.extend(
+                  [
+                      "No vulnerabilities at or above the gate threshold.",
+                      "",
+                      "Full reports are attached as workflow artifacts when available.",
+                      "",
+                  ]
+              )
+          else:
+              critical = sum(1 for r in rows if r["cvss"] >= 9.0)
+              high = sum(1 for r in rows if 7.0 <= r["cvss"] < 9.0)
+              lines.extend(
+                  [
+                      f"- Failing dependencies: **{len(by_dep)}**",
+                      f"- Findings ≥ {threshold:.1f}: **{len(rows)}**",
+                      f"- Critical (CVSS ≥ 9.0): **{critical}**",
+                      f"- High (7.0 ≤ CVSS < 9.0): **{high}**",
+                      "",
+                      "### By dependency",
+                      "",
+                      "| Dependency | Version | Max CVSS | CVE count |",
+                      "|---|---|---:|---:|",
+                  ]
+              )
+              for name, stats in sorted(
+                  by_dep.items(), key=lambda item: (-item[1]["max"], -item[1]["count"], item[0])
+              ):
+                  version = stats["version"] or "-"
+                  lines.append(
+                      f"| `{name}` | `{version}` | {stats['max']:.1f} | {stats['count']} |"
+                  )
+
+              lines.extend(
+                  [
+                      "",
+                      "### CVE detail",
+                      "",
+                      "| CVSS | Severity | CVE | Dependency | Version |",
+                      "|---:|---|---|---|---|",
+                  ]
+              )
+              for row in rows:
+                  version = row["version"] or "-"
+                  lines.append(
+                      f"| {row['cvss']:.1f} | {row['severity']} | `{row['cve']}` | `{row['dependency']}` | `{version}` |"
+                  )
+              lines.append("")
+
+          summary.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print(f"Wrote Step Summary with {len(rows)} gated finding(s)")
+          PY
+
+      - name: Upload dependency-check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: |
+            target/dependency-check-report.html
+            target/dependency-check-report.json
+          if-no-files-found: ignore
 
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
