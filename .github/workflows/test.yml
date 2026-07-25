@@ -113,9 +113,13 @@ jobs:
           sudo service mongod status
           sudo service redis-server status
 
+  # Informational scan: must not block deploy/PR critical path.
+  # Fail-fast on missing DB cache; never download from NVD during PR/push checks.
   check-vulnerabilities:
     runs-on: ubuntu-22.04
     name: Check vulnerabilities
+    continue-on-error: true
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -137,7 +141,6 @@ jobs:
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
             
       - name: Restore OWASP Dependency Check DB
-        continue-on-error: true
         uses: actions/cache/restore@v4
         with:
           path: ~/.dependency-check-data
@@ -145,14 +148,21 @@ jobs:
           restore-keys: |
             owasp-dependency-check-db-${{ runner.os }}-
 
+      - name: Verify OWASP DB cache is present
+        run: |
+          DATA_DIR="$HOME/.dependency-check-data"
+          if [ ! -d "$DATA_DIR" ] || [ -z "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+            echo "::error::OWASP Dependency Check DB cache is missing. Refusing to hit NVD from PR/push checks. Inspect the nightly 'Update OWASP Dependency DB' workflow."
+            exit 1
+          fi
+          ls -lah "$DATA_DIR"
+          du -sh "$DATA_DIR"
+
       - name: Check vulnerabilities
-        continue-on-error: true
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn org.owasp:dependency-check-maven:check \
             -Dnoupdate=true \
-            -DnvdApiKey=$NVD_API_KEY \
+            -DautoUpdate=false \
             -DdataDirectory=$HOME/.dependency-check-data \
             -DfailOnError=true
 
@@ -311,7 +321,8 @@ jobs:
    
   deploy:   
     runs-on: ubuntu-22.04
-    needs: [run-unit-tests, check-vulnerabilities, run-integration-tests]    
+    # Intentionally omit check-vulnerabilities so vuln scan does not block deploy.
+    needs: [run-unit-tests, run-integration-tests]    
     env:
       CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
       CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
