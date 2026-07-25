@@ -113,12 +113,10 @@ jobs:
           sudo service mongod status
           sudo service redis-server status
 
-  # Informational scan: must not block deploy/PR critical path.
-  # Fail-fast on missing DB cache; never download from NVD during PR/push checks.
+  # Hard gate for deploy: fail-fast on missing DB cache; never download from NVD.
   check-vulnerabilities:
     runs-on: ubuntu-22.04
     name: Check vulnerabilities
-    continue-on-error: true
     timeout-minutes: 45
     steps:
       - name: Checkout code
@@ -321,8 +319,7 @@ jobs:
    
   deploy:   
     runs-on: ubuntu-22.04
-    # Intentionally omit check-vulnerabilities so vuln scan does not block deploy.
-    needs: [run-unit-tests, run-integration-tests]    
+    needs: [run-unit-tests, check-vulnerabilities, run-integration-tests]    
     env:
       CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
       CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
