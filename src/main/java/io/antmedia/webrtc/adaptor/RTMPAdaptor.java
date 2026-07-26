@@ -103,6 +103,7 @@ public class RTMPAdaptor extends Adaptor {
 	private long videoFrameLastTimestampMs;
 	private String turnServerUsername;
 	private String turnServerCredential;
+	private String iceServersConfig;
 
 	public static class AudioFrame 
 	{
@@ -284,6 +285,8 @@ public class RTMPAdaptor extends Adaptor {
 		}
 
 		iceServers.add(iceServerBuilder.createIceServer());
+
+		WebRTCUtils.parseIceServers(iceServersConfig, iceServers);
 
 
 		PeerConnection.RTCConfiguration rtcConfig =
@@ -628,9 +631,14 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public void setStunServerUri(String stunServerUri, String username, String credential) {
+		setStunServerUri(stunServerUri, username, credential, null);
+	}
+
+	public void setStunServerUri(String stunServerUri, String username, String credential, String iceServersConfig) {
 		this.stunServerUri = stunServerUri;
 		this.turnServerUsername = username;
-		this.turnServerCredential = credential;	
+		this.turnServerCredential = credential;
+		this.iceServersConfig = iceServersConfig;
 	}
 
 	public void setPortRange(int webRTCPortRangeMin, int webRTCPortRangeMax) {

@@ -641,6 +641,12 @@ public class AppSettings implements Serializable {
 	private String stunServerURI = "stun:stun1.l.google.com:19302";
 
 	/**
+	 * List of STUN and TURN servers in JSON array format
+	 */
+	@Value("${iceServers:[]}")
+	private String iceServers = "[]";
+
+	/**
 	 * TURN server username for WebRTC ICE candidates.
 	 * In order to be effective, {@code #stunServerURI} and {@code #turnServerCredential} should be set
 	 */
