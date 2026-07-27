@@ -1,4 +1,4 @@
-name: Update OWASP Dependency DB
+name: Update OWASP Dependency DB 
 
 on:
   workflow_dispatch:
