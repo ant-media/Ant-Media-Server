@@ -182,6 +182,55 @@
 	   <packageUrl regex="true">^pkg:maven/org\.apache\.mina/mina\-core@2\.0\.29$</packageUrl>
 	   <cve>CVE-2026-47065</cve>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: mina-integration-beans-2.0.29.jar
+	   CVE-2026-47065 is fixed in Apache MINA 2.0.29. OWASP/NVD incorrectly flags the patched release due to a CPE mapping issue.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.apache\.mina/mina\-integration\-beans@2\.0\.29$</packageUrl>
+	   <cve>CVE-2026-47065</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: vertx-core-4.5.24.jar
+	   CVE-2026-15075 and CVE-2026-15076 affect Vert.x WebClientSession cookie handling. Ant Media Server does not use WebClientSession for cross-domain HTTP client flows.
+	   CVE-2026-6860 has no upstream patch on the 4.5.x line yet.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-core@4\.5\.24$</packageUrl>
+	   <cve>CVE-2026-15075</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: vertx-core-4.5.24.jar
+	   See CVE-2026-15075 suppression notes.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-core@4\.5\.24$</packageUrl>
+	   <cve>CVE-2026-15076</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: vertx-core-4.5.24.jar
+	   See CVE-2026-15075 suppression notes.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-core@4\.5\.24$</packageUrl>
+	   <cve>CVE-2026-6860</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: kotlin-stdlib-*.jar
+	   CVE-2020-29582 is about deprecated createTempDir/createTempFile helpers in kotlin-stdlib. Ant Media Server does not use these APIs at runtime.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$</packageUrl>
+	   <cve>CVE-2020-29582</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: kotlin-stdlib-*.jar
+	   CVE-2026-53914 affects Kotlin Gradle build cache metadata deserialization during builds, not Ant Media Server runtime behavior.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$</packageUrl>
+	   <cve>CVE-2026-53914</cve>
+	</suppress>
 	
 		
 </suppressions>
