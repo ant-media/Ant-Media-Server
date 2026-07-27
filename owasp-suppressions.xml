@@ -192,27 +192,27 @@
 	</suppress>
 	<suppress>
 	   <notes><![CDATA[
-	   file name: vertx-core-4.5.24.jar
+	   file name: vertx-*-4.5.24.jar
 	   CVE-2026-15075 and CVE-2026-15076 affect Vert.x WebClientSession cookie handling. Ant Media Server does not use WebClientSession for cross-domain HTTP client flows.
 	   CVE-2026-6860 has no upstream patch on the 4.5.x line yet.
 	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-core@4\.5\.24$</packageUrl>
+	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-.*@4\.5\.24$</packageUrl>
 	   <cve>CVE-2026-15075</cve>
 	</suppress>
 	<suppress>
 	   <notes><![CDATA[
-	   file name: vertx-core-4.5.24.jar
+	   file name: vertx-*-4.5.24.jar
 	   See CVE-2026-15075 suppression notes.
 	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-core@4\.5\.24$</packageUrl>
+	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-.*@4\.5\.24$</packageUrl>
 	   <cve>CVE-2026-15076</cve>
 	</suppress>
 	<suppress>
 	   <notes><![CDATA[
-	   file name: vertx-core-4.5.24.jar
+	   file name: vertx-*-4.5.24.jar
 	   See CVE-2026-15075 suppression notes.
 	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-core@4\.5\.24$</packageUrl>
+	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-.*@4\.5\.24$</packageUrl>
 	   <cve>CVE-2026-6860</cve>
 	</suppress>
 	<suppress>
