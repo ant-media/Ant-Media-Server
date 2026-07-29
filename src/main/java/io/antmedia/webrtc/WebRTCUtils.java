@@ -17,7 +17,7 @@ public class WebRTCUtils {
 
         Pattern mLinePattern = Pattern.compile("^m=(\\w+)\\s+\\d+\\s+UDP/TLS/RTP/SAVPF\\s+(.+)$");
         Pattern rtpmapPattern = Pattern.compile("^a=rtpmap:(\\d+)\\s+.+$");
-        Pattern opusRtpmapPattern = Pattern.compile("^a=rtpmap:\\d+\\s+(?:multi)?opus/(\\d+)/(\\d+).*$", Pattern.CASE_INSENSITIVE);
+        Pattern opusRtpmapPattern = Pattern.compile("^a=rtpmap:\\d++\\s++(?:multi)?opus/(\\d++)/(\\d++)", Pattern.CASE_INSENSITIVE);
 
         String currentMedia = null;
         for (String line : lines) {
