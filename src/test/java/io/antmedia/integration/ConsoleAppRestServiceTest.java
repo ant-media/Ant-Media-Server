@@ -411,6 +411,7 @@ public class ConsoleAppRestServiceTest{
 		int appCount = applications.applications.length;
 
 		threadStarted = false;
+		breakThread = false;
 		Thread thread = new Thread() {
 			@Override
 			public void run() {
@@ -462,6 +463,8 @@ public class ConsoleAppRestServiceTest{
 		//restart the server
 
 		Process process = AppFunctionalV2Test.execute("sudo service antmedia restart");
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> !process.isAlive());
+		this.breakThread = true;
 		assertEquals(0, process.exitValue());
 
 		//check that live is started
