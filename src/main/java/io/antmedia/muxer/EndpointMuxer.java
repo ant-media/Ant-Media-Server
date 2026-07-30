@@ -30,6 +30,7 @@ import org.bytedeco.ffmpeg.global.avutil;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -168,8 +169,13 @@ public class EndpointMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex) {
+		return addStream(codec, codecContext, streamIndex, Optional.empty());
+	}
 
-		boolean result = super.addStream(codec, codecContext, streamIndex);
+	@Override
+	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex,
+			Optional<String> language) {
+		boolean result = super.addStream(codec, codecContext, streamIndex, language);
 		
 		setStatus(result ? IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING : IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 		
