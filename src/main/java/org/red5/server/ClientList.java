@@ -62,17 +62,14 @@ public class ClientList<E> extends AbstractList<E> {
 
     @Override
     public boolean remove(Object o) {
-        boolean removed = false;
-        E element = null;
         for (WeakReference<E> ref : items) {
-            element = ref.get();
+            E element = ref.get();
             if (element != null && element.equals(o)) {
                 ref.clear();
-                removed = true;
-                break;
+                return items.remove(ref);
             }
         }
-        return removed;
+        return false;
     }
 
     @Override
