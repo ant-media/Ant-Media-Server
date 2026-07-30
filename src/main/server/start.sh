@@ -190,7 +190,7 @@ case "$OS" in
   ;;
   Linux*)
       ARCH=`uname -m`
-      LD_LIBRARY_PATH=$RED5_HOME/lib/native-linux-$ARCH
+      LD_LIBRARY_PATH=$RED5_HOME/lib/native-linux-$ARCH:$RED5_HOME/lib/native${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
       export LD_LIBRARY_PATH
       # Native path
       # First arch parameter is running start.sh directly and second lib/native parameter is installation for init.d scripts
