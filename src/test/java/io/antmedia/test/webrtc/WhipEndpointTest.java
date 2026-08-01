@@ -136,7 +136,53 @@ public class WhipEndpointTest {
 	}
 	
 	@Test
-	public void testPrepareResponse() 
+	public void testTrackFlagsAreTakenFromSdp()
+	{
+		WhipEndpoint whipEndpoint = Mockito.spy(new WhipEndpoint());
+
+		AntMediaApplicationAdapter app = Mockito.mock(AntMediaApplicationAdapter.class);
+		Mockito.doReturn(app).when(whipEndpoint).getApplication();
+
+		CompletableFuture<Result> resultFuture = new CompletableFuture<>();
+		Mockito.when(app.startHttpSignaling(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(resultFuture);
+		resultFuture.complete(new Result(true));
+
+		String videoOnlySdp = "v=0\no=- 123 2 IN IP4 127.0.0.1\ns=-\nt=0 0\n"
+				+ "m=video 9 UDP/TLS/RTP/SAVPF 96\na=mid:0\na=rtpmap:96 H264/90000\n";
+
+		String audioVideoSdp = videoOnlySdp + "m=audio 9 UDP/TLS/RTP/SAVPF 111\na=mid:1\na=rtpmap:111 opus/48000/2\n";
+
+		ArgumentCaptor<PublishParameters> publishParamsCaptor = ArgumentCaptor.forClass(PublishParameters.class);
+
+		//audio is disabled because the offer has no audio section even though there is no query parameter
+		whipEndpoint.startWhipPublish(null, "stream123", null, null, null, null, null, null, null, null, null, videoOnlySdp);
+		Mockito.verify(app).startHttpSignaling(publishParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
+		assertTrue(publishParamsCaptor.getValue().isEnableVideo());
+		assertFalse(publishParamsCaptor.getValue().isEnableAudio());
+
+		//both tracks are in the offer
+		publishParamsCaptor = ArgumentCaptor.forClass(PublishParameters.class);
+		whipEndpoint.startWhipPublish(null, "stream123", null, null, null, null, null, null, null, null, null, audioVideoSdp);
+		Mockito.verify(app, times(2)).startHttpSignaling(publishParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
+		assertTrue(publishParamsCaptor.getValue().isEnableVideo());
+		assertTrue(publishParamsCaptor.getValue().isEnableAudio());
+
+		//query parameter can still disable a track that exists in the offer
+		publishParamsCaptor = ArgumentCaptor.forClass(PublishParameters.class);
+		whipEndpoint.startWhipPublish(null, "stream123", null, false, null, null, null, null, null, null, null, audioVideoSdp);
+		Mockito.verify(app, times(3)).startHttpSignaling(publishParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
+		assertTrue(publishParamsCaptor.getValue().isEnableVideo());
+		assertFalse(publishParamsCaptor.getValue().isEnableAudio());
+
+		//query parameter cannot enable a track that is not in the offer
+		publishParamsCaptor = ArgumentCaptor.forClass(PublishParameters.class);
+		whipEndpoint.startWhipPublish(null, "stream123", null, true, null, null, null, null, null, null, null, videoOnlySdp);
+		Mockito.verify(app, times(4)).startHttpSignaling(publishParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
+		assertFalse(publishParamsCaptor.getValue().isEnableAudio());
+	}
+
+	@Test
+	public void testPrepareResponse()
 	{
         WhipEndpoint whipEndpoint = Mockito.spy(new WhipEndpoint());
         

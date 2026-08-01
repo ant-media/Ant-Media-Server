@@ -91,8 +91,9 @@ public class WhipEndpoint extends RestServiceBase {
 		
 		publishParameters.setToken(token);
 		
-		publishParameters.setEnableVideo(enableVideo == null || enableVideo);
-		publishParameters.setEnableAudio(enableAudio == null || enableAudio);
+		//SDP is the ground truth for the tracks, query parameters can only disable them because most WHIP clients don't send any parameter
+		publishParameters.setEnableVideo((enableVideo == null || enableVideo) && SdpMediaInspector.isMediaEnabled(sdp, SdpMediaInspector.VIDEO));
+		publishParameters.setEnableAudio((enableAudio == null || enableAudio) && SdpMediaInspector.isMediaEnabled(sdp, SdpMediaInspector.AUDIO));
 		publishParameters.setSubscriberId(subscriberId);
 		publishParameters.setSubscriberCode(subscriberCode);
 		publishParameters.setStreamName(streamName);
