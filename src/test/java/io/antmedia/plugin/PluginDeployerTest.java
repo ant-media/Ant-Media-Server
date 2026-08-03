@@ -241,7 +241,7 @@ public class PluginDeployerTest {
         assertEquals("2.0.0", record.getVersion());
         assertEquals("Author", record.getAuthor());
         assertEquals("2.11.0", record.getRequiresVersion());
-        assertEquals("my-plugin-2.0.0", record.getPluginId());
+        assertEquals("my", record.getPluginId());
         assertFalse(record.isRequiresRestart());
     }
 
@@ -459,11 +459,11 @@ public class PluginDeployerTest {
         Result result = spy.unloadPluginFromZip("removable", pluginsDir);
         assertTrue(result.isSuccess());
 
-        // Record should still exist but in INSTALLED_PENDING_RESTART state
-        // (restart needed to fully clean up — Vert.x timers etc.)
+        // Record survives the unload, marked as needing a restart to fully clean up
+        // (the classes and any threads the plugin started are still resident).
         PluginRecord afterUninstall = spy.getPluginRecord("removable");
         assertNotNull(afterUninstall);
-        assertEquals(PluginState.INSTALLED_PENDING_RESTART, afterUninstall.getState());
+        assertEquals(PluginState.UNINSTALLED_PENDING_RESTART, afterUninstall.getState());
 
         // Flat jar should be deleted
         assertFalse(flatJar.exists());
@@ -890,7 +890,7 @@ public class PluginDeployerTest {
         spy.loadPluginFromZip(zip, pluginsDir, null);
 
         // ACTIVE state should block reinstall
-        assertTrue(spy.isDuplicateInstall("Active Plugin"));
+        assertTrue(spy.isDuplicateInstall("active"));
         deleteDir(pluginsDir);
     }
 
@@ -930,7 +930,7 @@ public class PluginDeployerTest {
         assertEquals(PluginState.FAILED, record.getState());
 
         // FAILED state should allow reinstall
-        assertFalse(spy.isDuplicateInstall("Will Fail"));
+        assertFalse(spy.isDuplicateInstall("will-fail"));
 
         deleteDir(zipDir);
         deleteDir(pluginsDir);
@@ -1024,11 +1024,13 @@ public class PluginDeployerTest {
         verify(webrtcBf).destroySingleton("plugin.minimal-component");
     }
 
+    /** Uninstalling something that was never installed is reported, not silently accepted. */
     @Test
     public void testUnloadPluginFromZip_noRecord() {
         File pluginsDir = createTempPluginsDir();
         Result result = deployer.unloadPluginFromZip("nonexistent", pluginsDir);
-        assertTrue(result.isSuccess()); // succeeds but "was not active"
+        assertFalse(result.isSuccess());
+        assertTrue(result.getMessage().contains("Plugin not found"));
         deleteDir(pluginsDir);
     }
 
