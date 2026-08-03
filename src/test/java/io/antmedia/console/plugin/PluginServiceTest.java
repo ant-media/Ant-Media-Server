@@ -43,11 +43,16 @@ import io.antmedia.plugin.PluginDeployer;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.plugin.api.PluginState;
 import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
 
 public class PluginServiceTest {
 
+    private static final String REGISTRY_URL = "http://example.com/catalog.json";
+    private static final String REGISTRY_ZIP_URL = "http://example.com/ClipCreatorPlugin/clip-creator.zip";
+
     private PluginService pluginService;
     private PluginDeployer pluginDeployer;
+    private ServerSettings serverSettings;
     private File pluginsDir;
     private String previousRed5Root;
 
@@ -60,6 +65,12 @@ public class PluginServiceTest {
         pluginDeployer = mock(PluginDeployer.class);
         pluginService = spy(new PluginService());
         pluginService.setPluginDeployer(pluginDeployer);
+
+        // install-from-URL only accepts the configured registry host, so the tests need one.
+        serverSettings = new ServerSettings();
+        serverSettings.setPluginRegistryUrl(REGISTRY_URL);
+        pluginService.setServerSettings(serverSettings);
+
         pluginsDir = pluginService.getPluginsDir();
     }
 
@@ -86,7 +97,7 @@ public class PluginServiceTest {
 
     @Test
     public void testInstallFromUrl_invalidId() {
-        Result result = pluginService.installFromUrl("Bad Id", "http://example.com/p.zip");
+        Result result = pluginService.installFromUrl("Bad Id", "http://example.com/p.zip", null);
 
         assertFalse(result.isSuccess());
         assertTrue(result.getMessage().contains("not valid"));
@@ -171,9 +182,9 @@ public class PluginServiceTest {
 
     @Test
     public void testInstallFromUrl_blankUrl() {
-        assertFalse(pluginService.installFromUrl("clip-creator", null).isSuccess());
-        assertFalse(pluginService.installFromUrl("clip-creator", "").isSuccess());
-        assertFalse(pluginService.installFromUrl("clip-creator", "   ").isSuccess());
+        assertFalse(pluginService.installFromUrl("clip-creator", null, null).isSuccess());
+        assertFalse(pluginService.installFromUrl("clip-creator", "", null).isSuccess());
+        assertFalse(pluginService.installFromUrl("clip-creator", "   ", null).isSuccess());
     }
 
     @Test
@@ -182,8 +193,7 @@ public class PluginServiceTest {
         when(pluginDeployer.loadPluginFromZip(any(), any(), eq("clip-creator")))
                 .thenReturn(new Result(true, "installed"));
 
-        Result result = pluginService.installFromUrl("clip-creator",
-                "https://antmedia-plugins.s3.eu-west-2.amazonaws.com/ClipCreatorPlugin/clip-creator.zip");
+        Result result = pluginService.installFromUrl("clip-creator", REGISTRY_ZIP_URL, null);
 
         assertTrue(result.isSuccess());
     }
@@ -192,7 +202,7 @@ public class PluginServiceTest {
     public void testInstallFromUrl_httpError() throws Exception {
         pluginService.setHttpClient(clientReturning(404, new byte[0]));
 
-        Result result = pluginService.installFromUrl("clip-creator", "http://example.com/missing.zip");
+        Result result = pluginService.installFromUrl("clip-creator", "http://example.com/missing.zip", null);
 
         assertFalse(result.isSuccess());
         assertTrue(result.getMessage().contains("404"));
@@ -205,10 +215,102 @@ public class PluginServiceTest {
         pluginService.setHttpClient(client);
         when(pluginDeployer.loadPluginFromZip(any(), any(), anyString())).thenReturn(new Result(true, ""));
 
-        pluginService.installFromUrl("clip-creator", "http://example.com/p.zip");
+        pluginService.installFromUrl("clip-creator", "http://example.com/p.zip", null);
 
         assertNull(capturedRequest(client).getFirstHeader(
                 TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION));
+    }
+
+    // --- registry host restriction ---
+
+    @Test
+    public void testInstallFromUrl_rejectsHostOutsideRegistry() throws Exception {
+        CloseableHttpClient client = clientReturning(200, new byte[]{1});
+        pluginService.setHttpClient(client);
+
+        Result result = pluginService.installFromUrl("clip-creator", "http://169.254.169.254/latest/meta-data", null);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.getMessage().contains("registry host"));
+        // nothing may be fetched at all — the point is that the server never issues the request
+        verify(client, never()).execute(any(HttpRequestBase.class));
+        verify(pluginDeployer, never()).loadPluginFromZip(any(), any(), anyString());
+    }
+
+    @Test
+    public void testInstallFromUrl_rejectsNonHttpScheme() {
+        Result result = pluginService.installFromUrl("clip-creator", "file:///etc/passwd", null);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.getMessage().contains("http"));
+    }
+
+    @Test
+    public void testInstallFromUrl_rejectsMalformedUrl() {
+        Result result = pluginService.installFromUrl("clip-creator", "http://exa mple.com/p.zip", null);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.getMessage().contains("Malformed"));
+    }
+
+    @Test
+    public void testInstallFromUrl_rejectedWhenNoRegistryConfigured() {
+        serverSettings.setPluginRegistryUrl(null);
+
+        Result result = pluginService.installFromUrl("clip-creator", REGISTRY_ZIP_URL, null);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.getMessage().contains("No plugin registry"));
+    }
+
+    // --- checksum verification ---
+
+    @Test
+    public void testInstallFromUrl_checksumMatches() throws Exception {
+        byte[] payload = {1, 2, 3};
+        pluginService.setHttpClient(clientReturning(200, payload));
+        when(pluginDeployer.loadPluginFromZip(any(), any(), eq("clip-creator")))
+                .thenReturn(new Result(true, "installed"));
+
+        Result result = pluginService.installFromUrl("clip-creator", REGISTRY_ZIP_URL, sha256Hex(payload));
+
+        assertTrue(result.getMessage(), result.isSuccess());
+    }
+
+    @Test
+    public void testInstallFromUrl_checksumMismatchRejectsAndDeletesZip() throws Exception {
+        pluginService.setHttpClient(clientReturning(200, new byte[]{1, 2, 3}));
+
+        Result result = pluginService.installFromUrl("clip-creator", REGISTRY_ZIP_URL,
+                "0000000000000000000000000000000000000000000000000000000000000000");
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.getMessage().contains("Checksum mismatch"));
+        verify(pluginDeployer, never()).loadPluginFromZip(any(), any(), anyString());
+        assertFalse("the unverified ZIP must not be left on disk",
+                new File(pluginsDir, "clip-creator.zip").exists());
+    }
+
+    @Test
+    public void testInstallFromUrl_checksumIsCaseInsensitive() throws Exception {
+        byte[] payload = {9, 8, 7};
+        pluginService.setHttpClient(clientReturning(200, payload));
+        when(pluginDeployer.loadPluginFromZip(any(), any(), eq("clip-creator")))
+                .thenReturn(new Result(true, "installed"));
+
+        Result result = pluginService.installFromUrl("clip-creator", REGISTRY_ZIP_URL,
+                sha256Hex(payload).toUpperCase());
+
+        assertTrue(result.isSuccess());
+    }
+
+    private static String sha256Hex(byte[] bytes) throws Exception {
+        byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes);
+        StringBuilder hex = new StringBuilder();
+        for (byte b : digest) {
+            hex.append(String.format("%02x", b));
+        }
+        return hex.toString();
     }
 
     // --- install from cluster peer ---

@@ -102,6 +102,11 @@ public class PluginServiceIntegrationTests {
 		Result uninstall = uninstall(PLUGIN_ID);
 		assertTrue(uninstall.isSuccess(), "uninstall failed: " + uninstall.getMessage());
 		assertNull(findInstalled(PLUGIN_ID), "plugin still listed as installed after uninstall");
+
+		// The record survives as a tombstone so the operator knows a restart is still owed.
+		PluginRecord tombstone = findRecord(PLUGIN_ID);
+		assertNotNull(tombstone, "the uninstalled plugin should still be reported until restart");
+		assertEquals(PluginState.UNINSTALLED_PENDING_RESTART, tombstone.getState());
 	}
 
 	/** Same plugin, but uploaded as a multipart ZIP the way the dashboard does it. */
@@ -145,11 +150,28 @@ public class PluginServiceIntegrationTests {
 		assertTrue(result.getMessage().contains("not valid"), result.getMessage());
 	}
 
+	/** Same host as the registry, but nothing there — the download itself has to fail cleanly. */
 	@Test
 	public void testInstallRejectsUnreachableUrl() throws Exception {
+		Result result = installFromUrl(PLUGIN_ID,
+				"https://antmedia-plugins.s3.eu-west-2.amazonaws.com/no-such-plugin-here.zip");
+
+		assertFalse(result.isSuccess());
+		assertNull(findInstalled(PLUGIN_ID));
+	}
+
+	/**
+	 * The server must refuse to fetch from anywhere but the configured registry. Otherwise the
+	 * endpoint is an SSRF primitive — an arbitrary URL would have AMS issue a GET from inside
+	 * the network and write the response to disk.
+	 */
+	@Test
+	public void testInstallRejectsUrlOutsideRegistry() throws Exception {
 		Result result = installFromUrl(PLUGIN_ID, "http://127.0.0.1:1/nope.zip");
 
 		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("registry host"),
+				"expected the registry host restriction, got: " + result.getMessage());
 		assertNull(findInstalled(PLUGIN_ID));
 	}
 
@@ -205,7 +227,20 @@ public class PluginServiceIntegrationTests {
 		}
 	}
 
+	/**
+	 * An uninstalled plugin keeps a record in state {@code UNINSTALLED_PENDING_RESTART} so the
+	 * operator can see a restart is still owed — its files are gone but its classes are still
+	 * resident. That tombstone does not count as installed, which is the same rule the
+	 * management console applies when deciding whether to offer Install or Uninstall.
+	 */
 	private PluginRecord findInstalled(String pluginId) throws Exception {
+		PluginRecord record = findRecord(pluginId);
+		return (record != null && record.getState() != PluginState.UNINSTALLED_PENDING_RESTART)
+				? record : null;
+	}
+
+	/** Any record for this id, tombstones included. */
+	private PluginRecord findRecord(String pluginId) throws Exception {
 		return getPlugins().stream()
 				.filter(record -> pluginId.equals(record.getPluginId()))
 				.findFirst()

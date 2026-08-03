@@ -1,10 +1,15 @@
 package io.antmedia.console.plugin;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +37,7 @@ import io.antmedia.plugin.api.PluginId;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.plugin.api.PluginState;
 import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
 
 /**
  * Owns plugin install, upgrade and removal for the console. The REST layer only maps to HTTP
@@ -52,11 +58,18 @@ public class PluginService {
 
 	private PluginDeployer pluginDeployer;
 
+	private ServerSettings serverSettings;
+
 	private CloseableHttpClient httpClient = HttpClients.createDefault();
 
 	@Autowired
 	public void setPluginDeployer(PluginDeployer pluginDeployer) {
 		this.pluginDeployer = pluginDeployer;
+	}
+
+	@Autowired
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
 	}
 
 	/** Rebuilds the in-memory records from the jars on disk. Called once at startup. */
@@ -87,8 +100,12 @@ public class PluginService {
 		return deploy(pluginId, zipFile);
 	}
 
-	/** Installs a plugin by downloading its ZIP from the registry. */
-	public synchronized Result installFromUrl(String pluginId, String downloadUrl) {
+	/**
+	 * Installs a plugin by downloading its ZIP from the registry.
+	 *
+	 * @param expectedSha256 checksum published by the catalog, or {@code null} to skip the check
+	 */
+	public synchronized Result installFromUrl(String pluginId, String downloadUrl, String expectedSha256) {
 		Result idCheck = validateId(pluginId);
 		if (!idCheck.isSuccess()) {
 			return idCheck;
@@ -96,13 +113,21 @@ public class PluginService {
 		if (StringUtils.isBlank(downloadUrl)) {
 			return new Result(false, "Download URL is required");
 		}
+		Result hostCheck = checkRegistryHost(downloadUrl);
+		if (!hostCheck.isSuccess()) {
+			return hostCheck;
+		}
 		if (isBundled(pluginId)) {
 			return new Result(false, "A plugin with id '" + pluginId + "' is already bundled with the server");
 		}
-		return downloadAndDeploy(pluginId, downloadUrl, null);
+		return downloadAndDeploy(pluginId, downloadUrl, null, expectedSha256);
 	}
 
-	/** Installs a plugin whose ZIP lives on another cluster node. */
+	/**
+	 * Installs a plugin whose ZIP lives on another cluster node. The registry host restriction
+	 * does not apply here: the URI comes from a peer over the cluster channel, not from a user,
+	 * and the request is JWT-signed with the cluster key.
+	 */
 	public synchronized Result installFromClusterPeer(String pluginId, String zipUri, String clusterSecret) {
 		Result idCheck = validateId(pluginId);
 		if (!idCheck.isSuccess()) {
@@ -110,7 +135,7 @@ public class PluginService {
 		}
 		String jwtToken = JWTFilter.generateJwtToken(clusterSecret,
 				System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "pluginname", pluginId);
-		return downloadAndDeploy(pluginId, zipUri, jwtToken);
+		return downloadAndDeploy(pluginId, zipUri, jwtToken, null);
 	}
 
 	/** Removes a plugin: unloads it, runs its uninstall script and deletes its files. */
@@ -170,7 +195,7 @@ public class PluginService {
 		return dir;
 	}
 
-	private Result downloadAndDeploy(String pluginId, String zipUri, String jwtToken) {
+	private Result downloadAndDeploy(String pluginId, String zipUri, String jwtToken, String expectedSha256) {
 		File zipFile;
 		try {
 			zipFile = downloadPluginZip(pluginId, zipUri, jwtToken);
@@ -181,7 +206,84 @@ public class PluginService {
 		if (zipFile == null) {
 			return new Result(false, "Could not save the plugin ZIP downloaded from " + zipUri);
 		}
+
+		Result checksum = verifyChecksum(zipFile, expectedSha256);
+		if (!checksum.isSuccess()) {
+			if (zipFile.exists() && !zipFile.delete()) {
+				logger.warn("Failed to delete ZIP that failed its checksum: {}", zipFile.getAbsolutePath());
+			}
+			return checksum;
+		}
+
 		return deploy(pluginId, zipFile);
+	}
+
+	/**
+	 * Confirms the downloaded bytes are the ones the catalog published. Reviewing what sits in
+	 * the registry says nothing about what actually got installed without this.
+	 */
+	private static Result verifyChecksum(File zipFile, String expectedSha256) {
+		if (StringUtils.isBlank(expectedSha256)) {
+			return new Result(true);
+		}
+		String actual;
+		try {
+			actual = sha256(zipFile);
+		} catch (IOException e) {
+			logger.error("Could not compute the checksum of {}", zipFile.getAbsolutePath(), e);
+			return new Result(false, "Could not verify the downloaded plugin: " + e.getMessage());
+		}
+		if (!actual.equalsIgnoreCase(expectedSha256.trim())) {
+			return new Result(false, "Checksum mismatch: the registry published " + expectedSha256.trim()
+					+ " but the downloaded file is " + actual);
+		}
+		return new Result(true);
+	}
+
+	private static String sha256(File file) throws IOException {
+		try (InputStream in = new FileInputStream(file)) {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] buffer = new byte[8192];
+			int read;
+			while ((read = in.read(buffer)) != -1) {
+				digest.update(buffer, 0, read);
+			}
+			StringBuilder hex = new StringBuilder();
+			for (byte b : digest.digest()) {
+				hex.append(String.format("%02x", b));
+			}
+			return hex.toString();
+		} catch (NoSuchAlgorithmException e) {
+			throw new IOException("SHA-256 is not available in this JVM", e);
+		}
+	}
+
+	/**
+	 * Restricts install-from-URL to the configured registry. Without it the endpoint is an SSRF
+	 * primitive: any URL an admin supplies would make the server issue a GET from inside the
+	 * network and write the response to disk.
+	 */
+	private Result checkRegistryHost(String downloadUrl) {
+		String registryUrl = serverSettings != null ? serverSettings.getPluginRegistryUrl() : null;
+		if (StringUtils.isBlank(registryUrl)) {
+			return new Result(false, "No plugin registry is configured, so installing from a URL is disabled");
+		}
+		try {
+			URI requested = new URI(downloadUrl);
+			URI registry = new URI(registryUrl);
+
+			String scheme = requested.getScheme();
+			if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
+				return new Result(false, "Only http and https plugin URLs are accepted");
+			}
+			if (requested.getHost() == null || !requested.getHost().equalsIgnoreCase(registry.getHost())) {
+				return new Result(false, "Plugins can only be installed from the configured registry host: "
+						+ registry.getHost());
+			}
+			return new Result(true);
+		} catch (URISyntaxException e) {
+			return new Result(false, "Malformed plugin download URL: " + downloadUrl);
+		}
 	}
 
 	private Result deploy(String pluginId, File zipFile) {

@@ -664,8 +664,9 @@ public class RestServiceV2 extends CommonRestService {
 	public Result installPluginFromUrl(Map<String, String> body) {
 		String pluginId = body != null ? body.get("id") : null;
 		String downloadUrl = body != null ? body.get("downloadUrl") : null;
+		String sha256 = body != null ? body.get("sha256") : null;
 		logger.info("Plugin install-from-url request: id={}", sanitize(pluginId));
-		return pluginService.installFromUrl(pluginId, downloadUrl);
+		return pluginService.installFromUrl(pluginId, downloadUrl, sha256);
 	}
 
 	@Operation(summary = "Uninstall a plugin",
