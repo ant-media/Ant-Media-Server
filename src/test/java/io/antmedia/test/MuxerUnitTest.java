@@ -133,8 +133,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -3131,6 +3135,70 @@ public class MuxerUnitTest {
 
 		Application.enableSourceHealthUpdate = false;
 
+	}
+
+	@Test
+	public void testQualitySampleWindowIsBoundedAndReturnsSnapshot() throws InterruptedException {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+		}
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope);
+		AppSettings appSettings = mock(AppSettings.class);
+		when(appSettings.getWebhookStreamStatusUpdatePeriodMs()).thenReturn(-1L);
+		ReflectionTestUtils.setField(muxAdaptor, "appSettings", appSettings);
+		ReflectionTestUtils.setField(muxAdaptor, "lastQualityUpdateTime", System.currentTimeMillis());
+
+		muxAdaptor.updateQualityParameters(1, MuxAdaptor.TIME_BASE_FOR_MS, 0, false);
+		Queue<MuxAdaptor.PacketTime> samples = muxAdaptor.getPacketTimeList();
+		assertEquals(1, samples.size());
+		assertEquals(1, samples.peek().packetTimeMs);
+
+		for (int i = 2; i <= 301; i++) {
+			muxAdaptor.updateQualityParameters(i, MuxAdaptor.TIME_BASE_FOR_MS, 0, false);
+		}
+
+		samples = muxAdaptor.getPacketTimeList();
+		assertEquals(300, samples.size());
+		assertEquals(2, samples.peek().packetTimeMs);
+		MuxAdaptor.PacketTime lastSample = null;
+		for (MuxAdaptor.PacketTime sample : samples) {
+			lastSample = sample;
+		}
+		assertEquals(301, lastSample.packetTimeMs);
+		samples.clear();
+		assertEquals(300, muxAdaptor.getPacketTimeList().size());
+
+		ExecutorService executor = Executors.newFixedThreadPool(4);
+		CountDownLatch writersReady = new CountDownLatch(4);
+		CountDownLatch releaseWriters = new CountDownLatch(1);
+		CountDownLatch firstConcurrentWrites = new CountDownLatch(4);
+		CountDownLatch readerObservedSnapshot = new CountDownLatch(1);
+		for (int thread = 0; thread < 4; thread++) {
+			executor.submit(() -> {
+				writersReady.countDown();
+				try {
+					releaseWriters.await();
+					muxAdaptor.updateQualityParameters(1, MuxAdaptor.TIME_BASE_FOR_MS, 0, false);
+					firstConcurrentWrites.countDown();
+					readerObservedSnapshot.await();
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					return;
+				}
+				for (int i = 1; i <= 100; i++) {
+					muxAdaptor.updateQualityParameters(i, MuxAdaptor.TIME_BASE_FOR_MS, 0, false);
+				}
+			});
+		}
+		assertTrue(writersReady.await(1, TimeUnit.SECONDS));
+		releaseWriters.countDown();
+		assertTrue(firstConcurrentWrites.await(1, TimeUnit.SECONDS));
+		assertTrue(muxAdaptor.getPacketTimeList().size() <= 300);
+		readerObservedSnapshot.countDown();
+		executor.shutdown();
+		assertTrue(executor.awaitTermination(1, TimeUnit.SECONDS));
+		assertEquals(300, muxAdaptor.getPacketTimeList().size());
 	}
 
 
