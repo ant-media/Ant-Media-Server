@@ -1,8 +1,8 @@
 package io.antmedia.test.console;
 
-import org.junit.Test;
-
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
+
+import static org.junit.jupiter.api.Assertions.*;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.datastore.MongoStore;
 import io.antmedia.console.datastore.RedisStore;
@@ -11,22 +11,36 @@ import io.antmedia.datastore.db.types.UserType;
 import io.vertx.core.Vertx;
 
 import java.util.HashMap;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
-import static org.junit.Assert.*;
 
-
+@Testcontainers
 public class ConsoleDataStoreUnitTest {
+
+	@Container
+	public static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:6-alpine"))
+			.withExposedPorts(6379);
+
+	@Container
+	public static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
+			.withExposedPorts(27017);
 	
 	@Test
 	public void testMongoStore() {
-		AbstractConsoleDataStore dt = new MongoStore("127.0.0.1");
+		AbstractConsoleDataStore dt = new MongoStore(mongoUri());
 		simpleDBOperations(dt);
+		dt.close();
 	}
 	
 	@Test
 	public void testRedisStore() {
-		AbstractConsoleDataStore dt = new RedisStore("redis://127.0.0.1:6379");
+		AbstractConsoleDataStore dt = new RedisStore(redisUri());
 		simpleDBOperations(dt);
+		dt.close();
 	}
 	
 	@Test
@@ -35,6 +49,14 @@ public class ConsoleDataStoreUnitTest {
 		AbstractConsoleDataStore dt = new MapDBStore(vertx);
 		simpleDBOperations(dt);
 		vertx.close();
+	}
+
+	private String mongoUri() {
+		return "mongodb://" + mongo.getHost() + ":" + mongo.getFirstMappedPort();
+	}
+
+	private String redisUri() {
+		return "redis://" + redis.getHost() + ":" + redis.getFirstMappedPort();
 	}
 	
 	

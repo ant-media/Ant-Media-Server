@@ -2,12 +2,13 @@ package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -32,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -66,10 +68,10 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -162,7 +164,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		};
 	};
 
-	@Before
+	@BeforeEach
 	public void before() {
 		adapter = new AntMediaApplicationAdapter();
 		adapter.setVertx(vertx);
@@ -192,7 +194,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		adapter = null;
 
@@ -666,7 +668,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testRunMuxerScript() throws IOException {
+	public void testRunConfiguredScript() throws Exception {
 		File f = new File ("src/test/resources/hello_script");
 		if (f.exists()) { // if it exists delete it due to cache
 			Files.delete(f.toPath());
@@ -674,7 +676,25 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertFalse(f.exists());
 
 		adapter.setVertx(vertx);
-		adapter.runScript("src/test/resources/echo.sh");
+		AppSettings appSettings = new AppSettings();
+		adapter.setAppSettings(appSettings);
+
+		Method runConfiguredScript = AntMediaApplicationAdapter.class.getDeclaredMethod("runConfiguredScript", String.class, String[].class);
+		runConfiguredScript.setAccessible(true);
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[0]);
+		assertFalse(f.exists());
+
+		appSettings.setMuxerFinishScript("src/test/resources");
+		runConfiguredScript.invoke(adapter, "src/test/resources", new String[0]);
+		assertFalse(f.exists());
+
+		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[] {"echo x"});
+		assertFalse(f.exists());
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[] {"&echo"});
+		assertFalse(f.exists());
+
+		runConfiguredScript.invoke(adapter, "src/test/resources/echo.sh", new String[0]);
 
 		await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -736,7 +756,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 					ArgumentMatchers.eq("http://any_url"),
 					ArgumentMatchers.eq(jsonPayload),
 					ArgumentMatchers.eq(appSettings.getWebhookRetryCount() - 1), 
-					isNull(String.class)
+					isNull()
 					);
 
 			Mockito.when(statusLine.getStatusCode()).thenReturn(200);
@@ -1856,7 +1876,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(context.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		when(licenseService.isLicenceSuspended()).thenReturn(false);
 
 		when(appContext.getBean(StatsCollector.BEAN_NAME)).thenReturn(statsCollector);
@@ -1930,7 +1950,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(context.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		when(licenseService.isLicenceSuspended()).thenReturn(false);
 
 		when(appContext.getBean(StatsCollector.BEAN_NAME)).thenReturn(statsCollector);
@@ -2012,9 +2032,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(result4.isSuccess());
 
 		// Verify the async callback executed
-		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
-			verify(streamFetcherManager, times(1)).startStreaming(broadcast4);
-		});
+		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+			verify(streamFetcherManager, times(1)).startStreaming(broadcast4));
 
 		// Test Case 5: Non-cluster mode streaming
 		when(spyAdapter.isClusterMode()).thenReturn(false);
@@ -2651,7 +2670,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Get the subtrackPoller using the getter and verify it's the same as the mock
 		ISubtrackPoller retrievedSubtrackPoller = adapter.getSubtrackPoller();
-		assertEquals("The retrieved subtrackPoller should match the mock instance.", mockSubtrackPoller, retrievedSubtrackPoller);
+		assertEquals(mockSubtrackPoller, retrievedSubtrackPoller, "The retrieved subtrackPoller should match the mock instance.");
 	}
 
 	@Test

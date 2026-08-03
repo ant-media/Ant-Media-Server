@@ -57,7 +57,7 @@ public interface IProviderService extends IScopeService {
      *            Scope of provider
      * @param name
      *            Name of provider
-     * @return <tt>null</tt> if nothing found.
+     * @return {@code null} if nothing found.
      */
     IMessageInput getProviderInput(IScope scope, String name);
 
@@ -70,7 +70,7 @@ public interface IProviderService extends IScopeService {
      *            Name of provider
      * @param needCreate
      *            Whether there's need to create basic scope / live provider if they don't exist
-     * @return <tt>null</tt> if not found.
+     * @return {@code null} if not found.
      */
     IMessageInput getLiveProviderInput(IScope scope, String name, boolean needCreate);
 
@@ -81,7 +81,7 @@ public interface IProviderService extends IScopeService {
      *            Scope of provider
      * @param name
      *            Name of provider
-     * @return <tt>null</tt> if not found.
+     * @return {@code null} if not found.
      */
     IMessageInput getVODProviderInput(IScope scope, String name);
 
@@ -92,7 +92,7 @@ public interface IProviderService extends IScopeService {
      *            Scope of provider
      * @param name
      *            Name of provider
-     * @return <tt>null</tt> if not found.
+     * @return {@code null} if not found.
      */
     File getVODProviderFile(IScope scope, String name);
 
@@ -105,7 +105,7 @@ public interface IProviderService extends IScopeService {
      *            Name of stream
      * @param stream
      *            Broadcast stream to register
-     * @return <tt>true</tt> if register successfully.
+     * @return {@code true} if register successfully.
      */
     boolean registerBroadcastStream(IScope scope, String name, IBroadcastStream stream);
 
@@ -125,7 +125,7 @@ public interface IProviderService extends IScopeService {
      *            Scope
      * @param name
      *            Stream name
-     * @return <tt>true</tt> if unregister successfully.
+     * @return {@code true} if unregister successfully.
      */
     boolean unregisterBroadcastStream(IScope scope, String name);
 
@@ -138,7 +138,7 @@ public interface IProviderService extends IScopeService {
      *            Stream name
      * @param stream
      *            Broadcast stream
-     * @return <tt>true</tt> if unregister successfully.
+     * @return {@code true} if unregister successfully.
      */
     boolean unregisterBroadcastStream(IScope scope, String name, IBroadcastStream stream);
 

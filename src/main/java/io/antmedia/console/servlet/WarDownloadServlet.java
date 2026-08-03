@@ -71,7 +71,7 @@ public class WarDownloadServlet extends HttpServlet{
 	}
 
 	/**
-	 * TCPCluster makes the head requests  if the file is in this instance {@link TCPCluster#checkIfResourceExist}
+	 * TCPCluster makes the head requests if the file is in this instance.
 	 */
 	@Override
 	public void doHead(HttpServletRequest request, HttpServletResponse response)  throws ServletException, IOException  {

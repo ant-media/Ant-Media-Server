@@ -149,7 +149,7 @@ public class YuvHelper {
 
   /**
    * Copies I420 to the I420 dst buffer.
-   * <p> Unlike `libyuv::I420Copy`, this function checks if the height <= 0, so flipping is not
+   * <p> Unlike {@code libyuv::I420Copy}, this function checks if the height {@code <= 0}, so flipping is not
    * supported.
    */
   public static void I420Copy(ByteBuffer srcY, int srcStrideY, ByteBuffer srcU, int srcStrideU,

@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -67,6 +68,14 @@ import org.red5.server.plugin.PluginRegistry;
  */
 public class AdminApplication extends MultiThreadedApplicationAdapter {
 	private static final int JWT_TOKEN_TIMEOUT_MS = 60000;
+	public static final String CREATE_APP_COMMAND = "/bin/bash create_app.sh";
+	public static final String DELETE_APP_COMMAND = "/bin/bash delete_app.sh";
+	public static final String ENABLE_SSL_COMMAND = "sudo /bin/bash enable_ssl.sh";
+	private static final Pattern APPLICATION_NAME_PATTERN = Pattern.compile("^[A-Za-z0-9_-]+$");
+	private static final Pattern BOOLEAN_ARGUMENT_PATTERN = Pattern.compile("^(true|false)$");
+	private static final Pattern PATH_ARGUMENT_PATTERN = Pattern.compile("^[A-Za-z0-9_./~:@%+=,-]+$");
+	private static final Pattern DB_URI_ARGUMENT_PATTERN = Pattern.compile("^[A-Za-z0-9_./~:@%+=,?!#\\[\\]&-]+$");
+	private static final Pattern DEFAULT_ARGUMENT_PATTERN = Pattern.compile("^[A-Za-z0-9_./~:@%+=,?!#\\[\\]&-]+$");
 
 
 	private static final Logger log = LoggerFactory.getLogger(AdminApplication.class);
@@ -571,36 +580,40 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
 		appName = WarDeployer.getApplicationName(appName);
-		String command = "/bin/bash create_app.sh"
-				+ " -n " + appName
-				+ " -w true"
-				+ " -p " + webappsPath
-				+ " -c " + isCluster;
+		List<String> args = new ArrayList<>();
+		args.add("-n");
+		args.add(appName);
+		args.add("-w");
+		args.add("true");
+		args.add("-p");
+		args.add(webappsPath);
+		args.add("-c");
+		args.add(String.valueOf(isCluster));
 
 		if 	(!DataStoreFactory.DB_TYPE_MAPDB.equals(getDataStoreFactory().getDbType())) {
 			//add db connection url, user and pass if it's not mapdb
 			if (StringUtils.isNotBlank(dbConnectionUrl)) {
-				command +=  " -m " + dbConnectionUrl;
+				args.add("-m");
+				args.add(dbConnectionUrl);
 			}
 		}
 
 		if(StringUtils.isNotBlank(warFileName))
 		{
-			command += " -f " + warFileName;
+			args.add("-f");
+			args.add(warFileName);
 
 		}
 
-		log.info("Creating application with command: {}", command);
-		return runCommand(command);
+		log.info("Creating application with command: {} {}", CREATE_APP_COMMAND, args);
+		return runConfiguredCommand(CREATE_APP_COMMAND, args.toArray(new String[0]));
 	}
 
 	public boolean runDeleteAppScript(String appName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
-		String command = "/bin/bash delete_app.sh -n "+appName+" -p "+webappsPath;
-
-		return runCommand(command);
+		return runConfiguredCommand(DELETE_APP_COMMAND, "-n", appName, "-p", webappsPath);
 	}
 
 	public IClusterNotifier getClusterNotifier() {
@@ -609,11 +622,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 
-	public boolean runCommand(String command) {
+	public boolean runConfiguredCommand(String configuredCommand, String... args) {
+		boolean isConfiguredCommand = CREATE_APP_COMMAND.equals(configuredCommand) ||
+				DELETE_APP_COMMAND.equals(configuredCommand) ||
+				ENABLE_SSL_COMMAND.equals(configuredCommand);
+
+		if (!isConfiguredCommand) {
+			logger.warn("Discarding command because it is not one of the allowed admin commands: {}", configuredCommand);
+			return false;
+		}
+
+		List<String> command = new ArrayList<>();
+		Collections.addAll(command, configuredCommand.split(" "));
+		if (args != null) {
+			if (!areCommandArgumentsValid(configuredCommand, args)) {
+				return false;
+			}
+			Collections.addAll(command, args);
+		}
 
 		boolean result = false;
 		try {
-			Process process = getProcess(command);
+			Process process = new ProcessBuilder(command).start();
 			if (process != null) 
 			{
 				new Thread() 
@@ -651,33 +681,73 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return result;
 	}
 
-	public Process getProcess(String command) throws IOException {
-		//This code uses a regular expression to check if the command string contains any special characters 
-		// that may cause vulnerabilities, 
-		//such as ;, &, |, <, >, (, ), $, , , \r, \n, \t, *, ?, {, }, [, ], \, ", ', or whitespace characters. 
-		//If the command string contains any of these characters, it is considered unsafe to execute and the code prints an error message."
-
-		String[] parameters = command.split(" ");
-		String[] parametersToRun = new String[parameters.length];
-		for (int i = 0; i < parameters.length; i++) 
-		{
-			String param = parameters[i];
-			if (param.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) 
-			{
-				logger.warn("Command includes special characters. Escaping the special characters. Argument:{} and full command:{}", param, command);
-				param = "'" + param + "'";
-			}
-			parametersToRun[i] = param;	
+	private boolean areCommandArgumentsValid(String configuredCommand, String[] args) {
+		if (CREATE_APP_COMMAND.equals(configuredCommand)) {
+			return areCreateAppArgumentsValid(args);
 		}
 
-
-		ProcessBuilder pb = getProcessBuilder(parametersToRun);
-
-		return pb.start();
+		for (String arg : args) {
+			if (!isArgumentValid(arg, DEFAULT_ARGUMENT_PATTERN)) {
+				logger.warn("Discarding command because an argument includes invalid characters. Argument:{} and command:{}", arg, configuredCommand);
+				return false;
+			}
+		}
+		return true;
 	}
 
-	public ProcessBuilder getProcessBuilder(String[] parametersToRun) {
-		return new ProcessBuilder(parametersToRun);
+	private boolean areCreateAppArgumentsValid(String[] args) {
+		if (args.length == 0) {
+			return true;
+		}
+
+		if (!args[0].startsWith("-")) {
+			if (args.length > 2) {
+				logger.warn("Discarding create app command because legacy arguments include extra parameters");
+				return false;
+			}
+			return isArgumentValid(args[0], APPLICATION_NAME_PATTERN) &&
+					(args.length == 1 || isArgumentValid(args[1], PATH_ARGUMENT_PATTERN));
+		}
+
+		for (int i = 0; i < args.length; i += 2) {
+			if (i + 1 >= args.length) {
+				logger.warn("Discarding create app command because argument {} does not have a value", args[i]);
+				return false;
+			}
+
+			String flag = args[i];
+			String value = args[i + 1];
+			if (!isCreateAppValueValid(flag, value)) {
+				logger.warn("Discarding create app command because argument {} has an invalid value: {}", flag, value);
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean isCreateAppValueValid(String flag, String value) {
+		switch (flag) {
+			case "-n":
+				return isArgumentValid(value, APPLICATION_NAME_PATTERN);
+			case "-w":
+			case "-c":
+				return isArgumentValid(value, BOOLEAN_ARGUMENT_PATTERN);
+			case "-p":
+			case "-f":
+				return isArgumentValid(value, PATH_ARGUMENT_PATTERN);
+			case "-m":
+				return isArgumentValid(value, DB_URI_ARGUMENT_PATTERN);
+			case "-u":
+			case "-s":
+				return isArgumentValid(value, DEFAULT_ARGUMENT_PATTERN);
+			default:
+				logger.warn("Discarding create app command because argument {} is not allowed", flag);
+				return false;
+		}
+	}
+
+	private boolean isArgumentValid(String argument, Pattern pattern) {
+		return argument != null && pattern.matcher(argument).matches();
 	}
 
 	public void setVertx(Vertx vertx) {

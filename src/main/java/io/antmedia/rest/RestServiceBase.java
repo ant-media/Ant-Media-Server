@@ -9,6 +9,8 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -483,7 +485,8 @@ public abstract class RestServiceBase {
 	/**
 	 * Update Stream Source or IP Camera info
 	 * @param updatedBroadcast
-	 * @param socialNetworksToPublish
+	 * @param streamId
+	 * @param broadcastInDB
 	 * @return
 	 */
 	protected Result updateStreamSource(String streamId, BroadcastUpdate updatedBroadcast, Broadcast broadcastInDB) {
@@ -525,8 +528,7 @@ public abstract class RestServiceBase {
 			}
 
 			String rtspURL = connectionRes.getMessage();
-			String authparam = updatedBroadcast.getUsername() + ":" + updatedBroadcast.getPassword() + "@";
-			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
+			String rtspURLWithAuth = getRTSPURLWithAuth(rtspURL, updatedBroadcast.getUsername(), updatedBroadcast.getPassword());
 			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
 			updatedBroadcast.setStreamUrl(rtspURLWithAuth);
 
@@ -696,8 +698,7 @@ public abstract class RestServiceBase {
 
 			if (connResult.isSuccess()) {
 
-				String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
-				String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
+				String rtspURLWithAuth = getRTSPURLWithAuth(connResult.getMessage(), stream.getUsername(), stream.getPassword());
 				logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 				stream.setStreamUrl(rtspURLWithAuth);
 				Date currentDate = new Date();
@@ -773,6 +774,15 @@ public abstract class RestServiceBase {
 
 	}
 
+	protected static String getRTSPURLWithAuth(String rtspURL, String username, String password) {
+		String authparam = encodeURLUserInfo(username) + ":" + encodeURLUserInfo(password) + "@";
+		return RTSP + authparam + rtspURL.substring(RTSP.length());
+	}
+
+	protected static String encodeURLUserInfo(String value) {
+		return URLEncoder.encode(String.valueOf(value), StandardCharsets.UTF_8).replace("+", "%20");
+	}
+
 
 	/**
 	 * Parse the string to check it's a valid url
@@ -782,49 +792,55 @@ public abstract class RestServiceBase {
 	 */
 	protected static boolean validateStreamURL(String url) {
 
-		boolean ipAddrControl = false;
-		String[] ipAddrParts = null;
-		String serverAddr = url;
+		String serverAddr = extractServerAddress(url);
+		if (serverAddr == null) {
+			return false;
+		}
 
-		if(url != null && (url.startsWith(HTTP) ||
+		if (logger.isInfoEnabled())  {
+			logger.info("IP: {}", serverAddr.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return hasSupportedStreamProtocol(url) || isValidIPv4Address(serverAddr);
+	}
+
+	private static boolean hasSupportedStreamProtocol(String url) {
+		return url != null && (url.startsWith(HTTP) ||
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
 				url.startsWith("srt://") ||
-				url.startsWith(RTSP))) {
+				url.startsWith(RTSP));
+	}
 
-			ipAddrParts = url.split("//");
-			serverAddr = ipAddrParts[1];
-			ipAddrControl=true;
-
+	private static String extractServerAddress(String url) {
+		if (url == null) {
+			return null;
 		}
-		if (serverAddr != null) {
-			if (serverAddr.contains("@")){
 
-				ipAddrParts = serverAddr.split("@");
-				serverAddr = ipAddrParts[1];
-
-			}
-			if (serverAddr.contains(":")){
-
-				ipAddrParts = serverAddr.split(":");
-				serverAddr = ipAddrParts[0];
-
-			}
-			if (serverAddr.contains("/")){
-				ipAddrParts = serverAddr.split("/");
-				serverAddr = ipAddrParts[0];
-			}
-
-			if (logger.isInfoEnabled())  {
-				logger.info("IP: {}", serverAddr.replaceAll(REPLACE_CHARS, "_"));
-			}
-
-			if(serverAddr.split("\\.").length == 4 && validateIPaddress(serverAddr)){
-				ipAddrControl = true;
-			}
+		String serverAddr = url;
+		if (hasSupportedStreamProtocol(url)) {
+			serverAddr = url.substring(url.indexOf("//") + 2);
 		}
-		return ipAddrControl;
+
+		serverAddr = substringAfter(serverAddr, "@");
+		serverAddr = substringBefore(serverAddr, ":");
+		serverAddr = substringBefore(serverAddr, "/");
+		return substringBefore(serverAddr, "?");
+	}
+
+	private static String substringAfter(String value, String delimiter) {
+		int index = value.indexOf(delimiter);
+		return index > -1 ? value.substring(index + delimiter.length()) : value;
+	}
+
+	private static String substringBefore(String value, String delimiter) {
+		int index = value.indexOf(delimiter);
+		return index > -1 ? value.substring(0, index) : value;
+	}
+
+	private static boolean isValidIPv4Address(String serverAddr) {
+		return serverAddr.split("\\.").length == 4 && validateIPaddress(serverAddr);
 	}
 
 	protected static boolean validateIPaddress(String ipaddress)  {
@@ -1315,8 +1331,7 @@ public abstract class RestServiceBase {
 
 				if (result.isSuccess())
 				{
-					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + result.getMessage().substring(RTSP.length());
+					String rtspURLWithAuth = getRTSPURLWithAuth(result.getMessage(), broadcast.getUsername(), broadcast.getPassword());
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
 
@@ -1654,9 +1669,9 @@ public abstract class RestServiceBase {
 	/**
 	 * Get the active streams in the room
 	 *
-	 * @param roomId: It's the id of the room
-	 * @param streamId: The id of the room to be extracted from the list. It's generally the publisher stream id in websocket communication
-	 * @param store: Datastore object to run the query
+	 * @param broadcastRoom It's the room broadcast
+	 * @param streamId The id of the room to be extracted from the list. It's generally the publisher stream id in websocket communication
+	 * @param store Datastore object to run the query
 	 *
 	 * @return null if there is no room recorded in the database, returns map filled with the active streams. Key is the streamId, value is the name
 	 */
@@ -1928,7 +1943,7 @@ public abstract class RestServiceBase {
 									vodId = RandomStringUtils.secure().nextAlphanumeric(24);
 									muxer.setVodId(vodId);
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
-									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+									logger.warn("{} recording is {} for stream: {}", recordType, status, streamId);
 								}
 
 							}

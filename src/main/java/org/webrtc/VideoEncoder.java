@@ -245,7 +245,7 @@ public interface VideoEncoder {
     public final BitrateAllocation bitrate;
 
     /**
-     * Target framerate, in fps. A value <= 0.0 is invalid and should be interpreted as framerate
+     * Target framerate, in fps. A value {@code <= 0.0} is invalid and should be interpreted as framerate
      * target not available. In this case the encoder should fall back to the max framerate
      * specified in `codec_settings` of the last InitEncode() call.
      */

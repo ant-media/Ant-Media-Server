@@ -1,14 +1,13 @@
 package io.antmedia.test.launcher;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.Launcher;
 import org.red5.server.scope.WebScope;

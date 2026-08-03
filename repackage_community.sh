@@ -1,5 +1,3 @@
 #!/bin/bash
 
-mvn clean package -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true
-
-
+mvn -s "$MAVEN_SETTINGS_FILE" clean package -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true

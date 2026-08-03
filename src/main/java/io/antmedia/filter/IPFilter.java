@@ -20,7 +20,7 @@ public class IPFilter extends AbstractFilter {
 	protected static Logger log = LoggerFactory.getLogger(IPFilter.class);
 
 	/**
-	 * This filter is being used for accessing applications REST API so that return valid is if {@link #isAllowed) or it's coming from isNodeCommunicationTokenValid
+	 * This filter is being used for accessing applications REST API so that return valid is if {@link #isAllowed(String)} or it's coming from isNodeCommunicationTokenValid
 	 * Check the {@code RestProxyFilter} for getting more information about isNodeCommunicationTokenValid
 	 *
 	 */
