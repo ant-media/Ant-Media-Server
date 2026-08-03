@@ -1,4 +1,4 @@
-package org.red5.server.plugin;
+package io.antmedia.plugin;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -255,10 +255,56 @@ public class PluginDeployerTest {
 
 
     @Test
+    public void testLoadPluginFromZip_declaredIdWins() throws Exception {
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", mockStreamingContext("/LiveApp")));
+        File jar = SpringTestPluginJarBuilder.buildPluginJarWithId("Clip Creator Plugin", "clip-creator");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "clip-creator");
+        File pluginsDir = createTempPluginsDir();
+
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, "clip-creator");
+
+        assertTrue(result.isSuccess());
+        assertNotNull(spy.getPluginRecord("clip-creator"));
+        deleteDir(pluginsDir);
+    }
+
+    /** Installing under an id the jar does not declare would orphan the files at uninstall. */
+    @Test
+    public void testLoadPluginFromZip_idMismatch_fails() throws Exception {
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", mockStreamingContext("/LiveApp")));
+        File jar = SpringTestPluginJarBuilder.buildPluginJarWithId("Clip Creator Plugin", "clip-creator");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "impostor");
+        File pluginsDir = createTempPluginsDir();
+
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, "impostor");
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.getMessage().contains("mismatch"));
+        assertNull(spy.getPluginRecord("impostor"));
+        assertNull(spy.getPluginRecord("clip-creator"));
+        deleteDir(pluginsDir);
+    }
+
+    /** A null expectedId skips the check, which is what the startup scan relies on. */
+    @Test
+    public void testLoadPluginFromZip_nullExpectedId_skipsCheck() throws Exception {
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", mockStreamingContext("/LiveApp")));
+        File jar = SpringTestPluginJarBuilder.buildPluginJarWithId("Clip Creator Plugin", "clip-creator");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "anything");
+        File pluginsDir = createTempPluginsDir();
+
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, null);
+
+        assertTrue(result.isSuccess());
+        assertNotNull(spy.getPluginRecord("clip-creator"));
+        deleteDir(pluginsDir);
+    }
+
+    @Test
     public void testLoadPluginFromZip_noPluginJar_fails() throws Exception {
         File zip = SpringTestPluginJarBuilder.buildZipNoPluginJar();
         File pluginsDir = createTempPluginsDir();
-        Result result = deployer.loadPluginFromZip(zip, pluginsDir);
+        Result result = deployer.loadPluginFromZip(zip, pluginsDir, null);
         assertFalse(result.isSuccess());
         assertTrue(result.getMessage().contains("plugin.jar not found"));
         deleteDir(pluginsDir);
@@ -271,12 +317,12 @@ public class PluginDeployerTest {
 
         PluginDeployer spy = deployerSpy(Map.of("/LiveApp", mockStreamingContext("/LiveApp")));
         File pluginsDir = createTempPluginsDir();
-        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, null);
 
         assertTrue(result.isSuccess());
         assertTrue(result.getMessage().contains("restart required"));
 
-        PluginRecord record = spy.getPluginRecord("Restart Plugin");
+        PluginRecord record = spy.getPluginRecord("restart");
         assertNotNull(record);
         assertEquals(PluginState.INSTALLED_PENDING_RESTART, record.getState());
         deleteDir(pluginsDir);
@@ -291,10 +337,10 @@ public class PluginDeployerTest {
         File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "hot-plugin");
         File pluginsDir = createTempPluginsDir();
 
-        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, null);
         assertTrue(result.isSuccess());
 
-        PluginRecord record = spy.getPluginRecord("Hot Plugin");
+        PluginRecord record = spy.getPluginRecord("hot");
         assertNotNull(record);
         assertEquals(PluginState.ACTIVE, record.getState());
 
@@ -348,12 +394,6 @@ public class PluginDeployerTest {
 
 
     @Test
-    public void testSlugify() {
-        assertEquals("clip-creator-plugin", PluginDeployer.slugify("Clip Creator Plugin"));
-        assertEquals("my-plugin", PluginDeployer.slugify("My Plugin"));
-    }
-
-    @Test
     public void testGetAllPluginRecords_includesZipInstalledPlugins() throws Exception {
         TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
         PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
@@ -362,7 +402,7 @@ public class PluginDeployerTest {
         File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "record-plugin");
         File pluginsDir = createTempPluginsDir();
 
-        spy.loadPluginFromZip(zip, pluginsDir);
+        spy.loadPluginFromZip(zip, pluginsDir, null);
 
         java.util.List<PluginRecord> records = spy.getAllPluginRecords();
         assertFalse(records.isEmpty());
@@ -387,12 +427,12 @@ public class PluginDeployerTest {
         File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "dup-plugin");
         File pluginsDir = createTempPluginsDir();
 
-        Result first = spy.loadPluginFromZip(zip, pluginsDir);
+        Result first = spy.loadPluginFromZip(zip, pluginsDir, null);
         assertTrue(first.isSuccess());
 
         // Second install of the same plugin should fail
         File zip2 = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "dup-plugin2");
-        Result second = spy.loadPluginFromZip(zip2, pluginsDir);
+        Result second = spy.loadPluginFromZip(zip2, pluginsDir, null);
         assertFalse(second.isSuccess());
         assertTrue(second.getMessage().contains("already installed"));
 
@@ -408,20 +448,20 @@ public class PluginDeployerTest {
         File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "removable-plugin");
         File pluginsDir = createTempPluginsDir();
 
-        spy.loadPluginFromZip(zip, pluginsDir);
-        assertNotNull(spy.getPluginRecord("Removable Plugin"));
+        spy.loadPluginFromZip(zip, pluginsDir, null);
+        assertNotNull(spy.getPluginRecord("removable"));
 
         // Verify the flat jar exists
-        String pluginId = spy.getPluginRecord("Removable Plugin").getPluginId();
+        String pluginId = spy.getPluginRecord("removable").getPluginId();
         File flatJar = new File(pluginsDir, pluginId + ".jar");
         assertTrue(flatJar.exists());
 
-        Result result = spy.unloadPluginFromZip("Removable Plugin", pluginsDir);
+        Result result = spy.unloadPluginFromZip("removable", pluginsDir);
         assertTrue(result.isSuccess());
 
         // Record should still exist but in INSTALLED_PENDING_RESTART state
         // (restart needed to fully clean up — Vert.x timers etc.)
-        PluginRecord afterUninstall = spy.getPluginRecord("Removable Plugin");
+        PluginRecord afterUninstall = spy.getPluginRecord("removable");
         assertNotNull(afterUninstall);
         assertEquals(PluginState.INSTALLED_PENDING_RESTART, afterUninstall.getState());
 
@@ -442,10 +482,10 @@ public class PluginDeployerTest {
         PluginDeployer spy = deployerSpy(Map.of("/LiveApp", mockStreamingContext("/LiveApp")));
         File pluginsDir = createTempPluginsDir();
 
-        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, null);
         assertTrue(result.isSuccess());
 
-        PluginRecord record = spy.getPluginRecord("Restart NoScript");
+        PluginRecord record = spy.getPluginRecord("restart-noscript");
         assertEquals(PluginState.INSTALLED_PENDING_RESTART, record.getState());
 
         // Jar should still be at plugins/{id}.jar (no install.sh to move it)
@@ -472,7 +512,7 @@ public class PluginDeployerTest {
             PluginDeployer d = new PluginDeployer();
             d.scanInstalledPlugins();
 
-            PluginRecord record = d.getPluginRecord("Scan Plugin");
+            PluginRecord record = d.getPluginRecord("scan");
             assertNotNull("Scan should find the plugin jar", record);
             assertEquals("Scan Plugin", record.getName());
             assertEquals("1.0.0", record.getVersion());
@@ -543,39 +583,41 @@ public class PluginDeployerTest {
     }
 
     @Test
-    public void testFindPluginRecord_byName() throws Exception {
-        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
-        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
-
-        File jar = SpringTestPluginJarBuilder.buildPluginJar("Find By Name");
-        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "find-by-name");
-        File pluginsDir = createTempPluginsDir();
-        spy.loadPluginFromZip(zip, pluginsDir);
-
-        assertNotNull(spy.findPluginRecord("Find By Name"));
-        deleteDir(pluginsDir);
-    }
-
-    @Test
-    public void testFindPluginRecord_byPluginId() throws Exception {
+    public void testGetPluginRecord_byPluginId() throws Exception {
         TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
         PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
 
         File jar = SpringTestPluginJarBuilder.buildPluginJar("Find By Id");
         File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "find-by-id");
         File pluginsDir = createTempPluginsDir();
-        spy.loadPluginFromZip(zip, pluginsDir);
+        spy.loadPluginFromZip(zip, pluginsDir, null);
 
-        PluginRecord record = spy.getPluginRecord("Find By Id");
+        PluginRecord record = spy.getPluginRecord("find-by-id");
         assertNotNull(record);
-        assertNotNull(spy.findPluginRecord(record.getPluginId()));
+        assertEquals("find-by-id", record.getPluginId());
+        deleteDir(pluginsDir);
+    }
+
+    /** Records are keyed by id, so the display name must not resolve one. */
+    @Test
+    public void testGetPluginRecord_displayNameDoesNotResolve() throws Exception {
+        TomcatApplicationContext ctx = mockStreamingContext("/LiveApp");
+        PluginDeployer spy = deployerSpy(Map.of("/LiveApp", ctx));
+
+        File jar = SpringTestPluginJarBuilder.buildPluginJar("Find By Name");
+        File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "find-by-name");
+        File pluginsDir = createTempPluginsDir();
+        spy.loadPluginFromZip(zip, pluginsDir, null);
+
+        assertNull(spy.getPluginRecord("Find By Name"));
+        assertNotNull(spy.getPluginRecord("find-by-name"));
         deleteDir(pluginsDir);
     }
 
     @Test
-    public void testFindPluginRecord_notFound() {
-        assertNull(deployer.findPluginRecord("nonexistent"));
-        assertNull(deployer.findPluginRecord(null));
+    public void testGetPluginRecord_notFound() {
+        assertNull(deployer.getPluginRecord("nonexistent"));
+        assertNull(deployer.getPluginRecord(null));
     }
 
     @Test
@@ -701,11 +743,11 @@ public class PluginDeployerTest {
         }
 
         File pluginsDir = createTempPluginsDir();
-        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, null);
         assertTrue("Install with script should succeed: " + result.getMessage(), result.isSuccess());
 
         // Verify uninstall.sh was copied to canonical dir
-        PluginRecord record = spy.getPluginRecord("Script Plugin");
+        PluginRecord record = spy.getPluginRecord("script");
         assertNotNull(record);
         File canonicalDir = new File(pluginsDir, record.getPluginId());
         assertTrue(new File(canonicalDir, "uninstall.sh").exists());
@@ -741,11 +783,11 @@ public class PluginDeployerTest {
         }
 
         File pluginsDir = createTempPluginsDir();
-        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, null);
         assertFalse(result.isSuccess());
         assertTrue(result.getMessage().contains("install.sh failed"));
 
-        PluginRecord record = spy.getPluginRecord("Fail Script");
+        PluginRecord record = spy.getPluginRecord("fail-script");
         assertNotNull(record);
         assertEquals(PluginState.FAILED, record.getState());
 
@@ -777,16 +819,16 @@ public class PluginDeployerTest {
         }
 
         File pluginsDir = createTempPluginsDir();
-        spy.loadPluginFromZip(zip, pluginsDir);
+        spy.loadPluginFromZip(zip, pluginsDir, null);
 
-        PluginRecord record = spy.getPluginRecord("Uninstall Script");
+        PluginRecord record = spy.getPluginRecord("uninstall-script");
         assertNotNull(record);
 
         // Verify uninstall.sh exists in canonical dir
         File canonicalDir = new File(pluginsDir, record.getPluginId());
         assertTrue(new File(canonicalDir, "uninstall.sh").exists());
 
-        Result result = spy.unloadPluginFromZip("Uninstall Script", pluginsDir);
+        Result result = spy.unloadPluginFromZip("uninstall-script", pluginsDir);
         assertTrue(result.isSuccess());
 
         // Canonical dir should be deleted
@@ -845,7 +887,7 @@ public class PluginDeployerTest {
         File jar = SpringTestPluginJarBuilder.buildPluginJar("Active Plugin");
         File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "active-plugin");
         File pluginsDir = createTempPluginsDir();
-        spy.loadPluginFromZip(zip, pluginsDir);
+        spy.loadPluginFromZip(zip, pluginsDir, null);
 
         // ACTIVE state should block reinstall
         assertTrue(spy.isDuplicateInstall("Active Plugin"));
@@ -880,10 +922,10 @@ public class PluginDeployerTest {
         }
 
         File pluginsDir = createTempPluginsDir();
-        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, null);
         assertFalse("Install should fail due to script", result.isSuccess());
 
-        PluginRecord record = spy.getPluginRecord("Will Fail");
+        PluginRecord record = spy.getPluginRecord("will-fail");
         assertNotNull(record);
         assertEquals(PluginState.FAILED, record.getState());
 
@@ -914,7 +956,7 @@ public class PluginDeployerTest {
             PluginDeployer d = new PluginDeployer();
             d.scanInstalledPlugins();
 
-            PluginRecord record = d.getPluginRecord("Webapp Plugin");
+            PluginRecord record = d.getPluginRecord("webapp");
             assertNotNull("Should find plugin in webapp WEB-INF/lib", record);
             assertEquals("2.0.0", record.getVersion());
             assertTrue(record.getJarPath().contains("WEB-INF/lib"));
@@ -943,7 +985,7 @@ public class PluginDeployerTest {
             PluginDeployer d = new PluginDeployer();
             d.scanInstalledPlugins();
 
-            assertNull("Should not find plugin in root webapp", d.getPluginRecord("Root Plugin"));
+            assertNull("Should not find plugin in root webapp", d.getPluginRecord("root"));
             deleteDir(amsHome);
         } finally {
             if (oldRoot != null) System.setProperty("red5.root", oldRoot);
@@ -1011,7 +1053,7 @@ public class PluginDeployerTest {
             fail(e.getMessage());
         }
 
-        Result result = deployer.loadPluginFromZip(notAZip, pluginsDir);
+        Result result = deployer.loadPluginFromZip(notAZip, pluginsDir, null);
         // Should fail — either "plugin.jar not found" or "Failed to extract"
         assertFalse(result.isSuccess());
         deleteDir(pluginsDir);
@@ -1027,10 +1069,10 @@ public class PluginDeployerTest {
         File zip1 = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "dup-zip-1");
         File zip2 = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "dup-zip-2");
 
-        Result first = spy.loadPluginFromZip(zip1, pluginsDir);
+        Result first = spy.loadPluginFromZip(zip1, pluginsDir, null);
         assertTrue(first.isSuccess());
 
-        Result second = spy.loadPluginFromZip(zip2, pluginsDir);
+        Result second = spy.loadPluginFromZip(zip2, pluginsDir, null);
         assertFalse(second.isSuccess());
         assertTrue(second.getMessage().contains("already installed"));
 
@@ -1124,10 +1166,10 @@ public class PluginDeployerTest {
         }
 
         File pluginsDir = createTempPluginsDir();
-        Result result = spy.loadPluginFromZip(zip, pluginsDir);
+        Result result = spy.loadPluginFromZip(zip, pluginsDir, null);
         assertTrue(result.isSuccess());
 
-        PluginRecord record = spy.getPluginRecord("Copy Test");
+        PluginRecord record = spy.getPluginRecord("copy-test");
         File canonicalDir = new File(pluginsDir, record.getPluginId());
         assertTrue(new File(canonicalDir, "uninstall.sh").exists());
         assertTrue(new File(canonicalDir, "assets/config.txt").exists());
@@ -1332,7 +1374,7 @@ public class PluginDeployerTest {
             doReturn(Map.of("/LiveApp", ctx)).when(d).getApplicationContexts();
             d.scanInstalledPlugins();
 
-            PluginRecord record = d.getPluginRecord("Startup Plugin");
+            PluginRecord record = d.getPluginRecord("startup");
             assertNotNull(record);
             assertNotNull(record.getJarPath());
 
@@ -1383,7 +1425,7 @@ public class PluginDeployerTest {
             doReturn(Map.of("/LiveApp", ctx)).when(d).getApplicationContexts();
             d.scanInstalledPlugins();
 
-            PluginRecord r = d.getPluginRecord("Startup Rest Plugin");
+            PluginRecord r = d.getPluginRecord("startup-rest");
             assertNotNull(r);
 
             Result result = d.unloadPlugin(r.getPluginId());
@@ -1465,13 +1507,6 @@ public class PluginDeployerTest {
     }
 
     @Test
-    public void testSlugify_nullAndEmpty() {
-        assertEquals("", PluginDeployer.slugify(null));
-        assertEquals("", PluginDeployer.slugify("!!!"));
-        assertEquals("abc", PluginDeployer.slugify("  --abc--  "));
-    }
-
-    @Test
     public void testResolveRestKey_multiSegment() {
         @jakarta.ws.rs.Path("/a/b/last") class C { }
         assertEquals("last", PluginDeployer.resolveRestKey(C.class));
@@ -1500,7 +1535,7 @@ public class PluginDeployerTest {
             zos.closeEntry();
         }
 
-        Result result = deployer.loadPluginFromZip(zip, pluginsDir);
+        Result result = deployer.loadPluginFromZip(zip, pluginsDir, null);
         assertFalse(result.isSuccess());
         deleteDir(pluginsDir);
         deleteDir(zipDir);
@@ -1531,8 +1566,8 @@ public class PluginDeployerTest {
         }
 
         File pluginsDir = createTempPluginsDir();
-        spy.loadPluginFromZip(zip, pluginsDir);
-        Result result = spy.unloadPluginFromZip("Noisy Uninstall", pluginsDir);
+        spy.loadPluginFromZip(zip, pluginsDir, null);
+        Result result = spy.unloadPluginFromZip("noisy-uninstall", pluginsDir);
         assertTrue(result.isSuccess());
         deleteDir(zipDir);
         deleteDir(pluginsDir);
@@ -1546,14 +1581,14 @@ public class PluginDeployerTest {
         File jar = SpringTestPluginJarBuilder.buildPluginJar("Gone Jar");
         File zip = SpringTestPluginJarBuilder.wrapJarAsZip(jar, "gone-jar");
         File pluginsDir = createTempPluginsDir();
-        spy.loadPluginFromZip(zip, pluginsDir);
+        spy.loadPluginFromZip(zip, pluginsDir, null);
 
-        PluginRecord record = spy.getPluginRecord("Gone Jar");
+        PluginRecord record = spy.getPluginRecord("gone-jar");
         assertNotNull(record);
         // Manually delete the flat jar BEFORE unload — exercise the "jar missing" warn path
         new File(pluginsDir, record.getPluginId() + ".jar").delete();
 
-        Result result = spy.unloadPluginFromZip("Gone Jar", pluginsDir);
+        Result result = spy.unloadPluginFromZip("gone-jar", pluginsDir);
         assertTrue(result.isSuccess());
         deleteDir(pluginsDir);
     }

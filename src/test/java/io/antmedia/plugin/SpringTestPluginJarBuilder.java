@@ -1,4 +1,4 @@
-package org.red5.server.plugin;
+package io.antmedia.plugin;
 
 import io.antmedia.test.plugin.MinimalSpringComponent;
 import io.antmedia.test.plugin.MinimalSpringRestComponent;
@@ -98,6 +98,18 @@ public class SpringTestPluginJarBuilder {
     public static File buildPluginJarRequiresRestart(String pluginName) throws Exception {
         File jar = tempFile(pluginName + ".jar");
         Manifest manifest = pluginManifest(pluginName, "1.0.0", "Test Author", null, true);
+        Set<String> addedDirs = new HashSet<>();
+        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), manifest)) {
+            addClass(out, MinimalSpringComponent.class, addedDirs);
+        }
+        return jar;
+    }
+
+    /** Builds a JAR that declares {@code AMS-Plugin-Id} instead of relying on the name fallback. */
+    public static File buildPluginJarWithId(String pluginName, String pluginId) throws Exception {
+        File jar = tempFile(pluginId + ".jar");
+        Manifest manifest = pluginManifest(pluginName, "1.0.0", "Test Author", null, false);
+        manifest.getMainAttributes().putValue("AMS-Plugin-Id", pluginId);
         Set<String> addedDirs = new HashSet<>();
         try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), manifest)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);

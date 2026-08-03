@@ -1,23 +1,32 @@
 package io.antmedia.console.rest;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Map;
 
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import io.antmedia.AppSettings;
+import io.antmedia.console.plugin.PluginService;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
+import io.antmedia.filter.JWTFilter;
+import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
@@ -58,6 +67,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Component
 @Path("/v2")
 public class RestServiceV2 extends CommonRestService {
+
+	private PluginService pluginService;
 
 	@Operation(summary = "Creates a new user",
             description = "Creates a new user. If user object is null or if user is not authenticated, new user won't be created.",
@@ -625,24 +636,23 @@ public class RestServiceV2 extends CommonRestService {
 	@GET
 	@Path("/plugins")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<io.antmedia.plugin.api.PluginRecord> getPlugins() {
-		return super.getPlugins();
+	public List<PluginRecord> getPlugins() {
+		return pluginService.list();
 	}
 
-	@Operation(summary = "Deploy a plugin from an uploaded ZIP",
-			responses = {@ApiResponse(responseCode = "200", description = "Plugin deployed")})
+	@Operation(summary = "Install a plugin from an uploaded ZIP",
+			responses = {@ApiResponse(responseCode = "200", description = "Plugin installed")})
 	@PUT
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
-	@Path("/plugins/{pluginName}")
+	@Path("/plugins/{pluginId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deployPlugin(
-			@Parameter(description = "Slugified plugin name (alphanumeric, dashes, underscores)", required = true)
-			@PathParam("pluginName") String pluginName,
+			@Parameter(description = "Plugin id, must match AMS-Plugin-Id in the plugin's manifest", required = true)
+			@PathParam("pluginId") String pluginId,
 			@Parameter(description = "Plugin ZIP file", required = true)
 			@FormDataParam("file") InputStream inputStream) {
-		logger.info("Plugin deploy request received for {}",
-				pluginName != null ? pluginName.replaceAll("[\\r\\n]", "_") : "null");
-		return super.deployPlugin(pluginName, inputStream);
+		logger.info("Plugin install request received for {}", sanitize(pluginId));
+		return pluginService.install(pluginId, inputStream);
 	}
 
 	@Operation(summary = "Install a plugin from a remote URL",
@@ -651,25 +661,23 @@ public class RestServiceV2 extends CommonRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/plugins/install-from-url")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result installPluginFromUrl(java.util.Map<String, String> body) {
+	public Result installPluginFromUrl(Map<String, String> body) {
 		String pluginId = body != null ? body.get("id") : null;
 		String downloadUrl = body != null ? body.get("downloadUrl") : null;
-		logger.info("Plugin install-from-url request: id={}",
-				pluginId != null ? pluginId.replaceAll("[\\r\\n]", "_") : "null");
-		return super.installPluginFromUrl(pluginId, downloadUrl);
+		logger.info("Plugin install-from-url request: id={}", sanitize(pluginId));
+		return pluginService.installFromUrl(pluginId, downloadUrl);
 	}
 
-	@Operation(summary = "Undeploy a plugin",
-			responses = {@ApiResponse(responseCode = "200", description = "Plugin undeployed")})
+	@Operation(summary = "Uninstall a plugin",
+			responses = {@ApiResponse(responseCode = "200", description = "Plugin uninstalled")})
 	@DELETE
-	@Path("/plugins/{pluginName}")
+	@Path("/plugins/{pluginId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result undeployPlugin(
-			@Parameter(description = "Slugified plugin name", required = true)
-			@PathParam("pluginName") String pluginName) {
-		logger.info("Plugin undeploy request received for {}",
-				pluginName != null ? pluginName.replaceAll("[\\r\\n]", "_") : "null");
-		return super.undeployPlugin(pluginName);
+			@Parameter(description = "Plugin id", required = true)
+			@PathParam("pluginId") String pluginId) {
+		logger.info("Plugin uninstall request received for {}", sanitize(pluginId));
+		return pluginService.uninstall(pluginId);
 	}
 
 	@Operation(summary = "Stream a plugin ZIP for cluster-to-cluster download (JWT-authenticated)",
@@ -677,13 +685,43 @@ public class RestServiceV2 extends CommonRestService {
 					@ApiResponse(responseCode = "403", description = "Invalid or missing JWT"),
 					@ApiResponse(responseCode = "404", description = "Plugin not found")})
 	@GET
-	@Path("/plugins/{pluginName}/download")
+	@Path("/plugins/{pluginId}/download")
 	public Response downloadPlugin(
-			@Parameter(description = "Slugified plugin name", required = true)
-			@PathParam("pluginName") String pluginName,
+			@Parameter(description = "Plugin id", required = true)
+			@PathParam("pluginId") String pluginId,
 			@Parameter(description = "Cluster authorization JWT", required = true)
-			@HeaderParam(io.antmedia.filter.TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION) String authToken) {
-		return super.downloadPlugin(pluginName, authToken);
+			@HeaderParam(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION) String authToken) {
+
+		String secret = getApplication().getClusterCommunicationKey();
+		if (secret == null || authToken == null || !JWTFilter.isJWTTokenValid(secret, authToken)) {
+			return Response.status(Status.FORBIDDEN).build();
+		}
+
+		File zipFile = pluginService.resolveZipForDownload(pluginId);
+		if (zipFile == null) {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+
+		try {
+			return Response.ok(new FileInputStream(zipFile))
+					.header("Content-Disposition", "attachment; filename=\"" + pluginId + ".zip\"")
+					.header("Content-Length", zipFile.length())
+					.type("application/zip")
+					.build();
+		} catch (FileNotFoundException e) {
+			logger.error("Plugin ZIP disappeared before it could be streamed: {}", zipFile.getAbsolutePath());
+			return Response.status(Status.NOT_FOUND).build();
+		}
+	}
+
+	/** Strips CR/LF so a caller-supplied id cannot forge log lines. */
+	private static String sanitize(String value) {
+		return value != null ? value.replaceAll("[\\r\\n]", "_") : "null";
+	}
+
+	@Autowired
+	public void setPluginService(PluginService pluginService) {
+		this.pluginService = pluginService;
 	}
 
 }

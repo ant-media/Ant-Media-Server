@@ -1,4 +1,4 @@
-package org.red5.server.plugin;
+package io.antmedia.plugin;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -37,6 +37,7 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Component;
 
+import io.antmedia.plugin.api.PluginId;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.plugin.api.PluginState;
 import io.antmedia.rest.RestServiceBase;
@@ -58,6 +59,7 @@ public class PluginDeployer {
 
     private static final Logger log = LoggerFactory.getLogger(PluginDeployer.class);
 
+    public static final String MANIFEST_PLUGIN_ID = "AMS-Plugin-Id";
     public static final String MANIFEST_PLUGIN_NAME = "AMS-Plugin-Name";
     public static final String MANIFEST_PLUGIN_VERSION = "AMS-Plugin-Version";
     public static final String MANIFEST_PLUGIN_AUTHOR = "AMS-Plugin-Author";
@@ -67,15 +69,25 @@ public class PluginDeployer {
     public static final String MANIFEST_PLUGIN_INSTALL_SCRIPT = "AMS-Plugin-Install-Script";
     public static final String SCAN_BASE_PACKAGE = "io.antmedia";
 
+    // All three maps are keyed by the plugin id (AMS-Plugin-Id), which is also the jar filename.
     private final ConcurrentHashMap<String, List<String>> springPluginBeanNames = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, PluginRecord> pluginRecords = new ConcurrentHashMap<>();
 
+    // Recorded at load time so uninstall can drop the plugin's JAX-RS resources. Scanning the
+    // jar again at unload time only works for startup-loaded plugins, which is why hot-loaded
+    // plugins used to keep their endpoints registered after being removed.
+    private final ConcurrentHashMap<String, List<Class<?>>> pluginRestClasses = new ConcurrentHashMap<>();
+
     /**
-     * Deploys a plugin from a ZIP file. Extracts, validates manifest, runs install.sh if
-     * present, copies jar to {@code {pluginsDir}/{pluginId}.jar}, and either hot-loads or
-     * defers to next restart based on the manifest's {@code AMS-Plugin-Requires-Restart}.
+     * Deploys a plugin from a ZIP file. Extracts, validates the manifest, copies the jar to
+     * {@code {pluginsDir}/{id}.jar}, runs install.sh if present, and either hot-loads or
+     * defers to the next restart based on {@code AMS-Plugin-Requires-Restart}.
+     *
+     * @param expectedId the id the caller addressed this plugin by, or {@code null} to accept
+     *                   whatever the manifest declares. When given, the manifest must agree —
+     *                   this is what makes installing one plugin under two ids impossible.
      */
-    public Result loadPluginFromZip(File zipFile, File pluginsDir) {
+    public Result loadPluginFromZip(File zipFile, File pluginsDir, String expectedId) {
         File extractDir = null;
         try {
             extractDir = extractZip(zipFile);
@@ -96,20 +108,24 @@ public class PluginDeployer {
             Attributes attrs = readManifestAttributes(pluginJar);
             String pluginName = attrs.getValue(MANIFEST_PLUGIN_NAME);
             String pluginVersion = attrs.getValue(MANIFEST_PLUGIN_VERSION);
+            String pluginId = resolvePluginId(attrs);
             boolean requiresRestart = "true".equalsIgnoreCase(attrs.getValue(MANIFEST_PLUGIN_REQUIRES_RESTART));
 
-            if (isDuplicateInstall(pluginName)) {
-                return new Result(false, "Plugin already installed: " + pluginName);
+            if (expectedId != null && !expectedId.equals(pluginId)) {
+                return new Result(false, "Plugin id mismatch: installed as '" + expectedId
+                        + "' but the plugin declares '" + pluginId + "'");
+            }
+
+            if (isDuplicateInstall(pluginId)) {
+                return new Result(false, "Plugin already installed: " + pluginId);
             }
 
             PluginRecord record = buildPluginRecord(attrs);
             record.setState(PluginState.INSTALLING);
-            pluginRecords.put(pluginName, record);
-
-            String pluginId = record.getPluginId();
+            pluginRecords.put(pluginId, record);
 
             // Copy artifacts first, then run install.sh — so the script can see the
-            // final jar at plugins/{pluginId}.jar and delete/move it if needed
+            // final jar at plugins/{id}.jar and delete/move it if needed
             // (e.g. LL-HLS moves it to WEB-INF/lib/ and removes it from plugins/).
             File jarInPluginsDir = new File(pluginsDir, pluginId + ".jar");
             copyFile(pluginJar, jarInPluginsDir);
@@ -162,7 +178,7 @@ public class PluginDeployer {
                             jarInPluginsDir.getAbsolutePath());
                 }
                 deleteDirectory(canonicalDir);
-                pluginRecords.remove(pluginName);
+                pluginRecords.remove(pluginId);
             }
             return loadResult;
 
@@ -177,52 +193,60 @@ public class PluginDeployer {
     }
 
     /**
-     * Unloads a plugin installed via ZIP: destroys beans, runs uninstall.sh, deletes
-     * the jar and the metadata subdirectory.
+     * Unloads a plugin installed via ZIP: destroys beans, runs uninstall.sh, deletes the jar
+     * and the metadata subdirectory.
+     *
+     * <p>Reports what actually happened. An unknown id is a failure — previously this method
+     * returned success unconditionally, so uninstalling a plugin that could not be found
+     * reported success while doing nothing at all.</p>
      */
-    public Result unloadPluginFromZip(String pluginName, File pluginsDir) {
-        PluginRecord record = findPluginRecord(pluginName);
-        String pluginId = record != null ? record.getPluginId() : slugify(pluginName);
+    public Result unloadPluginFromZip(String pluginId, File pluginsDir) {
+        PluginRecord record = pluginRecords.get(pluginId);
+        if (record == null) {
+            return new Result(false, "Plugin not found: " + pluginId);
+        }
 
-        // Try to unload beans — will fail silently if plugin was loaded by Spring
-        // component scan (after restart) rather than by PluginDeployer
-        unloadPlugin(pluginId);
+        // A plugin loaded by Spring's component scan at boot was never registered here, so the
+        // in-memory unload can legitimately fail. The files still have to go either way.
+        Result unloadResult = unloadPlugin(pluginId);
 
-        if (record != null) {
-            String pid = record.getPluginId();
-            File canonicalDir = new File(pluginsDir, pid);
-            File uninstallSh = new File(canonicalDir, "uninstall.sh");
+        File canonicalDir = new File(pluginsDir, pluginId);
+        File uninstallSh = new File(canonicalDir, "uninstall.sh");
 
-            // Run uninstall.sh if present — handles WEB-INF/lib cleanup for
-            // restart-required plugins
-            if (uninstallSh.exists()) {
-                File jarFile = record.getJarPath() != null
-                        ? new File(record.getJarPath())
-                        : new File(pluginsDir, pid + ".jar");
-                int exitCode = runInstallScript(uninstallSh, canonicalDir, record.getName(),
-                        record.getVersion(), jarFile, pid);
-                if (exitCode != 0) {
-                    log.warn("uninstall.sh for {} exited with code {}", pluginName, exitCode);
-                }
+        if (uninstallSh.exists()) {
+            File jarFile = record.getJarPath() != null
+                    ? new File(record.getJarPath())
+                    : new File(pluginsDir, pluginId + ".jar");
+            int exitCode = runInstallScript(uninstallSh, canonicalDir, record.getName(),
+                    record.getVersion(), jarFile, pluginId);
+            if (exitCode != 0) {
+                log.warn("uninstall.sh for {} exited with code {}", pluginId, exitCode);
             }
+        }
 
-            // Delete the jar wherever it is — plugins/ or WEB-INF/lib/
-            if (record.getJarPath() != null) {
-                File jarFile = new File(record.getJarPath());
-                if (jarFile.exists() && !jarFile.delete()) {
-                    log.warn("Failed to delete plugin jar: {}", jarFile.getAbsolutePath());
-                }
+        // Delete the jar wherever it is — plugins/ or WEB-INF/lib/
+        if (record.getJarPath() != null) {
+            File jarFile = new File(record.getJarPath());
+            if (jarFile.exists() && !jarFile.delete()) {
+                log.warn("Failed to delete plugin jar: {}", jarFile.getAbsolutePath());
             }
+        }
 
-            // Also try the flat jar in plugins/ in case jarPath wasn't set
-            File flatJar = new File(pluginsDir, pid + ".jar");
-            if (flatJar.exists() && !flatJar.delete()) {
-                log.warn("Failed to delete plugin jar: {}", flatJar.getAbsolutePath());
-            }
+        // Also try the flat jar in plugins/ in case jarPath wasn't set
+        File flatJar = new File(pluginsDir, pluginId + ".jar");
+        if (flatJar.exists() && !flatJar.delete()) {
+            log.warn("Failed to delete plugin jar: {}", flatJar.getAbsolutePath());
+        }
 
-            deleteDirectory(canonicalDir);
-            record.setState(PluginState.INSTALLED_PENDING_RESTART);
-            record.setLastError("Uninstalled — restart server to fully clean up");
+        deleteDirectory(canonicalDir);
+        record.setState(PluginState.UNINSTALLED_PENDING_RESTART);
+        record.setLastError(null);
+
+        if (!unloadResult.isSuccess()) {
+            log.warn("Removed files for {} but the in-memory unload was incomplete: {}",
+                    pluginId, unloadResult.getMessage());
+            return new Result(true, "Plugin files removed. Restart server to fully clean up — "
+                    + "some components could not be unloaded: " + unloadResult.getMessage());
         }
 
         return new Result(true, "Plugin removed. Restart server to fully clean up.");
@@ -367,6 +391,8 @@ public class PluginDeployer {
         springPluginBeanNames.put(pluginId, registeredBeanNames);
 
         if (!restClasses.isEmpty()) {
+            // Remembered so uninstall can drop these resources again — see pluginRestClasses.
+            pluginRestClasses.put(pluginId, restClasses);
             reloadJersey(restClasses);
         }
 
@@ -386,8 +412,12 @@ public class PluginDeployer {
         List<String> beanNames = springPluginBeanNames.get(pluginId);
 
         // For startup-loaded plugins, scan the jar to find bean names
-        PluginRecord record = findPluginRecord(pluginId);
-        List<Class<?>> restClassesToRemove = new ArrayList<>();
+        PluginRecord record = pluginRecords.get(pluginId);
+
+        // Hot-loaded plugins already had their JAX-RS classes recorded at load time. Without
+        // this the list stayed empty for them and their endpoints outlived the uninstall.
+        List<Class<?>> restClassesToRemove =
+                new ArrayList<>(pluginRestClasses.getOrDefault(pluginId, List.of()));
 
         if (beanNames == null && record != null && record.getJarPath() != null) {
             beanNames = new ArrayList<>();
@@ -470,6 +500,7 @@ public class PluginDeployer {
         }
 
         springPluginBeanNames.remove(pluginId);
+        pluginRestClasses.remove(pluginId);
 
         // Reload Jersey without the plugin's REST classes
         if (!restClassesToRemove.isEmpty()) {
@@ -573,6 +604,11 @@ public class PluginDeployer {
         if (attrs.getValue(MANIFEST_PLUGIN_AUTHOR) == null) {
             return new Result(false, "Missing " + MANIFEST_PLUGIN_AUTHOR + " in MANIFEST.MF");
         }
+        String pluginId = resolvePluginId(attrs);
+        if (!PluginId.isValid(pluginId)) {
+            return new Result(false, MANIFEST_PLUGIN_ID + " '" + pluginId
+                    + "' is not valid. It must match " + PluginId.RULE);
+        }
         String requiresVersion = attrs.getValue(MANIFEST_PLUGIN_REQUIRES_VERSION);
         if (requiresVersion != null && !requiresVersion.isEmpty()) {
             Version amsVersion = RestServiceBase.getSoftwareVersion();
@@ -592,15 +628,27 @@ public class PluginDeployer {
         record.setDescription(attrs.getValue(MANIFEST_PLUGIN_DESCRIPTION));
         record.setRequiresVersion(attrs.getValue(MANIFEST_PLUGIN_REQUIRES_VERSION));
         record.setRequiresRestart("true".equalsIgnoreCase(attrs.getValue(MANIFEST_PLUGIN_REQUIRES_RESTART)));
-        record.setPluginId(slugify(record.getName()) + "-" + record.getVersion());
+        record.setPluginId(resolvePluginId(attrs));
         return record;
     }
 
-    boolean isDuplicateInstall(String pluginName) {
-        PluginRecord existing = pluginRecords.get(pluginName);
+    /**
+     * The plugin's machine identity: {@code AMS-Plugin-Id} when declared, otherwise derived
+     * from the display name so jars packaged before that entry existed still install.
+     */
+    static String resolvePluginId(Attributes attrs) {
+        String declared = attrs.getValue(MANIFEST_PLUGIN_ID);
+        if (declared != null && !declared.trim().isEmpty()) {
+            return declared.trim();
+        }
+        return PluginId.fromName(attrs.getValue(MANIFEST_PLUGIN_NAME));
+    }
+
+    boolean isDuplicateInstall(String pluginId) {
+        PluginRecord existing = pluginRecords.get(pluginId);
         if (existing == null) return false;
         PluginState state = existing.getState();
-        return state != PluginState.FAILED && state != PluginState.UNINSTALLED;
+        return state != PluginState.FAILED && state != PluginState.UNINSTALLED_PENDING_RESTART;
     }
 
     static String resolveBeanName(Class<?> clazz) {
@@ -637,38 +685,13 @@ public class PluginDeployer {
         }
     }
 
-    static String slugify(String name) {
-        if (name == null) return "";
-        return name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
-    }
-
     public Set<String> getPluginNames() {
         return Collections.unmodifiableSet(springPluginBeanNames.keySet());
     }
 
-    public PluginRecord getPluginRecord(String pluginName) {
-        return pluginRecords.get(pluginName);
-    }
-
-    /**
-     * Finds a plugin record by exact name, pluginId, or slug match.
-     * Needed because REST calls use the URL slug (e.g. "clip-creator")
-     * while pluginRecords is keyed by the manifest name (e.g. "Clip Creator Plugin").
-     */
-    PluginRecord findPluginRecord(String query) {
-        if (query == null) return null;
-
-        // Exact match by manifest name
-        PluginRecord record = pluginRecords.get(query);
-        if (record != null) return record;
-
-        // Match by pluginId (what the UI sends for uninstall)
-        for (PluginRecord r : pluginRecords.values()) {
-            if (query.equals(r.getPluginId())) {
-                return r;
-            }
-        }
-        return null;
+    public PluginRecord getPluginRecord(String pluginId) {
+        // pluginRecords is a ConcurrentHashMap, which throws on a null key
+        return pluginId != null ? pluginRecords.get(pluginId) : null;
     }
 
     public List<PluginRecord> getAllPluginRecords() {
@@ -719,15 +742,23 @@ public class PluginDeployer {
                 String pluginName = attrs.getValue(MANIFEST_PLUGIN_NAME);
                 if (pluginName == null || pluginName.isEmpty()) continue;
 
+                // Identity comes from the manifest, never from the filename — that is what lets a
+                // hand-dropped jar and an installed one resolve to the same plugin.
+                String pluginId = resolvePluginId(attrs);
+                if (!PluginId.isValid(pluginId)) {
+                    log.warn("Skipping {}: invalid {} '{}'", jar.getName(), MANIFEST_PLUGIN_ID, pluginId);
+                    continue;
+                }
+
                 // Skip if we already have a record for this plugin
-                if (pluginRecords.containsKey(pluginName)) continue;
+                if (pluginRecords.containsKey(pluginId)) continue;
 
                 PluginRecord record = buildPluginRecord(attrs);
                 record.setState(PluginState.ACTIVE);
                 record.setJarPath(jar.getAbsolutePath());
-                pluginRecords.put(pluginName, record);
+                pluginRecords.put(pluginId, record);
 
-                log.info("Found installed plugin: {} v{} in {}", pluginName,
+                log.info("Found installed plugin: {} ({}) v{} in {}", pluginName, pluginId,
                         record.getVersion(), jar.getAbsolutePath());
             } catch (Exception e) {
                 log.debug("Skipping jar {}: {}", jar.getName(), e.getMessage());
