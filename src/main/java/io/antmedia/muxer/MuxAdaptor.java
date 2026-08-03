@@ -20,7 +20,6 @@ import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -204,7 +203,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * Value is the system time at that moment
 	 *
 	 */
-	private Deque<PacketTime> packetTimeList = new ConcurrentLinkedDeque<>();
+	private static final int QUALITY_SAMPLE_WINDOW_SIZE = 300;
+	private final Object packetTimeLock = new Object();
+	private final long[] packetTimeMs = new long[QUALITY_SAMPLE_WINDOW_SIZE];
+	private final long[] packetSystemTimeMs = new long[QUALITY_SAMPLE_WINDOW_SIZE];
+	private int packetTimeStart;
+	private int packetTimeCount;
 
 	private long lastDTS = -1;
 	private int overflowCount = 0;
@@ -984,22 +988,27 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public void updateStreamQualityParameters(String streamId, double speed) {
 		long now = System.currentTimeMillis();
-		
-		int inputQueueSize = getInputQueueSize();
+		updateStreamQualityParameters(streamId, speed, now);
+	}
 
+	private void updateStreamQualityParameters(String streamId, double speed, long now) {
 		latestSpeed = speed;
-		//round the number to three decimal places,
-		double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
+		boolean qualityUpdateDue = (now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS || (lastQualityUpdateTime == 0 && speed > 0.8);
+		long webhookStreamStatusUpdatePeriod = appSettings.getWebhookStreamStatusUpdatePeriodMs();
+		boolean webhookUpdateDue = webhookStreamStatusUpdatePeriod != -1 && (now - lastWebhookStreamStatusUpdateTime) > webhookStreamStatusUpdatePeriod;
 
-		//increase updating time to STAT_UPDATE_PERIOD_MS seconds because it may cause some issues in mongodb updates 
-		//or 
-		//update before STAT_UPDATE_PERIOD_MS if speed something meaningful
-		
+		if (!qualityUpdateDue && !webhookUpdateDue) {
+			return;
+		}
+
+		int inputQueueSize = getInputQueueSize();
 		int encodingQueueSize = getEncodingQueueSize();
 		int dropFrameCountInEncoding = getDroppedFrameCountInEncoding();
 		int dropPacketCountInIngestion = getDroppedPacketCountInIngestion();
-		
-		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS || (lastQualityUpdateTime == 0 && speed > 0.8)) 
+		// Round only when a report will consume the value.
+		double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
+
+		if (qualityUpdateDue)
 		{
 			
 			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, roundedSpeed, streamId);
@@ -1030,8 +1039,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			getStreamHandler().setQualityParameters(streamId, publishStatsEvent, now);
 		}
 		
-		long webhookStreamStatusUpdatePeriod = appSettings.getWebhookStreamStatusUpdatePeriodMs();
-		if (webhookStreamStatusUpdatePeriod != -1 && (now - lastWebhookStreamStatusUpdateTime) > webhookStreamStatusUpdatePeriod) {
+		if (webhookUpdateDue) {
 			lastWebhookStreamStatusUpdateTime = now;
 			getStreamHandler().notifyWebhookForStreamStatus(getBroadcast(), width, height, totalByteReceived, inputQueueSize, encodingQueueSize, dropFrameCountInEncoding, dropPacketCountInIngestion, roundedSpeed);
 		}
@@ -1709,29 +1717,35 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			return;
 		}
 		long packetTime = av_rescale_q(pts, timebase, TIME_BASE_FOR_MS);
-		packetTimeList.add(new PacketTime(packetTime, System.currentTimeMillis()));
-
-
-		if (packetTimeList.size() > 300) {
-			//limit the size.
-			packetTimeList.removeFirst();
+		long systemTime;
+		long firstPacketTime;
+		long firstPacketSystemTime;
+		synchronized (packetTimeLock) {
+			systemTime = System.currentTimeMillis();
+			int writeIndex = (packetTimeStart + packetTimeCount) % QUALITY_SAMPLE_WINDOW_SIZE;
+			packetTimeMs[writeIndex] = packetTime;
+			packetSystemTimeMs[writeIndex] = systemTime;
+			if (packetTimeCount == QUALITY_SAMPLE_WINDOW_SIZE) {
+				packetTimeStart = (packetTimeStart + 1) % QUALITY_SAMPLE_WINDOW_SIZE;
+			} else {
+				packetTimeCount++;
+			}
+			firstPacketTime = packetTimeMs[packetTimeStart];
+			firstPacketSystemTime = packetSystemTimeMs[packetTimeStart];
 		}
 
-		PacketTime firstPacket = packetTimeList.getFirst();
-		PacketTime lastPacket = packetTimeList.getLast();
-
-		long elapsedTime = lastPacket.systemTimeMs - firstPacket.systemTimeMs;
-		long packetTimeDiff = lastPacket.packetTimeMs - firstPacket.packetTimeMs;
+		long elapsedTime = systemTime - firstPacketSystemTime;
+		long packetTimeDiff = packetTime - firstPacketTime;
 
 		if(lastKeyFrameStatsTimeMs == -1){
-			lastKeyFrameStatsTimeMs = firstPacket.systemTimeMs;
+			lastKeyFrameStatsTimeMs = firstPacketSystemTime;
 		}
 		double speed = 0L;
 		if (elapsedTime > 0)
 		{
 			speed = (double) packetTimeDiff / elapsedTime;
 			if (logger.isWarnEnabled() && Double.isNaN(speed)) {
-				logger.warn("speed is NaN, packetTime: {}, first item packetTime: {}, elapsedTime:{}", packetTime, firstPacket.packetTimeMs, elapsedTime);
+				logger.warn("speed is NaN, packetTime: {}, first item packetTime: {}, elapsedTime:{}", packetTime, firstPacketTime, elapsedTime);
 			}
 		}
 
@@ -1751,7 +1765,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				//RTMP does not report key frame interval correctly in all cases or something that I don't know @mekya
 				keyFramePerMin += 1;
 			}
-			if(lastPacket.systemTimeMs - lastKeyFrameStatsTimeMs > 60000)
+			if(systemTime - lastKeyFrameStatsTimeMs > 60000)
 			{
 				KeyFrameStatsEvent keyFrameStatsEvent = new KeyFrameStatsEvent();
 				keyFrameStatsEvent.setStreamId(streamId);
@@ -1762,7 +1776,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				LoggerUtils.logAnalyticsFromServer(keyFrameStatsEvent);
 
 				keyFramePerMin = 0;
-				lastKeyFrameStatsTimeMs = lastPacket.systemTimeMs;
+				lastKeyFrameStatsTimeMs = systemTime;
 			}
 		}
 
@@ -1770,7 +1784,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		totalByteReceived = broadcastStream !=null ? broadcastStream.getBytesReceived() :  totalByteReceived + packetSize;
 
 
-		updateStreamQualityParameters(this.streamId, speed);
+		updateStreamQualityParameters(this.streamId, speed, systemTime);
 
 	}
 
@@ -2820,7 +2834,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public Queue<PacketTime> getPacketTimeList() {
-		return packetTimeList;
+		synchronized (packetTimeLock) {
+			Queue<PacketTime> samples = new ArrayDeque<>(packetTimeCount);
+			for (int i = 0; i < packetTimeCount; i++) {
+				int index = (packetTimeStart + i) % QUALITY_SAMPLE_WINDOW_SIZE;
+				samples.add(new PacketTime(packetTimeMs[index], packetSystemTimeMs[index]));
+			}
+			return samples;
+		}
 	}
 
 	public int getVideoStreamIndex() {
