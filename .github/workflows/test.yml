@@ -1,4 +1,3 @@
-
 name: Ant Media Server Community Edition Test
 
 on:
@@ -14,11 +13,12 @@ on:
 permissions:
   contents: read
   checks: write
-  
-      
+  # Needed to download last-known-good OWASP DB artifacts from the update workflow.
+  actions: read
+
 env:
-  RUNNER: ubuntu-22.04      
-      
+  RUNNER: ubuntu-22.04
+
 jobs:  
   run-unit-tests:
     name: Run unit tests
@@ -113,9 +113,11 @@ jobs:
           sudo service mongod status
           sudo service redis-server status
 
+  # Hard gate for deploy. Never hit NVD here: use cache, else last successful nightly artifact.
   check-vulnerabilities:
     runs-on: ubuntu-22.04
     name: Check vulnerabilities
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -137,7 +139,6 @@ jobs:
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
             
       - name: Restore OWASP Dependency Check DB
-        continue-on-error: true
         uses: actions/cache/restore@v4
         with:
           path: ~/.dependency-check-data
@@ -145,16 +146,226 @@ jobs:
           restore-keys: |
             owasp-dependency-check-db-${{ runner.os }}-
 
-      - name: Check vulnerabilities
-        continue-on-error: true
+      - name: Check whether local OWASP DB is usable
+        id: owasp-db
+        run: |
+          DATA_DIR="$HOME/.dependency-check-data"
+          if [ -d "$DATA_DIR" ] && [ -n "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+            SIZE_KB=$(du -sk "$DATA_DIR" | cut -f1)
+            echo "Restored OWASP DB size: ${SIZE_KB} KB"
+            if [ "$SIZE_KB" -ge 51200 ]; then
+              echo "has_db=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Restored cache looks too small; will try last-known-good artifact."
+          else
+            echo "No usable cache; will try last-known-good artifact."
+          fi
+          echo "has_db=false" >> "$GITHUB_OUTPUT"
+
+      - name: Restore last-known-good OWASP DB artifact
+        if: steps.owasp-db.outputs.has_db != 'true'
         env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID=$(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow "update-owasp.yml" \
+            --branch master \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId // empty')
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No successful Update OWASP Dependency DB run found on master. Branch checks need a last-known-good DB artifact."
+            exit 1
+          fi
+          echo "Downloading owasp-db-latest from successful run $RUN_ID"
+          rm -rf /tmp/owasp-db-artifact "$HOME/.dependency-check-data"
+          mkdir -p /tmp/owasp-db-artifact
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name owasp-db-latest \
+            --dir /tmp/owasp-db-artifact
+          if [ ! -f /tmp/owasp-db-artifact/owasp-db-latest.tar.gz ]; then
+            echo "::error::Artifact owasp-db-latest.tar.gz missing from run $RUN_ID. Re-run Update OWASP Dependency DB once after merging this change."
+            exit 1
+          fi
+          tar -xzf /tmp/owasp-db-artifact/owasp-db-latest.tar.gz -C "$HOME"
+
+      - name: Verify OWASP DB is present
+        run: |
+          DATA_DIR="$HOME/.dependency-check-data"
+          if [ ! -d "$DATA_DIR" ] || [ -z "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+            echo "::error::OWASP Dependency Check DB is missing after cache/artifact restore. Refusing to hit NVD from PR/push checks."
+            exit 1
+          fi
+          SIZE_KB=$(du -sk "$DATA_DIR" | cut -f1)
+          echo "OWASP DB size: ${SIZE_KB} KB"
+          if [ "$SIZE_KB" -lt 51200 ]; then
+            echo "::error::OWASP DB looks too small (${SIZE_KB} KB)."
+            exit 1
+          fi
+          ls -lah "$DATA_DIR"
+          du -sh "$DATA_DIR"
+
+      - name: Check vulnerabilities
         run: |
           mvn org.owasp:dependency-check-maven:check \
             -Dnoupdate=true \
-            -DnvdApiKey=$NVD_API_KEY \
+            -DautoUpdate=false \
             -DdataDirectory=$HOME/.dependency-check-data \
+            -Dformat=ALL \
             -DfailOnError=true
+
+      - name: Write vulnerability Step Summary
+        if: always()
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          from collections import defaultdict
+          from pathlib import Path
+
+          report = Path("target/dependency-check-report.json")
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          threshold = 7.0
+
+          def cvss_score(vuln: dict) -> float:
+              for key in ("cvssv4", "cvssv3", "cvssv2"):
+                  block = vuln.get(key) or {}
+                  if isinstance(block, dict):
+                      for score_key in ("baseScore", "score"):
+                          value = block.get(score_key)
+                          if value is not None:
+                              try:
+                                  return float(value)
+                              except (TypeError, ValueError):
+                                  pass
+              for key in ("cvssScore", "severityScore"):
+                  value = vuln.get(key)
+                  if value is not None:
+                      try:
+                          return float(value)
+                      except (TypeError, ValueError):
+                          pass
+              return 0.0
+
+          def dep_name(dep: dict) -> tuple[str, str]:
+              packages = dep.get("packages") or []
+              if packages:
+                  pkg = packages[0]
+                  coords = (pkg.get("id") or "").replace("pkg:maven/", "")
+                  if "@" in coords:
+                      name, version = coords.rsplit("@", 1)
+                      return name, version
+              file_name = dep.get("fileName") or dep.get("filePath") or "unknown"
+              return file_name, ""
+
+          if not report.is_file():
+              summary.write_text(
+                  "## OWASP Dependency Check\n\n"
+                  "No `target/dependency-check-report.json` was produced.\n",
+                  encoding="utf-8",
+              )
+              raise SystemExit(0)
+
+          data = json.loads(report.read_text(encoding="utf-8"))
+          rows = []
+          for dep in data.get("dependencies") or []:
+              name, version = dep_name(dep)
+              for vuln in dep.get("vulnerabilities") or []:
+                  score = cvss_score(vuln)
+                  if score < threshold:
+                      continue
+                  rows.append(
+                      {
+                          "dependency": name,
+                          "version": version,
+                          "cve": vuln.get("name") or "unknown",
+                          "severity": vuln.get("severity") or "",
+                          "cvss": score,
+                      }
+                  )
+
+          rows.sort(key=lambda r: (-r["cvss"], r["dependency"], r["cve"]))
+          by_dep = defaultdict(lambda: {"max": 0.0, "count": 0, "version": ""})
+          for row in rows:
+              key = row["dependency"]
+              by_dep[key]["count"] += 1
+              by_dep[key]["max"] = max(by_dep[key]["max"], row["cvss"])
+              by_dep[key]["version"] = row["version"] or by_dep[key]["version"]
+
+          lines = [
+              "## OWASP Dependency Check",
+              "",
+              f"Gate: **CVSS ≥ {threshold:.1f}** (`failBuildOnCVSS`).",
+              "",
+          ]
+
+          if not rows:
+              lines.extend(
+                  [
+                      "No vulnerabilities at or above the gate threshold.",
+                      "",
+                      "Full reports are attached as workflow artifacts when available.",
+                      "",
+                  ]
+              )
+          else:
+              critical = sum(1 for r in rows if r["cvss"] >= 9.0)
+              high = sum(1 for r in rows if 7.0 <= r["cvss"] < 9.0)
+              lines.extend(
+                  [
+                      f"- Failing dependencies: **{len(by_dep)}**",
+                      f"- Findings ≥ {threshold:.1f}: **{len(rows)}**",
+                      f"- Critical (CVSS ≥ 9.0): **{critical}**",
+                      f"- High (7.0 ≤ CVSS < 9.0): **{high}**",
+                      "",
+                      "### By dependency",
+                      "",
+                      "| Dependency | Version | Max CVSS | CVE count |",
+                      "|---|---|---:|---:|",
+                  ]
+              )
+              for name, stats in sorted(
+                  by_dep.items(), key=lambda item: (-item[1]["max"], -item[1]["count"], item[0])
+              ):
+                  version = stats["version"] or "-"
+                  lines.append(
+                      f"| `{name}` | `{version}` | {stats['max']:.1f} | {stats['count']} |"
+                  )
+
+              lines.extend(
+                  [
+                      "",
+                      "### CVE detail",
+                      "",
+                      "| CVSS | Severity | CVE | Dependency | Version |",
+                      "|---:|---|---|---|---|",
+                  ]
+              )
+              for row in rows:
+                  version = row["version"] or "-"
+                  lines.append(
+                      f"| {row['cvss']:.1f} | {row['severity']} | `{row['cve']}` | `{row['dependency']}` | `{version}` |"
+                  )
+              lines.append("")
+
+          summary.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print(f"Wrote Step Summary with {len(rows)} gated finding(s)")
+          PY
+
+      - name: Upload dependency-check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: |
+            target/dependency-check-report.html
+            target/dependency-check-report.json
+          if-no-files-found: ignore
 
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
