@@ -1,2 +1,2 @@
-http://127.0.0.1:5080/LiveApp/streams/${streamId}.key
-${serverHome}/webapps/LiveApp/streams/${streamId}.key
+${keyUri}
+${keyPath}

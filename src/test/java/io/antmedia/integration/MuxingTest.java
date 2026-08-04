@@ -17,14 +17,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import com.sun.net.httpserver.HttpServer;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -305,20 +310,30 @@ public class MuxingTest {
 		String hlsEncryptionSetting = appSettings.getHlsEncryptionKeyInfoFile();
 		assertEquals("",hlsEncryptionSetting);
 		
-		String serverHome = System.getProperty("red5.root", "/usr/local/antmedia");
-		File hlsEncryptionKeyFile = new File(serverHome, "webapps/LiveApp/streams/" + streamName + ".key");
-		File hlsEncryptionKeyInfoFile = new File(serverHome, "webapps/LiveApp/streams/" + streamName + ".keyinfo");
+		Path hlsEncryptionDirectory = Files.createTempDirectory("hls_aes_");
+		File hlsEncryptionKeyFile = hlsEncryptionDirectory.resolve(streamName + ".key").toFile();
+		File hlsEncryptionKeyInfoFile = hlsEncryptionDirectory.resolve(streamName + ".keyinfo").toFile();
+		HttpServer hlsEncryptionKeyServer = null;
 		Process rtmpSendingProcess = null;
 		
 		try {
-			Files.createDirectories(hlsEncryptionKeyFile.getParentFile().toPath());
+			hlsEncryptionDirectory.toFile().setReadable(true, false);
+			hlsEncryptionDirectory.toFile().setExecutable(true, false);
 			byte[] hlsEncryptionKey = new byte[16];
 			new SecureRandom().nextBytes(hlsEncryptionKey);
 			Files.write(hlsEncryptionKeyFile.toPath(), hlsEncryptionKey);
 			hlsEncryptionKeyFile.setReadable(true, false);
+			hlsEncryptionKeyServer = HttpServer.create(new InetSocketAddress(SERVER_ADDR, 0), 0);
+			hlsEncryptionKeyServer.createContext("/" + streamName + ".key", exchange -> {
+				exchange.sendResponseHeaders(200, hlsEncryptionKey.length);
+				try (OutputStream outputStream = exchange.getResponseBody()) {
+					outputStream.write(hlsEncryptionKey);
+				}
+			});
+			hlsEncryptionKeyServer.start();
 			Files.writeString(hlsEncryptionKeyInfoFile.toPath(), Files.readString(new File("src/test/resources/hls_aes.keyinfo").toPath())
-					.replace("${serverHome}", serverHome)
-					.replace("${streamId}", streamName));
+					.replace("${keyUri}", "http://" + SERVER_ADDR + ":" + hlsEncryptionKeyServer.getAddress().getPort() + "/" + streamName + ".key")
+					.replace("${keyPath}", hlsEncryptionKeyFile.getAbsolutePath()));
 			hlsEncryptionKeyInfoFile.setReadable(true, false);
 			appSettings.setHlsEncryptionKeyInfoFile(hlsEncryptionKeyInfoFile.getAbsolutePath());
 			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
@@ -337,10 +352,14 @@ public class MuxingTest {
 			if (rtmpSendingProcess != null) {
 				rtmpSendingProcess.destroy();
 			}
+			if (hlsEncryptionKeyServer != null) {
+				hlsEncryptionKeyServer.stop(0);
+			}
 			appSettings.setHlsEncryptionKeyInfoFile(hlsEncryptionSetting);
 			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 			Files.deleteIfExists(hlsEncryptionKeyFile.toPath());
 			Files.deleteIfExists(hlsEncryptionKeyInfoFile.toPath());
+			Files.deleteIfExists(hlsEncryptionDirectory);
 		}
 	}
 
