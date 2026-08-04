@@ -33,6 +33,7 @@ import org.springframework.stereotype.Component;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.plugin.PluginDeployer;
+import io.antmedia.plugin.PluginPaths;
 import io.antmedia.plugin.api.PluginId;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.plugin.api.PluginState;
@@ -147,16 +148,16 @@ public class PluginService {
 
 		Result result = pluginDeployer.unloadPluginFromZip(pluginId, getPluginsDir());
 		if (!result.isSuccess()) {
-			logger.warn("Failed to uninstall plugin {}: {}", pluginId, result.getMessage());
+			logger.warn("Failed to uninstall plugin {}: {}", PluginPaths.forLog(pluginId), result.getMessage());
 			return result;
 		}
 
-		File zipFile = new File(getPluginsDir(), pluginId + ".zip");
+		File zipFile = PluginPaths.resolve(getPluginsDir(), pluginId, ".zip");
 		if (zipFile.exists() && !zipFile.delete()) {
-			logger.warn("Failed to delete plugin ZIP: {}", zipFile.getAbsolutePath());
+			logger.warn("Failed to delete the ZIP of plugin {}", PluginPaths.forLog(pluginId));
 		}
 
-		logger.info("Plugin {} uninstalled", pluginId);
+		logger.info("Plugin {} uninstalled", PluginPaths.forLog(pluginId));
 		return result;
 	}
 
@@ -182,7 +183,7 @@ public class PluginService {
 		if (!PluginId.isValid(pluginId)) {
 			return null;
 		}
-		File zipFile = new File(getPluginsDir(), pluginId + ".zip");
+		File zipFile = PluginPaths.resolve(getPluginsDir(), pluginId, ".zip");
 		return zipFile.exists() ? zipFile : null;
 	}
 
@@ -200,7 +201,8 @@ public class PluginService {
 		try {
 			zipFile = downloadPluginZip(pluginId, zipUri, jwtToken);
 		} catch (IOException e) {
-			logger.error("Error downloading plugin {} from {}", pluginId, zipUri, e);
+			logger.error("Error downloading plugin {} from {}", PluginPaths.forLog(pluginId),
+					PluginPaths.forLog(zipUri), e);
 			return new Result(false, "Could not download plugin from " + zipUri + ": " + e.getMessage());
 		}
 		if (zipFile == null) {
@@ -210,7 +212,7 @@ public class PluginService {
 		Result checksum = verifyChecksum(zipFile, expectedSha256);
 		if (!checksum.isSuccess()) {
 			if (zipFile.exists() && !zipFile.delete()) {
-				logger.warn("Failed to delete ZIP that failed its checksum: {}", zipFile.getAbsolutePath());
+				logger.warn("Failed to delete ZIP that failed its checksum: {}", PluginPaths.forLog(zipFile.getName()));
 			}
 			return checksum;
 		}
@@ -230,7 +232,7 @@ public class PluginService {
 		try {
 			actual = sha256(zipFile);
 		} catch (IOException e) {
-			logger.error("Could not compute the checksum of {}", zipFile.getAbsolutePath(), e);
+			logger.error("Could not compute the checksum of {}", PluginPaths.forLog(zipFile.getName()), e);
 			return new Result(false, "Could not verify the downloaded plugin: " + e.getMessage());
 		}
 		if (!actual.equalsIgnoreCase(expectedSha256.trim())) {
@@ -289,13 +291,13 @@ public class PluginService {
 	private Result deploy(String pluginId, File zipFile) {
 		Result result = pluginDeployer.loadPluginFromZip(zipFile, getPluginsDir(), pluginId);
 		if (!result.isSuccess()) {
-			logger.error("Failed to install plugin {}: {}", pluginId, result.getMessage());
+			logger.error("Failed to install plugin {}: {}", PluginPaths.forLog(pluginId), result.getMessage());
 			if (zipFile.exists() && !zipFile.delete()) {
-				logger.warn("Failed to delete ZIP of failed install: {}", zipFile.getAbsolutePath());
+				logger.warn("Failed to delete the ZIP of the failed install of {}", PluginPaths.forLog(pluginId));
 			}
 		}
 		else {
-			logger.info("Plugin {} installed", pluginId);
+			logger.info("Plugin {} installed", PluginPaths.forLog(pluginId));
 		}
 		return result;
 	}
@@ -314,12 +316,12 @@ public class PluginService {
 	}
 
 	File savePluginZip(String pluginId, InputStream inputStream) {
-		File saved = new File(getPluginsDir(), pluginId + ".zip");
+		File saved = PluginPaths.resolve(getPluginsDir(), pluginId, ".zip");
 		try (OutputStream out = new FileOutputStream(saved)) {
 			long total = IOUtils.copyLarge(inputStream, out);
-			logger.info("Plugin ZIP saved: {} ({} bytes)", saved.getAbsolutePath(), total);
+			logger.info("Plugin ZIP saved for {} ({} bytes)", PluginPaths.forLog(pluginId), total);
 		} catch (IOException e) {
-			logger.error("Failed to save plugin ZIP for {}", pluginId, e);
+			logger.error("Failed to save the plugin ZIP for {}", PluginPaths.forLog(pluginId), e);
 			return null;
 		}
 		return saved;

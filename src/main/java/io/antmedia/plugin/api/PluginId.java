@@ -36,7 +36,7 @@ public final class PluginId {
 		if (name == null) {
 			return "";
 		}
-		String slug = name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+		String slug = name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-)|(-$)", "");
 		return slug.endsWith(NAME_SUFFIX) ? slug.substring(0, slug.length() - NAME_SUFFIX.length()) : slug;
 	}
 }

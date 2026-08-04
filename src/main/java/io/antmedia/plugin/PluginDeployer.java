@@ -10,6 +10,9 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -127,12 +130,12 @@ public class PluginDeployer {
             // Copy artifacts first, then run install.sh — so the script can see the
             // final jar at plugins/{id}.jar and delete/move it if needed
             // (e.g. LL-HLS moves it to WEB-INF/lib/ and removes it from plugins/).
-            File jarInPluginsDir = new File(pluginsDir, pluginId + ".jar");
+            File jarInPluginsDir = PluginPaths.resolve(pluginsDir, pluginId, ".jar");
             copyFile(pluginJar, jarInPluginsDir);
 
-            File canonicalDir = new File(pluginsDir, pluginId);
+            File canonicalDir = PluginPaths.resolve(pluginsDir, pluginId, "");
             if (!canonicalDir.exists() && !canonicalDir.mkdirs()) {
-                log.warn("Failed to create plugin canonical directory: {}", canonicalDir.getAbsolutePath());
+                log.warn("Failed to create the plugin directory for {}", PluginPaths.forLog(pluginId));
             }
 
             File uninstallScript = new File(extractDir, "uninstall.sh");
@@ -210,17 +213,17 @@ public class PluginDeployer {
         // in-memory unload can legitimately fail. The files still have to go either way.
         Result unloadResult = unloadPlugin(pluginId);
 
-        File canonicalDir = new File(pluginsDir, pluginId);
+        File canonicalDir = PluginPaths.resolve(pluginsDir, pluginId, "");
         File uninstallSh = new File(canonicalDir, "uninstall.sh");
 
         if (uninstallSh.exists()) {
             File jarFile = record.getJarPath() != null
                     ? new File(record.getJarPath())
-                    : new File(pluginsDir, pluginId + ".jar");
+                    : PluginPaths.resolve(pluginsDir, pluginId, ".jar");
             int exitCode = runInstallScript(uninstallSh, canonicalDir, record.getName(),
                     record.getVersion(), jarFile, pluginId);
             if (exitCode != 0) {
-                log.warn("uninstall.sh for {} exited with code {}", pluginId, exitCode);
+                log.warn("uninstall.sh for {} exited with code {}", PluginPaths.forLog(pluginId), exitCode);
             }
         }
 
@@ -228,14 +231,14 @@ public class PluginDeployer {
         if (record.getJarPath() != null) {
             File jarFile = new File(record.getJarPath());
             if (jarFile.exists() && !jarFile.delete()) {
-                log.warn("Failed to delete plugin jar: {}", jarFile.getAbsolutePath());
+                log.warn("Failed to delete the recorded jar of plugin {}", PluginPaths.forLog(pluginId));
             }
         }
 
         // Also try the flat jar in plugins/ in case jarPath wasn't set
-        File flatJar = new File(pluginsDir, pluginId + ".jar");
+        File flatJar = PluginPaths.resolve(pluginsDir, pluginId, ".jar");
         if (flatJar.exists() && !flatJar.delete()) {
-            log.warn("Failed to delete plugin jar: {}", flatJar.getAbsolutePath());
+            log.warn("Failed to delete the jar of plugin {}", PluginPaths.forLog(pluginId));
         }
 
         deleteDirectory(canonicalDir);
@@ -244,7 +247,7 @@ public class PluginDeployer {
 
         if (!unloadResult.isSuccess()) {
             log.warn("Removed files for {} but the in-memory unload was incomplete: {}",
-                    pluginId, unloadResult.getMessage());
+                    PluginPaths.forLog(pluginId), unloadResult.getMessage());
             return new Result(true, "Plugin files removed. Restart server to fully clean up — "
                     + "some components could not be unloaded: " + unloadResult.getMessage());
         }
@@ -396,7 +399,8 @@ public class PluginDeployer {
             reloadJersey(restClasses);
         }
 
-        log.info("Loaded plugin '{}': {} beans, {} REST classes", pluginId, registeredBeanNames.size(), restClasses.size());
+        log.info("Loaded plugin '{}': {} beans, {} REST classes", PluginPaths.forLog(pluginId),
+                registeredBeanNames.size(), restClasses.size());
         return new Result(true);
     }
 
@@ -507,7 +511,7 @@ public class PluginDeployer {
             reloadJerseyWithout(restClassesToRemove);
         }
 
-        log.info("Unloaded plugin: {}", pluginId);
+        log.info("Unloaded plugin: {}", PluginPaths.forLog(pluginId));
         return new Result(true);
     }
 
@@ -746,7 +750,8 @@ public class PluginDeployer {
                 // hand-dropped jar and an installed one resolve to the same plugin.
                 String pluginId = resolvePluginId(attrs);
                 if (!PluginId.isValid(pluginId)) {
-                    log.warn("Skipping {}: invalid {} '{}'", jar.getName(), MANIFEST_PLUGIN_ID, pluginId);
+                    log.warn("Skipping {}: invalid {} '{}'", jar.getName(), MANIFEST_PLUGIN_ID,
+                            PluginPaths.forLog(pluginId));
                     continue;
                 }
 
@@ -758,8 +763,8 @@ public class PluginDeployer {
                 record.setJarPath(jar.getAbsolutePath());
                 pluginRecords.put(pluginId, record);
 
-                log.info("Found installed plugin: {} ({}) v{} in {}", pluginName, pluginId,
-                        record.getVersion(), jar.getAbsolutePath());
+                log.info("Found installed plugin: {} ({}) v{} in {}", PluginPaths.forLog(pluginName),
+                        PluginPaths.forLog(pluginId), record.getVersion(), jar.getName());
             } catch (Exception e) {
                 log.debug("Skipping jar {}: {}", jar.getName(), e.getMessage());
             }
@@ -788,6 +793,9 @@ public class PluginDeployer {
         }
     }
 
+    private static final FileAttribute<Set<PosixFilePermission>> OWNER_ONLY_DIR =
+            PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
+
     // Zip bomb protection limits
     static final long MAX_TOTAL_EXTRACT_SIZE = 500L * 1024 * 1024; // 500 MB
     static final int MAX_ENTRY_COUNT = 500;
@@ -795,7 +803,9 @@ public class PluginDeployer {
 
     File extractZip(File zipFile) {
         try {
-            java.nio.file.Path tempDir = Files.createTempDirectory("ams-plugin-");
+            // Owner-only, because the system temp directory is world-writable: another local
+            // user could otherwise read or tamper with a plugin between extraction and install.
+            java.nio.file.Path tempDir = Files.createTempDirectory("ams-plugin-", OWNER_ONLY_DIR);
             long totalSize = 0;
             int entryCount = 0;
 
@@ -817,12 +827,12 @@ public class PluginDeployer {
                     }
                     if (entry.isDirectory()) {
                         if (!outFile.exists() && !outFile.mkdirs()) {
-                            log.warn("Failed to create directory while extracting: {}", outFile.getAbsolutePath());
+                            log.warn("Failed to create directory while extracting: {}", outFile.getName());
                         }
                     } else {
                         File parent = outFile.getParentFile();
                         if (parent != null && !parent.exists() && !parent.mkdirs()) {
-                            log.warn("Failed to create parent directory while extracting: {}", parent.getAbsolutePath());
+                            log.warn("Failed to create parent directory while extracting: {}", parent.getName());
                         }
                         long fileSize = 0;
                         try (OutputStream os = new FileOutputStream(outFile)) {
@@ -855,15 +865,39 @@ public class PluginDeployer {
         }
     }
 
+    /**
+     * Returns the canonical path of {@code script} when it really sits inside {@code workDir},
+     * or {@code null} when it does not — which includes a symlink pointing back out.
+     */
+    private static String resolveScriptInside(File workDir, File script) {
+        try {
+            String base = workDir.getCanonicalPath() + File.separator;
+            String resolved = script.getCanonicalPath();
+            return resolved.startsWith(base) ? resolved : null;
+        } catch (IOException e) {
+            log.warn("Could not canonicalize {}: {}", script.getName(), e.getMessage());
+            return null;
+        }
+    }
+
     int runInstallScript(File script, File workDir, String pluginName, String pluginVersion,
                          File pluginJar, String pluginId) {
         String amsHome = System.getProperty("red5.root", "/usr/local/antmedia");
         File assetsDir = new File(workDir, "assets");
 
-        if (!script.setExecutable(true)) {
-            log.warn("Could not mark {} as executable", script.getAbsolutePath());
+        // The only scripts AMS ever runs are the two it extracted into workDir itself. Anything
+        // else — a symlink, an absolute path smuggled in by a caller — is refused rather than
+        // executed, so the command argument can never be steered outside that directory.
+        String scriptPath = resolveScriptInside(workDir, script);
+        if (scriptPath == null) {
+            log.error("Refusing to run {}: it is not inside the plugin's own directory", script.getName());
+            return -1;
         }
-        ProcessBuilder pb = new ProcessBuilder("/bin/bash", script.getAbsolutePath());
+
+        if (!script.setExecutable(true)) {
+            log.warn("Could not mark {} as executable", script.getName());
+        }
+        ProcessBuilder pb = new ProcessBuilder("/bin/bash", scriptPath);
         pb.directory(workDir);
         pb.redirectErrorStream(true);
         pb.environment().put("AMS_HOME", amsHome);
@@ -918,7 +952,7 @@ public class PluginDeployer {
 
     private void copyDirectory(File srcDir, File destDir) throws IOException {
         if (!destDir.exists() && !destDir.mkdirs()) {
-            log.warn("Failed to create destination directory: {}", destDir.getAbsolutePath());
+            log.warn("Failed to create destination directory: {}", destDir.getName());
         }
         File[] files = srcDir.listFiles();
         if (files != null) {
@@ -941,12 +975,12 @@ public class PluginDeployer {
                 if (f.isDirectory()) {
                     deleteDirectory(f);
                 } else if (!f.delete()) {
-                    log.warn("Failed to delete file {}", f.getAbsolutePath());
+                    log.warn("Failed to delete file {}", f.getName());
                 }
             }
         }
         if (!dir.delete()) {
-            log.warn("Failed to delete directory {}", dir.getAbsolutePath());
+            log.warn("Failed to delete directory {}", dir.getName());
         }
     }
 
