@@ -25,8 +25,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -306,16 +305,22 @@ public class MuxingTest {
 		String hlsEncryptionSetting = appSettings.getHlsEncryptionKeyInfoFile();
 		assertEquals("",hlsEncryptionSetting);
 		
-		File hlsEncryptionKeyFile = new File("webapps/LiveApp/streams/" + streamName + ".key");
-		Path hlsEncryptionKeyInfoFile = null;
+		String serverHome = System.getProperty("red5.root", "/usr/local/antmedia");
+		File hlsEncryptionKeyFile = new File(serverHome, "webapps/LiveApp/streams/" + streamName + ".key");
+		File hlsEncryptionKeyInfoFile = new File(serverHome, "webapps/LiveApp/streams/" + streamName + ".keyinfo");
 		Process rtmpSendingProcess = null;
 		
 		try {
 			Files.createDirectories(hlsEncryptionKeyFile.getParentFile().toPath());
-			Files.copy(new File("src/test/resources/hls_aes.key").toPath(), hlsEncryptionKeyFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			hlsEncryptionKeyInfoFile = Files.createTempFile("hls_aes_", ".keyinfo");
-			Files.writeString(hlsEncryptionKeyInfoFile, Files.readString(new File("src/test/resources/hls_aes.keyinfo").toPath()).replace("${streamId}", streamName));
-			appSettings.setHlsEncryptionKeyInfoFile(hlsEncryptionKeyInfoFile.toString());
+			byte[] hlsEncryptionKey = new byte[16];
+			new SecureRandom().nextBytes(hlsEncryptionKey);
+			Files.write(hlsEncryptionKeyFile.toPath(), hlsEncryptionKey);
+			hlsEncryptionKeyFile.setReadable(true, false);
+			Files.writeString(hlsEncryptionKeyInfoFile.toPath(), Files.readString(new File("src/test/resources/hls_aes.keyinfo").toPath())
+					.replace("${serverHome}", serverHome)
+					.replace("${streamId}", streamName));
+			hlsEncryptionKeyInfoFile.setReadable(true, false);
+			appSettings.setHlsEncryptionKeyInfoFile(hlsEncryptionKeyInfoFile.getAbsolutePath());
 			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 
 			// make sure that ffmpeg is installed and in path
@@ -335,9 +340,7 @@ public class MuxingTest {
 			appSettings.setHlsEncryptionKeyInfoFile(hlsEncryptionSetting);
 			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 			Files.deleteIfExists(hlsEncryptionKeyFile.toPath());
-			if (hlsEncryptionKeyInfoFile != null) {
-				Files.deleteIfExists(hlsEncryptionKeyInfoFile);
-			}
+			Files.deleteIfExists(hlsEncryptionKeyInfoFile.toPath());
 		}
 	}
 

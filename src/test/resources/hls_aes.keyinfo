@@ -1,2 +1,2 @@
 http://127.0.0.1:5080/LiveApp/streams/${streamId}.key
-src/test/resources/hls_aes.key
+${serverHome}/webapps/LiveApp/streams/${streamId}.key
