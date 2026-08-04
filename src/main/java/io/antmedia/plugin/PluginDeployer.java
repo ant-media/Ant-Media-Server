@@ -247,7 +247,7 @@ public class PluginDeployer {
 
         if (!unloadResult.isSuccess()) {
             log.warn("Removed files for {} but the in-memory unload was incomplete: {}",
-                    PluginPaths.forLog(pluginId), unloadResult.getMessage());
+                    PluginPaths.forLog(pluginId), PluginPaths.forLog(unloadResult.getMessage()));
             return new Result(true, "Plugin files removed. Restart server to fully clean up — "
                     + "some components could not be unloaded: " + unloadResult.getMessage());
         }

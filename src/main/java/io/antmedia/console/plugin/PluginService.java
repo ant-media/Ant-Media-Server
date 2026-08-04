@@ -148,7 +148,10 @@ public class PluginService {
 
 		Result result = pluginDeployer.unloadPluginFromZip(pluginId, getPluginsDir());
 		if (!result.isSuccess()) {
-			logger.warn("Failed to uninstall plugin {}: {}", PluginPaths.forLog(pluginId), result.getMessage());
+			// The message echoes the id back ("Plugin not found: <id>"), so it carries the same
+			// untrusted input and has to be sanitised too.
+			logger.warn("Failed to uninstall plugin {}: {}", PluginPaths.forLog(pluginId),
+					PluginPaths.forLog(result.getMessage()));
 			return result;
 		}
 
