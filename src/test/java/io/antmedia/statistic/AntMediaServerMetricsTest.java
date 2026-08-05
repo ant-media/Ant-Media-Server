@@ -30,5 +30,9 @@ class AntMediaServerMetricsTest extends UnitTestBase<AntMediaServerMetrics> {
                 .gauge().value()).isEqualTo(2);
         assertThat(registry.get("antmedia.vertx.worker.queue.size").tag("pool", "webrtc")
                 .gauge().value()).isEqualTo(4);
+        assertThat(registry.get("system.memory.total").gauge().value()).isGreaterThan(0);
+        assertThat(registry.get("system.memory.free").gauge().value()).isGreaterThanOrEqualTo(0);
+        assertThat(registry.get("system.memory.used").gauge().value()).isGreaterThanOrEqualTo(0);
+        assertThat(registry.get("antmedia.gpu.count").gauge().value()).isGreaterThanOrEqualTo(0);
     }
 }

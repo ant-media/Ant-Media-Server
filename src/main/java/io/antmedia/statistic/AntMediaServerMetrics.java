@@ -1,6 +1,9 @@
 package io.antmedia.statistic;
 
+import java.lang.management.ManagementFactory;
 import java.util.function.ToDoubleFunction;
+
+import com.sun.management.OperatingSystemMXBean;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -10,9 +13,13 @@ import io.micrometer.core.instrument.binder.MeterBinder;
 public class AntMediaServerMetrics implements MeterBinder {
 
     private final StatsCollector statsCollector;
+    private final OperatingSystemMXBean operatingSystem;
+    private final GPUUtils gpuUtils;
 
     public AntMediaServerMetrics(StatsCollector statsCollector) {
         this.statsCollector = statsCollector;
+        this.operatingSystem = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        this.gpuUtils = GPUUtils.getInstance();
     }
 
     @Override
@@ -36,6 +43,29 @@ public class AntMediaServerMetrics implements MeterBinder {
         gauge(registry, "antmedia.db.query.average.duration.milliseconds",
                 "Average datastore query duration in milliseconds", StatsCollector::getDBQueryAverageTimeMs);
 
+        Gauge.builder("system.memory.total", operatingSystem,
+                        OperatingSystemMXBean::getTotalMemorySize)
+                .description("Total physical memory available to the system")
+                .baseUnit("bytes")
+                .register(registry);
+        Gauge.builder("system.memory.free", operatingSystem,
+                        OperatingSystemMXBean::getFreeMemorySize)
+                .description("Free physical memory available to the system")
+                .baseUnit("bytes")
+                .register(registry);
+        Gauge.builder("system.memory.used", operatingSystem,
+                        system -> system.getTotalMemorySize() - system.getFreeMemorySize())
+                .description("Used physical memory in the system")
+                .baseUnit("bytes")
+                .register(registry);
+
+        Gauge.builder("antmedia.gpu.count", gpuUtils, GPUUtils::getDeviceCount)
+                .description("Number of GPUs available to Ant Media Server")
+                .register(registry);
+        for (int deviceIndex = 0; deviceIndex < gpuUtils.getDeviceCount(); deviceIndex++) {
+            registerGpuMetrics(registry, deviceIndex);
+        }
+
         Gauge.builder("antmedia.vertx.worker.queue.size", statsCollector,
                         StatsCollector::getVertWorkerQueueSize)
                 .description("Vert.x worker queue size")
@@ -46,6 +76,71 @@ public class AntMediaServerMetrics implements MeterBinder {
                 .description("Vert.x worker queue size")
                 .tag("pool", "webrtc")
                 .register(registry);
+    }
+
+    private void registerGpuMetrics(MeterRegistry registry, int deviceIndex) {
+        String gpu = String.valueOf(deviceIndex);
+        String name = gpuUtils.getDeviceName(deviceIndex);
+        name = name == null ? "unknown" : name;
+
+        Gauge.builder("antmedia.gpu.utilization", gpuUtils,
+                        utils -> utils.getGPUUtilization(deviceIndex))
+                .description("GPU utilization percentage")
+                .baseUnit("percent")
+                .tags("gpu", gpu, "name", name)
+                .register(registry);
+        Gauge.builder("antmedia.gpu.memory.utilization", gpuUtils,
+                        utils -> utils.getMemoryUtilization(deviceIndex))
+                .description("GPU memory utilization percentage")
+                .baseUnit("percent")
+                .tags("gpu", gpu, "name", name)
+                .register(registry);
+        Gauge.builder("antmedia.gpu.encoder.utilization", gpuUtils,
+                        utils -> utils.getEncoderUtilization(deviceIndex))
+                .description("GPU encoder utilization percentage")
+                .baseUnit("percent")
+                .tags("gpu", gpu, "name", name)
+                .register(registry);
+        Gauge.builder("antmedia.gpu.decoder.utilization", gpuUtils,
+                        utils -> utils.getDecoderUtilization(deviceIndex))
+                .description("GPU decoder utilization percentage")
+                .baseUnit("percent")
+                .tags("gpu", gpu, "name", name)
+                .register(registry);
+        Gauge.builder("antmedia.gpu.memory.total", gpuUtils,
+                        utils -> getGpuMemory(utils, deviceIndex, MemoryValue.TOTAL))
+                .description("Total GPU memory")
+                .baseUnit("bytes")
+                .tags("gpu", gpu, "name", name)
+                .register(registry);
+        Gauge.builder("antmedia.gpu.memory.used", gpuUtils,
+                        utils -> getGpuMemory(utils, deviceIndex, MemoryValue.USED))
+                .description("Used GPU memory")
+                .baseUnit("bytes")
+                .tags("gpu", gpu, "name", name)
+                .register(registry);
+        Gauge.builder("antmedia.gpu.memory.free", gpuUtils,
+                        utils -> getGpuMemory(utils, deviceIndex, MemoryValue.FREE))
+                .description("Free GPU memory")
+                .baseUnit("bytes")
+                .tags("gpu", gpu, "name", name)
+                .register(registry);
+    }
+
+    private double getGpuMemory(GPUUtils utils, int deviceIndex, MemoryValue value) {
+        GPUUtils.MemoryStatus status = utils.getMemoryStatus(deviceIndex);
+        if (status == null) {
+            return -1;
+        }
+        return switch (value) {
+        case TOTAL -> status.getMemoryTotal();
+        case USED -> status.getMemoryUsed();
+        case FREE -> status.getMemoryFree();
+        };
+    }
+
+    private enum MemoryValue {
+        TOTAL, USED, FREE
     }
 
     private void gauge(MeterRegistry registry, String name, String description,
