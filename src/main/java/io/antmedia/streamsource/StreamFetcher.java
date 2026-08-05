@@ -62,6 +62,7 @@ public class StreamFetcher {
 	 */
 	private long lastPacketReceivedTime = 0;
 	private AtomicBoolean threadActive = new AtomicBoolean(false);
+	//when the worker started this attempt, for startup duration checks
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
     private final Semaphore isThreadStopedSemaphore = new Semaphore(0);
@@ -364,6 +365,9 @@ public class StreamFetcher {
 
 			AVPacket pkt = null;
 			try {
+				//start clean so a stop from a previous run doesn't cancel this one
+				stopRequestReceived = false;
+
 				//update broadcast status to preparing
 
 				Broadcast broadcast = getDataStore().get(streamId);
@@ -393,6 +397,8 @@ public class StreamFetcher {
 					if(streamFetcherListener != null){
 						streamFetcherListener.streamStarted(streamFetcherListener);
 					}
+
+					logger.info("Prepare done, started reading packets for streamId:{}", streamId);
 
 					boolean readTheNextFrame = true;
 					//In some odd cases stopRequest is received immediately and status of the stream changed to finished
@@ -517,6 +523,11 @@ public class StreamFetcher {
 		public boolean prepareInputContext(Broadcast broadcast) throws Exception {
 			logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 			Result result = prepare(inputFormatContext);
+
+			if (stopRequestReceived) {
+				logger.info("Stop request received while preparing streamId:{}, not initializing muxers", streamId);
+				return false;
+			}
 
 			if (result.isSuccess()) {
 				boolean audioExist = false;
@@ -751,8 +762,7 @@ public class StreamFetcher {
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
-					
-					getInstance().closeBroadcast(streamId, null, null);
+					closeBroadcastIfOwner();
 					streamPublished=false;
 					closeCalled = true;
 				}
@@ -769,13 +779,9 @@ public class StreamFetcher {
 				if(!stopRequestReceived && restartStream) {
 					logger.info("Stream fetcher will try to fetch source {} after {} ms for streamId:{}", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS, streamId);
 
-					//Update status to finished in all cases
-					
-					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-					broadcastUpdate.setUpdateTime(System.currentTimeMillis());
-					broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
-					
+					//Update status to finished unless a replacement fetcher owns the stream
+					updateStatusToFinishedIfOwner();
+
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
@@ -789,7 +795,7 @@ public class StreamFetcher {
 							streamUrl, streamId, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
-						getInstance().closeBroadcast(streamId, null, null);
+						closeBroadcastIfOwner();
 					}
 				}
 
@@ -801,6 +807,35 @@ public class StreamFetcher {
 				logger.error(ExceptionUtils.getStackTrace(e));
 
 			}
+		}
+
+		private void closeBroadcastIfOwner() {
+			if (isReplacedByAnotherFetcher()) {
+				logger.warn("Skipping close broadcast for {} because a replacement fetcher owns the stream", streamId);
+				return;
+			}
+			getInstance().closeBroadcast(streamId, null, null);
+		}
+
+		private void updateStatusToFinishedIfOwner() {
+			if (isReplacedByAnotherFetcher()) {
+				logger.warn("Skipping finished status update for {} because a replacement fetcher owns the stream", streamId);
+				return;
+			}
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+			broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+		}
+
+		private boolean isReplacedByAnotherFetcher() {
+			AntMediaApplicationAdapter instance = getInstance();
+			if (instance == null || instance.getStreamFetcherManager() == null) {
+				//nothing to compare against, so treat this fetcher as the owner
+				return false;
+			}
+			StreamFetcher registered = instance.getStreamFetcherManager().getStreamFetcher(streamId);
+			return registered != null && registered != StreamFetcher.this;
 		}
 
 		private void writeAllBufferedPackets()
@@ -1197,6 +1232,7 @@ public class StreamFetcher {
 		}.start();
 
 	}
+
 	/**
 	 * Set timeout when establishing connection
 	 * @param timeoutMs in ms
@@ -1216,6 +1252,7 @@ public class StreamFetcher {
 	public boolean isThreadActive() {
 		return threadActive.get();
 	}
+
 	public Result getCameraError() {
 		return cameraError;
 	}
