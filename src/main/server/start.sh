@@ -11,7 +11,7 @@
 # -m: Server mode. It can be standalone or cluster. If cluster mode is specified then mongodb host, username and password should also be provided.
 #     There is no default value for mode
 #
-# -h: MongoDB or Redist host. It's either IP address or full connection string such as mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] or redis://[username:password@]host1[:port1] or redis yaml configuration
+# -h: MongoDB or Redis host. It should be either IP address or full connection string such as mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] or redis://[username:password@]host1[:port1] or redis yaml configuration
 #
 # -u: MongoDB username: Deprecated. Just give the username in the connection string with -h parameter
 #
@@ -22,13 +22,13 @@
 # -a: TURN/STUN Server URL for the server side. It should start with "turn:" or "stun:" such as stun:stun.l.google.com:19302 or turn:ovh36.antmedia.io
 #     this url is not visible to frontend users just for server side.
 #
-# -n: TURN Server Usermame: Provide the TURN server username to get relay candidates.
+# -n: TURN Server Username: Provide the TURN server username to get relay candidates.
 #
 # -w: TURN Server Password: Provide the TURN server password to get relay candidates.
 #
 # -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
 #
-# -j: JVM Memory Options(-Xms1g -Xmx4g): Set the Java heap size. Default value is 1g. (Example usage: ./start.sh -j "-Xms1g -XmX4g")
+# -j: JVM Memory Options (e.g. -Xms1g -Xmx4g): Set the initial Java heap size. Default value is 1g. (Example usage: ./start.sh -j "-Xms1g -XmX4g")
 #
 # -c: CPU Limit: Set the CPU limit percentage that server does not exceed. Default value is 75. 
 #       If CPU is more than this value, server reports highResourceUsage and does not allow publish or play.
@@ -216,7 +216,7 @@ echo "Running on " $OS
 # JAVA options
 # You can set JVM additional options here if you want
 if [ -z "$JVM_OPTS" ]; then
-    JVM_OPTS="$JVM_MEMORY_OPTIONS -Djava.io.tmpdir=/tmp -XX:ErrorFile=/var/log/antmedia/hs_err_${TIMESTAMP}.log -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
+    JVM_OPTS="$JVM_MEMORY_OPTIONS -Djava.io.tmpdir=/tmp -XX:ErrorFile=/var/log/antmedia/hs_err_${TIMESTAMP}.log -Djava.awt.headless=true -XX:+HeapDumpOnOutOfMemoryError -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader "
 fi
 # Set up security options
 SECURITY_OPTS="-Djava.security.debug=failure -Djava.security.egd=file:/dev/./urandom"
@@ -259,8 +259,8 @@ then
   mkdir -p /var/log/antmedia
   OUT=$?
   if [ $OUT -ne 0 ]; then
-    echo "You're likely running start.sh directly. The problem is /var/log/antmedia directory cannot not created"
-    echo "If you run the start.sh with your current user, please run the following commands"
+    echo "You're likely running start.sh directly. The problem is /var/log/antmedia directory cannot be created"
+    echo "If you run start.sh with your current user, please run the following commands:"
     echo "sudo mkdir -p /var/log/antmedia"
     echo "sudo chown $USER /var/log/antmedia"
     exit $OUT
