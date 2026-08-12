@@ -17,6 +17,7 @@ import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.EndpointMuxer;
+import io.antmedia.muxer.EndpointMuxerAnalytics;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.IEndpointStatusListener;
@@ -6639,7 +6640,7 @@ public class MuxerUnitTest {
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12353?localaddr=127.0.0.1", vertx);
-		EndpointMuxer.EndpointAnalytics analytics = muxer.getAnalytics();
+		EndpointMuxerAnalytics analytics = muxer.getAnalytics();
 		assertNotNull(analytics);
 
 		// recordDrop: incrementing the counter and hitting the rate-limited log path.
