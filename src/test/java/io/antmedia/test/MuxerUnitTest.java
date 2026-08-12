@@ -155,6 +155,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_alloc;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
@@ -6730,7 +6731,7 @@ public class MuxerUnitTest {
 
 		assertEquals(capacity - gop + 1, queue.size());
 		boolean headIsKeyFrame = (queue.peek().flags() & AV_PKT_FLAG_KEY) != 0;
-		assertTrue("head must be a keyframe after a GOP drop", headIsKeyFrame);
+		assertTrue(headIsKeyFrame, "head must be a keyframe after a GOP drop");
 
 		av_packet_free(src);
 		drainAndFree(queue);

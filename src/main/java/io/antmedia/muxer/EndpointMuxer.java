@@ -32,7 +32,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
@@ -55,7 +54,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.WorkerExecutor;
 
 public class EndpointMuxer extends Muxer {
 
@@ -99,9 +97,6 @@ public class EndpointMuxer extends Muxer {
 	/** Where a lag skip aims to land, well under the trigger so it does not re-fire. */
 	private static final long LAG_RESUME_TARGET_MS = 1000L;
 
-	/** Shared write pool; sized by the {@code endpointMuxerExecutor} bean, or the fallback below if it's absent (old config). */
-	static final String WORKER_POOL_NAME = "endpoint-muxer-pool";
-
 	private String url;
 	private volatile boolean trailerWritten = false;
 	private IEndpointStatusListener statusListener;
@@ -130,16 +125,24 @@ public class EndpointMuxer extends Muxer {
 	private boolean waitingForResumePoint = false;
 	/** Media time the in-progress drop cut from, AV_NOPTS_VALUE when idle. Producer-thread only. */
 	private long dropStartMs = avutil.AV_NOPTS_VALUE;
-	/** Last incoming dts on any stream, for publisher gap detection. Producer-thread only. */
-	private long lastInputDtsMs = avutil.AV_NOPTS_VALUE;
+	/**
+	 * Last incoming dts per stream, for publisher gap detection. Per stream because a
+	 * single field makes the delta compare a video dts against the previous AUDIO dts.
+	 * Producer-thread only.
+	 */
+	private long[] lastInputDtsMs;
 	/** Furthest incoming dts on any stream. Lag is measured from this, so interleave skew cannot read as lateness. Producer-thread only. */
 	private long maxInputDtsMs = avutil.AV_NOPTS_VALUE;
 	/** Learned inter-packet step, cushions where a gap resume re-anchors. Producer-thread only. */
 	private long inputStepMs = 33;
 	/** Set for gap cycles: nothing was discarded, so any video packet resumes, no keyframe wait. Producer-thread only. */
 	private boolean resumeOnAnyVideo = false;
-	/** Wall/media reference lag is measured against, re-anchored at every resume and whenever arrivals run ahead. Producer-thread only. */
-	private long wallStartMs = 0;
+	/**
+	 * Wall/media reference lag is measured against, re-anchored at every resume and
+	 * whenever arrivals run ahead. nanoTime, because an NTP step on currentTimeMillis
+	 * manufactures lag and fires a skip that discards live content. Producer-thread only.
+	 */
+	private long wallStartNanos = 0;
 	private long dtsStartMs = avutil.AV_NOPTS_VALUE;
 	/** Lag cycles only: the resume keyframe must reach this dts, so one cycle skips the whole stale backlog. Producer-thread only. */
 	private long skipToDtsMs = avutil.AV_NOPTS_VALUE;
@@ -160,19 +163,26 @@ public class EndpointMuxer extends Muxer {
 	 * Drop packets for this long after first arrival. Lets the source pipeline
 	 * settle before streaming to endpoint, for stability.
 	 */
-	private static final long STARTUP_GRACE_PERIOD_MS = 1500L;
-	private long graceStartMs = 0L;
+	private static final long STARTUP_GRACE_PERIOD_MS = 1000L;
+	private boolean graceStarted = false;
+	private long graceStartNanos = 0L;
+	/** Latched once the grace window ended on a keyframe, so the check goes away for good. */
+	private boolean graceReleased = false;
+
+	/**
+	 * Rebase origin. Own fields rather than the base class ones: {@link #captureFirstDts}
+	 * is the only writer here, and a future Muxer.java edit must not be able to silently
+	 * break the rebase. -1 marks "origin not captured yet".
+	 */
+	private long endpointFirstPacketDtsMs = -1;
+	private long endpointFirstAudioDts = -1;
+	private long endpointFirstVideoDts = -1;
 
 	public EndpointMuxer(String url, Vertx vertx) {
 		super(vertx);
 		this.format = "flv";
 		this.url = url;
 		this.analytics = new EndpointAnalytics(url, PACKET_QUEUE_CAPACITY);
-
-		// Base inits these to 0 while its own rebase branches guard on -1, so that
-		// logic is dead. -1 marks "origin not captured yet" for captureFirstDts.
-		this.firstVideoDts = -1;
-		this.firstAudioDts = -1;
 
 		parseEndpointURL(this.url);
 	}
@@ -189,7 +199,7 @@ public class EndpointMuxer extends Muxer {
 			muxerType = "rtmp";
 			// Cap AVIO blocking so a dead/slow remote can't wedge us for the
 			// kernel TCP retransmit window (~75s) on open or indefinitely on writes.
-			options.put("rw_timeout", "10000000");
+			options.put("rw_timeout", "5000000");
 
 			// Publisher-side tunings. NODE: rtmp_live/rtmp_buffer are subscriber-only
 			options.put("tcp_nodelay", "1");
@@ -391,12 +401,9 @@ public class EndpointMuxer extends Muxer {
 		}
 
 		running = true;
-		// No bean config: fall back to 16 threads, 15s max-execute (> rtmp rw_timeout 10s).
-		final WorkerExecutor writeExecutor = vertx.createSharedWorkerExecutor(WORKER_POOL_NAME, 16, 15, TimeUnit.SECONDS);
-
 		drainTimerId = vertx.setPeriodic(10, t -> {
 			if (running && drainScheduled.compareAndSet(false, true)) {
-				writeExecutor.executeBlocking(() -> { drain(); return null; }, false)
+				vertx.executeBlocking(() -> { drain(); return null; }, false)
 						.onComplete(ar -> drainScheduled.set(false));
 			}
 		});
@@ -490,11 +497,21 @@ public class EndpointMuxer extends Muxer {
 	@Override
 	public synchronized void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType)
 	{
-		if (inStartupGracePeriod()) {
+		AVFormatContext context = getOutputFormatContext();
+		if (context == null) {
+			logPacketIssue("No output context for {}", url);
 			return;
 		}
 
-		AVFormatContext context = getOutputFormatContext();
+		if (pkt.stream_index() < 0 || pkt.stream_index() >= context.nb_streams()) {
+			logPacketIssue("Packet stream index:{} is out of range for {}", pkt.stream_index(), url);
+			return;
+		}
+
+		if (inGracePeriod(pkt, context, codecType)) {
+			return;
+		}
+
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
 			//Opening the RTMP muxer may take some time and don't make audio queue increase
 			logger.info("Not writing audio packet to muxer because header is not written yet for {}", url);
@@ -521,30 +538,30 @@ public class EndpointMuxer extends Muxer {
 		}
 		boolean isAudio = codecType == AVMEDIA_TYPE_AUDIO;
 
-		if (firstPacketDtsMs == -1) {
-			firstPacketDtsMs = av_rescale_q(pkt.dts(), inputTimebase, MuxAdaptor.TIME_BASE_FOR_MS);
+		if (endpointFirstPacketDtsMs == -1) {
+			endpointFirstPacketDtsMs = av_rescale_q(pkt.dts(), inputTimebase, MuxAdaptor.TIME_BASE_FOR_MS);
 			if (isAudio) {
-				firstAudioDts = pkt.dts();
+				endpointFirstAudioDts = pkt.dts();
 			}
 			else {
-				firstVideoDts = pkt.dts();
+				endpointFirstVideoDts = pkt.dts();
 			}
 			logger.info("Rebasing {} push from first {} packet dts:{}ms for {}", muxerType,
-					isAudio ? "audio" : "video", firstPacketDtsMs, url);
+					isAudio ? "audio" : "video", endpointFirstPacketDtsMs, url);
 		}
 
-		long firstDts = isAudio ? firstAudioDts : firstVideoDts;
+		long firstDts = isAudio ? endpointFirstAudioDts : endpointFirstVideoDts;
 		if (firstDts == -1) {
-			firstDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimebase);
+			firstDts = av_rescale_q(endpointFirstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimebase);
 			// The other stream can start behind the origin. Clamp so it can't go negative.
 			if ((pkt.dts() - firstDts) < 0) {
 				firstDts = pkt.dts();
 			}
 			if (isAudio) {
-				firstAudioDts = firstDts;
+				endpointFirstAudioDts = firstDts;
 			}
 			else {
-				firstVideoDts = firstDts;
+				endpointFirstVideoDts = firstDts;
 			}
 		}
 		return firstDts;
@@ -554,11 +571,51 @@ public class EndpointMuxer extends Muxer {
 	 * Extracted so unit tests can stub it or spy...
 	 */
 	public boolean inStartupGracePeriod() {
-		if (graceStartMs == 0L) {
-			graceStartMs = System.currentTimeMillis();
+		if (!graceStarted) {
+			graceStarted = true;
+			graceStartNanos = System.nanoTime();
 			logger.info("Startup grace period ({} ms) started for {}", STARTUP_GRACE_PERIOD_MS, url);
 		}
-		return System.currentTimeMillis() - graceStartMs < STARTUP_GRACE_PERIOD_MS;
+		return (System.nanoTime() - graceStartNanos) / 1_000_000L < STARTUP_GRACE_PERIOD_MS;
+	}
+
+	/**
+	 * Grace ends on the first video keyframe at or after the deadline. Releasing on the
+	 * timer alone means the first surviving packet can be mid-GOP, so the endpoint opens
+	 * on a broken frame. An audio-only endpoint has no keyframe to wait for.
+	 */
+	private boolean inGracePeriod(AVPacket pkt, AVFormatContext context, int codecType) {
+		if (graceReleased) {
+			return false;
+		}
+		if (inStartupGracePeriod()) {
+			return true;
+		}
+		// codecType, not the KEY flag alone: writeAudioBuffer stamps every audio packet
+		// with AV_PKT_FLAG_KEY.
+		boolean startable = (codecType == AVMEDIA_TYPE_VIDEO && (pkt.flags() & AV_PKT_FLAG_KEY) != 0)
+				|| !hasVideoStream(context);
+		if (!startable) {
+			return true;
+		}
+		graceReleased = true;
+		logger.info("Startup grace period released for {}", url);
+		return false;
+	}
+
+	/**
+	 * Scanned rather than {@link #getVideoStreamIndex}, which latches its answer: this
+	 * runs before writeHeader, so a video stream that has not been added yet would freeze
+	 * "no video" for the life of the muxer and cost every later resume its keyframe rule.
+	 */
+	private boolean hasVideoStream(AVFormatContext context) {
+		int count = context.nb_streams();
+		for (int i = 0; i < count; i++) {
+			if (context.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public synchronized void writeFrameInternal(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
@@ -766,13 +823,25 @@ public class EndpointMuxer extends Muxer {
 		if (dts == avutil.AV_NOPTS_VALUE) {
 			return;
 		}
-		long now = System.currentTimeMillis();
-		long previous = lastInputDtsMs;
-		lastInputDtsMs = dts;
-		if (previous == avutil.AV_NOPTS_VALUE) {
-			wallStartMs = now;
+		int index = src.stream_index();
+		if (lastInputDtsMs == null || lastInputDtsMs.length != context.nb_streams()) {
+			lastInputDtsMs = new long[context.nb_streams()];
+			Arrays.fill(lastInputDtsMs, avutil.AV_NOPTS_VALUE);
+		}
+		if (index < 0 || index >= lastInputDtsMs.length) {
+			return;
+		}
+		long now = System.nanoTime();
+		long previous = lastInputDtsMs[index];
+		lastInputDtsMs[index] = dts;
+		// Seed the shared lag reference once, off whichever stream arrives first. A later
+		// stream's first packet must not re-seed it, that would drag maxInputDtsMs back.
+		if (dtsStartMs == avutil.AV_NOPTS_VALUE) {
+			wallStartNanos = now;
 			dtsStartMs = dts;
 			maxInputDtsMs = dts;
+		}
+		if (previous == avutil.AV_NOPTS_VALUE) {
 			return;
 		}
 
@@ -795,9 +864,9 @@ public class EndpointMuxer extends Muxer {
 		if (SOURCE_LAG_MS <= 0) {
 			return;
 		}
-		long lag = (now - wallStartMs) - (maxInputDtsMs - dtsStartMs);
+		long lag = ((now - wallStartNanos) / 1_000_000L) - (maxInputDtsMs - dtsStartMs);
 		if (lag < 0) {
-			wallStartMs = now;
+			wallStartNanos = now;
 			dtsStartMs = maxInputDtsMs;
 			return;
 		}
@@ -860,9 +929,11 @@ public class EndpointMuxer extends Muxer {
 		// Restart stall tracking from here: the charge above covered everything up to
 		// this packet, so a stale pre-drop dts must not read as a second gap, and the
 		// lag reference gets a fresh budget.
-		lastInputDtsMs = dts;
+		if (lastInputDtsMs != null) {
+			Arrays.fill(lastInputDtsMs, dts);
+		}
 		maxInputDtsMs = dts;
-		wallStartMs = System.currentTimeMillis();
+		wallStartNanos = System.nanoTime();
 		dtsStartMs = dts;
 		skipToDtsMs = avutil.AV_NOPTS_VALUE;
 		resumeOnAnyVideo = false;
@@ -931,12 +1002,30 @@ public class EndpointMuxer extends Muxer {
 		return found;
 	}
 
+	/**
+	 * Time base of the packet's output stream, or null when its index is out of range.
+	 * Muxer.writePacket can leave an INPUT index on the packet: the branch at
+	 * Muxer.java:608-625 computes outputStreamIndex and never assigns it, unlike its
+	 * sibling at :586. Reachable with H265 ingest plus AAC over an RTMP push, where the
+	 * unsupported video is skipped, nb_streams() is 1, and audio still carries index 1.
+	 * streams() past nb_streams is a native out of bounds read, that is a segfault.
+	 */
+	private AVRational streamTimeBase(AVPacket pkt, AVFormatContext context) {
+		int index = pkt.stream_index();
+		if (context == null || index < 0 || index >= context.nb_streams()) {
+			logPacketIssue("Packet stream index:{} is out of range for {}", index, url);
+			return null;
+		}
+		return context.streams(index).time_base();
+	}
+
 	/** @return the packet's dts in ms, or AV_NOPTS_VALUE when it carries none. */
-	private static long dtsMs(AVPacket pkt, AVFormatContext context) {
-		if (pkt.dts() == avutil.AV_NOPTS_VALUE) {
+	private long dtsMs(AVPacket pkt, AVFormatContext context) {
+		AVRational timeBase = streamTimeBase(pkt, context);
+		if (timeBase == null || pkt.dts() == avutil.AV_NOPTS_VALUE) {
 			return avutil.AV_NOPTS_VALUE;
 		}
-		return av_rescale_q(pkt.dts(), context.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+		return av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
 	}
 
 	/**
@@ -944,11 +1033,15 @@ public class EndpointMuxer extends Muxer {
 	 * AV_NOPTS_VALUE is Long.MIN_VALUE, so subtracting from it would overflow into a
 	 * large positive timestamp rather than leave it absent.
 	 */
-	private static void shiftBack(AVPacket pkt, long offsetMs, AVFormatContext context) {
+	private void shiftBack(AVPacket pkt, long offsetMs, AVFormatContext context) {
 		if (offsetMs == 0) {
 			return;
 		}
-		long offset = av_rescale_q(offsetMs, MuxAdaptor.TIME_BASE_FOR_MS, context.streams(pkt.stream_index()).time_base());
+		AVRational timeBase = streamTimeBase(pkt, context);
+		if (timeBase == null) {
+			return;
+		}
+		long offset = av_rescale_q(offsetMs, MuxAdaptor.TIME_BASE_FOR_MS, timeBase);
 		if (pkt.pts() != avutil.AV_NOPTS_VALUE) {
 			pkt.pts(pkt.pts() - offset);
 		}
