@@ -22,6 +22,7 @@ import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Context;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 
 public class ViewerStats {
@@ -56,8 +57,6 @@ public class ViewerStats {
 	Map<String, String> sessionId2subscriberId = new ConcurrentHashMap<>();
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
 
-	private Object lock = new Object();
-	
 	protected ServerSettings serverSettings;
 
 	
@@ -73,71 +72,63 @@ public class ViewerStats {
 	{
 		//do not block the thread, run in vertx event queue 
 		runOnStatsContext(h -> {
-			
-			synchronized (lock) {
-				//synchronize with database update calculations, because some odd cases may happen
-				
-				Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
-				if (viewerMap == null) {
-					viewerMap = new ConcurrentHashMap<>();
-				}
-				if (!viewerMap.containsKey(sessionId)) 
-				{
-					int streamIncrementCounter = getIncreaseCounterMap(streamId);
-					streamIncrementCounter++;
-					increaseCounterMap.put(streamId, streamIncrementCounter);
-					PlayEvent playStartedEvent = new PlayEvent();
-					playStartedEvent.setStreamId(streamId);
-					playStartedEvent.setProtocol(type);
-					playStartedEvent.setApp(appName);
-					playStartedEvent.setEvent(PlayEvent.EVENT_PLAY_STARTED);
-					playStartedEvent.setSubscriberId(subscriberId);
-					
-					LoggerUtils.logAnalyticsFromServer(playStartedEvent);
-				}
-				viewerMap.put(sessionId, System.currentTimeMillis());
-				streamsViewerMap.put(streamId, viewerMap);
-				if(subscriberId != null) {
-					
-					Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
-					if (subscriber == null) {
-						subscriber = new Subscriber();
-						subscriber.setStreamId(streamId);
-						subscriber.setSubscriberId(subscriberId);
-					}
-					
-					//if the subscriber is not registered to the current node, I mean it's created above then, 
-					//subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress() will not equal
-					if (!StringUtils.equals(subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress())) 
-					{	
-						subscriber.setRegisteredNodeIp(serverSettings.getHostAddress());
-						
-						//only update database if it's required
-						getDataStore().addSubscriber(streamId, subscriber);
-					}
-					
-					
-					
-					
-					// map sessionId to subscriberId
-					sessionId2subscriberId.put(sessionId, subscriberId);
-					// add a connected event to the subscriber
-					ConnectionEvent event = new ConnectionEvent();
-					event.setEventType(ConnectionEvent.CONNECTED_EVENT);
-					Date curDate = new Date();
-					event.setTimestamp(curDate.getTime());
-					event.setEventProtocol(getType());
+			//no explicit lock is needed here, runOnStatsContext serializes every viewer map mutation
+			//on a single context, the maps are concurrent and the counter is updated atomically so the
+			//periodic update process running on another context cannot lose an increment
+			Map<String, Long> viewerMap = streamsViewerMap.computeIfAbsent(streamId, key -> new ConcurrentHashMap<>());
 
-					//TODO: There is a bug here. It adds +1 for each ts request 
-					if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
-						logger.info("CONNECTED_EVENT for subscriberId:{} streamId:{}", subscriberId, streamId);
-					}
+			if (!viewerMap.containsKey(sessionId)) 
+			{
+				increaseCounterMap.merge(streamId, 1, Integer::sum);
+
+				PlayEvent playStartedEvent = new PlayEvent();
+				playStartedEvent.setStreamId(streamId);
+				playStartedEvent.setProtocol(type);
+				playStartedEvent.setApp(appName);
+				playStartedEvent.setEvent(PlayEvent.EVENT_PLAY_STARTED);
+				playStartedEvent.setSubscriberId(subscriberId);
+
+				LoggerUtils.logAnalyticsFromServer(playStartedEvent);
+			}
+			viewerMap.put(sessionId, System.currentTimeMillis());
+
+			if(subscriberId != null) {
+
+				Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
+				if (subscriber == null) {
+					subscriber = new Subscriber();
+					subscriber.setStreamId(streamId);
+					subscriber.setSubscriberId(subscriberId);
+				}
+
+				//if the subscriber is not registered to the current node, I mean it's created above then, 
+				//subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress() will not equal
+				if (!StringUtils.equals(subscriber.getRegisteredNodeIp(), serverSettings.getHostAddress())) 
+				{	
+					subscriber.setRegisteredNodeIp(serverSettings.getHostAddress());
+
+					//only update database if it's required
+					getDataStore().addSubscriber(streamId, subscriber);
+				}
+
+				// map sessionId to subscriberId
+				sessionId2subscriberId.put(sessionId, subscriberId);
+				// add a connected event to the subscriber
+				ConnectionEvent event = new ConnectionEvent();
+				event.setEventType(ConnectionEvent.CONNECTED_EVENT);
+				Date curDate = new Date();
+				event.setTimestamp(curDate.getTime());
+				event.setEventProtocol(getType());
+
+				//TODO: There is a bug here. It adds +1 for each ts request 
+				if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
+					logger.info("CONNECTED_EVENT for subscriberId:{} streamId:{}", subscriberId, streamId);
 				}
 			}
-			
+
 		});
-		
-}
+
+	}
 	
 	public void resetViewerMap(String streamID, String type) {
 		
@@ -164,19 +155,35 @@ public class ViewerStats {
 		}
 	}
 	
-	public void removeViewerEntry(String streamId, String viewerKey) {
+	/**
+	 * Moves an already registered viewer to a new key. The viewer count is deliberately left
+	 * untouched, this is the same viewer under a different key and not a viewer joining or leaving,
+	 * so no increment/decrement and no play started/ended event is produced.
+	 */
+	public void migrateViewerEntry(String streamId, String oldViewerKey, String newViewerKey) {
 		runOnStatsContext(h -> {
-			synchronized (lock) {
-				Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
-				if (viewerMap != null && viewerMap.remove(viewerKey) != null) {
-					logger.debug("Removed fingerprint entry {} for stream {}", viewerKey, streamId);
-					sessionId2subscriberId.remove(viewerKey);
-
-					int streamIncrementCounter = getIncreaseCounterMap(streamId);
-					streamIncrementCounter--;
-					increaseCounterMap.put(streamId, streamIncrementCounter);
-				}
+			Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
+			if (viewerMap == null) {
+				return;
 			}
+
+			Long lastRequestTime = viewerMap.remove(oldViewerKey);
+			if (lastRequestTime == null) {
+				//nothing registered under the old key, it most likely timed out in the meantime.
+				//registerNewViewer will then count this request as a new viewer, which is correct
+				return;
+			}
+
+			//putIfAbsent, if the viewer already has an entry under the new key the older one is
+			//simply dropped, it is the same viewer either way
+			viewerMap.putIfAbsent(newViewerKey, lastRequestTime);
+
+			String subscriberId = sessionId2subscriberId.remove(oldViewerKey);
+			if (subscriberId != null) {
+				sessionId2subscriberId.putIfAbsent(newViewerKey, subscriberId);
+			}
+
+			logger.debug("Migrated viewer entry from {} to {} for stream {}", oldViewerKey, newViewerKey, streamId);
 		});
 	}
 
@@ -276,13 +283,23 @@ public class ViewerStats {
 		this.statsContext = vertx.getOrCreateContext();
 	}
 
-	private void runOnStatsContext(io.vertx.core.Handler<Void> action) {
+	/**
+	 * Runs the given action on the single Vert.x context dedicated to viewer statistics, so every
+	 * viewer map mutation is executed one at a time and in submission order.
+	 * <p>
+	 * {@link Vertx#runOnContext(Handler)} is not used for this because it creates a brand new
+	 * context on each call made from a non Vert.x thread, and hls/dash requests are served by
+	 * Tomcat threads. Ordering matters here, {@link #migrateViewerEntry(String, String, String)}
+	 * has to run before the {@link #registerNewViewer(String, String, String)} call issued by the
+	 * same request.
+	 */
+	private void runOnStatsContext(Handler<Void> action) {
 		if (statsContext != null) {
-			statsContext.runOnContext(v -> action.handle(null));
+			statsContext.runOnContext(action);
 		}
 		else {
-			// Fallback for early startup calls before setVertx()
-			vertx.runOnContext(v -> action.handle(null));
+			//fallback for the case the vertx field is set directly instead of through setVertx
+			vertx.runOnContext(action);
 		}
 	}
 	
@@ -370,7 +387,9 @@ public class ViewerStats {
 						getDataStore().updateDASHViewerCount(streamViewerEntry.getKey(), diffCount);
 					}
 
-					increaseCounterMap.put(streamId, 0);
+					//subtract what has just been flushed rather than resetting to zero, so an
+					//increment landing while this method runs is not lost
+					increaseCounterMap.merge(streamId, -numberOfIncrement, Integer::sum);
 				}
 			}
 
