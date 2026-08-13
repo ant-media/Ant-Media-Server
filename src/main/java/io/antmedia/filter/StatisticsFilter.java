@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.UUID;
 
 import jakarta.servlet.FilterChain;
@@ -51,10 +52,10 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI(), hlsSegmentFileSuffixFormat);
 			String subscriberId = httpRequest.getParameter("subscriberId");
 
-			// Resolve the viewer identity and any old fingerprint that needs cleanup
+			//resolve the viewer identity and the fingerprint key it has to be migrated from, if any
 			String[] identity = resolveViewerIdentity(httpRequest, httpResponse);
-			String sessionId = identity[0];
-			String oldFingerprint = identity[1];
+			String viewerId = identity[0];
+			String previousViewerId = identity[1];
 
 			if (isViewerCountExceeded(httpRequest, httpResponse, streamId)) { 
 				logger.info("Number of viewers limits has exceeded so it's returning forbidden for streamId:{} and class:{}", streamId, getClass().getSimpleName());
@@ -67,14 +68,15 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null)
 			{
-				logger.debug("req ip {} viewer id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
+				logger.debug("req ip {} viewer id {} stream id {} status {}", request.getRemoteHost(), viewerId, streamId, status);
 				IStreamStats stats = getStreamStats(getBeanName());
 				if (stats != null) {
-					// Clean up old fingerprint entry if transitioning to cookie-based identity
-					if (oldFingerprint != null) {
-						stats.removeViewerEntry(streamId, oldFingerprint);
+					//this viewer was first counted under its fingerprint, move that entry over to the
+					//cookie based id instead of registering the same client a second time
+					if (previousViewerId != null) {
+						stats.migrateViewerEntry(streamId, previousViewerId, viewerId);
 					}
-					stats.registerNewViewer(streamId, sessionId, subscriberId);
+					stats.registerNewViewer(streamId, viewerId, subscriberId);
 				}
 			}
 			startStreamingIfAutoStartStopEnabled(httpRequest, streamId);
@@ -108,45 +110,57 @@ public abstract class StatisticsFilter extends AbstractFilter {
 	 * <p>
 	 * Priority:
 	 * <ol>
-	 *   <li>{@code subscriberId} query parameter — used as-is</li>
-	 *   <li>{@code viewerId} cookie — contains {@code uuid|fingerprint}; the UUID is used as identity
-	 *       and the fingerprint is returned for cleanup</li>
-	 *   <li>SHA-256 fingerprint of client IP + User-Agent + Accept-Language — fallback;
-	 *       a new {@code viewerId} cookie is set for subsequent requests</li>
+	 *   <li>{@code viewerId} cookie — {@code uuid} for a viewer that is already counted under its
+	 *       uuid, or {@code uuid|fingerprint} on the single request where the cookie comes back for
+	 *       the first time. In that second case the fingerprint is returned so the entry created for
+	 *       it can be migrated, and the cookie is rewritten to the plain {@code uuid} form so the
+	 *       migration is requested once and not on every following segment request</li>
+	 *   <li>SHA-256 fingerprint of client IP + User-Agent + Accept-Language — used when there is no
+	 *       usable cookie</li>
 	 * </ol>
+	 * <p>
+	 * The {@code subscriberId} parameter is deliberately not used as the identity, a subscriber
+	 * watching from two devices is two viewers. It is reported separately to the statistics.
 	 *
 	 * @param request  the incoming HTTP request
-	 * @param response the HTTP response (used to set the cookie on first visit)
-	 * @return a two-element array: [0] = viewer identity key, [1] = old fingerprint to remove (or null)
+	 * @param response the HTTP response (used to set the cookie)
+	 * @return a two-element array: [0] = viewer identity key, [1] = fingerprint key to migrate from (or null)
 	 */
 	static String[] resolveViewerIdentity(HttpServletRequest request, HttpServletResponse response) {
-		String subscriberId = request.getParameter("subscriberId");
-		if (subscriberId != null && !subscriberId.isEmpty()) {
-			return new String[] { subscriberId, null };
-		}
-
 		String cookieValue = getViewerIdCookie(request);
-		String fingerprint = computeFingerprint(request);
-
-		if (cookieValue != null && cookieValue.contains(COOKIE_SEPARATOR)) {
+		if (cookieValue != null && !cookieValue.isEmpty()) {
 			int separatorIndex = cookieValue.indexOf(COOKIE_SEPARATOR);
-			String uuid = cookieValue.substring(0, separatorIndex);
-			String cookieFingerprint = cookieValue.substring(separatorIndex + 1);
+			if (separatorIndex < 0) {
+				return new String[] { cookieValue, null };
+			}
 
+			String uuid = cookieValue.substring(0, separatorIndex);
 			if (!uuid.isEmpty()) {
-				// Cookie is valid — use UUID as identity.
-				// Always return the stored fingerprint for cleanup because the
-				// first visit (before the cookie existed) registered the viewer
-				// under that fingerprint.  It must be removed regardless of
-				// whether the client's IP/UA has changed since then.
-				return new String[] { uuid, cookieFingerprint };
+				//first request carrying the cookie back, the viewer is still counted under the
+				//fingerprint. Drop the fingerprint from the cookie so this is a one shot migration
+				setViewerIdCookie(request, response, uuid);
+
+				String previousViewerId = cookieValue.substring(separatorIndex + 1);
+				return new String[] { uuid, previousViewerId.isEmpty() ? null : previousViewerId };
 			}
 		}
 
-		// No cookie or invalid cookie — use fingerprint and set cookie for next time
-		String uuid = UUID.randomUUID().toString();
-		setViewerIdCookie(request, response, uuid + COOKIE_SEPARATOR + fingerprint);
+		//no usable cookie, count this viewer under its fingerprint and hand out a cookie so the
+		//following requests can be attributed to this client alone. Only playlist requests hand it
+		//out, a client that cannot return the cookie would otherwise be issued a new one for every
+		//single segment request
+		String fingerprint = computeFingerprint(request);
+		if (isPlaylistRequest(request.getRequestURI())) {
+			setViewerIdCookie(request, response, UUID.randomUUID() + COOKIE_SEPARATOR + fingerprint);
+		}
 		return new String[] { fingerprint, null };
+	}
+
+	/**
+	 * True for the playlist of a stream (m3u8/mpd), false for its segments.
+	 */
+	static boolean isPlaylistRequest(String requestURI) {
+		return requestURI != null && (requestURI.endsWith("m3u8") || requestURI.endsWith("mpd"));
 	}
 
 	/**
@@ -154,11 +168,13 @@ public abstract class StatisticsFilter extends AbstractFilter {
 	 */
 	static String getViewerIdCookie(HttpServletRequest request) {
 		Cookie[] cookies = request.getCookies();
-		if (cookies != null) {
-			for (Cookie cookie : cookies) {
-				if (VIEWER_ID_COOKIE_NAME.equals(cookie.getName())) {
-					return cookie.getValue();
-				}
+		if (cookies == null) {
+			return null;
+		}
+
+		for (Cookie cookie : cookies) {
+			if (VIEWER_ID_COOKIE_NAME.equals(cookie.getName())) {
+				return cookie.getValue();
 			}
 		}
 		return null;
@@ -190,6 +206,9 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 	/**
 	 * Computes a SHA-256 fingerprint from the client's IP, User-Agent, and Accept-Language.
+	 * <p>
+	 * Only called for a request that carries no usable {@code viewerId} cookie, so once per viewer
+	 * rather than once per segment request.
 	 */
 	static String computeFingerprint(HttpServletRequest request) {
 		String xff = request.getHeader("X-Forwarded-For");
@@ -203,12 +222,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 		try {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
-			byte[] hash = md.digest(raw.getBytes(StandardCharsets.UTF_8));
-			StringBuilder sb = new StringBuilder(64);
-			for (byte b : hash) {
-				sb.append(String.format("%02x", b));
-			}
-			return sb.toString();
+			return HexFormat.of().formatHex(md.digest(raw.getBytes(StandardCharsets.UTF_8)));
 		} catch (NoSuchAlgorithmException e) {
 			logger.warn("SHA-256 not available, using raw fingerprint");
 			return raw;

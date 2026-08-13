@@ -18,12 +18,18 @@ public interface IStreamStats {
 	int getViewerCount(String streamId);
 
 	/**
-	 * Remove a specific viewer entry from the stream's viewer map.
-	 * Used to clean up a fingerprint-based entry when a cookie-based identity takes over.
+	 * Move a viewer entry from one key to another, leaving the viewer count unchanged.
+	 * Used when a viewer that was first counted under its browser fingerprint starts sending the
+	 * viewerId cookie back, so the same client is not counted as a second viewer.
+	 *
+	 * Implemented as a no-op by default so implementations living outside this repository keep
+	 * compiling, they simply keep counting the fingerprint entry until it times out.
 	 *
 	 * @param streamId the stream ID
-	 * @param viewerKey the viewer key to remove (e.g. the fingerprint hash)
+	 * @param oldViewerKey the key the viewer is currently registered under (the fingerprint hash)
+	 * @param newViewerKey the key the viewer should be registered under (the cookie uuid)
 	 */
-	void removeViewerEntry(String streamId, String viewerKey);
+	default void migrateViewerEntry(String streamId, String oldViewerKey, String newViewerKey) {
+	}
 
 }
