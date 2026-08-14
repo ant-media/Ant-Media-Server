@@ -58,13 +58,13 @@ public class EndpointMuxerAnalytics {
 	}
 
 	/** One warn per {@link #DROP_LOG_INTERVAL_MS} regardless of drop rate. */
-	public void recordDrop(int queueDepth) {
+	public void recordDrop(int droppedPackets) {
 		long count = dropCount.incrementAndGet();
 		long now = System.currentTimeMillis();
 		if (now - lastDropLogMs >= DROP_LOG_INTERVAL_MS) {
 			lastDropLogMs = now;
-			logger.warn("Endpoint queue drops: total={} for {} (depth={}/{})",
-					count, url, queueDepth, queueCapacity);
+			logger.warn("Endpoint backlog dropped {} packets for {}, {} drops total (capacity {})",
+					droppedPackets, url, count, queueCapacity);
 		}
 	}
 
