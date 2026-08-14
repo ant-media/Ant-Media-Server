@@ -20,7 +20,7 @@ public class EndpointMuxerBacklogPacing implements EndpointMuxerPacingPolicy {
 
 	private static final int QUEUE_CAPACITY = 250;
 	private static final long GRACE_PERIOD_MS = 1000L;
-	/** When we are dropping packets, every packet is dropped until we get a keyframe.
+	/**A failsafe...  When we are dropping packets, every packet is dropped until we get a keyframe.
 	 * If keyframe never arrives for this amount of time, we will just resume with any next packet. */
 	private static final long RESUME_WAIT_LIMIT_MS = 10_000L;
 
@@ -82,11 +82,6 @@ public class EndpointMuxerBacklogPacing implements EndpointMuxerPacingPolicy {
 		return true;
 	}
 
-	/**
-	 * Video resumes on a keyframe, since the drop threw away frames the decoder needs. Audio-only
-	 * takes anything, or it would wait forever. The index check is not redundant: writeAudioBuffer
-	 * flags every audio packet as a keyframe.
-	 */
 	private boolean isResumePoint(AVPacket pkt, EndpointMuxerPacingEngine engine) {
 		int videoIndex = engine.videoStreamIndex();
 		if (videoIndex < 0) {

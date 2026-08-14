@@ -91,8 +91,6 @@ public class EndpointMuxerPacingEngine {
 		return packetQueue.size();
 	}
 
-	// ---- policy facing ----
-
 	public boolean isFull() {
 		return packetQueue.remainingCapacity() == 0;
 	}
@@ -115,8 +113,8 @@ public class EndpointMuxerPacingEngine {
 	}
 
 	/**
-	 * Empties the queue and reports where the drain would have carried on. Exact, not a guess:
-	 * the queue holds what the drain has not written yet, in order.
+	 * Empties the queue and reports where the drain would have carried on.
+	 * The queue holds what the drain has not written yet, in order.
 	 *
 	 * @return oldest queued video dts in ms, else oldest of any stream, else AV_NOPTS_VALUE.
 	 */
@@ -139,8 +137,7 @@ public class EndpointMuxerPacingEngine {
 					if (videoMs == avutil.AV_NOPTS_VALUE && pkt.stream_index() == videoStreamIndex) {
 						videoMs = ms;
 					}
-				}
-				finally {
+				} finally {
 					// In a finally so a throw mid-scan can't leak a queue full of native packets.
 					av_packet_free(pkt);
 				}
@@ -156,16 +153,16 @@ public class EndpointMuxerPacingEngine {
 		return anchorMs;
 	}
 
-	// ---- internal ----
-
 	private void shift(AVPacket pkt, long offsetMs) {
 		if (offsetMs == 0) {
 			return;
 		}
+
 		AVRational timeBase = timeBaseOf(pkt);
 		if (timeBase == null) {
 			return;
 		}
+		
 		long offset = av_rescale_q(offsetMs, MuxAdaptor.TIME_BASE_FOR_MS, timeBase);
 		// AV_NOPTS_VALUE is Long.MIN_VALUE, so subtracting overflows it into a real timestamp.
 		if (pkt.pts() != avutil.AV_NOPTS_VALUE) {
@@ -187,10 +184,10 @@ public class EndpointMuxerPacingEngine {
 		return timeBases[index];
 	}
 
-	/** Throttled, because these fire at packet rate. */
 	private void logPacketIssue(String format, Object... arguments) {
 		long now = System.currentTimeMillis();
 		if (now - lastIssueLogMs >= ISSUE_LOG_INTERVAL_MS) {
+			// Throttled, because these fire at packet rate
 			lastIssueLogMs = now;
 			logger.warn(format, arguments);
 		}

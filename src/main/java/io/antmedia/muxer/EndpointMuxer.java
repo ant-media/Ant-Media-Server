@@ -56,7 +56,7 @@ import io.vertx.core.Vertx;
 public class EndpointMuxer extends Muxer {
 
 	/** Consecutive unplaceable packets before we call the endpoint broken. */
-	private static final int UNWRITABLE_LIMIT = 300;
+	private static final int UNWRITABLE_LIMIT = 200;
 
 	private final String url;
 	private volatile boolean trailerWritten = false;
@@ -143,9 +143,6 @@ public class EndpointMuxer extends Muxer {
 		return url;
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex) {
 
@@ -162,20 +159,26 @@ public class EndpointMuxer extends Muxer {
 	public AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
 			logger.info("Creating outputFormatContext");
-			outputFormatContext= new AVFormatContext(null);
-			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, null);
+			AVFormatContext context = new AVFormatContext(null);
+			int ret = avformat_alloc_output_context2(context, null, format, null);
 			if (ret < 0) {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 				logger.info("Could not create output context for url {}", url);
 				return null;
 			}
+			outputFormatContext = context;
 		}
 		return outputFormatContext;
 	}
 
 	@Override
 	public boolean openIO() {
-		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) != 0) {
+		AVFormatContext context = getOutputFormatContext();
+		if (context == null) {
+			return false;
+		}
+
+		if ((context.oformat().flags() & AVFMT_NOFILE) != 0) {
 			return true;
 		}
 
@@ -192,7 +195,7 @@ public class EndpointMuxer extends Muxer {
 				logger.warn("Could not open output url: {}", getOutputURL());
 				return false;
 			}
-			getOutputFormatContext().pb(pb);
+			context.pb(pb);
 			return true;
 		} finally {
 			av_dict_free(localOpts);

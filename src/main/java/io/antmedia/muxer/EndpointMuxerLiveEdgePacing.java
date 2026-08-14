@@ -46,7 +46,7 @@ public class EndpointMuxerLiveEdgePacing implements EndpointMuxerPacingPolicy {
 
 	private final String url;
 
-	/** Media time removed so far. Only changes on resume, which only happens on an empty queue. */
+	/** total media time removed so far. Only changes on resume, which only happens on an empty queue. */
 	private long offsetMs = 0;
 	/** Output time the open cycle cut from. AV_NOPTS_VALUE means no cycle is open. */
 	private long dropAnchorOutputMs = avutil.AV_NOPTS_VALUE;
@@ -83,13 +83,16 @@ public class EndpointMuxerLiveEdgePacing implements EndpointMuxerPacingPolicy {
 		if (inGracePeriod()) {
 			return PacingDecision.discard();
 		}
+
 		if (!isDropCycleOpen() && engine.isFull()) {
 			beginDropCycle(engine.flush());
 		}
+		
 		// Retried on this same packet, so a fresh cycle doesn't cost another GOP.
 		if (isDropCycleOpen() && !tryResume(pkt, engine)) {
 			return PacingDecision.discard();
 		}
+		
 		return PacingDecision.pass(offsetMs);
 	}
 
