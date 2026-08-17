@@ -1178,7 +1178,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//we get 5 less bytes because first 5 bytes is related to the video tag. It's not part of the generic packet
 			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-offset);
 			byteBuffer.put(packet.getData().buf().position(offset));
-
+			byteBuffer.position(0);
 
 			videoBufferReceived(dts, isKeyFrame, pts, byteBuffer);
 
@@ -1199,7 +1199,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//we get 2 less bytes because first 2 bytes is related to the audio tag. It's not part of the generic packet
 			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-2);
 			byteBuffer.put(packet.getData().buf().position(2));
-
+			byteBuffer.position(0);
 			logger.trace("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{} streamId:{}", dts, packet.getTimestamp(), streamId);
 
 			audioBufferReceived(dts, byteBuffer);

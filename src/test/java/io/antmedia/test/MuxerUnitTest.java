@@ -5966,25 +5966,15 @@ public class MuxerUnitTest {
 		muxAdaptor.setEnableAudio(true);
 		muxAdaptor.setEnableVideo(true);
 
-		ByteBuffer byteBuffer = mock(ByteBuffer.class);
-		IoBuffer ioBuffer = mock(IoBuffer.class);
-		when(ioBuffer.limit()).thenReturn(1024);
-		when(ioBuffer.buf()).thenReturn(byteBuffer);
-		when(byteBuffer.position(2)).thenReturn(ByteBuffer.allocateDirect(3));
-		when(byteBuffer.position(5)).thenReturn(ByteBuffer.allocateDirect(3));
-
-
-		when(ioBuffer.position(0)).thenReturn(ioBuffer);
-		when(ioBuffer.position(2)).thenReturn(ioBuffer);
-		when(ioBuffer.position(3)).thenReturn(ioBuffer);
-
+		IoBuffer ioBuffer = IoBuffer.allocate(1024);
+		
 		ByteBuffer directByteBuffer = ByteBuffer.allocateDirect(1024-2);
-		directByteBuffer.put(ioBuffer.buf().position(2));
+		//directByteBuffer.put(ioBuffer.buf().position(2));
 		directByteBuffer.position(0);
 
 		ByteBuffer directByteBufferVideo = ByteBuffer.allocateDirect(1024-5);
-		directByteBufferVideo.put(ioBuffer.buf().position(2));
-		directByteBufferVideo.position(3);
+		//directByteBufferVideo.put(ioBuffer.buf().position(2));
+		directByteBufferVideo.position(0);
 
 		//audio packets
 		IStreamPacket audioPacket1 = mock(IStreamPacket.class);
@@ -6065,7 +6055,7 @@ public class MuxerUnitTest {
 		assertEquals(lastVideoDts, videoPacket2.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 
-		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket2.getTimestamp() );
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer, 1, audioPacket2.getTimestamp() );
 		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket2.getTimestamp(), 0, 0, false, 0, videoPacket2.getTimestamp() );
 
 		muxAdaptor.writeStreamPacket(audioPacket3);
