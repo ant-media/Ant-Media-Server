@@ -46,7 +46,6 @@ public class InProcessRtmpPublisherUnitTest {
 	@Spy private IBroadcastScope mockScope;
 	@Mock private AVPacket mockPacket;
 	@Mock private BytePointer mockBytePointer;
-	@Mock private ByteBuffer mockByteBuffer;
 
 	private RtmpProvider publisher;
 	private AVRational videoTb;

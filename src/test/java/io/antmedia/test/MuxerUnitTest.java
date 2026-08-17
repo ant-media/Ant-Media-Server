@@ -3923,7 +3923,7 @@ public class MuxerUnitTest {
 
 		//5 + 3 bytes for extended timestamp
 		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1000-8);
-		byteBuffer.position(992);
+		byteBuffer.position(0);
 
 		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
 				0, false, 0, timestamp);
@@ -3942,8 +3942,8 @@ public class MuxerUnitTest {
 		muxAdaptor.writeStreamPacket(event);
 
 		//no extended timestamp
-		byteBuffer = ByteBuffer.allocateDirect(1000-5);
-		byteBuffer.position(995);
+		byteBuffer = ByteBuffer.allocateDirect(500-5);
+		byteBuffer.position(0);
 
 		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
 				0, false, 0, timestamp);
@@ -3957,6 +3957,9 @@ public class MuxerUnitTest {
 		event.setData(IoBuffer.allocate(1000));
 		timestamp += 50;
 		event.setTimestamp((int)timestamp);
+		
+		byteBuffer = ByteBuffer.allocateDirect(1000-5);
+		byteBuffer.position(0);
 
 		muxAdaptor.writeStreamPacket(event);
 
