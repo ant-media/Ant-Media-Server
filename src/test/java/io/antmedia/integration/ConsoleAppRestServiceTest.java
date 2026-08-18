@@ -1,12 +1,12 @@
 package io.antmedia.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -52,16 +52,16 @@ import org.codehaus.plexus.util.ExceptionUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer.MethodName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +81,7 @@ import io.antmedia.statistic.StatsCollector;
 import io.antmedia.test.StreamFetcherUnitTest;
 import net.bytebuddy.utility.RandomString;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodName.class)
 public class ConsoleAppRestServiceTest{
 
 	private static String ROOT_SERVICE_URL;
@@ -122,7 +122,7 @@ public class ConsoleAppRestServiceTest{
 		httpCookieStore = new BasicCookieStore();
 	}
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		if (AppFunctionalV2Test.getOS() == AppFunctionalV2Test.MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
@@ -148,7 +148,7 @@ public class ConsoleAppRestServiceTest{
 		return callAuthenticateUser(user).isSuccess();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		try {
 			restService = new CommonRestService();
@@ -178,7 +178,7 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
-	@After
+	@AfterEach
 	public void teardown() {
 	}
 
@@ -221,8 +221,8 @@ public class ConsoleAppRestServiceTest{
 				assertTrue(callAuthenticateUser(user).isSuccess());
 				return;
 			}
-			assertTrue("Server is not started from scratch. Please delete server.db file and restart server",
-					firstLogin.isSuccess());
+			assertTrue(firstLogin.isSuccess(),
+					"Server is not started from scratch. Please delete server.db file and restart server");
 
 			User user = new User();
 

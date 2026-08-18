@@ -6,14 +6,14 @@ import io.antmedia.IDeleteAppListener;
 
 public interface IClusterNotifier {
 	
-	public static final String BEAN_NAME = "tomcat.cluster";
+	String BEAN_NAME = "tomcat.cluster";
 	
-	public IClusterStore getClusterStore();
+	IClusterStore getClusterStore();
 	
-	public void registerSettingUpdateListener(String appName, IAppSettingsUpdateListener listener);
+	void registerSettingUpdateListener(String appName, IAppSettingsUpdateListener listener);
 	
-	public void registerCreateAppListener(ICreateAppListener createApplistener);
+	void registerCreateAppListener(ICreateAppListener createApplistener);
 	
-	public void registerDeleteAppListener(IDeleteAppListener deleteApplistener);
+	void registerDeleteAppListener(IDeleteAppListener deleteApplistener);
 
 }

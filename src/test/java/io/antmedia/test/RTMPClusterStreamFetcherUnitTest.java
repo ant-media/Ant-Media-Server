@@ -1,7 +1,7 @@
 package io.antmedia.test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,23 +12,22 @@ import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.red5.server.messaging.IConsumer;
 import org.red5.server.scope.BroadcastScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -37,9 +36,14 @@ import io.antmedia.muxer.RtmpProvider;
 import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
+
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContextTests  {
+@ExtendWith(SpringExtension.class)
+public class RTMPClusterStreamFetcherUnitTest {
+
+	@Autowired
+	private ApplicationContext applicationContext;
 	
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
@@ -48,23 +52,7 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 	private AppSettings appSettings;
 	private Vertx vertx;
 
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			System.out.println("Failed test: " + description.getMethodName());
-		}
-
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		}
-
-	};
-	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		try {
 			Thread.sleep(10000);
@@ -74,7 +62,7 @@ public class RTMPClusterStreamFetcherUnitTest extends AbstractJUnit4SpringContex
 		}
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() {
 
 		try {

@@ -1108,7 +1108,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		marketplace = serverSettings.getMarketplace();
 		webhookURL = serverSettings.getServerStatusWebHookURL();
 
-		licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+		licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BEAN_NAME);
 
 		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
 

@@ -114,7 +114,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	private transient Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue<>();
 
 
-	private static Logger logger = LoggerFactory.getLogger(ServerSettings.class);
+	private static final Logger logger = LoggerFactory.getLogger(ServerSettings.class);
 
 	private static String localHostAddress;
 
@@ -470,8 +470,8 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		}
 		else {
 			//************************************
-			//this method may sometimes takes long to return
-			//delaying initialization may cause some after issues
+			//this method sometimes may take long to return
+			//delaying initialization may cause some issues afterwards
 			hostAddress = getLocalHostAddress();
 			logger.info("Using local host address is {}", hostAddress);
 		}
@@ -488,10 +488,9 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 			}
 		}
 
-		if (applicationContext.containsBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())) 
-		{
+		if (applicationContext.containsBean(ILicenceService.BEAN_NAME)) {
 
-			ILicenceService licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+			ILicenceService licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BEAN_NAME);
 
 			if (ILicenceService.LICENCE_TYPE_MARKETPLACE.equals(licenseService.getLicenseType())) {
 				buildForMarket = true;
