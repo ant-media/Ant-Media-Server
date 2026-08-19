@@ -199,11 +199,11 @@ jobs:
             curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
       
-      - name: Install FFmpeg 7
+      - name: Install FFmpeg 8
         run: |
           curl -L --retry 5 --retry-delay 10 \
             -o /tmp/ffmpeg.tar.xz \
-            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz
+            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz
           mkdir -p /tmp/ffmpeg
           tar -xf /tmp/ffmpeg.tar.xz -C /tmp/ffmpeg --strip-components=1
           sudo install -m 0755 /tmp/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
