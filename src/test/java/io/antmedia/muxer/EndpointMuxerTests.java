@@ -73,6 +73,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.antmedia.AppSettings;
+import io.antmedia.muxer.EndpointMuxerPacingEngine.TimeBase;
 import io.antmedia.muxer.EndpointMuxerPacingPolicy.Action;
 import io.antmedia.muxer.EndpointMuxerPacingPolicy.PacingDecision;
 import io.antmedia.muxer.parser.SPSParser;
@@ -171,7 +172,7 @@ public class EndpointMuxerTests {
 
 	/** Two streams on a millisecond time base, so a packet dts reads directly as output ms. */
 	private static EndpointMuxerPacingEngine newEngine(EndpointMuxerPacingPolicy policy, int videoStreamIndex) {
-		AVRational[] timeBases = {msTimeBase(), msTimeBase()};
+		TimeBase[] timeBases = {new TimeBase(1, 1000), new TimeBase(1, 1000)};
 		return new EndpointMuxerPacingEngine(policy, new EndpointMuxerAnalytics(URL, policy.queueCapacity()),
 				timeBases, videoStreamIndex);
 	}
@@ -375,7 +376,7 @@ public class EndpointMuxerTests {
 
 	@Test
 	public void testEngineToMsRescalesFromTheStreamTimeBase() {
-		AVRational[] timeBases = {new AVRational().num(1).den(90000), msTimeBase()};
+		TimeBase[] timeBases = {new TimeBase(1, 90000), new TimeBase(1, 1000)};
 		EndpointMuxerPacingEngine engine = new EndpointMuxerPacingEngine(new StubPolicy(4),
 				new EndpointMuxerAnalytics(URL, 4), timeBases, VIDEO);
 
@@ -1010,8 +1011,9 @@ public class EndpointMuxerTests {
 		av_packet_free(pkt);
 
 		// T18: a copy, not a pointer into the context, or a late toMs reads freed memory.
-		AVRational[] timeBases = (AVRational[]) ReflectionTestUtils.getField(engine, "timeBases");
-		assertNotEquals(muxer.getOutputFormatContext().streams(0).time_base().address(), timeBases[0].address());
+		TimeBase[] timeBases = (TimeBase[]) ReflectionTestUtils.getField(engine, "timeBases");
+		AVRational streamTimeBase = muxer.getOutputFormatContext().streams(0).time_base();
+		assertEquals(new TimeBase(streamTimeBase.num(), streamTimeBase.den()), timeBases[0]);
 		muxer.writeTrailer();
 
 		EndpointMuxer liveEdge = headerWrittenEndpoint("engine-live-edge.flv", true);

@@ -51,6 +51,7 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.SizeTPointer;
 
+import io.antmedia.muxer.EndpointMuxerPacingEngine.TimeBase;
 import io.vertx.core.Vertx;
 
 public class EndpointMuxer extends Muxer {
@@ -327,11 +328,11 @@ public class EndpointMuxer extends Muxer {
 			return false;
 		}
 
-		AVRational[] timeBases = new AVRational[streamCount];
+		TimeBase[] timeBases = new TimeBase[streamCount];
 		int videoIndex = -1;
 		for (int i = 0; i < streamCount; i++) {
 			AVStream stream = outputFormatContext.streams(i);
-			timeBases[i] = new AVRational().num(stream.time_base().num()).den(stream.time_base().den());
+			timeBases[i] = new TimeBase(stream.time_base().num(), stream.time_base().den());
 			if (videoIndex == -1 && stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
 				videoIndex = i;
 			}

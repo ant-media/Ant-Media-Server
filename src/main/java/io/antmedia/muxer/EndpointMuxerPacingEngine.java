@@ -2,12 +2,11 @@ package io.antmedia.muxer;
 
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_clone;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
+import static org.bytedeco.ffmpeg.global.avutil.av_rescale;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
-import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +23,8 @@ import io.antmedia.muxer.EndpointMuxerPacingPolicy.PacingDecision;
  */
 public class EndpointMuxerPacingEngine {
 
+	public record TimeBase(int num, int den) {}
+
 	/** EndpointMuxer category, so endpoint logs filter as one. */
 	private static final Logger logger = LoggerFactory.getLogger(EndpointMuxer.class);
 	private static final long ISSUE_LOG_INTERVAL_MS = 5_000L;
@@ -34,14 +35,14 @@ public class EndpointMuxerPacingEngine {
 	private final EndpointMuxerPacingPolicy policy;
 
 	/** Muxer owned copies, not pointers into the context. Indexed by output stream index. */
-	private final AVRational[] timeBases;
+	private final TimeBase[] timeBases;
 	/** -1 when the endpoint carries no video. */
 	private final int videoStreamIndex;
 
 	private long lastIssueLogMs = 0;
 
 	EndpointMuxerPacingEngine(EndpointMuxerPacingPolicy policy, EndpointMuxerAnalytics analytics,
-			AVRational[] timeBases, int videoStreamIndex) {
+			TimeBase[] timeBases, int videoStreamIndex) {
 		this.policy = policy;
 		this.analytics = analytics;
 		this.timeBases = timeBases;
@@ -105,11 +106,11 @@ public class EndpointMuxerPacingEngine {
 
 	/** @return dts in ms, or AV_NOPTS_VALUE when absent or the stream index is out of range. */
 	public long toMs(AVPacket pkt) {
-		AVRational timeBase = timeBaseOf(pkt);
+		TimeBase timeBase = timeBaseOf(pkt);
 		if (timeBase == null || pkt.dts() == avutil.AV_NOPTS_VALUE) {
 			return avutil.AV_NOPTS_VALUE;
 		}
-		return av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
+		return av_rescale(pkt.dts(), timeBase.num() * 1000L, timeBase.den());
 	}
 
 	/**
@@ -158,12 +159,12 @@ public class EndpointMuxerPacingEngine {
 			return;
 		}
 
-		AVRational timeBase = timeBaseOf(pkt);
+		TimeBase timeBase = timeBaseOf(pkt);
 		if (timeBase == null) {
 			return;
 		}
 		
-		long offset = av_rescale_q(offsetMs, MuxAdaptor.TIME_BASE_FOR_MS, timeBase);
+		long offset = av_rescale(offsetMs, timeBase.den(), timeBase.num() * 1000L);
 		// AV_NOPTS_VALUE is Long.MIN_VALUE, so subtracting overflows it into a real timestamp.
 		if (pkt.pts() != avutil.AV_NOPTS_VALUE) {
 			pkt.pts(pkt.pts() - offset);
@@ -174,7 +175,7 @@ public class EndpointMuxerPacingEngine {
 	}
 
 	/** Backstop, so a bad index is a Java bounds check instead of a native out of bounds read. */
-	private AVRational timeBaseOf(AVPacket pkt) {
+	private TimeBase timeBaseOf(AVPacket pkt) {
 		int index = pkt.stream_index();
 		if (index < 0 || index >= timeBases.length) {
 			logPacketIssue("Packet stream index:{} is out of range for the endpoint, {} streams configured",
