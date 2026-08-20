@@ -201,9 +201,9 @@ jobs:
       
       - name: Install FFmpeg 7
         run: |
-          curl -L --retry 5 --retry-delay 10 \
+          curl -fL --retry 5 --retry-delay 10 --retry-all-errors \
             -o /tmp/ffmpeg.tar.xz \
-            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz
+            https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-31-14-10/ffmpeg-n7.1.5-12-g1fdbca85aa-linux64-gpl-7.1.tar.xz
           mkdir -p /tmp/ffmpeg
           tar -xf /tmp/ffmpeg.tar.xz -C /tmp/ffmpeg --strip-components=1
           sudo install -m 0755 /tmp/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
