@@ -5676,7 +5676,7 @@ public class MuxerUnitTest {
 		hlsMuxer.configureVariantStreamMappingIfRequired();
 		
 		Map<String, String> options = (Map<String, String>) ReflectionTestUtils.getField(hlsMuxer, "options");
-		assertEquals("v:0,agroup:audio a:0,agroup:audio,name:audio_0,language:eng,default:yes a:1,agroup:audio,name:audio_1,language:spa", options.get("var_stream_map"));
+		assertEquals("v:0,agroup:audio a:0,agroup:audio,name:eng,language:eng,default:yes a:1,agroup:audio,name:spa,language:spa", options.get("var_stream_map"));
 		assertEquals(streamId + ".m3u8", options.get("master_pl_name"));
 		assertTrue(hlsMuxer.getOutputFormatContext().url().getString().endsWith(streamId + "_%v.m3u8"));
 		assertTrue(hlsMuxer.getSegmentFilename().endsWith(streamId + "_%v%09d.ts"));

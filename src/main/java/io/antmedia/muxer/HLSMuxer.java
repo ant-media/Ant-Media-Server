@@ -442,7 +442,7 @@ public class HLSMuxer extends Muxer  {
 		for (int i = 0; i < audioLanguages.size(); i++) {
 			varStreamMapBuilder.append("a:").append(i)
 					.append(",agroup:").append(VARIANT_AUDIO_GROUP)
-					.append(",name:audio_").append(i)
+					.append(",name:").append(audioLanguages.get(i).orElse("audio_" + i))
 					.append(",language:").append(audioLanguages.get(i).orElse("und"));
 			if (i == 0) {
 				varStreamMapBuilder.append(",default:yes");
