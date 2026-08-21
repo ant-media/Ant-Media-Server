@@ -13,11 +13,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonObject;
 import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
@@ -521,6 +524,7 @@ public class HLSMuxer extends Muxer  {
 		{
 			logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{}",
 					deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
+			FileTime cleanupCutoff = FileTime.from(Instant.now());
 
 			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000l, l -> 
 			{
@@ -540,12 +544,12 @@ public class HLSMuxer extends Muxer  {
 					for (int i = 0; i < files.length; i++) 
 					{
 
-						handleFinalization(files[i]);
+						handleFinalization(files[i], cleanupCutoff);
 					}
 				}
 
 				if (segmentInitFilename != null) {
-					handleFinalization(new File(file.getParentFile() + File.separator + segmentInitFilename));					
+					handleFinalization(new File(file.getParentFile() + File.separator + segmentInitFilename), cleanupCutoff);
 				}
 			});
 		}
@@ -652,9 +656,15 @@ public class HLSMuxer extends Muxer  {
 		client.execute(streamFinishNotify);
 	}
 
-	private void handleFinalization(File file) {
+	@VisibleForTesting
+	void handleFinalization(File file, FileTime cleanupCutoff) {
 
 		try {
+			if (Files.getLastModifiedTime(file.toPath()).compareTo(cleanupCutoff) >= 0) {
+				logger.debug("Skipping HLS finalization for file modified since cleanup was scheduled: {}", file.getAbsolutePath());
+				return;
+			}
+
 			if (uploadHLSToS3 && storageClient.isEnabled()) 
 			{
 				String path = replaceDoubleSlashesWithSingleSlash(s3StreamsFolderPath + File.separator
