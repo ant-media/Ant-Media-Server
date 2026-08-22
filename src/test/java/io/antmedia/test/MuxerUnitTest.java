@@ -6920,6 +6920,21 @@ public class MuxerUnitTest {
 		adaptor.setDirectMuxingSupported(true);
 		assertTrue(adaptor.directMuxingSupported());
 	}
+	
+	@Test
+	public void testStartRecordingReturnNull() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+
+		MuxAdaptor adaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), null, false, appScope));
+
+		//MuxAdaptor adaptor = MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class) , Mockito.mock(Broadcast.class), false, Mockito.mock(IScope.class));
+		adaptor.setIsRecording(true);
+		assertNull(adaptor.startRecording(null, 0, "base_name"));
+		
+		
+		assertNull(adaptor.startRecording(RecordType.WEBM, 0, "base_name"));
+
+	}
 
 	@Test
 	public void testEnableRecordMuxingWithFileNameUsesOverride() throws Exception {
