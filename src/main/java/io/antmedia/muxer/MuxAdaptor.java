@@ -696,8 +696,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (videoDataConf != null && videoCodecParameters == null) {
 
 			Parser parser = null;
-			if (videoCodecId == AV_CODEC_ID_H264) 
-			{
+			switch (videoCodecId) {
+			case AV_CODEC_ID_H264:
 				/*
 						unsigned int(8) configurationVersion = 1;
 						unsigned int(8) AVCProfileIndication;
@@ -736,13 +736,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				//convert above structure to sps and pps annexb
 				parser = new SPSParser(getAnnexbExtradata(videoDataConf), 5);
-			}
-			else if (videoCodecId == AV_CODEC_ID_H265) {
-
+				break;
+			case AV_CODEC_ID_H265:
 				parser = new HEVCDecoderConfigurationParser(videoDataConf, 0);
-
-			}
-			else {
+				break;
+			default:
 				throw new IllegalArgumentException("Unsupported codec id for video:" + videoCodecId);
 			}
 
@@ -1178,7 +1176,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//we get 5 less bytes because first 5 bytes is related to the video tag. It's not part of the generic packet
 			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-offset);
 			byteBuffer.put(packet.getData().buf().position(offset));
-
+			byteBuffer.position(0);
 
 			videoBufferReceived(dts, isKeyFrame, pts, byteBuffer);
 
@@ -1199,7 +1197,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//we get 2 less bytes because first 2 bytes is related to the audio tag. It's not part of the generic packet
 			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-2);
 			byteBuffer.put(packet.getData().buf().position(2));
-
+			byteBuffer.position(0);
 			logger.trace("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{} streamId:{}", dts, packet.getTimestamp(), streamId);
 
 			audioBufferReceived(dts, byteBuffer);
@@ -2323,18 +2321,24 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		RecordMuxer muxer = null;
-		if(recordType == RecordType.MP4) {
+		if (recordType == null) {
+			logger.error("Unrecognized record type: null");
+			return null;
+		}
+
+		switch (recordType) {
+		case MP4:
 			Mp4Muxer mp4Muxer = createMp4Muxer();
 			muxer = mp4Muxer;
 			if (baseFileName != null && !baseFileName.isEmpty()) {
 				muxer.setInitialResourceNameOverride(baseFileName);
 			}
 			addMuxer(muxer, resolutionHeight);
-		}
-		else if(recordType == RecordType.WEBM) {
+			break;
+		case WEBM:
 			//WebM record is not supported for incoming RTMP streams
-		}
-		else {
+			break;
+		default:
 			logger.error("Unrecognized record type: {}", recordType);
 		}
 
