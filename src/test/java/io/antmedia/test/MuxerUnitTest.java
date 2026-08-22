@@ -5972,11 +5972,9 @@ public class MuxerUnitTest {
 		IoBuffer ioBuffer = IoBuffer.allocate(1024);
 		
 		ByteBuffer directByteBuffer = ByteBuffer.allocateDirect(1024-2);
-		//directByteBuffer.put(ioBuffer.buf().position(2));
 		directByteBuffer.position(0);
 
 		ByteBuffer directByteBufferVideo = ByteBuffer.allocateDirect(1024-5);
-		//directByteBufferVideo.put(ioBuffer.buf().position(2));
 		directByteBufferVideo.position(0);
 
 		//audio packets
