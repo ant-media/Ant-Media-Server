@@ -5,7 +5,6 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_INPUT_BUFFER_PADDING_SIZE;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_DATA_NEW_EXTRADATA;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_send_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
@@ -577,14 +576,14 @@ public class EndpointMuxer extends Muxer {
 					}
 
 					if (headerWritten) {
-						enqueueVideoPacket();
+						enqueuePacket(getTmpPacket());
 					} else {
 						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 						logger.warn("Header is not written yet for writing video packet for stream: {}", file.getName());
 					}
 				}
 			} else {
-				enqueueVideoPacket();
+				enqueuePacket(getTmpPacket());
 			}
 			av_packet_unref(getTmpPacket());
 		} else if (codecType == AVMEDIA_TYPE_AUDIO && headerWritten) {
@@ -600,20 +599,9 @@ public class EndpointMuxer extends Muxer {
 	}
 
 	/**
-	 * Runs on every video packet, even ones the policy drops: the decision lives in the engine,
-	 * and the engine must not know about extradata.
-	 *
-	 * TODO: addExtradataIfRequired points tmpPacket.data() at a direct ByteBuffer nothing holds a
-	 * reference to, while tmpPacket.buf() still points at the bsf buffer. av_packet_clone keeps
-	 * the buf ref but copies the data pointer, so a queued clone can read freed memory. Encoder
-	 * paths only. Fix in Muxer: give the payload an AVBufferRef the packet owns.
+	 * Teardown can land between two packets, and submitting after it queues into a dead drain.
+	 * addExtradataIfRequired not added, since it's useless for endpoint pushing
 	 */
-	private void enqueueVideoPacket() {
-		addExtradataIfRequired(getTmpPacket(), (getTmpPacket().flags() & AV_PKT_FLAG_KEY) != 0);
-		enqueuePacket(getTmpPacket());
-	}
-
-	/** Teardown can land between two packets, and submitting after it queues into a dead drain. */
 	private void enqueuePacket(AVPacket pkt) {
 		if (running && !cancelOpenIO.get()) {
 			engine.submit(pkt);

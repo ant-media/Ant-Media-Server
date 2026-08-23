@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -1110,10 +1109,11 @@ public class EndpointMuxerTests {
 		Awaitility.await().atMost(25, TimeUnit.SECONDS)
 				.until(() -> IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(video.getStatus()));
 
-		// T23: still inside grace, so the policy throws this one away. Extradata runs anyway.
+		// T23: still inside grace, so the policy throws this one away. The muxer routes it anyway,
+		// the drop belongs to the policy and nothing upstream of the queue.
 		AVPacket videoPkt = packet(VIDEO, 0, true);
 		video.writePacket(videoPkt, msTimeBase(), msTimeBase(), AVMEDIA_TYPE_VIDEO);
-		verify(video, times(1)).addExtradataIfRequired(any(), anyBoolean());
+		verify(video, times(1)).writeFrameInternal(any(), any(), any(), any(), anyInt());
 
 		skipStartupGrace(video);
 		video.setStatus("test");
