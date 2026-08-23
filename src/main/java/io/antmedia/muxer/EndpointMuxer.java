@@ -76,8 +76,8 @@ public class EndpointMuxer extends Muxer {
 	public String muxerType = null;
 
 	/** Owns the queue and the pacing policy. Null until the header is written. */
-	private volatile EndpointMuxerPacingEngine engine;
-	private volatile EndpointMuxerAnalytics analytics;
+	private EndpointMuxerPacingEngine engine;
+	private EndpointMuxerAnalytics analytics;
 
 	/** Last dts written per output stream. Sized with the engine, then drain-thread only. */
 	private long[] lastWrittenDts;
@@ -716,7 +716,7 @@ public class EndpointMuxer extends Muxer {
 	}
 
 	/** Test hook: lets unit tests drive recordDrop/recordWrite directly. */
-	public EndpointMuxerAnalytics getAnalytics() {
+	public synchronized EndpointMuxerAnalytics getAnalytics() {
 		return analytics;
 	}
 }
