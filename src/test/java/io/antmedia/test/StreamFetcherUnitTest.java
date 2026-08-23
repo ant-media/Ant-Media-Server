@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -1207,9 +1208,11 @@ public class StreamFetcherUnitTest {
         String regex = streamId + "_\\d{13}_init.mp4";
 		System.out.println("regex:"+regex);
 
+		Pattern REGEX = Pattern.compile(regex);
+
 		for (int i = 0; i < filesInStreams.length; i++) {
 			System.out.println("files:"+filesInStreams[i]);
-			initFileFound |= filesInStreams[i].matches(regex);
+			initFileFound |= REGEX.matcher(filesInStreams[i]).matches();
 		}
 		assertTrue(initFileFound);
 		

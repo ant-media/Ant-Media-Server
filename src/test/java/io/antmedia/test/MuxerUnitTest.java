@@ -3923,7 +3923,7 @@ public class MuxerUnitTest {
 
 		//5 + 3 bytes for extended timestamp
 		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1000-8);
-		byteBuffer.position(992);
+		byteBuffer.position(0);
 
 		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
 				0, false, 0, timestamp);
@@ -3942,8 +3942,8 @@ public class MuxerUnitTest {
 		muxAdaptor.writeStreamPacket(event);
 
 		//no extended timestamp
-		byteBuffer = ByteBuffer.allocateDirect(1000-5);
-		byteBuffer.position(995);
+		byteBuffer = ByteBuffer.allocateDirect(500-5);
+		byteBuffer.position(0);
 
 		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
 				0, false, 0, timestamp);
@@ -3957,6 +3957,9 @@ public class MuxerUnitTest {
 		event.setData(IoBuffer.allocate(1000));
 		timestamp += 50;
 		event.setTimestamp((int)timestamp);
+		
+		byteBuffer = ByteBuffer.allocateDirect(1000-5);
+		byteBuffer.position(0);
 
 		muxAdaptor.writeStreamPacket(event);
 
@@ -5966,25 +5969,13 @@ public class MuxerUnitTest {
 		muxAdaptor.setEnableAudio(true);
 		muxAdaptor.setEnableVideo(true);
 
-		ByteBuffer byteBuffer = mock(ByteBuffer.class);
-		IoBuffer ioBuffer = mock(IoBuffer.class);
-		when(ioBuffer.limit()).thenReturn(1024);
-		when(ioBuffer.buf()).thenReturn(byteBuffer);
-		when(byteBuffer.position(2)).thenReturn(ByteBuffer.allocateDirect(3));
-		when(byteBuffer.position(5)).thenReturn(ByteBuffer.allocateDirect(3));
-
-
-		when(ioBuffer.position(0)).thenReturn(ioBuffer);
-		when(ioBuffer.position(2)).thenReturn(ioBuffer);
-		when(ioBuffer.position(3)).thenReturn(ioBuffer);
-
+		IoBuffer ioBuffer = IoBuffer.allocate(1024);
+		
 		ByteBuffer directByteBuffer = ByteBuffer.allocateDirect(1024-2);
-		directByteBuffer.put(ioBuffer.buf().position(2));
 		directByteBuffer.position(0);
 
 		ByteBuffer directByteBufferVideo = ByteBuffer.allocateDirect(1024-5);
-		directByteBufferVideo.put(ioBuffer.buf().position(2));
-		directByteBufferVideo.position(3);
+		directByteBufferVideo.position(0);
 
 		//audio packets
 		IStreamPacket audioPacket1 = mock(IStreamPacket.class);
@@ -6065,7 +6056,7 @@ public class MuxerUnitTest {
 		assertEquals(lastVideoDts, videoPacket2.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 
-		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket2.getTimestamp() );
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer, 1, audioPacket2.getTimestamp() );
 		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket2.getTimestamp(), 0, 0, false, 0, videoPacket2.getTimestamp() );
 
 		muxAdaptor.writeStreamPacket(audioPacket3);
@@ -6928,6 +6919,21 @@ public class MuxerUnitTest {
 
 		adaptor.setDirectMuxingSupported(true);
 		assertTrue(adaptor.directMuxingSupported());
+	}
+	
+	@Test
+	public void testStartRecordingReturnNull() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+
+		MuxAdaptor adaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), null, false, appScope));
+
+		//MuxAdaptor adaptor = MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class) , Mockito.mock(Broadcast.class), false, Mockito.mock(IScope.class));
+		adaptor.setIsRecording(true);
+		assertNull(adaptor.startRecording(null, 0, "base_name"));
+		
+		
+		assertNull(adaptor.startRecording(RecordType.WEBM, 0, "base_name"));
+
 	}
 
 	@Test
