@@ -73,7 +73,7 @@ runs:
             rm -rf /tmp/panel-src
             git clone --depth=1 -b "$BRANCH" "https://github.com/$PANEL.git" /tmp/panel-src \
               && (corepack enable 2>/dev/null || sudo corepack enable) \
-              && (cd /tmp/panel-src && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 PANEL_CHANNEL=SNAPSHOT OUT_ZIP="/tmp/panel-$slug.zip" ./release.sh)
+              && (cd /tmp/panel-src && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 PANEL_CHANNEL=SNAPSHOT OUT_ZIP="/tmp/panel-$slug.zip" ./release.sh --with-legacy)
           }
 
           if [[ "$REF_TYPE" == "tag" && "$BRANCH" == ams-v* ]]; then
