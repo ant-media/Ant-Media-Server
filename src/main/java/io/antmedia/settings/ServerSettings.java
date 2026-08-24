@@ -230,15 +230,15 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	/**
 	 * Sampling period for the in-memory per-app metric history exposed by /applications/{name}/metrics-history.
-	 * Default 30s; with the default size this keeps ~12h of history. In-memory only (lost on restart).
+	 * Default 15s; with the default size this keeps ~12h of history. In-memory only (lost on restart).
 	 */
-	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SAMPLE_PERIOD_MS+":30000}" )
+	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SAMPLE_PERIOD_MS+":15000}" )
 	private int appMetricsHistorySamplePeriodMs;
 
 	/**
-	 * Number of samples retained per app in the metric history ring (1440 * 30s = 12h)
+	 * Number of samples retained per app in the metric history ring (2880 * 15s = 12h)
 	 */
-	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SIZE+":1440}" )
+	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SIZE+":2880}" )
 	private int appMetricsHistorySize;
 
 	/**

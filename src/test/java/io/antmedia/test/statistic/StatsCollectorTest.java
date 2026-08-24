@@ -40,6 +40,7 @@ import org.mockito.Mockito;
 import org.red5.server.Launcher;
 import org.red5.server.api.IContext;
 import org.red5.server.api.IServer;
+import org.red5.server.api.listeners.IScopeListener;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
@@ -1074,6 +1075,41 @@ public class StatsCollectorTest {
 		assertEquals(1, statsCollector.getStreamMetricsHistory("app", "stream1").getBitrate().length);
 		statsCollector.removeStreamHistory("app", "stream1");
 		assertEquals(0, statsCollector.getStreamMetricsHistory("app", "stream1").getBitrate().length);
+	}
+
+	@Test
+	public void testAppHistorySeededOnScopeCreateAndDroppedOnRemove() {
+		ServerSettings serverSettings = new ServerSettings();
+		serverSettings.setAppMetricsHistorySize(1440);
+
+		IServer server = Mockito.mock(IServer.class);
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IServer.ID)).thenReturn(server);
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
+
+		StatsCollector statsCollector = new StatsCollector();
+		statsCollector.setApplicationContext(context);
+
+		ArgumentCaptor<IScopeListener> captor = ArgumentCaptor.forClass(IScopeListener.class);
+		Mockito.verify(server).addListener(captor.capture());
+		IScopeListener listener = captor.getValue();
+
+		IScope scope = Mockito.mock(IScope.class);
+		Mockito.when(scope.getName()).thenReturn("app1");
+
+		// a new app has a point right away, a sample period before the first real one
+		listener.notifyScopeCreated(scope);
+		JsonArray viewers = statsCollector.getAppMetricsHistory("app1").getAsJsonArray(StatsCollector.METRIC_HISTORY_VIEWERS);
+		assertEquals(1, viewers.size());
+		assertEquals(0, viewers.get(0).getAsInt());
+
+		statsCollector.addStreamSample("app1", "stream1", statsEvent(1000, 1.0, 2, 3, 4, 0.01), 5, 1000L);
+
+		listener.notifyScopeRemoved(scope);
+		assertEquals(0, statsCollector.getAppMetricsHistory("app1").getAsJsonArray(StatsCollector.METRIC_HISTORY_VIEWERS).size());
+		assertEquals(0, statsCollector.getStreamMetricsHistory("app1", "stream1").getBitrate().length);
 	}
 
 	@Test

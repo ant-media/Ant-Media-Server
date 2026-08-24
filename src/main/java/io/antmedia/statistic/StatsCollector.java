@@ -11,7 +11,6 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -236,8 +235,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	// app's data store, so they are cluster-wide when writeStatsToDatastore is on (the default).
 	// In-memory only - lost on restart and built up again from empty; a separate timer from the
 	// resource history above so the heavier per-app reads run at their own (slower) cadence.
-	private int appMetricsSamplePeriod = 30000;
-	private int appMetricsHistorySize = 1440;
+	private int appMetricsSamplePeriod = 15000;
+	private int appMetricsHistorySize = 2880;
 	private long appMetricsTimerId = -1;
 	private final Map<String, Queue<AppSample>> appMetricsHistory = new ConcurrentHashMap<>();
 
@@ -1026,7 +1025,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	}
 
 	private void sampleAppMetrics() {
-		Set<String> liveApps = new HashSet<>();
 		for (IScope scope : scopes) {
 			try {
 				AntMediaApplicationAdapter adaptor = getAppAdaptor(scope.getContext().getApplicationContext());
@@ -1035,7 +1033,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				if (appName == null || dataStore == null) {
 					continue;
 				}
-				liveApps.add(appName);
 				AppSample sample = new AppSample(dataStore.getTotalViewersCount(), (int) dataStore.getActiveBroadcastCount());
 				Queue<AppSample> ring = appMetricsHistory.computeIfAbsent(appName, k -> new ConcurrentLinkedQueue<>());
 				ring.offer(sample);
@@ -1047,10 +1044,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				logger.warn("Cannot sample app metrics for {}: {}", scope.getName(), e.getMessage());
 			}
 		}
-		// Drop history for apps that no longer exist so the map can't grow unbounded.
-		appMetricsHistory.keySet().retainAll(liveApps);
-		// Same safety net for per-stream history in case a stream's closeBroadcast cleanup was missed.
-		streamMetricsHistory.keySet().retainAll(liveApps);
 	}
 
 	@Override
@@ -1468,11 +1461,17 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			@Override
 			public void notifyScopeRemoved(IScope scope) {
 				scopes.remove(scope);
+				appMetricsHistory.remove(scope.getName());
+				streamMetricsHistory.remove(scope.getName());
 			}
 
 			@Override
 			public void notifyScopeCreated(IScope scope) {
 				scopes.add(scope);
+				// Seed a zero entry. the first sample is a period away.
+				if (appMetricsHistorySize > 0) {
+					appMetricsHistory.computeIfAbsent(scope.getName(), k -> new ConcurrentLinkedQueue<>()).offer(new AppSample(0, 0));
+				}
 			}
 		});
 
