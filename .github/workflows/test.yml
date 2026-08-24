@@ -36,11 +36,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
           
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' #openjdk
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
           cache: 'maven'
         
       - name: Add MongoDB 6.0 GPG key and repository
@@ -120,11 +120,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
           
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' #openjdk
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
           cache: 'maven'
         
       - name: Build projects
@@ -178,11 +178,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
           
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' #openjdk
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
           cache: 'maven'
           
     
@@ -199,18 +199,18 @@ jobs:
             curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
       
-      - name: Install FFmpeg 7
+      - name: Install FFmpeg 8
         run: |
           curl -L --retry 5 --retry-delay 10 \
             -o /tmp/ffmpeg.tar.xz \
-            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz
+            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz
           mkdir -p /tmp/ffmpeg
           tar -xf /tmp/ffmpeg.tar.xz -C /tmp/ffmpeg --strip-components=1
           sudo install -m 0755 /tmp/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
           sudo install -m 0755 /tmp/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
           ffmpeg_version="$(ffmpeg -version | head -n 1)"
           echo "$ffmpeg_version"
-          echo "$ffmpeg_version" | grep -Eq "ffmpeg version n?7\."
+          echo "$ffmpeg_version" | grep -Eq "ffmpeg version n?8\."
             
       - name: Install dependencies
         run: |
@@ -322,11 +322,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
           
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' #openjdk
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
           cache: 'maven'
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           
