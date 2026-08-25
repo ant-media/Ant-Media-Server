@@ -397,17 +397,10 @@ public class BroadcastRestServiceV2UnitTest {
 		ApplicationContext appContext = mock(ApplicationContext.class);
 
 		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(false);
+		restServiceReal.setAppCtx(appContext);
 		Object tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Result);
 		Result result = (Result) tokenReturn;
-		//it should false, because appContext is null
-		assertFalse(result.isSuccess());	 
-
-
-		restServiceReal.setAppCtx(appContext);
-		tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
-		assertTrue(tokenReturn instanceof Result);
-		result = (Result) tokenReturn;
 		//it should be false, because there is no token service in the context
 		assertFalse(result.isSuccess());	
 
@@ -504,17 +497,10 @@ public class BroadcastRestServiceV2UnitTest {
 
 
 		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(false);
+		restServiceReal.setAppCtx(appContext);
 		Object tokenReturn = restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Result);
 		Result result = (Result) tokenReturn;
-		//it should false, because appContext is null
-		assertFalse(result.isSuccess());	 
-
-
-		restServiceReal.setAppCtx(appContext);
-		tokenReturn = restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
-		assertTrue(tokenReturn instanceof Result);
-		result = (Result) tokenReturn;
 		//it should be false, because there is no token service in the context
 		assertFalse(result.isSuccess());	
 
@@ -1535,7 +1521,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
 
-		when(restServiceSpy.getApplication()).thenReturn(application);
+		doReturn(application).when(restServiceSpy).getApplication();
 
 		Response response = restServiceSpy.createBroadcast(new Broadcast(broadcastName), false);
 		Broadcast testBroadcast = (Broadcast) response.getEntity();
