@@ -1004,6 +1004,10 @@ public class MongoStore extends DataStore {
 					updates.add(set("subFolder", broadcast.getSubFolder()));
 				}
 
+				if (broadcast.getSrtPassphrase() != null) {
+					updates.add(set("srtPassphrase", broadcast.getSrtPassphrase()));
+				}
+
 				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
 					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
 				}
