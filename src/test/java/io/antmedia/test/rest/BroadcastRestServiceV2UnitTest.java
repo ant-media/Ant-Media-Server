@@ -2040,7 +2040,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result=streamSourceRest.addStreamSource(noSpecifiedType);
 		//should be true since it wouldn't return true because there is no ip camera or stream source defined in the declaration.
 		assertFalse(result.isSuccess());
-		assertEquals("Auto start query needs an IP camera or stream source.",result.getMessage() );
+		assertEquals("Auto start query needs an IP camera, stream source, or NDI source.",result.getMessage() );
 
 
 

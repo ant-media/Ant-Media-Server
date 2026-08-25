@@ -58,6 +58,7 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RecordMuxer;
+import io.antmedia.ndi.NdiSourceProvider;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
@@ -737,8 +738,11 @@ public abstract class RestServiceBase {
 			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
 				result = addSource(stream);
 			}
+			else if (stream.getType().equals(IAntMediaStreamHandler.PUBLISH_TYPE_NDI)) {
+				result = addNdiSource(stream);
+			}
 			else{
-				result.setMessage("Auto start query needs an IP camera or stream source.");
+				result.setMessage("Auto start query needs an IP camera, stream source, or NDI source.");
 			}
 		}
 		else {
@@ -750,6 +754,31 @@ public abstract class RestServiceBase {
 		}
 
 		return result;
+	}
+
+	protected Result addNdiSource(Broadcast stream) {
+		if (StringUtils.isBlank(stream.getStreamUrl())) {
+			return new Result(false, "NDI source name is not defined.");
+		}
+		if (StringUtils.isBlank(stream.getName())) {
+			stream.setName(stream.getStreamUrl());
+		}
+		stream.setMetaData(IAntMediaStreamHandler.PUBLISH_TYPE_NDI);
+
+		NdiSourceProvider ndiSourceProvider = getAppContext().getBeanProvider(NdiSourceProvider.class).getIfAvailable();
+		if (ndiSourceProvider == null) {
+			return new Result(false, "NDI support is not available.");
+		}
+
+		Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED,
+				getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+		boolean started = ndiSourceProvider.startNdiSource(savedBroadcast.getStreamUrl(), savedBroadcast.getStreamId(), getScope());
+		if (!started) {
+			getDataStore().delete(savedBroadcast.getStreamId());
+			return new Result(false, savedBroadcast.getStreamId(), "NDI source is not available or is already running.");
+		}
+
+		return new Result(true, savedBroadcast.getStreamId(), "");
 	}
 
 	public Result connectToCamera(String ipAddr, String username, String password) {
