@@ -629,6 +629,10 @@ public class AppSettingsUnitTest {
 		appSettings.setSrtReceiveLatencyInMs(200);
 		assertEquals(200, appSettings.getSrtReceiveLatencyInMs());
 
+		assertEquals("", appSettings.getSrtPassphrase());
+		appSettings.setSrtPassphrase("passphrase1234");
+		assertEquals("passphrase1234", appSettings.getSrtPassphrase());
+
 		assertEquals(-1, appSettings.getWebhookStreamStatusUpdatePeriodMs());
 
 		assertEquals(150, appSettings.getEncodingQueueSize());
@@ -705,7 +709,7 @@ public class AppSettingsUnitTest {
 
 		assertThat(numberOfFields)
 				.as("When an AppSettings field is added or removed, check its default value and update the field count")
-				.isEqualTo(186);
+				.isEqualTo(187);
 	}
 
 
