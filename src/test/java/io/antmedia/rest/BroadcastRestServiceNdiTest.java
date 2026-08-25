@@ -1,6 +1,7 @@
 package io.antmedia.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.antmedia.ndi.NdiSourceProvider;
 import io.antmedia.test.UnitTestBase;
@@ -39,8 +40,10 @@ class BroadcastRestServiceNdiTest extends UnitTestBase<BroadcastRestService> {
 	}
 
 	@Test
-	void returnsEmptyListWithoutApplicationContext() {
-		assertThat(classUnderTest.getNdiSources()).isEmpty();
+	void failsWhenApplicationContextIsUnavailable() {
+		assertThatThrownBy(classUnderTest::getNdiSources)
+				.isInstanceOf(NullPointerException.class)
+				.hasMessage("Application context must be injected when no ServletContext is available");
 	}
 
 	@Test

@@ -176,13 +176,15 @@ public abstract class RestServiceBase {
 		this.appCtx = appCtx;
 	}
 
-	@Nullable
 	public ApplicationContext getAppContext() {
 		if (servletContext != null) {
-			appCtx = (ApplicationContext) servletContext
-					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+			return Objects.requireNonNull(
+					(ApplicationContext) servletContext.getAttribute(
+							WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE),
+					"Spring root application context is unavailable");
 		}
-		return appCtx;
+		return Objects.requireNonNull(appCtx,
+				"Application context must be injected when no ServletContext is available");
 	}
 
 	/**
