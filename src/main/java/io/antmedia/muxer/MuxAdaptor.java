@@ -117,7 +117,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 	private int videoStreamIndex;
-	protected int audioStreamIndex;
 	private int dataStreamIndex;
 
 
@@ -791,7 +790,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		AVCodecParameters parameters = getAudioCodecParameters();
 		if (parameters != null) {
 			addStream2Muxers(parameters, getTimeBaseForMs(), streamIndex);
-			audioStreamIndex = streamIndex;
+			setAudioStreamIndex(streamIndex);
 		}
 		else {
 			logger.info("There is no audio in the stream or not received AAC Sequence header for stream:{} muting the audio", streamId);
@@ -864,7 +863,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				audioCodecParametersMap.put(i, codecpar);
 				audioTimeBaseMap.put(i, streamTimeBase);
 				if (audioCodecParameters == null) {
-					audioStreamIndex = streamIndex;
 					audioCodecParameters = codecpar;
 					audioTimeBase = streamTimeBase;
 				}
@@ -1279,11 +1277,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void audioBufferReceived(long dts, ByteBuffer byteBuffer) {
 		synchronized (muxerList) 
 		{
-			packetFeeder.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
+			int primaryAudioStreamIndex = getAudioStreamIndex();
+			packetFeeder.writeAudioBuffer(byteBuffer, primaryAudioStreamIndex, dts);
 
 			for (Muxer muxer : muxerList) 
 			{
-				muxer.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
+				muxer.writeAudioBuffer(byteBuffer, primaryAudioStreamIndex, dts);
 			}
 		}
 	}
@@ -2410,7 +2409,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			AVCodecParameters audioParameters = getAudioCodecParameters();
 			if (audioParameters != null) {
 				logger.info("Add audio stream to muxer:{} for streamId:{}", muxer.getClass().getSimpleName(), streamId);
-				if (muxer.addStream(audioParameters, getTimeBaseForMs(), audioStreamIndex)) {
+				if (muxer.addStream(audioParameters, getTimeBaseForMs(), getAudioStreamIndex())) {
 					streamAdded = true;
 				}
 			}
@@ -2870,7 +2869,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 	public int getAudioStreamIndex() {
-		return audioStreamIndex;
+		synchronized (audioStreamIndexList) {
+			return audioStreamIndexList.isEmpty() ? 0 : audioStreamIndexList.get(0);
+		}
 	}
 	
 	public List<Integer> getAudioStreamIndexList() {
@@ -2889,7 +2890,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 	public void setAudioStreamIndex(int audioStreamIndex) {
-		this.audioStreamIndex = audioStreamIndex;
+		synchronized (audioStreamIndexList) {
+			audioStreamIndexList.remove(Integer.valueOf(audioStreamIndex));
+			audioStreamIndexList.add(0, audioStreamIndex);
+		}
 	}
 	
 	public int getDataStreamIndex() {

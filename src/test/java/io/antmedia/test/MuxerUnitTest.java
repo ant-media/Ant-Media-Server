@@ -6045,6 +6045,8 @@ public class MuxerUnitTest {
 
 		muxAdaptor.setVideoStreamIndex(0);
 		muxAdaptor.setAudioStreamIndex(1);
+		assertEquals(1, muxAdaptor.getAudioStreamIndex());
+		assertEquals(Arrays.asList(1), muxAdaptor.getAudioStreamIndexList());
 
 		HLSMuxer hlsMuxer = mock(HLSMuxer.class);
 		muxAdaptor.addMuxer(hlsMuxer);
