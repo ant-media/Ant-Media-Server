@@ -12,13 +12,19 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonObject;
@@ -42,6 +48,11 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
+import io.lindstrom.m3u8.model.AlternativeRendition;
+import io.lindstrom.m3u8.model.MasterPlaylist;
+import io.lindstrom.m3u8.model.MediaType;
+import io.lindstrom.m3u8.model.Variant;
+import io.lindstrom.m3u8.parser.MasterPlaylistParser;
 
 public class HLSMuxer extends Muxer  {
 
@@ -55,8 +66,7 @@ public class HLSMuxer extends Muxer  {
 	public static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
 	public static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
 
-	public static final String HLS_FILES_REGEX_MATCHER = "(\\d{9}\\.(ts|fmp4)|\\.m3u8)$";
-	
+	public static final String HLS_FILES_REGEX_MATCHER = "(\\d{9}\\.(ts|fmp4)|\\d+\\.vtt|\\.m3u8)$";
 	private static final String VARIANT_AUDIO_GROUP = "audio";
 
 
@@ -101,9 +111,12 @@ public class HLSMuxer extends Muxer  {
 	private AVPacket tmpPacketForSEI;
 
 	private String segmentFileNameSuffix;
-	
 	private boolean variantStreamMappingEnabled;
-	
+	private final Map<Integer, WebVttTrack> webVttTracks = new ConcurrentHashMap<>();
+	private final Map<Integer, WebVttHlsPlaylist> webVttPlaylists = new ConcurrentHashMap<>();
+	private File webVttMasterPlaylist;
+	private long lastMediaPlaylistModified = -1;
+	private long lastMediaPlaylistSize = -1;
 
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
@@ -224,6 +237,11 @@ public class HLSMuxer extends Muxer  {
 			
 			options.put("start_number", ""+startIndex);
 
+			if (!webVttTracks.isEmpty()) {
+				webVttMasterPlaylist = new File(file.getParentFile(), initialResourceNameWithoutExtension + "_master.m3u8");
+				webVttTracks.values().forEach(this::createWebVttPlaylist);
+			}
+
 
 			tmpPacketForSEI = avcodec.av_packet_alloc();
 			isInitialized = true;
@@ -264,6 +282,14 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	@Override
+	protected boolean checkToDropPacket(AVPacket pkt, int codecType) {
+		if (webVttTracks.containsKey(pkt.stream_index()) && codecType == AVMEDIA_TYPE_DATA) {
+			return true;
+		}
+		return super.checkToDropPacket(pkt, codecType);
+	}
+
+	@Override
 	public synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 
@@ -298,6 +324,9 @@ public class HLSMuxer extends Muxer  {
 		} 
 		else {
 			super.writePacket(pkt, inputTimebase, outputTimebase, codecType);
+		}
+		if (codecType == AVMEDIA_TYPE_VIDEO && !webVttTracks.isEmpty()) {
+			syncWebVttPlaylists(false);
 		}
 
 	}
@@ -384,7 +413,102 @@ public class HLSMuxer extends Muxer  {
 	public boolean writeHeader() {
 		configureVariantStreamMappingIfRequired();
 		createID3StreamIfRequired();
-		return super.writeHeader();
+		boolean result = super.writeHeader();
+		if (result && !webVttTracks.isEmpty()) {
+			writeWebVttMasterPlaylist();
+		}
+		return result;
+	}
+
+	public void setWebVttTracks(Collection<WebVttTrack> tracks) {
+		webVttTracks.clear();
+		tracks.forEach(this::addWebVttTrack);
+	}
+
+	public void addWebVttTrack(WebVttTrack track) {
+		webVttTracks.put(track.inputStreamIndex(), track);
+		if (file != null) {
+			createWebVttPlaylist(track);
+		}
+	}
+
+	public synchronized void writeWebVttCue(int inputStreamIndex, WebVttCue cue) {
+		WebVttHlsPlaylist playlist = webVttPlaylists.get(inputStreamIndex);
+		if (playlist == null || !isRunning.get()) {
+			return;
+		}
+		try {
+			playlist.addCue(cue);
+		}
+		catch (IOException e) {
+			logger.error("Cannot write WebVTT cue for stream:{} inputIndex:{}", streamId, inputStreamIndex, e);
+		}
+	}
+
+	private void writeWebVttMasterPlaylist() {
+		String content = createWebVttMasterPlaylistContent(webVttTracks.values(), initialResourceNameWithoutExtension,
+				file.getName());
+		File temporaryFile = new File(webVttMasterPlaylist.getParentFile(), webVttMasterPlaylist.getName() + ".tmp");
+		try {
+			Files.writeString(temporaryFile.toPath(), content, StandardCharsets.UTF_8);
+			Files.move(temporaryFile.toPath(), webVttMasterPlaylist.toPath(), StandardCopyOption.REPLACE_EXISTING,
+					StandardCopyOption.ATOMIC_MOVE);
+			logger.info("WebVTT master playlist is written for stream:{} path:{}", streamId, webVttMasterPlaylist);
+		}
+		catch (IOException e) {
+			logger.error("Cannot write WebVTT master playlist for stream:{}", streamId, e);
+		}
+	}
+
+	@VisibleForTesting
+	static String createWebVttMasterPlaylistContent(Collection<WebVttTrack> tracks, String baseName,
+			String mediaPlaylistName) {
+		MasterPlaylist.Builder playlist = MasterPlaylist.builder().version(3);
+		int trackNumber = 0;
+		for (WebVttTrack track : tracks.stream().sorted(Comparator.comparingInt(WebVttTrack::inputStreamIndex)).toList()) {
+			playlist.addAlternativeRenditions(AlternativeRendition.builder()
+					.type(MediaType.SUBTITLES)
+					.groupId("subs")
+					.name(sanitizePlaylistAttribute(track.name()))
+					.language(sanitizePlaylistAttribute(track.language()))
+					.defaultRendition(trackNumber++ == 0)
+					.autoSelect(true)
+					.uri(WebVttHlsPlaylist.playlistName(track, baseName))
+					.build());
+		}
+		playlist.addVariants(Variant.builder().bandwidth(1_000_000).subtitles("subs").uri(mediaPlaylistName).build());
+		return new MasterPlaylistParser().writePlaylistAsString(playlist.build());
+	}
+
+	private static String sanitizePlaylistAttribute(String value) {
+		return value.replace('"', '\'').replace('\r', ' ').replace('\n', ' ').replace('\t', ' ');
+	}
+
+	private void createWebVttPlaylist(WebVttTrack track) {
+		webVttPlaylists.computeIfAbsent(track.inputStreamIndex(), ignored ->
+				new WebVttHlsPlaylist(track, file.getParentFile(), initialResourceNameWithoutExtension));
+	}
+
+	private void syncWebVttPlaylists(boolean force) {
+		if (file == null || !file.isFile()) {
+			return;
+		}
+		long modified = file.lastModified();
+		long size = file.length();
+		if (!force && modified == lastMediaPlaylistModified && size == lastMediaPlaylistSize) {
+			return;
+		}
+		try {
+			String mediaPlaylistContent = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+			for (WebVttHlsPlaylist playlist : webVttPlaylists.values()) {
+				playlist.update(mediaPlaylistContent);
+			}
+			lastMediaPlaylistModified = modified;
+			lastMediaPlaylistSize = size;
+		}
+		catch (IOException | RuntimeException e) {
+			logger.warn("Cannot synchronize WebVTT playlists for stream:{}", streamId, e);
+		}
 	}
 	
 	public void configureVariantStreamMappingIfRequired() {
@@ -507,6 +631,7 @@ public class HLSMuxer extends Muxer  {
 			return;
 
 		super.writeTrailer();
+		syncWebVttPlaylists(true);
 
 		//We provide a solution to have full mp4 recording even for stream are interrupted.
 		//It works in this way:
@@ -569,10 +694,9 @@ public class HLSMuxer extends Muxer  {
 	
 	public String getHLSFilesRegularExpression(int indexOfSuffix) {
 		String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
-		String hlsFileExtensions = TS_EXTENSION + "|" + FMP4_EXTENSION;
+		String hlsFileExtensions = TS_EXTENSION + "|" + FMP4_EXTENSION + "|vtt|m3u8";
 		if (variantStreamMappingEnabled) {
 			segmentFileWithoutSuffix = segmentFileWithoutSuffix.replace("%v", ".*");
-			hlsFileExtensions += "|m3u8";
 		}
 		return segmentFileWithoutSuffix + ".*\\.(?:" + hlsFileExtensions + ")$";
 	}

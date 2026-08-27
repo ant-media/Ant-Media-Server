@@ -1233,7 +1233,7 @@ public abstract class Muxer {
 	 * @param codecType
 	 * @return true to drop the packet, false to not drop packet
 	 */
-	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
+	protected boolean checkToDropPacket(AVPacket pkt, int codecType) {
 		if (!firstKeyFrameReceived && codecType == AVMEDIA_TYPE_VIDEO) 
 		{
 			if(firstPacketDtsMs == -1) {
