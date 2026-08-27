@@ -1,13 +1,18 @@
 package io.antmedia.muxer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.mockito.Mockito.mock;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
+import java.util.List;
 
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -20,6 +25,11 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 
 	@TempDir
 	Path tempDirectory;
+
+	@BeforeEach
+	void setUp() {
+		classUnderTest = new HLSMuxer(null, null, "streams", 0, null, false);
+	}
 
 	@Test
 	void shouldOnlyFinalizeFilesModifiedBeforeCleanupWasScheduled() throws Exception {
@@ -42,5 +52,42 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 		Path file = Files.createFile(tempDirectory.resolve(fileName));
 		Files.setLastModifiedTime(file, FileTime.from(modificationTime));
 		return file;
+	}
+
+	@Test
+	void testCreateMultiTrackWebVttMasterPlaylistContent() {
+		WebVttTrack german = new WebVttTrack(2, "deu\n", "DVB \"TTML\"");
+		WebVttTrack french = new WebVttTrack(3, "fra", "Hard of hearing");
+
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(List.of(french, german), "test", "test.m3u8");
+
+		assertThat(playlist)
+				.startsWith("#EXTM3U\n")
+				.contains("LANGUAGE=\"deu \"", "NAME=\"DVB 'TTML'\"", "DEFAULT=YES")
+				.contains("URI=\"test_subtitles_2.m3u8\"")
+				.contains("LANGUAGE=\"fra\"", "NAME=\"Hard of hearing\"", "DEFAULT=NO")
+				.contains("URI=\"test_subtitles_3.m3u8\"")
+				.containsOnlyOnce("DEFAULT=YES")
+				.endsWith("test.m3u8\n");
+	}
+
+	@Test
+	void testDropsOriginalDataPacketForConvertedTrack() {
+		try (AVPacket packet = new AVPacket()) {
+			packet.stream_index(2);
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isFalse();
+
+			classUnderTest.setWebVttTracks(List.of(
+					new WebVttTrack(2, "de", "German"), new WebVttTrack(3, "fr", "French")));
+
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isTrue();
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_SUBTITLE)).isFalse();
+
+			packet.stream_index(3);
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isTrue();
+
+			packet.stream_index(4);
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isFalse();
+		}
 	}
 }
