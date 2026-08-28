@@ -1281,7 +1281,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		boolean enoughResource = false;
 
-		if(getCpuLoad() < getCpuLimit()) 
+		// A limit of 100 disables CPU-based admission control. System CPU load is
+		// capped at 100, so there is no higher value that could be configured to
+		// disable the check while preserving the strict production threshold.
+		if (getCpuLimit() == 100 || getCpuLoad() < getCpuLimit())
 		{		
 			if (getOSType() == SystemUtils.LINUX) {
 				long memoryLoad = getMemoryLoad();

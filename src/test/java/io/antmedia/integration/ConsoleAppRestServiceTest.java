@@ -402,7 +402,7 @@ public class ConsoleAppRestServiceTest{
 	 * https://github.com/ant-media/Ant-Media-Server/issues/6933
 	 */
 	@Test
-	public void testRestartServerUnderHttpLoad() {
+	public void testRestartServerUnderHttpLoad() throws InterruptedException {
 
 
 		//give load to the server by sending http requests to m3u8
@@ -462,6 +462,7 @@ public class ConsoleAppRestServiceTest{
 		//restart the server
 
 		Process process = AppFunctionalV2Test.execute("sudo service antmedia restart");
+		assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Server restart command timed out");
 		assertEquals(0, process.exitValue());
 
 		//check that live is started
