@@ -503,7 +503,6 @@ public class HLSMuxer extends Muxer  {
 		return new MasterPlaylistParser().writePlaylistAsString(playlist.build());
 	}
 
-	@VisibleForTesting
 	static String addWebVttToMasterPlaylistContent(Collection<WebVttTrack> tracks, String baseName,
 			String masterPlaylistContent) throws IOException {
 		MasterPlaylistParser parser = new MasterPlaylistParser();
@@ -540,7 +539,6 @@ public class HLSMuxer extends Muxer  {
 		return renditions;
 	}
 
-	@VisibleForTesting
 	static String getPrimaryVariantUri(String masterPlaylistContent) throws IOException {
 		List<Variant> variants = new MasterPlaylistParser().readPlaylist(masterPlaylistContent).variants();
 		if (variants.isEmpty()) {
