@@ -17,11 +17,13 @@ import io.antmedia.test.UnitTestBase;
 @Tag("fast")
 class WebVttMasterPlaylistSynchronizerTest extends UnitTestBase<WebVttMasterPlaylistSynchronizer> {
 
-	private static final String FFMPEG_MASTER = "#EXTM3U\n#EXT-X-VERSION:3\n"
-			+ "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"group_audio\",NAME=\"English\",DEFAULT=YES,"
-			+ "LANGUAGE=\"eng\",URI=\"test_audio_0.m3u8\"\n"
-			+ "#EXT-X-STREAM-INF:BANDWIDTH=1000000,AUDIO=\"group_audio\"\n"
-			+ "test_0.m3u8\n";
+	private static final String FFMPEG_MASTER = """
+			#EXTM3U
+			#EXT-X-VERSION:3
+			#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_audio",NAME="English",DEFAULT=YES,LANGUAGE="eng",URI="test_audio_0.m3u8"
+			#EXT-X-STREAM-INF:BANDWIDTH=1000000,AUDIO="group_audio"
+			test_0.m3u8
+			""";
 
 	@TempDir
 	Path tempDirectory;
@@ -40,6 +42,8 @@ class WebVttMasterPlaylistSynchronizerTest extends UnitTestBase<WebVttMasterPlay
 
 		FileTime mergedModificationTime = Files.getLastModifiedTime(master);
 		assertThat(classUnderTest.synchronize(false)).contains("test_0.m3u8");
+		assertThat(Files.getLastModifiedTime(master)).isEqualTo(mergedModificationTime);
+		assertThat(classUnderTest.synchronize(true)).contains("test_0.m3u8");
 		assertThat(Files.getLastModifiedTime(master)).isEqualTo(mergedModificationTime);
 
 		Files.writeString(master, FFMPEG_MASTER, StandardCharsets.UTF_8);

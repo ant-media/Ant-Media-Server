@@ -1,6 +1,7 @@
 package io.antmedia.muxer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.mockito.Mockito.mock;
@@ -74,13 +75,16 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 
 	@Test
 	void testAddWebVttTracksToMultiTrackAudioMasterPlaylist() throws IOException {
-		String audioMaster = "#EXTM3U\n#EXT-X-VERSION:3\n"
-				+ "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"group_audio\",NAME=\"English\",DEFAULT=YES,"
-				+ "LANGUAGE=\"eng\",URI=\"test_audio_0.m3u8\"\n"
-				+ "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"group_audio\",NAME=\"French\",DEFAULT=NO,"
-				+ "LANGUAGE=\"fra\",URI=\"test_fra.m3u8\"\n"
-				+ "#EXT-X-STREAM-INF:BANDWIDTH=1000000,AUDIO=\"group_audio\"\n"
-				+ "test_0.m3u8\n";
+		String audioMaster = """
+				#EXTM3U
+				#EXT-X-VERSION:3
+				#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_audio",NAME="English",DEFAULT=YES,LANGUAGE="eng",URI="test_audio_0.m3u8"
+				#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_audio",NAME="French",DEFAULT=NO,LANGUAGE="fra",URI="test_fra.m3u8"
+				#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Obsolete",DEFAULT=YES,URI="old.m3u8"
+				#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="other",NAME="External",DEFAULT=NO,URI="external.m3u8"
+				#EXT-X-STREAM-INF:BANDWIDTH=1000000,AUDIO="group_audio"
+				test_0.m3u8
+				""";
 
 		String combined = HLSMuxer.addWebVttToMasterPlaylistContent(
 				List.of(new WebVttTrack(4, "eng", "English captions"),
@@ -89,11 +93,13 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 		assertThat(combined)
 				.contains("TYPE=AUDIO", "URI=\"test_audio_0.m3u8\"", "URI=\"test_fra.m3u8\"")
 				.contains("TYPE=SUBTITLES", "URI=\"test_subtitles_4.m3u8\"",
-						"URI=\"test_subtitles_5.m3u8\"")
+						"URI=\"test_subtitles_5.m3u8\"", "GROUP-ID=\"other\"", "URI=\"external.m3u8\"")
 				.contains("AUDIO=\"group_audio\"", "SUBTITLES=\"subs\"")
 				.endsWith("test_0.m3u8\n")
-				.doesNotContain("\ntest.m3u8\n");
+				.doesNotContain("\ntest.m3u8\n", "URI=\"old.m3u8\"");
 		assertThat(HLSMuxer.getPrimaryVariantUri(combined)).isEqualTo("test_0.m3u8");
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> HLSMuxer.getPrimaryVariantUri("#EXTM3U\n#EXT-X-VERSION:3\n"));
 	}
 
 	@Test
