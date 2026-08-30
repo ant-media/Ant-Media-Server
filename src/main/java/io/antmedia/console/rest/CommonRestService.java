@@ -1143,6 +1143,14 @@ public class CommonRestService {
 		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
 		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
 
+		// server JWT (used by the v3 REST auth and the management API)
+		store.put(ServerSettings.SETTINGS_JWT_SERVER_CONTROL_ENABLED, String.valueOf(serverSettings.isJwtServerControlEnabled()));
+		getServerSettingsInternal().setJwtServerControlEnabled(serverSettings.isJwtServerControlEnabled());
+
+		String jwtServerSecretKey = serverSettings.getJwtServerSecretKey() != null ? serverSettings.getJwtServerSecretKey() : "";
+		store.put(ServerSettings.SETTINGS_JWT_SERVER_SECRET_KEY, jwtServerSecretKey);
+		getServerSettingsInternal().setJwtServerSecretKey(jwtServerSecretKey);
+
 		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
 
 		if(LOG_LEVEL_ALL.equals(serverSettings.getLogLevel()) || LOG_LEVEL_TRACE.equals(serverSettings.getLogLevel()) 

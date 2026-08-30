@@ -375,6 +375,10 @@ public class Broadcast {
 	@Schema(description ="Broadcast role for selective playback")
 	private String role = null;
 
+	@Schema(description = "Optional id of the user that owns this broadcast (v3 asset ownership). "
+			+ "When set, only the owner or an admin may modify or delete the broadcast.")
+	private String ownerId = null;
+
 	@Schema(description = "the HLS parameters of the broadcast")
 	private HLSParameters hlsParameters = null;
 
@@ -1036,6 +1040,14 @@ public class Broadcast {
 
 	public void setRole(String role) {
 		this.role = role;
+	}
+
+	public String getOwnerId() {
+		return ownerId;
+	}
+
+	public void setOwnerId(String ownerId) {
+		this.ownerId = ownerId;
 	}
 
 	public boolean isPlaylistLoopEnabled() {

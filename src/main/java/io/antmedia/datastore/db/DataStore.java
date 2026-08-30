@@ -1020,7 +1020,11 @@ public abstract class DataStore {
 		if (newBroadcast.getRole() != null) {
 			broadcast.setRole(newBroadcast.getRole());
 		}
-		
+
+		if (newBroadcast.getOwnerId() != null) {
+			broadcast.setOwnerId(newBroadcast.getOwnerId());
+		}
+
 		if (newBroadcast.getWidth() != null) {
 			broadcast.setWidth(newBroadcast.getWidth());
 		}
