@@ -2,7 +2,6 @@ package io.antmedia.test.settings;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -200,6 +199,21 @@ public class ServerSettingsTest {
 		assertTrue(ServerSettings.isRtmpsEnabled());
 	}
 	
+	@Test
+	public void testPluginRegistryUrl() {
+		ServerSettings settings = new ServerSettings();
+		String defaultUrl = settings.getPluginRegistryUrl();
+		assertNotNull(defaultUrl);
+		assertFalse(defaultUrl.isEmpty());
+		assertTrue(defaultUrl.startsWith("https://"));
+
+		settings.setPluginRegistryUrl("https://plugins.antmedia.io/catalog.json");
+		assertEquals("https://plugins.antmedia.io/catalog.json", settings.getPluginRegistryUrl());
+
+		settings.setPluginRegistryUrl(null);
+		assertNull(settings.getPluginRegistryUrl());
+	}
+
 	@Test
 	public void testGetLocalHostAddressReturnsNoneLoopbackAddress() throws Exception {
 		Field localHostAddressField = ServerSettings.class.getDeclaredField("localHostAddress");
