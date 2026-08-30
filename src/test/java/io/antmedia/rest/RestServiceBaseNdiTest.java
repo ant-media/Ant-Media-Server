@@ -70,14 +70,15 @@ class RestServiceBaseNdiTest extends UnitTestBase<RestServiceBase> {
 	}
 
 	@Test
-	void removesBroadcastWhenNdiSourceCannotStart() throws Exception {
+	void keepsBroadcastWhenNdiSourceCannotStart() throws Exception {
 		Broadcast broadcast = ndiBroadcast("missing-ndi-stream");
 
 		Result result = classUnderTest.addStreamSource(broadcast);
 
-		assertThat(result.isSuccess()).isFalse();
-		assertThat(result.getMessage()).contains("not available or is already running");
-		assertThat(dataStore.get("missing-ndi-stream")).isNull();
+		assertThat(result.isSuccess()).isTrue();
+		assertThat(result.getDataId()).isEqualTo("missing-ndi-stream");
+		assertThat(result.getMessage()).contains("saved").contains("not available or is already running");
+		assertThat(dataStore.get("missing-ndi-stream")).isNotNull();
 	}
 
 	@Test
@@ -103,6 +104,21 @@ class RestServiceBaseNdiTest extends UnitTestBase<RestServiceBase> {
 
 		assertThat(result.isSuccess()).isFalse();
 		assertThat(result.getMessage()).isEqualTo("NDI support is not available.");
+	}
+
+	@Test
+	void startsSavedNdiBroadcastFromStartEndpoint() throws Exception {
+		Broadcast broadcast = ndiBroadcast("saved-ndi-stream");
+		dataStore.save(broadcast);
+		ndiSourceProvider.startResult = true;
+
+		Result result = classUnderTest.startStreamSource("saved-ndi-stream");
+
+		assertThat(result.isSuccess()).isTrue();
+		assertThat(result.getDataId()).isEqualTo("saved-ndi-stream");
+		assertThat(ndiSourceProvider.startedSourceName).isEqualTo("JANTHINK (Test Pattern)");
+		assertThat(ndiSourceProvider.startedStreamId).isEqualTo("saved-ndi-stream");
+		assertThat(ndiSourceProvider.startedScope).isSameAs(scope);
 	}
 
 	private static Broadcast ndiBroadcast(String streamId) throws Exception {

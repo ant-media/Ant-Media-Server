@@ -776,8 +776,8 @@ public abstract class RestServiceBase {
 				getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 		boolean started = ndiSourceProvider.startNdiSource(savedBroadcast.getStreamUrl(), savedBroadcast.getStreamId(), getScope());
 		if (!started) {
-			getDataStore().delete(savedBroadcast.getStreamId());
-			return new Result(false, savedBroadcast.getStreamId(), "NDI source is not available or is already running.");
+			return new Result(true, savedBroadcast.getStreamId(),
+					"NDI source is saved but it is not available or is already running. You can start it later.");
 		}
 
 		return new Result(true, savedBroadcast.getStreamId(), "");
@@ -1351,7 +1351,11 @@ public abstract class RestServiceBase {
 
 		if (broadcast != null)
 		{
-			if(broadcast.getStreamUrl() != null || Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.PLAY_LIST))
+			if (Objects.equals(broadcast.getType(), IAntMediaStreamHandler.PUBLISH_TYPE_NDI))
+			{
+				result = startNdiSource(broadcast);
+			}
+			else if(broadcast.getStreamUrl() != null || Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.PLAY_LIST))
 			{
 				result = getApplication().startStreaming(broadcast);
 			}
@@ -1377,6 +1381,24 @@ public abstract class RestServiceBase {
 			result.setMessage("No Stream Exists with id:"+id);
 		}
 		return result;
+	}
+
+	protected Result startNdiSource(Broadcast broadcast) {
+		if (StringUtils.isBlank(broadcast.getStreamUrl())) {
+			return new Result(false, "NDI source name is not defined.");
+		}
+
+		NdiSourceProvider ndiSourceProvider = getAppContext().getBeanProvider(NdiSourceProvider.class).getIfAvailable();
+		if (ndiSourceProvider == null) {
+			return new Result(false, "NDI support is not available.");
+		}
+
+		boolean started = ndiSourceProvider.startNdiSource(broadcast.getStreamUrl(), broadcast.getStreamId(), getScope());
+		if (!started) {
+			return new Result(false, broadcast.getStreamId(), "NDI source is not available or is already running.");
+		}
+
+		return new Result(true, broadcast.getStreamId(), "");
 	}
 
 	public Result playNextItem(String id, Integer index) {
