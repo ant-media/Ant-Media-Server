@@ -38,6 +38,9 @@
 #       If Memory usage is more than this value, server reports highResourceUsage and does not allow publish or play
 #       Example usage: ./start.sh -e 60
 
+# Stop hs_err_pid.log if its size exceeds 1GB to prevent system issues.
+ulimit -f 1048576
+
 if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
