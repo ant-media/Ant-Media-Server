@@ -1244,6 +1244,11 @@ public abstract class MapBasedDataStore extends DataStore
 	}
 
 	@Override
+	public int getTotalViewersCount() {
+		return super.getTotalViewersCount(map, gson);
+	}
+
+	@Override
 	public boolean updateStreamMetaData(String streamId, String metaData) {
 		long startTime = System.nanoTime();
 

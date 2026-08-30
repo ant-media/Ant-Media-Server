@@ -66,6 +66,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
@@ -1292,6 +1293,17 @@ public abstract class RestServiceBase {
 		}
 
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer,totalDASHViewer);
+	}
+
+	protected StreamMetricsHistory getStreamMetricsHistory(String streamId) {
+		AntMediaApplicationAdapter application = getApplication();
+		IScope currentScope = getScope();
+		IStatsCollector statsCollector = application != null ? application.getStatsCollector() : null;
+		if (statsCollector == null || currentScope == null) {
+			logger.warn("No stats collector or scope available, returning empty stream metrics history");
+			return StreamMetricsHistory.empty();
+		}
+		return statsCollector.getStreamMetricsHistory(currentScope.getName(), streamId);
 	}
 
 	protected AppBroadcastStatistics getBroadcastTotalStatistics() {

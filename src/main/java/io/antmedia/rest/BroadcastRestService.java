@@ -38,6 +38,7 @@ import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -241,6 +242,85 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		return Response.status(Status.OK).entity(returnObject).build();
+	}
+
+	@Operation(description = "Creates a list of Broadcasts in a single request. By default the whole request fails "
+			+ "if any stream id already exists and nothing is created. Set onDuplicate to \"skip\" to keep the existing "
+			+ "streams or \"overwrite\" to replace them. Each stream is created through the same path as "
+			+ "POST /create, so validation is identical. Returns one Result per submitted stream where dataId "
+			+ "is the stream id and message is the outcome: created, skipped, overridden or failed.")
+	@ApiResponse(responseCode = "400", description = "If the list is empty or a duplicate stream id is found while onDuplicate is not set",
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Result.class)))
+	@ApiResponse(responseCode = "200", description = "Returns one Result per submitted stream",
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Result.class)))
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/create-list")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response createBroadcastList(@Parameter(description = "List of Broadcast objects to create", required = true) List<Broadcast> broadcasts,
+			@Parameter(description = "How streams whose id already exists are handled: unset fails the whole request, \"skip\" keeps the existing stream, \"overwrite\" replaces it", required = false) @QueryParam("onDuplicate") String onDuplicate) {
+
+		if (broadcasts == null || broadcasts.isEmpty()) {
+			return Response.status(Status.BAD_REQUEST).entity(new Result(false, "No streams provided")).build();
+		}
+
+		boolean skip = "skip".equalsIgnoreCase(onDuplicate);
+		boolean overwrite = "overwrite".equalsIgnoreCase(onDuplicate);
+
+		//fail mode: no duplicate strategy given, reject the whole request when any id already exists.
+		//trim into a local for the lookup only; createBroadcast does the authoritative per-item trim.
+		if (!skip && !overwrite) {
+			List<String> duplicates = new ArrayList<>();
+			for (Broadcast broadcast : broadcasts) {
+				String streamId = broadcast != null && broadcast.getStreamId() != null ? broadcast.getStreamId().trim() : null;
+				if (StringUtils.isNotBlank(streamId) && getDataStore().get(streamId) != null) {
+					duplicates.add(streamId);
+				}
+			}
+			if (!duplicates.isEmpty()) {
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id(s) already in use: " + String.join(", ", duplicates))).build();
+			}
+		}
+
+		List<Result> results = new ArrayList<>();
+		for (Broadcast broadcast : broadcasts) {
+			String streamId = null;
+			try {
+				if (broadcast == null) {
+					results.add(new Result(false, "", "failed"));
+					continue;
+				}
+				streamId = broadcast.getStreamId() != null ? broadcast.getStreamId().trim() : null;
+				boolean existed = StringUtils.isNotBlank(streamId) && getDataStore().get(streamId) != null;
+
+				if (existed && skip) {
+					results.add(new Result(true, streamId, "skipped"));
+					continue;
+				}
+				//existing stream we won't overwrite, or the overwrite delete failed: leave it as is
+				if (existed && !(overwrite && deleteBroadcast(streamId, false).isSuccess())) {
+					results.add(new Result(false, streamId, "failed"));
+					continue;
+				}
+
+				//new stream, or an overwrite after a successful delete. Route through the single-create
+				//path so validation, playlist scheduling and empty-id generation all match POST /create.
+				//It returns a Broadcast on success and a Result on any validation failure.
+				Object entity = createBroadcast(broadcast, false).getEntity();
+				boolean created = entity instanceof Broadcast;
+				results.add(new Result(created, created ? ((Broadcast) entity).getStreamId() : streamId, created ? (existed ? "overridden" : "created") : "failed"));
+			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				results.add(new Result(false, streamId, "failed"));
+			}
+		}
+
+		return Response.status(Status.OK).entity(results).build();
 	}
 
 	@Operation(summary = "Delete broadcast from data store and stop if it's broadcasting")
@@ -1050,6 +1130,23 @@ public class BroadcastRestService extends RestServiceBase{
 	@Override
 	public BroadcastStatistics getBroadcastStatistics(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id) {
 		return super.getBroadcastStatistics(id);
+	}
+
+	@Operation(summary = "Get per-stream metric history",
+			description = "Recent in-memory metric history for the stream (bitrate, viewers, speed, encoder queue, drops, packet loss) as parallel oldest-to-newest arrays.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Per-stream metric history",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = StreamMetricsHistory.class)
+									))
+	}
+			)
+	@GET
+	@Path("/{id}/metrics-history")
+	@Produces(MediaType.APPLICATION_JSON)
+	public StreamMetricsHistory getStreamMetricsHistoryV2(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id) {
+		return super.getStreamMetricsHistory(id);
 	}
 
 	@Operation(summary = "Get total broadcast live statistics",

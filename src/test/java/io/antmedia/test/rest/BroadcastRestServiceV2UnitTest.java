@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -95,6 +96,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
@@ -606,6 +608,134 @@ public class BroadcastRestServiceV2UnitTest {
 		response = restServiceReal.createBroadcast(broadcast, false);
 		//return bad request because there is already a broadcast with the same id
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+	}
+
+	private static Broadcast streamWithId(String id) throws Exception {
+		Broadcast b = new Broadcast();
+		b.setStreamId(id);
+		return b;
+	}
+
+	private static Result findById(List<Result> results, String id) {
+		return results.stream().filter(r -> id.equals(r.getDataId())).findFirst().orElse(null);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testCreateBroadcastList() throws Exception {
+		restServiceReal.setAppSettings(mock(AppSettings.class));
+
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn("fully.qualified.domain.name");
+		restServiceReal.setServerSettings(serverSettings);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("scope");
+		restServiceReal.setScope(scope);
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
+		ClientBroadcastStream broadcastStream = mock(ClientBroadcastStream.class);
+		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
+		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
+		Mockito.doReturn(broadcastStream).when(appAdaptor).getBroadcastStream(Mockito.any(), Mockito.anyString());
+		restServiceReal.setApplication(appAdaptor);
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+
+		// empty / null list -> 400
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), restServiceReal.createBroadcastList(null, null).getStatus());
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), restServiceReal.createBroadcastList(new ArrayList<>(), null).getStatus());
+
+		// all-new, no onDuplicate -> 200, everything created
+		List<Broadcast> newOnes = new ArrayList<>();
+		newOnes.add(streamWithId("stream-a"));
+		newOnes.add(streamWithId("stream-b"));
+		Response createdResp = restServiceReal.createBroadcastList(newOnes, null);
+		assertEquals(Status.OK.getStatusCode(), createdResp.getStatus());
+		List<Result> createdResults = (List<Result>) createdResp.getEntity();
+		assertEquals(2, createdResults.size());
+		assertTrue(createdResults.stream().allMatch(r -> r.isSuccess() && "created".equals(r.getMessage())));
+		assertNotNull(store.get("stream-a"));
+		assertNotNull(store.get("stream-b"));
+		assertEquals(2, restServiceReal.getBroadcastList(0, 100, null, null, null, null).size());
+
+		// fail mode with an existing id -> 400, nothing created
+		List<Broadcast> withDupe = new ArrayList<>();
+		withDupe.add(streamWithId("stream-a")); // exists
+		withDupe.add(streamWithId("stream-c")); // new
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), restServiceReal.createBroadcastList(withDupe, null).getStatus());
+		assertNull(store.get("stream-c"));
+		assertEquals(2, restServiceReal.getBroadcastList(0, 100, null, null, null, null).size());
+
+		// skip mode -> existing skipped, new created
+		List<Broadcast> skipList = new ArrayList<>();
+		skipList.add(streamWithId("stream-a")); // exists -> skipped
+		skipList.add(streamWithId("stream-c")); // new -> created
+		List<Result> skipResults = (List<Result>) restServiceReal.createBroadcastList(skipList, "skip").getEntity();
+		assertEquals("skipped", findById(skipResults, "stream-a").getMessage());
+		assertEquals("created", findById(skipResults, "stream-c").getMessage());
+		assertEquals(3, restServiceReal.getBroadcastList(0, 100, null, null, null, null).size());
+
+		// overwrite mode -> existing replaced, new created
+		Broadcast renamedA = streamWithId("stream-a");
+		renamedA.setName("renamed");
+		List<Broadcast> overList = new ArrayList<>();
+		overList.add(renamedA);                 // exists -> overridden
+		overList.add(streamWithId("stream-d")); // new -> created
+		List<Result> overResults = (List<Result>) restServiceReal.createBroadcastList(overList, "overwrite").getEntity();
+		assertEquals("overridden", findById(overResults, "stream-a").getMessage());
+		assertEquals("created", findById(overResults, "stream-d").getMessage());
+		assertEquals("renamed", store.get("stream-a").getName());
+		assertEquals(4, restServiceReal.getBroadcastList(0, 100, null, null, null, null).size());
+
+		// invalid id -> failed, a valid item in the same request still processed
+		List<Broadcast> mixed = new ArrayList<>();
+		mixed.add(streamWithId("bad id"));   // space is not a valid stream id char
+		mixed.add(streamWithId("stream-e")); // new -> created
+		List<Result> mixedResults = (List<Result>) restServiceReal.createBroadcastList(mixed, null).getEntity();
+		assertFalse(findById(mixedResults, "bad id").isSuccess());
+		assertEquals("failed", findById(mixedResults, "bad id").getMessage());
+		assertEquals("created", findById(mixedResults, "stream-e").getMessage());
+		assertNull(store.get("bad id"));
+		assertNotNull(store.get("stream-e"));
+
+		// per-item validation matches POST /create: a stream source with a malformed url -> failed
+		Broadcast badSource = streamWithId("bad-source");
+		badSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		badSource.setStreamUrl("not-a-real-url");
+		List<Broadcast> sourceList = new ArrayList<>();
+		sourceList.add(badSource);
+		List<Result> sourceResults = (List<Result>) restServiceReal.createBroadcastList(sourceList, null).getEntity();
+		assertEquals("failed", findById(sourceResults, "bad-source").getMessage());
+		assertNull(store.get("bad-source"));
+	}
+
+	@Test
+	public void testGetStreamMetricsHistoryV2() {
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("scope");
+		restServiceReal.setScope(scope);
+
+		IStatsCollector statsCollector = mock(IStatsCollector.class);
+		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+		doReturn(statsCollector).when(app).getStatsCollector();
+		restServiceReal.setApplication(app);
+
+		StreamMetricsHistory history = new StreamMetricsHistory(new long[]{1000}, new int[]{2}, new double[]{1.0},
+				new int[]{0}, new int[]{0}, new int[]{0}, new double[]{0.0});
+		// scope name and stream id must both reach the collector, or the stub won't match
+		when(statsCollector.getStreamMetricsHistory("scope", "stream1")).thenReturn(history);
+
+		assertSame(history, restServiceReal.getStreamMetricsHistoryV2("stream1"));
+
+		// no stats collector -> empty history instead of an NPE
+		doReturn(null).when(app).getStatsCollector();
+		assertEquals(0, restServiceReal.getStreamMetricsHistoryV2("stream1").getBitrate().length);
 	}
 
 
