@@ -1891,8 +1891,8 @@ public abstract class RestServiceBase {
 		return getApplication().importVoDFolder(directory);
 	}
 
-	public Result unlinksVoD(String directory) {
-		return getApplication().unlinksVoD(directory);
+	public Result rescanVodAssets() {
+		return getApplication().rescanVodAssets();
 	}
 
 	public static String replaceCharsForSecurity(String value) {

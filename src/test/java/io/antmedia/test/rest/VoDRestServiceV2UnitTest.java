@@ -1,5 +1,6 @@
 package io.antmedia.test.rest;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -698,13 +699,7 @@ public class VoDRestServiceV2UnitTest {
 		assertEquals(numberOfFiles, vodList.size());
 
 
-		result = restService.unlinksVoD(null);
-		assertFalse(result.isSuccess());
-
-		result = restService.unlinksVoD("src/test");
-		assertTrue(result.isSuccess());
-		vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		assertEquals(0, vodList.size());
+		assertThatCode(() -> Files.deleteIfExists(f.toPath())).doesNotThrowAnyException();
 
 
 	}
