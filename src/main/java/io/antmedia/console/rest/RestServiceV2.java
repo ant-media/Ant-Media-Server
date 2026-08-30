@@ -315,6 +315,33 @@ public class RestServiceV2 extends CommonRestService {
 	    return super.getSystemResourcesInfo();
 	}
 
+	@Operation(summary = "Gets recent system resource usage history",
+	           responses = {@ApiResponse(responseCode = "200", description = "Successful operation")})
+	@GET
+	@Path("/system-resources/history")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String getSystemResourcesHistory() {
+	    return super.getSystemResourcesHistory();
+	}
+
+	@Operation(summary = "Gets recent per-application metric history (viewers, live streams)",
+	           responses = {@ApiResponse(responseCode = "200", description = "Successful operation")})
+	@GET
+	@Path("/applications/{appName}/metrics-history")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String getAppMetricsHistory(@Parameter(description = "Application name", required = true) @PathParam("appName") String appName) {
+	    return super.getAppMetricsHistory(appName);
+	}
+
+	@Operation(summary = "Gets current network throughput across physical NICs",
+	           responses = {@ApiResponse(responseCode = "200", description = "Successful operation")})
+	@GET
+	@Path("/network-status")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String getNetworkStatus() {
+	    return super.getNetworkStatus();
+	}
+
 	@Operation(summary = "Gets GPU information",
 	           responses = {@ApiResponse(responseCode = "200", description = "Successful operation")})
 	@GET
