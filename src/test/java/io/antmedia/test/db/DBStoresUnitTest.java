@@ -3454,7 +3454,43 @@ public class DBStoresUnitTest {
 		Awaitility.await().atMost(DataStore.TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME+1100, TimeUnit.MILLISECONDS)
 		.pollDelay(1000, TimeUnit.MILLISECONDS)
 		.until(() -> (finalTotal == dataStore.getTotalWebRTCViewersCount()));
-	}	
+	}
+
+	public void testTotalViewersCount(DataStore dataStore) {
+		int before = dataStore.getTotalViewersCount();
+
+		// distinct per-protocol counts so dropping HLS or DASH from the sum is caught
+		dataStore.save(broadcastWithViewers(1, 2, 3));
+		dataStore.save(broadcastWithViewers(10, 20, 30));
+
+		assertEquals(before + 66, dataStore.getTotalViewersCount());
+	}
+
+	private static Broadcast broadcastWithViewers(int webRTC, int hls, int dash) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast.setWebRTCViewerCount(webRTC);
+		broadcast.setHlsViewerCount(hls);
+		broadcast.setDashViewerCount(dash);
+		return broadcast;
+	}
+
+	@Test
+	public void testTotalViewersCountInMemory() {
+		testTotalViewersCount(new InMemoryDataStore("testTotalViewers"));
+	}
+
+	@Test
+	public void testTotalViewersCountMapDB() {
+		MapDBStore dataStore = new MapDBStore("testTotalViewersMapdb", vertx);
+		testTotalViewersCount(dataStore);
+		dataStore.close(true);
+	}
+
+	@Test
+	public void testTotalViewersCountMongo() {
+		testTotalViewersCount(new MongoStore(mongoUri(), "testTotalViewersMongo"));
+	}
 
 	@Test
 	public void testDeleteMapDB() {

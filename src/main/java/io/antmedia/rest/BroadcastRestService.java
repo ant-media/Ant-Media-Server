@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.event.ProgressEvent;
@@ -32,10 +33,12 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RecordMuxer;
+import io.antmedia.ndi.NdiSourceProvider;
 import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -50,6 +53,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -159,19 +163,20 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
-	@Operation(description = "Creates a Broadcast, IP Camera or Stream Source and returns the full broadcast object with rtmp address and "
-			+ "other information. The different between Broadcast and IP Camera or Stream Source is that Broadcast is ingested by Ant Media Server"
-			+ "IP Camera or Stream Source is pulled by Ant Media Server")
+	@Operation(description = "Creates a Broadcast, IP Camera, Stream Source, playlist, or NDI source. "
+			+ "Set autoStart=true to immediately pull an IP Camera, Stream Source, or NDI source. "
+			+ "For NDI, set type to NDI and streamUrl to an exact source name returned by the ndi-streams endpoint. "
+			+ "The NDI source name becomes the broadcast name when name is omitted, and metaData is stored as NDI.")
 	@ApiResponse(responseCode = "400", description = "If stream id is already used in the data store, it returns error", 
 	content = @Content(
 			mediaType = "application/json",
 			schema = @Schema(implementation = Result.class)
 			)
 			)
-	@ApiResponse(responseCode = "200", description = "Returns the created stream", 
+	@ApiResponse(responseCode = "200", description = "Returns the created broadcast, or an operation result when autoStart is true",
 	content = @Content(
 			mediaType = "application/json",
-			schema = @Schema(implementation = Broadcast.class)
+			schema = @Schema(oneOf = {Broadcast.class, Result.class})
 			)
 			)
 	@POST
@@ -179,7 +184,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createBroadcast(@Parameter(description = "Broadcast object. Set the required fields, it may be null as well.", required = false) Broadcast broadcast,
-			@Parameter(description = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Its value is false by default", required = false) @QueryParam("autoStart") boolean autoStart) {
+			@Parameter(description = "Starts IP Camera, Stream Source, or NDI broadcasts immediately when true. For NDI broadcasts, set type to NDI and streamUrl to a discovered NDI source name. Its value is false by default.", required = false) @QueryParam("autoStart") boolean autoStart) {
 
 		if (broadcast != null && broadcast.getStreamId() != null) {
 
@@ -213,9 +218,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 		if (autoStart)  
 		{
-			//auto is only effective for IP Camera or Stream Source 
-			//so if it's true, it should be IP Camera or Stream Soruce
-			//otherwise wrong parameter
+			// Auto start is supported for IP cameras, stream sources, and explicitly selected NDI sources.
 			if (broadcast != null) {
 				returnObject = addStreamSource(broadcast);
 			}
@@ -239,6 +242,85 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		return Response.status(Status.OK).entity(returnObject).build();
+	}
+
+	@Operation(description = "Creates a list of Broadcasts in a single request. By default the whole request fails "
+			+ "if any stream id already exists and nothing is created. Set onDuplicate to \"skip\" to keep the existing "
+			+ "streams or \"overwrite\" to replace them. Each stream is created through the same path as "
+			+ "POST /create, so validation is identical. Returns one Result per submitted stream where dataId "
+			+ "is the stream id and message is the outcome: created, skipped, overridden or failed.")
+	@ApiResponse(responseCode = "400", description = "If the list is empty or a duplicate stream id is found while onDuplicate is not set",
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Result.class)))
+	@ApiResponse(responseCode = "200", description = "Returns one Result per submitted stream",
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Result.class)))
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/create-list")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response createBroadcastList(@Parameter(description = "List of Broadcast objects to create", required = true) List<Broadcast> broadcasts,
+			@Parameter(description = "How streams whose id already exists are handled: unset fails the whole request, \"skip\" keeps the existing stream, \"overwrite\" replaces it", required = false) @QueryParam("onDuplicate") String onDuplicate) {
+
+		if (broadcasts == null || broadcasts.isEmpty()) {
+			return Response.status(Status.BAD_REQUEST).entity(new Result(false, "No streams provided")).build();
+		}
+
+		boolean skip = "skip".equalsIgnoreCase(onDuplicate);
+		boolean overwrite = "overwrite".equalsIgnoreCase(onDuplicate);
+
+		//fail mode: no duplicate strategy given, reject the whole request when any id already exists.
+		//trim into a local for the lookup only; createBroadcast does the authoritative per-item trim.
+		if (!skip && !overwrite) {
+			List<String> duplicates = new ArrayList<>();
+			for (Broadcast broadcast : broadcasts) {
+				String streamId = broadcast != null && broadcast.getStreamId() != null ? broadcast.getStreamId().trim() : null;
+				if (StringUtils.isNotBlank(streamId) && getDataStore().get(streamId) != null) {
+					duplicates.add(streamId);
+				}
+			}
+			if (!duplicates.isEmpty()) {
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id(s) already in use: " + String.join(", ", duplicates))).build();
+			}
+		}
+
+		List<Result> results = new ArrayList<>();
+		for (Broadcast broadcast : broadcasts) {
+			String streamId = null;
+			try {
+				if (broadcast == null) {
+					results.add(new Result(false, "", "failed"));
+					continue;
+				}
+				streamId = broadcast.getStreamId() != null ? broadcast.getStreamId().trim() : null;
+				boolean existed = StringUtils.isNotBlank(streamId) && getDataStore().get(streamId) != null;
+
+				if (existed && skip) {
+					results.add(new Result(true, streamId, "skipped"));
+					continue;
+				}
+				//existing stream we won't overwrite, or the overwrite delete failed: leave it as is
+				if (existed && !(overwrite && deleteBroadcast(streamId, false).isSuccess())) {
+					results.add(new Result(false, streamId, "failed"));
+					continue;
+				}
+
+				//new stream, or an overwrite after a successful delete. Route through the single-create
+				//path so validation, playlist scheduling and empty-id generation all match POST /create.
+				//It returns a Broadcast on success and a Result on any validation failure.
+				Object entity = createBroadcast(broadcast, false).getEntity();
+				boolean created = entity instanceof Broadcast;
+				results.add(new Result(created, created ? ((Broadcast) entity).getStreamId() : streamId, created ? (existed ? "overridden" : "created") : "failed"));
+			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				results.add(new Result(false, streamId, "failed"));
+			}
+		}
+
+		return Response.status(Status.OK).entity(results).build();
 	}
 
 	@Operation(summary = "Delete broadcast from data store and stop if it's broadcasting")
@@ -1050,6 +1132,23 @@ public class BroadcastRestService extends RestServiceBase{
 		return super.getBroadcastStatistics(id);
 	}
 
+	@Operation(summary = "Get per-stream metric history",
+			description = "Recent in-memory metric history for the stream (bitrate, viewers, speed, encoder queue, drops, packet loss) as parallel oldest-to-newest arrays.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Per-stream metric history",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = StreamMetricsHistory.class)
+									))
+	}
+			)
+	@GET
+	@Path("/{id}/metrics-history")
+	@Produces(MediaType.APPLICATION_JSON)
+	public StreamMetricsHistory getStreamMetricsHistoryV2(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String id) {
+		return super.getStreamMetricsHistory(id);
+	}
+
 	@Operation(summary = "Get total broadcast live statistics",
 			description = "Retrieves total live statistics of the broadcast, including total HLS watcher count and total WebRTC watcher count.",
 			responses = {
@@ -1253,6 +1352,36 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public String[] searchOnvifDevicesV2() {
 		return super.searchOnvifDevices();
+	}
+
+	@Operation(
+			summary = "Get Discovered NDI Sources",
+			description = "Returns the names of NDI sources currently discovered on the network. "
+					+ "Returns an empty array when NDI discovery is unavailable or no sources have been discovered.",
+			responses = {
+					@ApiResponse(
+							responseCode = "200",
+							description = "Discovered NDI source names",
+							content = @Content(
+									mediaType = MediaType.APPLICATION_JSON,
+									array = @ArraySchema(
+											schema = @Schema(type = "string", description = "NDI source name")
+									)
+							)
+					)
+			}
+	)
+	@GET
+	@Path("/ndi-streams")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<String> getNdiSources() {
+		ApplicationContext applicationContext = getAppContext();
+		if (applicationContext == null) {
+			return List.of();
+		}
+
+		NdiSourceProvider ndiSourceProvider = applicationContext.getBeanProvider(NdiSourceProvider.class).getIfAvailable();
+		return ndiSourceProvider != null ? ndiSourceProvider.getNdiSources() : List.of();
 	}
 
 	@Operation(summary = "Get the Profile List for an ONVIF IP Camera",

@@ -5,8 +5,10 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_INPUT_BUFFER_PADDING_SIZE;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_DATA_NEW_EXTRADATA;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_send_packet;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_clone;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
@@ -24,6 +26,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
+
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -31,7 +34,10 @@ import org.bytedeco.ffmpeg.global.avutil;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,6 +55,8 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.SizeTPointer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.muxer.EndpointMuxerPacingEngine.TimeBase;
 import io.vertx.core.Vertx;
@@ -145,8 +153,14 @@ public class EndpointMuxer extends Muxer {
 	
 	@Override
 	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex) {
+		return addStream(codec, codecContext, streamIndex, Optional.empty());
+	}
 
-		boolean result = super.addStream(codec, codecContext, streamIndex);
+	@Override
+	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex,
+			Optional<String> language) {
+		boolean result = super.addStream(codec, codecContext, streamIndex, language);
+		
 		setStatus(result ? IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING : IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 		return result;
 	}
@@ -576,14 +590,14 @@ public class EndpointMuxer extends Muxer {
 					}
 
 					if (headerWritten) {
-						enqueuePacket(getTmpPacket());
+						enqueueVideoPacket();
 					} else {
 						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 						logger.warn("Header is not written yet for writing video packet for stream: {}", file.getName());
 					}
 				}
 			} else {
-				enqueuePacket(getTmpPacket());
+				enqueueVideoPacket();
 			}
 			av_packet_unref(getTmpPacket());
 		} else if (codecType == AVMEDIA_TYPE_AUDIO && headerWritten) {
@@ -599,9 +613,20 @@ public class EndpointMuxer extends Muxer {
 	}
 
 	/**
-	 * Teardown can land between two packets, and submitting after it queues into a dead drain.
-	 * addExtradataIfRequired not added, since it's useless for endpoint pushing
+	 * Runs on every video packet, even ones the policy drops: the decision lives in the engine,
+	 * and the engine must not know about extradata.
+	 *
+	 * TODO: addExtradataIfRequired points tmpPacket.data() at a direct ByteBuffer nothing holds a
+	 * reference to, while tmpPacket.buf() still points at the bsf buffer. av_packet_clone keeps
+	 * the buf ref but copies the data pointer, so a queued clone can read freed memory. Encoder
+	 * paths only. Fix in Muxer: give the payload an AVBufferRef the packet owns.
 	 */
+	private void enqueueVideoPacket() {
+		addExtradataIfRequired(getTmpPacket(), (getTmpPacket().flags() & AV_PKT_FLAG_KEY) != 0);
+		enqueuePacket(getTmpPacket());
+	}
+
+	/** Teardown can land between two packets, and submitting after it queues into a dead drain. */
 	private void enqueuePacket(AVPacket pkt) {
 		if (running && !cancelOpenIO.get()) {
 			engine.submit(pkt);

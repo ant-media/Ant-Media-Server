@@ -1207,4 +1207,15 @@ public class EndpointMuxerTests {
 		assertTrue(muxer.writeHeader());
 		return muxer;
 	}
+	
+	@Test
+	public void testRTMPCodecSupport() {
+		EndpointMuxer endpointMuxer = new EndpointMuxer(null, vertx);
+
+		assertTrue(endpointMuxer.isCodecSupported(AV_CODEC_ID_H264));
+		assertTrue(endpointMuxer.isCodecSupported(AV_CODEC_ID_AAC));
+
+		assertFalse(endpointMuxer.isCodecSupported(AV_CODEC_ID_AC3));
+
+	}
 }
