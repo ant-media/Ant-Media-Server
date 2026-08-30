@@ -1,5 +1,6 @@
 package io.antmedia.test.statistic;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -39,6 +40,7 @@ import org.mockito.Mockito;
 import org.red5.server.Launcher;
 import org.red5.server.api.IContext;
 import org.red5.server.api.IServer;
+import org.red5.server.api.listeners.IScopeListener;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
@@ -47,6 +49,7 @@ import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.SystemUtils;
+import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
@@ -59,6 +62,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.statistic.StatsCollector;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.Vertx;
@@ -1032,6 +1036,118 @@ public class StatsCollectorTest {
 					.thenThrow(new IOException("Test exception"));
 
 			assertEquals(PHYSICAL_MEMORY_SIZE, SystemUtils.osTotalPhysicalMemory());
+		}
+	}
+
+	private static PublishStatsEvent statsEvent(long totalBytes, double speed, int encodingQueueSize,
+			int droppedPackets, int droppedFrames, double packetLostRatio) {
+		PublishStatsEvent event = new PublishStatsEvent();
+		event.setTotalByteReceived(totalBytes);
+		event.setSpeed(speed);
+		event.setEncodingQueueSize(encodingQueueSize);
+		event.setDroppedPacketCountInIngestion(droppedPackets);
+		event.setDroppedFrameCountInEncoding(droppedFrames);
+		event.setPacketLostRatio(packetLostRatio);
+		return event;
+	}
+
+	@Test
+	public void testStreamMetricsHistory() {
+		StatsCollector statsCollector = new StatsCollector();
+
+		// first sample only seeds the byte/time baseline, so its derived bitrate is 0
+		statsCollector.addStreamSample("app", "stream1", statsEvent(1000, 1.0, 2, 3, 4, 0.01), 5, 1000L);
+		// +2000 bytes over 1000 ms -> 2000 * 8 * 1000 / 1000 = 16000 bits/sec
+		statsCollector.addStreamSample("app", "stream1", statsEvent(3000, 1.5, 6, 7, 8, 0.02), 9, 2000L);
+
+		StreamMetricsHistory history = statsCollector.getStreamMetricsHistory("app", "stream1");
+
+		assertArrayEquals(new long[]{0, 16000}, history.getBitrate());
+		assertArrayEquals(new int[]{5, 9}, history.getViewers());
+		assertArrayEquals(new double[]{1.0, 1.5}, history.getSpeed(), 0.0);
+		assertArrayEquals(new int[]{2, 6}, history.getEncoderQueueSize());
+		assertArrayEquals(new int[]{3, 7}, history.getDroppedPackets());
+		assertArrayEquals(new int[]{4, 8}, history.getDroppedFrames());
+		assertArrayEquals(new double[]{0.01, 0.02}, history.getPacketLostRatio(), 0.0);
+	}
+
+	@Test
+	public void testStreamMetricsHistoryEmptyAndRemoval() {
+		StatsCollector statsCollector = new StatsCollector();
+
+		// unknown stream -> empty arrays, never null
+		assertEquals(0, statsCollector.getStreamMetricsHistory("app", "unknown").getBitrate().length);
+
+		// null args are ignored, nothing is recorded
+		statsCollector.addStreamSample(null, "stream1", statsEvent(1000, 1, 0, 0, 0, 0), 1, 1000L);
+		statsCollector.addStreamSample("app", null, statsEvent(1000, 1, 0, 0, 0, 0), 1, 1000L);
+		statsCollector.addStreamSample("app", "stream1", null, 1, 1000L);
+		assertEquals(0, statsCollector.getStreamMetricsHistory("app", "stream1").getBitrate().length);
+
+		// a recorded stream is dropped by removeStreamHistory
+		statsCollector.addStreamSample("app", "stream1", statsEvent(1000, 1, 0, 0, 0, 0), 1, 1000L);
+		assertEquals(1, statsCollector.getStreamMetricsHistory("app", "stream1").getBitrate().length);
+		statsCollector.removeStreamHistory("app", "stream1");
+		assertEquals(0, statsCollector.getStreamMetricsHistory("app", "stream1").getBitrate().length);
+	}
+
+	@Test
+	public void testAppHistorySeededOnScopeCreateAndDroppedOnRemove() {
+		ServerSettings serverSettings = new ServerSettings();
+		serverSettings.setAppMetricsHistorySize(1440);
+
+		IServer server = Mockito.mock(IServer.class);
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IServer.ID)).thenReturn(server);
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
+
+		StatsCollector statsCollector = new StatsCollector();
+		statsCollector.setApplicationContext(context);
+
+		ArgumentCaptor<IScopeListener> captor = ArgumentCaptor.forClass(IScopeListener.class);
+		Mockito.verify(server).addListener(captor.capture());
+		IScopeListener listener = captor.getValue();
+
+		IScope scope = Mockito.mock(IScope.class);
+		Mockito.when(scope.getName()).thenReturn("app1");
+
+		// a new app has a point right away, a sample period before the first real one
+		listener.notifyScopeCreated(scope);
+		JsonArray viewers = statsCollector.getAppMetricsHistory("app1").getAsJsonArray(StatsCollector.METRIC_HISTORY_VIEWERS);
+		assertEquals(1, viewers.size());
+		assertEquals(0, viewers.get(0).getAsInt());
+
+		statsCollector.addStreamSample("app1", "stream1", statsEvent(1000, 1.0, 2, 3, 4, 0.01), 5, 1000L);
+
+		listener.notifyScopeRemoved(scope);
+		assertEquals(0, statsCollector.getAppMetricsHistory("app1").getAsJsonArray(StatsCollector.METRIC_HISTORY_VIEWERS).size());
+		assertEquals(0, statsCollector.getStreamMetricsHistory("app1", "stream1").getBitrate().length);
+	}
+
+	@Test
+	public void testResourceAndNetworkSnapshots() {
+		StatsCollector statsCollector = new StatsCollector();
+
+		// fresh collector: no traffic sampled yet
+		JsonObject network = statsCollector.getNetworkStatus();
+		assertEquals(0.0, network.get("outboundMbps").getAsDouble(), 0.0);
+		assertEquals(0.0, network.get("inboundMbps").getAsDouble(), 0.0);
+		assertEquals(0, network.get("uplinkMbps").getAsLong());
+
+		// unknown app -> empty parallel arrays
+		JsonObject appMetrics = statsCollector.getAppMetricsHistory("unknown");
+		assertEquals(0, appMetrics.getAsJsonArray(StatsCollector.METRIC_HISTORY_VIEWERS).size());
+		assertEquals(0, appMetrics.getAsJsonArray(StatsCollector.METRIC_HISTORY_STREAMS).size());
+
+		// resource history exposes every series, empty until the sampler runs
+		String[] series = {StatsCollector.METRIC_HISTORY_CPU, StatsCollector.METRIC_HISTORY_MEMORY,
+				StatsCollector.METRIC_HISTORY_DISK, StatsCollector.METRIC_HISTORY_HEAP, StatsCollector.METRIC_HISTORY_DB_QUERY,
+				StatsCollector.METRIC_HISTORY_LIVE_STREAMS, StatsCollector.METRIC_HISTORY_NET_OUT, StatsCollector.METRIC_HISTORY_NET_IN};
+		JsonObject resources = statsCollector.getSystemResourcesHistory();
+		for (String key : series) {
+			assertEquals(0, resources.getAsJsonArray(key).size(), key);
 		}
 	}
 

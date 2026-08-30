@@ -791,6 +791,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	public void testStartStopPublishWithSubscriberId() throws Exception {
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
 		spyAdaptor.setDataStore(new InMemoryDataStore("testStartStopPublishWithSubscriberId"));
+		spyAdaptor.setStatsCollector(Mockito.mock(IStatsCollector.class));
 		spyAdaptor.setServerSettings(new ServerSettings());
 		AppSettings appSettings = new AppSettings();
 		spyAdaptor.setAppSettings(appSettings);
@@ -852,6 +853,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdaptor.setDataStoreFactory(dsf);
 		spyAdaptor.setDataStore(dataStore);
+		spyAdaptor.setStatsCollector(Mockito.mock(IStatsCollector.class));
 
 		dataStore.save(broadcast);
 
@@ -1576,6 +1578,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.setScope(scope);
 		adapter.setVertx(vertx);
+		adapter.setStatsCollector(mock(IStatsCollector.class));
 
 		adapter.closeBroadcast(broadcast.getStreamId(), null, null);
 
@@ -1618,6 +1621,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.setScope(scope);
 		adapter.setVertx(vertxLocal);
+		adapter.setStatsCollector(mock(IStatsCollector.class));
 
 		adapter.closeBroadcast(broadcast.getStreamId(), "subscriberId", null);
 
@@ -2758,6 +2762,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			AppSettings appSettings = new AppSettings();
 			spyAdapter.setAppSettings(appSettings);
+			spyAdapter.setStatsCollector(mock(IStatsCollector.class));
 
 			doNothing().when(spyAdapter).sendPOST(anyString(), any(), anyInt(), any());
 
@@ -2997,6 +3002,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStore db = mock(DataStore.class);
 		when(db.get(broadcast.getStreamId())).thenReturn(broadcast);
 		spyAdapter.setDataStore(db);
+		spyAdapter.setStatsCollector(mock(IStatsCollector.class));
 
 		spyAdapter.closeBroadcast(broadcast.getStreamId(), null, null);
 
@@ -3047,6 +3053,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStore db = mock(DataStore.class);
 		when(db.get(broadcast.getStreamId())).thenReturn(broadcast);
 		spyAdapter.setDataStore(db);
+		spyAdapter.setStatsCollector(mock(IStatsCollector.class));
 
 
 		spyAdapter.closeBroadcast(broadcast.getStreamId(), null, null);
@@ -3507,6 +3514,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
 		spyAdaptor.setDataStore(new InMemoryDataStore("testStartStopPublishWithSubscriberId"));
+		spyAdaptor.setStatsCollector(Mockito.mock(IStatsCollector.class));
 		spyAdaptor.setServerSettings(new ServerSettings());
 		AppSettings appSettings = new AppSettings();
 		spyAdaptor.setAppSettings(appSettings);
