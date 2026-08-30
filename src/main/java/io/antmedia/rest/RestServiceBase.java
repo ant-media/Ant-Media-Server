@@ -58,6 +58,7 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RecordMuxer;
+import io.antmedia.ndi.NdiSourceProvider;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
@@ -176,13 +177,15 @@ public abstract class RestServiceBase {
 		this.appCtx = appCtx;
 	}
 
-	@Nullable
 	public ApplicationContext getAppContext() {
 		if (servletContext != null) {
-			appCtx = (ApplicationContext) servletContext
-					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+			return Objects.requireNonNull(
+					(ApplicationContext) servletContext.getAttribute(
+							WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE),
+					"Spring root application context is unavailable");
 		}
-		return appCtx;
+		return Objects.requireNonNull(appCtx,
+				"Application context must be injected when no ServletContext is available");
 	}
 
 	/**
@@ -738,8 +741,11 @@ public abstract class RestServiceBase {
 			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
 				result = addSource(stream);
 			}
+			else if (stream.getType().equals(IAntMediaStreamHandler.PUBLISH_TYPE_NDI)) {
+				result = addNdiSource(stream);
+			}
 			else{
-				result.setMessage("Auto start query needs an IP camera or stream source.");
+				result.setMessage("Auto start query needs an IP camera, stream source, or NDI source.");
 			}
 		}
 		else {
@@ -751,6 +757,31 @@ public abstract class RestServiceBase {
 		}
 
 		return result;
+	}
+
+	protected Result addNdiSource(Broadcast stream) {
+		if (StringUtils.isBlank(stream.getStreamUrl())) {
+			return new Result(false, "NDI source name is not defined.");
+		}
+		if (StringUtils.isBlank(stream.getName())) {
+			stream.setName(stream.getStreamUrl());
+		}
+		stream.setMetaData(IAntMediaStreamHandler.PUBLISH_TYPE_NDI);
+
+		NdiSourceProvider ndiSourceProvider = getAppContext().getBeanProvider(NdiSourceProvider.class).getIfAvailable();
+		if (ndiSourceProvider == null) {
+			return new Result(false, "NDI support is not available.");
+		}
+
+		Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED,
+				getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+		boolean started = ndiSourceProvider.startNdiSource(savedBroadcast.getStreamUrl(), savedBroadcast.getStreamId(), getScope());
+		if (!started) {
+			return new Result(true, savedBroadcast.getStreamId(),
+					"NDI source is saved but it is not available or is already running. You can start it later.");
+		}
+
+		return new Result(true, savedBroadcast.getStreamId(), "");
 	}
 
 	public Result connectToCamera(String ipAddr, String username, String password) {
@@ -1332,7 +1363,11 @@ public abstract class RestServiceBase {
 
 		if (broadcast != null)
 		{
-			if(broadcast.getStreamUrl() != null || Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.PLAY_LIST))
+			if (Objects.equals(broadcast.getType(), IAntMediaStreamHandler.PUBLISH_TYPE_NDI))
+			{
+				result = startNdiSource(broadcast);
+			}
+			else if(broadcast.getStreamUrl() != null || Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.PLAY_LIST))
 			{
 				result = getApplication().startStreaming(broadcast);
 			}
@@ -1358,6 +1393,24 @@ public abstract class RestServiceBase {
 			result.setMessage("No Stream Exists with id:"+id);
 		}
 		return result;
+	}
+
+	protected Result startNdiSource(Broadcast broadcast) {
+		if (StringUtils.isBlank(broadcast.getStreamUrl())) {
+			return new Result(false, "NDI source name is not defined.");
+		}
+
+		NdiSourceProvider ndiSourceProvider = getAppContext().getBeanProvider(NdiSourceProvider.class).getIfAvailable();
+		if (ndiSourceProvider == null) {
+			return new Result(false, "NDI support is not available.");
+		}
+
+		boolean started = ndiSourceProvider.startNdiSource(broadcast.getStreamUrl(), broadcast.getStreamId(), getScope());
+		if (!started) {
+			return new Result(false, broadcast.getStreamId(), "NDI source is not available or is already running.");
+		}
+
+		return new Result(true, broadcast.getStreamId(), "");
 	}
 
 	public Result playNextItem(String id, Integer index) {

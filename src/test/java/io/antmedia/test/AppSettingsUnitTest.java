@@ -1,5 +1,6 @@
 package io.antmedia.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -698,8 +699,9 @@ public class AppSettingsUnitTest {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
-		assertEquals(186,
-				numberOfFields, "New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.");
+		assertThat(numberOfFields)
+				.as("When an AppSettings field is added or removed, check its default value and update the field count")
+				.isEqualTo(185);
 	}
 
 
