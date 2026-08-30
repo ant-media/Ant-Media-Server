@@ -239,15 +239,6 @@ jobs:
      
       - name: Package Ant Media Server
         run: mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
-
-      - name: Upload community package
-        uses: actions/upload-artifact@v4
-        with:
-          name: ant-media-server-community
-          path: target/ant-media-server-community*.zip
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 0
         
       - name: Install Ant Media Server
         run: |
