@@ -1341,14 +1341,10 @@ public abstract class Muxer {
 			startTimeInSeconds = currentTimeInSeconds;
 		}
 
-		if (codecType == AVMEDIA_TYPE_AUDIO) {
-			writeAudioPacket(pkt, inputTimebase, outputTimebase, context, originalTiming.dts());
-		}
-		else if (codecType == AVMEDIA_TYPE_VIDEO) {
-			writeVideoPacket(pkt, inputTimebase, outputTimebase, context);
-		}
-		else {
-			writeOtherPacket(pkt, inputTimebase, outputTimebase, context);
+		switch (codecType) {
+			case AVMEDIA_TYPE_AUDIO -> writeAudioPacket(pkt, inputTimebase, outputTimebase, context, originalTiming.dts());
+			case AVMEDIA_TYPE_VIDEO -> writeVideoPacket(pkt, inputTimebase, outputTimebase, context);
+			default -> writeOtherPacket(pkt, inputTimebase, outputTimebase, context);
 		}
 
 		restorePacketTiming(pkt, originalTiming);

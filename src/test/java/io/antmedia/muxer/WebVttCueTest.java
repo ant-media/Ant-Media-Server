@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import io.antmedia.test.UnitTestBase;
 
 @Tag("fast")
-public class WebVttCueTest extends UnitTestBase<WebVttCue> {
+class WebVttCueTest extends UnitTestBase<WebVttCue> {
 
 	@Test
 	void testValidCue() {

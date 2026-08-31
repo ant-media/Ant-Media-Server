@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import io.antmedia.test.UnitTestBase;
 
 @Tag("fast")
-public class WebVttTrackTest extends UnitTestBase<WebVttTrack> {
+class WebVttTrackTest extends UnitTestBase<WebVttTrack> {
 
 	@Test
 	void testDefaults() {

@@ -28,8 +28,8 @@ public class TokenFilterManager extends AbstractFilter   {
 	public static final String NOT_INITIALIZED= "Not initialized";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
 	public static final String TOKEN_HEADER_FOR_NODE_COMMUNICATION = "ClusterAuthorization";
-	private static final Pattern WEBVTT_SUBTITLE_FILE_PATTERN = Pattern.compile(
-			"([^/]+)_subtitles_[0-9]+(?:_[0-9]+)?\\.(?:m3u8|vtt)$");
+	private static final Pattern WEBVTT_SUBTITLE_FILE_SUFFIX_PATTERN = Pattern.compile(
+			"_subtitles_\\d+(?:_\\d+)?\\.(?:m3u8|vtt)$");
 
 
 	@Override
@@ -211,9 +211,12 @@ public class TokenFilterManager extends AbstractFilter   {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
-		Matcher webVttSubtitleMatcher = WEBVTT_SUBTITLE_FILE_PATTERN.matcher(requestURI);
+		Matcher webVttSubtitleMatcher = WEBVTT_SUBTITLE_FILE_SUFFIX_PATTERN.matcher(requestURI);
 		if (webVttSubtitleMatcher.find()) {
-			return webVttSubtitleMatcher.group(1);
+			int streamIdStart = requestURI.lastIndexOf('/', webVttSubtitleMatcher.start()) + 1;
+			if (streamIdStart < webVttSubtitleMatcher.start()) {
+				return requestURI.substring(streamIdStart, webVttSubtitleMatcher.start());
+			}
 		}
 
 
