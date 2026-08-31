@@ -1331,10 +1331,37 @@ public abstract class DataStore {
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getTotalWebRTCViewersCount(Map<String, String> broadcastMap, Gson gson)");
-		
+
 		return totalWebRTCViewerCount;
 	}
-	
+
+	/**
+	 * Total viewers across all playback protocols (WebRTC + HLS + DASH) for this data store.
+	 * Backs the per-app viewer history (GET /applications/{name}/metrics-history).
+	 *
+	 * NOTE: the per-broadcast viewer counts only exist when writeStatsToDatastore is enabled
+	 * (the default - see AppSettings#writeStatsToDatastore). When it is off this returns 0.
+	 * In a cluster the counts are accumulated in the shared store, so this sum is cluster-wide.
+	 *
+	 * @return total number of WebRTC + HLS + DASH viewers
+	 */
+	public abstract int getTotalViewersCount();
+
+	/** Sum of a broadcast's viewers across all playback protocols (WebRTC + HLS + DASH). */
+	protected static int totalViewers(Broadcast broadcast) {
+		return broadcast.getWebRTCViewerCount() + broadcast.getHlsViewerCount() + broadcast.getDashViewerCount();
+	}
+
+	public int getTotalViewersCount(Map<String, String> broadcastMap, Gson gson) {
+		int total = 0;
+		synchronized (this) {
+			for (String json : broadcastMap.values()) {
+				total += totalViewers(gson.fromJson(json, Broadcast.class));
+			}
+		}
+		return total;
+	}
+
 
 	/**
 	 * This is used to update meta data for a bradcast 

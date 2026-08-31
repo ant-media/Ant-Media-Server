@@ -296,6 +296,24 @@ public class AppSettings implements Serializable {
 	private int endpointRepublishLimit=3;
 
 	/**
+	 * Keeps a pushed endpoint at the live edge by absorbing publisher-side stalls. A jump
+	 * in incoming timestamps, or arrivals falling behind wall clock, is discarded and what
+	 * follows is renumbered, so the receiver sees an unbroken timeline instead of a gap it
+	 * would buffer through.
+	 *
+	 * Off by default, because it buys latency with content. A source persistently slower
+	 * than realtime accumulates lag legitimately and gets a freeze plus a jump cut every
+	 * time it reaches the budget, and a source delivering less than one frame per second
+	 * reads as a permanent gap, which compresses its timeline and grows latency without
+	 * bound. Neither is distinguishable from a real stall by timestamps alone.
+	 *
+	 * Independent of this setting, an endpoint that falls behind always has its send queue
+	 * dropped and everything after it renumbered. Only stall detection is behind the flag.
+	 */
+	@Value ( "${endpointLiveEdgeEnabled:false}" )
+	private boolean endpointLiveEdgeEnabled=false;
+
+	/**
 	 * Duration of segments in mpd files,
 	 * Segments are a property of DASH. A segment is the minimal download unit.
 	 *
@@ -770,8 +788,11 @@ public class AppSettings implements Serializable {
 	
 
 	/**
-	 * Whether to write viewers(HLS, WebRTC) count to the data store, it's true by default. 
+	 * Whether to write viewers(HLS, WebRTC) count to the data store, it's true by default.
 	 * If you set it to false, it decreases the number of write operations to the data store and you don't see the viewer count in datastore
+	 *
+	 * NOTE: keep this enabled if you want per-app viewer metrics in management panel.
+	 * REST: /applications/{name}/metrics-history
 	 */
 	@Value( "${writeStatsToDatastore:true}")
 	private boolean writeStatsToDatastore = true;
@@ -1675,17 +1696,6 @@ public class AppSettings implements Serializable {
 	 */
 	@Value("${disableAudio:false}")
 	private boolean disableAudio = false;
-
-    /**
-     * The map of NDI sources that this application should connect to and broadcast
-     * automatically on startup. The keys can be exact source names or if prefixed
-     * with regex:xxxxxx they are considered to be regular expressions.
-     * The values are the streamIds used to publish the NDI stream. Empty/null value means no renaming, the
-     * NDI source name will be used as-is for the broadcast name.
-     * Use the special value regex:.* to broadcast any NDI source automatically.
-     */
-    @Value("${ndiSources:}")
-    private Map<String, String> ndiSources;
 
     //Make sure you have a default constructor because it's populated by MongoDB
 	public AppSettings() {
