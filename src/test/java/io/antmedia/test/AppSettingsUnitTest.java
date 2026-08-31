@@ -695,13 +695,17 @@ public class AppSettingsUnitTest {
 		appSettings.setDisableAudio(true);
 		assertTrue(appSettings.isDisableAudio());
 
+		assertFalse(appSettings.isEndpointLiveEdgeEnabled());
+		appSettings.setEndpointLiveEdgeEnabled(true);
+		assertTrue(appSettings.isEndpointLiveEdgeEnabled());
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
-		//by also checking its default value. 
+		//by also checking its default value.
 
 		assertThat(numberOfFields)
 				.as("When an AppSettings field is added or removed, check its default value and update the field count")
-				.isEqualTo(185);
+				.isEqualTo(186);
 	}
 
 
