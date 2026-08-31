@@ -12,7 +12,7 @@ import org.junit.jupiter.api.io.TempDir;
 import io.antmedia.test.UnitTestBase;
 
 @Tag("fast")
-public class WebVttHlsPlaylistTest extends UnitTestBase<WebVttHlsPlaylist> {
+class WebVttHlsPlaylistTest extends UnitTestBase<WebVttHlsPlaylist> {
 
 	@TempDir
 	Path temporaryDirectory;
@@ -24,9 +24,16 @@ public class WebVttHlsPlaylistTest extends UnitTestBase<WebVttHlsPlaylist> {
 		classUnderTest.addCue(new WebVttCue(500, 2500, "Bonjour"));
 		classUnderTest.addCue(new WebVttCue(2200, 3100, "Deuxième"));
 
-		classUnderTest.update("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:2\n"
-				+ "#EXT-X-MEDIA-SEQUENCE:10\n#EXTINF:2.000000,\ntest10.ts\n"
-				+ "#EXTINF:2.000000,\ntest11.ts\n");
+		classUnderTest.update("""
+				#EXTM3U
+				#EXT-X-VERSION:3
+				#EXT-X-TARGETDURATION:2
+				#EXT-X-MEDIA-SEQUENCE:10
+				#EXTINF:2.000000,
+				test10.ts
+				#EXTINF:2.000000,
+				test11.ts
+				""");
 
 		assertThat(Files.readString(temporaryDirectory.resolve("test_subtitles_3.m3u8")))
 				.contains("#EXT-X-MEDIA-SEQUENCE:10", "test_subtitles_3_10.vtt", "test_subtitles_3_11.vtt");

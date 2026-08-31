@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import io.antmedia.test.UnitTestBase;
 
 @Tag("fast")
-public class MuxAdaptorTest extends UnitTestBase<MuxAdaptor> {
+class MuxAdaptorTest extends UnitTestBase<MuxAdaptor> {
 
 	private TestHLSMuxer hlsMuxer;
 
