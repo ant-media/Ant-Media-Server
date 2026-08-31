@@ -4,8 +4,11 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import org.apache.catalina.Container;
 import org.apache.catalina.Context;
+import org.apache.catalina.Engine;
 import org.apache.catalina.Host;
 import org.apache.catalina.Loader;
+import org.apache.catalina.Server;
+import org.apache.catalina.core.StandardContext;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import io.antmedia.cluster.IClusterNotifier;
@@ -109,17 +112,8 @@ public class TomcatLoaderTest extends UnitTestBase<TomcatLoader> {
         ServletContext servletContext = mock(ServletContext.class);
         AtomicReference<Object> publishedContext = new AtomicReference<>();
 
-        Path webappRoot = Files.createTempDirectory("tomcat-loader-webapp");
-        Path webInf = Files.createDirectories(webappRoot.resolve("WEB-INF"));
-        Path contextXml = webInf.resolve("red5-test.xml");
-        Files.writeString(contextXml, """
-                <?xml version="1.0" encoding="UTF-8"?>
-                <beans xmlns="http://www.springframework.org/schema/beans"
-                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
-                    <bean class="org.red5.server.tomcat.TomcatLoaderTest$RootContextProbe" />
-                </beans>
-                """, StandardCharsets.UTF_8);
+        Path webappRoot = createSpringWebappRoot();
+        Path contextXml = webappRoot.resolve("WEB-INF/red5-test.xml");
 
         when(host.findChild("/LiveApp")).thenReturn((Container) context);
         when(context.getServletContext()).thenReturn(servletContext);
@@ -147,6 +141,82 @@ public class TomcatLoaderTest extends UnitTestBase<TomcatLoader> {
                 .untilAsserted(() -> assertNull(RootContextProbe.rootContextDuringRefresh.get()));
         Awaitility.await().atMost(5, TimeUnit.SECONDS)
                 .untilAsserted(() -> assertTrue(publishedContext.get() instanceof WebApplicationContext));
+    }
+
+    @Test
+    public void testStartPublishesContextAfterRefresh() throws Exception {
+        RootContextProbe.rootContextDuringRefresh.set(UNSET);
+
+        TomcatLoader tomcatLoader = new TomcatLoader();
+        ApplicationContext applicationContext = mock(ApplicationContext.class);
+        when(applicationContext.containsBean(anyString())).thenReturn(false);
+        tomcatLoader.setApplicationContext(applicationContext);
+
+        Path red5Root = Files.createTempDirectory("red5-root");
+        Path webappRoot = createSpringWebappRoot();
+        System.setProperty("red5.root", red5Root.toString());
+        System.setProperty("red5.config_root", red5Root.toString());
+        tomcatLoader.setWebappFolder(Files.createTempDirectory("tomcat-loader-empty-webapps").toString());
+        tomcatLoader.setConnectors(Collections.emptyList());
+
+        EmbeddedTomcat embeddedTomcat = mock(EmbeddedTomcat.class);
+        Server server = mock(Server.class);
+        Engine engine = mock(Engine.class);
+        when(embeddedTomcat.getServer()).thenReturn(server);
+        when(embeddedTomcat.getEngine()).thenReturn(engine);
+        tomcatLoader.setEmbedded(embeddedTomcat);
+
+        Host host = mock(Host.class);
+        StandardContext context = mock(StandardContext.class);
+        Loader loader = mock(Loader.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        AtomicReference<Object> publishedContext = new AtomicReference<>();
+
+        when(host.getName()).thenReturn("localhost");
+        when(host.findChildren()).thenReturn(new Container[] { context });
+        when(context.getName()).thenReturn("/LiveApp");
+        when(context.getServletContext()).thenReturn(servletContext);
+        when(context.getLoader()).thenReturn(loader);
+        when(loader.getDelegate()).thenReturn(false);
+        when(loader.getClassLoader()).thenReturn(getClass().getClassLoader());
+        when(servletContext.getContextPath()).thenReturn("/LiveApp");
+        when(servletContext.getRealPath("/")).thenReturn(webappRoot.toString());
+        when(servletContext.getInitParameter("contextConfigLocation"))
+                .thenReturn(webappRoot.resolve("WEB-INF/red5-test.xml").toUri().toString());
+        when(servletContext.getInitParameterNames()).thenReturn(Collections.emptyEnumeration());
+        when(servletContext.getAttributeNames()).thenReturn(Collections.emptyEnumeration());
+        when(servletContext.getServletContextName()).thenReturn("LiveApp");
+        when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+                .thenAnswer(invocation -> publishedContext.get());
+        doAnswer(invocation -> {
+            publishedContext.set(invocation.getArgument(1));
+            return null;
+        }).when(servletContext).setAttribute(eq(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE), any());
+
+        tomcatLoader.setBaseHost(host);
+
+        tomcatLoader.start();
+
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertNull(RootContextProbe.rootContextDuringRefresh.get()));
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertTrue(publishedContext.get() instanceof WebApplicationContext));
+    }
+
+    private Path createSpringWebappRoot() throws Exception {
+        Path webappsRoot = Files.createTempDirectory("tomcat-loader-webapps");
+        Path webappRoot = Files.createDirectories(webappsRoot.resolve("LiveApp"));
+        Path webInf = Files.createDirectories(webappRoot.resolve("WEB-INF"));
+        Path contextXml = webInf.resolve("red5-test.xml");
+        Files.writeString(contextXml, """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <beans xmlns="http://www.springframework.org/schema/beans"
+                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
+                    <bean class="org.red5.server.tomcat.TomcatLoaderTest$RootContextProbe" />
+                </beans>
+                """, StandardCharsets.UTF_8);
+        return webappRoot;
     }
 
     public static class RootContextProbe implements ServletContextAware, InitializingBean {
