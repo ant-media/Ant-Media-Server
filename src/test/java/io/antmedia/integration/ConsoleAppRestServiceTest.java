@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -505,8 +506,82 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
+	/**
+	 * Guards the "app settings lost on restart" race: the Spring context was published to request
+	 * threads before it finished refreshing, so a concurrent HLS request could read a half-initialized
+	 * app.settings bean and the app came back up with defaults. Plants a non-default value and requires
+	 * it to survive a restart taken under HLS load.
+	 */
 	@Test
-	public void testCreateCustomApp() 
+	public void testAppSettingsSurviveRestartUnderHttpLoad() throws Exception {
+
+		final String app = "LiveApp";
+		final String hlsUrl = "http://127.0.0.1:5080/" + app + "/streams/stream.m3u8";
+		final int spamThreads = 10;
+
+		resetCookieStore();
+		assertTrue(authenticateDefaultUser().isSuccess());
+		AppSettings appSettings = callGetAppSettings(app);
+		final String originalHlsListSize = appSettings.getHlsListSize();
+
+		appSettings.setHlsListSize("7");   // non-default
+		assertTrue(callSetAppSettings(app, appSettings).isSuccess());
+
+		// keep HLS requests landing across the restart to recreate the race
+		final AtomicBoolean spam = new AtomicBoolean(true);
+		Thread[] spammers = new Thread[spamThreads];
+		for (int i = 0; i < spamThreads; i++) {
+			spammers[i] = new Thread(() -> {
+				try (CloseableHttpClient client = HttpClients.custom()
+						.setRedirectStrategy(new LaxRedirectStrategy()).build()) {
+					while (spam.get()) {
+						try {
+							client.execute(RequestBuilder.get().setUri(hlsUrl).build()).close();
+						} catch (Exception e) {
+							// expected while the server is down
+						}
+					}
+				} catch (Exception e) {
+					// irrelevant to the assertion
+				}
+			});
+			spammers[i].start();
+		}
+
+		try {
+			assertEquals(0, AppFunctionalV2Test.execute("sudo service antmedia restart").waitFor());
+
+			// Wait for the planted value, not just any answer: the app can serve defaults briefly while the
+			// datastore remounts. This also leaves it ready for the next test, which reads it with no retry.
+			Awaitility.await("app settings must survive restart under http load")
+					.atMost(90, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+					.until(() -> {
+						try {
+							resetCookieStore();
+							return authenticateDefaultUser().isSuccess()
+									&& "7".equals(callGetAppSettings(app).getHlsListSize());
+						} catch (Exception e) {
+							return false;
+						}
+					});
+		} finally {
+			spam.set(false);
+			for (Thread t : spammers) {
+				t.join();
+			}
+
+			// restore for the next test
+			resetCookieStore();
+			if (authenticateDefaultUser().isSuccess()) {
+				AppSettings restore = callGetAppSettings(app);
+				restore.setHlsListSize(originalHlsListSize);
+				callSetAppSettings(app, restore);
+			}
+		}
+	}
+
+	@Test
+	public void testCreateCustomApp()
 	{
 		String appName = RandomString.make(20);
 		log.info("app:{} will be created", appName);
