@@ -648,8 +648,14 @@ public abstract class Muxer {
 		int codecType = outStream.codecpar().codec_type();
 
 		if (!checkToDropPacket(pkt, codecType)) {
+			//source and target stream index do not match if the source has streams that are not muxed, like a SCTE-35 data stream
+			pkt.stream_index(outputStreamIndex);
+
 			//added for audio video sync
 			writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
+
+			//encoders write the same packet to every muxer in their list so the index must be put back
+			pkt.stream_index(inputStreamIndex);
 		}
 
 	}
