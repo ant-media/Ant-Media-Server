@@ -12,14 +12,22 @@ import io.micrometer.core.instrument.binder.MeterBinder;
 /** Exposes the Ant Media-specific instance statistics also published to Kafka. */
 public class AntMediaServerMetrics implements MeterBinder {
 
+    private static final String BYTES_BASE_UNIT = "bytes";
+    private static final String PERCENT_BASE_UNIT = "percent";
+
     private final StatsCollector statsCollector;
     private final OperatingSystemMXBean operatingSystem;
     private final GPUUtils gpuUtils;
 
     public AntMediaServerMetrics(StatsCollector statsCollector) {
+        this(statsCollector, (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean(),
+                GPUUtils.getInstance());
+    }
+
+    AntMediaServerMetrics(StatsCollector statsCollector, OperatingSystemMXBean operatingSystem, GPUUtils gpuUtils) {
         this.statsCollector = statsCollector;
-        this.operatingSystem = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        this.gpuUtils = GPUUtils.getInstance();
+        this.operatingSystem = operatingSystem;
+        this.gpuUtils = gpuUtils;
     }
 
     @Override
@@ -44,19 +52,19 @@ public class AntMediaServerMetrics implements MeterBinder {
                 "Average datastore query duration in milliseconds", StatsCollector::getDBQueryAverageTimeMs);
 
         Gauge.builder("system.memory.total", operatingSystem,
-                        OperatingSystemMXBean::getTotalMemorySize)
+                OperatingSystemMXBean::getTotalMemorySize)
                 .description("Total physical memory available to the system")
-                .baseUnit("bytes")
+                .baseUnit(BYTES_BASE_UNIT)
                 .register(registry);
         Gauge.builder("system.memory.free", operatingSystem,
-                        OperatingSystemMXBean::getFreeMemorySize)
+                OperatingSystemMXBean::getFreeMemorySize)
                 .description("Free physical memory available to the system")
-                .baseUnit("bytes")
+                .baseUnit(BYTES_BASE_UNIT)
                 .register(registry);
         Gauge.builder("system.memory.used", operatingSystem,
                         system -> system.getTotalMemorySize() - system.getFreeMemorySize())
                 .description("Used physical memory in the system")
-                .baseUnit("bytes")
+                .baseUnit(BYTES_BASE_UNIT)
                 .register(registry);
 
         Gauge.builder("antmedia.gpu.count", gpuUtils, GPUUtils::getDeviceCount)
@@ -86,43 +94,43 @@ public class AntMediaServerMetrics implements MeterBinder {
         Gauge.builder("antmedia.gpu.utilization", gpuUtils,
                         utils -> utils.getGPUUtilization(deviceIndex))
                 .description("GPU utilization percentage")
-                .baseUnit("percent")
+                .baseUnit(PERCENT_BASE_UNIT)
                 .tags("gpu", gpu, "name", name)
                 .register(registry);
         Gauge.builder("antmedia.gpu.memory.utilization", gpuUtils,
                         utils -> utils.getMemoryUtilization(deviceIndex))
                 .description("GPU memory utilization percentage")
-                .baseUnit("percent")
+                .baseUnit(PERCENT_BASE_UNIT)
                 .tags("gpu", gpu, "name", name)
                 .register(registry);
         Gauge.builder("antmedia.gpu.encoder.utilization", gpuUtils,
                         utils -> utils.getEncoderUtilization(deviceIndex))
                 .description("GPU encoder utilization percentage")
-                .baseUnit("percent")
+                .baseUnit(PERCENT_BASE_UNIT)
                 .tags("gpu", gpu, "name", name)
                 .register(registry);
         Gauge.builder("antmedia.gpu.decoder.utilization", gpuUtils,
                         utils -> utils.getDecoderUtilization(deviceIndex))
                 .description("GPU decoder utilization percentage")
-                .baseUnit("percent")
+                .baseUnit(PERCENT_BASE_UNIT)
                 .tags("gpu", gpu, "name", name)
                 .register(registry);
         Gauge.builder("antmedia.gpu.memory.total", gpuUtils,
                         utils -> getGpuMemory(utils, deviceIndex, MemoryValue.TOTAL))
                 .description("Total GPU memory")
-                .baseUnit("bytes")
+                .baseUnit(BYTES_BASE_UNIT)
                 .tags("gpu", gpu, "name", name)
                 .register(registry);
         Gauge.builder("antmedia.gpu.memory.used", gpuUtils,
                         utils -> getGpuMemory(utils, deviceIndex, MemoryValue.USED))
                 .description("Used GPU memory")
-                .baseUnit("bytes")
+                .baseUnit(BYTES_BASE_UNIT)
                 .tags("gpu", gpu, "name", name)
                 .register(registry);
         Gauge.builder("antmedia.gpu.memory.free", gpuUtils,
                         utils -> getGpuMemory(utils, deviceIndex, MemoryValue.FREE))
                 .description("Free GPU memory")
-                .baseUnit("bytes")
+                .baseUnit(BYTES_BASE_UNIT)
                 .tags("gpu", gpu, "name", name)
                 .register(registry);
     }
