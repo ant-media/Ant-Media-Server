@@ -13,6 +13,7 @@ import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,6 +123,47 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 			packet.stream_index(4);
 			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isFalse();
 		}
+	}
+
+	@Test
+	void testWebVttPlaylistLifecycle() throws Exception {
+		Path mediaPlaylist = tempDirectory.resolve("test.m3u8");
+		ReflectionTestUtils.invokeMethod(classUnderTest, "syncWebVttPlaylists", false);
+		classUnderTest.file = mediaPlaylist.toFile();
+		classUnderTest.initialResourceNameWithoutExtension = "test";
+		classUnderTest.setIsRunning(new AtomicBoolean(true));
+
+		WebVttTrack track = new WebVttTrack(2, "de", "German");
+		classUnderTest.addWebVttTrack(track);
+		classUnderTest.writeWebVttCue(2, new WebVttCue(500, 1_500, "Hallo"));
+		classUnderTest.writeWebVttCue(3, new WebVttCue(500, 1_500, "Ignored"));
+		Path masterPlaylist = tempDirectory.resolve("test_master.m3u8");
+		ReflectionTestUtils.setField(classUnderTest, "webVttMasterPlaylist", masterPlaylist.toFile());
+		ReflectionTestUtils.invokeMethod(classUnderTest, "writeWebVttMasterPlaylist");
+		assertThat(Files.readString(masterPlaylist))
+				.contains("TYPE=SUBTITLES", "URI=\"test_subtitles_2.m3u8\"", "test.m3u8");
+
+		Files.writeString(mediaPlaylist, """
+				#EXTM3U
+				#EXT-X-VERSION:3
+				#EXT-X-TARGETDURATION:2
+				#EXT-X-MEDIA-SEQUENCE:10
+				#EXTINF:2.000000,
+				test000000010.ts
+				""");
+		ReflectionTestUtils.setField(classUnderTest, "webVttMediaPlaylist", mediaPlaylist.toFile());
+
+		ReflectionTestUtils.invokeMethod(classUnderTest, "syncWebVttPlaylists", false);
+		ReflectionTestUtils.invokeMethod(classUnderTest, "syncWebVttPlaylists", false);
+
+		assertThat(Files.readString(tempDirectory.resolve("test_subtitles_2.m3u8")))
+				.contains("#EXT-X-MEDIA-SEQUENCE:10", "test_subtitles_2_10.vtt");
+		assertThat(Files.readString(tempDirectory.resolve("test_subtitles_2_10.vtt")))
+				.contains("00:00:00.500 --> 00:00:01.500", "Hallo")
+				.doesNotContain("Ignored");
+
+		classUnderTest.setIsRunning(new AtomicBoolean(false));
+		classUnderTest.writeWebVttCue(2, new WebVttCue(1_600, 1_900, "Too late"));
 	}
 
 	@Test
