@@ -1889,6 +1889,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		writeTrailer();
+		if (packetFeeder != null) {
+			packetFeeder.close();
+		}
 
 		if (videoExtraDataPointer != null) {
 			av_free(videoExtraDataPointer.position(0));
