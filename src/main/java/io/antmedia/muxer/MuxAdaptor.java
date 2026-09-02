@@ -118,6 +118,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private int videoStreamIndex;
 	private int dataStreamIndex;
+	private final Map<Integer, WebVttTrack> webVttTracks = new ConcurrentHashMap<>();
 
 
 	protected boolean previewOverwrite = false;
@@ -537,6 +538,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public HLSMuxer addHLSMuxer() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
+		hlsMuxer.setWebVttTracks(webVttTracks.values());
 		hlsMuxer.setHlsParameters(hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), 
 									getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getHlsSegmentType());
 		hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
@@ -1846,6 +1848,37 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				if (!(muxer instanceof WebMMuxer))
 				{
 					muxer.writePacket(pkt, stream);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Registers a source stream that an ingest implementation will convert to WebVTT.
+	 * Registration must happen before {@link #init(IScope, String, boolean)}.
+	 */
+	public void registerWebVttTrack(int inputStreamIndex, String language, String name) {
+		WebVttTrack track = new WebVttTrack(inputStreamIndex, language, name);
+		webVttTracks.put(inputStreamIndex, track);
+		synchronized (muxerList) {
+			for (Muxer muxer : muxerList) {
+				if (muxer instanceof HLSMuxer hlsMuxer) {
+					hlsMuxer.addWebVttTrack(track);
+				}
+			}
+		}
+		logger.debug("WebVTT track registered for stream:{} inputIndex:{} language:{} name:{}",
+				streamId, inputStreamIndex, track.language(), track.name());
+	}
+
+	public void writeWebVttCue(int inputStreamIndex, WebVttCue cue) {
+		if (!webVttTracks.containsKey(inputStreamIndex)) {
+			return;
+		}
+		synchronized (muxerList) {
+			for (Muxer muxer : muxerList) {
+				if (muxer instanceof HLSMuxer hlsMuxer) {
+					hlsMuxer.writeWebVttCue(inputStreamIndex, cue);
 				}
 			}
 		}

@@ -1,16 +1,26 @@
 package io.antmedia.muxer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.mockito.Mockito.mock;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.UnitTestBase;
@@ -20,6 +30,11 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 
 	@TempDir
 	Path tempDirectory;
+
+	@BeforeEach
+	void setUp() {
+		classUnderTest = new HLSMuxer(null, null, "streams", 0, null, false);
+	}
 
 	@Test
 	void shouldOnlyFinalizeFilesModifiedBeforeCleanupWasScheduled() throws Exception {
@@ -42,5 +57,160 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 		Path file = Files.createFile(tempDirectory.resolve(fileName));
 		Files.setLastModifiedTime(file, FileTime.from(modificationTime));
 		return file;
+	}
+
+	@Test
+	void testCreateMultiTrackWebVttMasterPlaylistContent() {
+		WebVttTrack german = new WebVttTrack(2, "deu\n", "DVB \"TTML\"");
+		WebVttTrack french = new WebVttTrack(3, "fra", "Hard of hearing");
+
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(List.of(french, german), "test", "test.m3u8");
+
+		assertThat(playlist)
+				.startsWith("#EXTM3U\n")
+				.contains("LANGUAGE=\"deu \"", "NAME=\"DVB 'TTML'\"", "DEFAULT=YES")
+				.contains("URI=\"test_subtitles_2.m3u8\"")
+				.contains("LANGUAGE=\"fra\"", "NAME=\"Hard of hearing\"", "DEFAULT=NO")
+				.contains("URI=\"test_subtitles_3.m3u8\"")
+				.containsOnlyOnce("DEFAULT=YES")
+				.endsWith("test.m3u8\n");
+	}
+
+	@Test
+	void testAddWebVttTracksToMultiTrackAudioMasterPlaylist() throws IOException {
+		String audioMaster = """
+				#EXTM3U
+				#EXT-X-VERSION:3
+				#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_audio",NAME="English",DEFAULT=YES,LANGUAGE="eng",URI="test_audio_0.m3u8"
+				#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_audio",NAME="French",DEFAULT=NO,LANGUAGE="fra",URI="test_fra.m3u8"
+				#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Obsolete",DEFAULT=YES,URI="old.m3u8"
+				#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="other",NAME="External",DEFAULT=NO,URI="external.m3u8"
+				#EXT-X-STREAM-INF:BANDWIDTH=1000000,AUDIO="group_audio"
+				test_0.m3u8
+				""";
+
+		String combined = HLSMuxer.addWebVttToMasterPlaylistContent(
+				List.of(new WebVttTrack(4, "eng", "English captions"),
+						new WebVttTrack(5, "fra", "French captions")), "test", audioMaster);
+
+		assertThat(combined)
+				.contains("TYPE=AUDIO", "URI=\"test_audio_0.m3u8\"", "URI=\"test_fra.m3u8\"")
+				.contains("TYPE=SUBTITLES", "URI=\"test_subtitles_4.m3u8\"",
+						"URI=\"test_subtitles_5.m3u8\"", "GROUP-ID=\"other\"", "URI=\"external.m3u8\"")
+				.contains("AUDIO=\"group_audio\"", "SUBTITLES=\"subs\"")
+				.endsWith("test_0.m3u8\n")
+				.doesNotContain("\ntest.m3u8\n", "URI=\"old.m3u8\"");
+		assertThat(HLSMuxer.getPrimaryVariantUri(combined)).isEqualTo("test_0.m3u8");
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> HLSMuxer.getPrimaryVariantUri("#EXTM3U\n#EXT-X-VERSION:3\n"));
+	}
+
+	@Test
+	void testDropsOriginalDataPacketForConvertedTrack() {
+		try (AVPacket packet = new AVPacket()) {
+			packet.stream_index(2);
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isFalse();
+
+			classUnderTest.setWebVttTracks(List.of(
+					new WebVttTrack(2, "de", "German"), new WebVttTrack(3, "fr", "French")));
+
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isTrue();
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_SUBTITLE)).isFalse();
+
+			packet.stream_index(3);
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isTrue();
+
+			packet.stream_index(4);
+			assertThat(classUnderTest.checkToDropPacket(packet, AVMEDIA_TYPE_DATA)).isFalse();
+		}
+	}
+
+	@Test
+	void testWebVttPlaylistLifecycle() throws Exception {
+		Path mediaPlaylist = tempDirectory.resolve("test.m3u8");
+		ReflectionTestUtils.invokeMethod(classUnderTest, "syncWebVttPlaylists", false);
+		classUnderTest.file = mediaPlaylist.toFile();
+		classUnderTest.initialResourceNameWithoutExtension = "test";
+		classUnderTest.setIsRunning(new AtomicBoolean(true));
+
+		WebVttTrack track = new WebVttTrack(2, "de", "German");
+		classUnderTest.addWebVttTrack(track);
+		classUnderTest.writeWebVttCue(2, new WebVttCue(500, 1_500, "Hallo"));
+		classUnderTest.writeWebVttCue(3, new WebVttCue(500, 1_500, "Ignored"));
+		Path masterPlaylist = tempDirectory.resolve("test_master.m3u8");
+		ReflectionTestUtils.setField(classUnderTest, "webVttMasterPlaylist", masterPlaylist.toFile());
+		ReflectionTestUtils.invokeMethod(classUnderTest, "writeWebVttMasterPlaylist");
+		assertThat(Files.readString(masterPlaylist))
+				.contains("TYPE=SUBTITLES", "URI=\"test_subtitles_2.m3u8\"", "test.m3u8");
+
+		Files.writeString(mediaPlaylist, """
+				#EXTM3U
+				#EXT-X-VERSION:3
+				#EXT-X-TARGETDURATION:2
+				#EXT-X-MEDIA-SEQUENCE:10
+				#EXTINF:2.000000,
+				test000000010.ts
+				""");
+		ReflectionTestUtils.setField(classUnderTest, "webVttMediaPlaylist", mediaPlaylist.toFile());
+
+		ReflectionTestUtils.invokeMethod(classUnderTest, "syncWebVttPlaylists", false);
+		ReflectionTestUtils.invokeMethod(classUnderTest, "syncWebVttPlaylists", false);
+
+		assertThat(Files.readString(tempDirectory.resolve("test_subtitles_2.m3u8")))
+				.contains("#EXT-X-MEDIA-SEQUENCE:10", "test_subtitles_2_10.vtt");
+		assertThat(Files.readString(tempDirectory.resolve("test_subtitles_2_10.vtt")))
+				.contains("00:00:00.500 --> 00:00:01.500", "Hallo")
+				.doesNotContain("Ignored");
+
+		classUnderTest.setIsRunning(new AtomicBoolean(false));
+		classUnderTest.writeWebVttCue(2, new WebVttCue(1_600, 1_900, "Too late"));
+	}
+
+	@Test
+	void testBuildVariantStreamMap() {
+		assertThat(classUnderTest.buildVariantStreamMap(1, 2)).isEqualTo(
+				"v:0,agroup:audio a:0,agroup:audio,name:audio_0,language:und,default:yes a:1,agroup:audio,name:audio_1,language:und");
+		assertThat(classUnderTest.buildVariantStreamMap(0,
+				List.of(Optional.of("eng"), Optional.empty()))).isEqualTo(
+						"a:0,agroup:audio,name:eng,language:eng,default:yes a:1,agroup:audio,name:audio_1,language:und");
+	}
+
+	@Test
+	void testInsertVariantSpecifierBeforeExtension() {
+		assertThat(classUnderTest.insertVariantSpecifierBeforeExtension("stream.m3u8"))
+				.isEqualTo("stream_%v.m3u8");
+		assertThat(classUnderTest.insertVariantSpecifierBeforeExtension("stream_%v.m3u8"))
+				.isEqualTo("stream_%v.m3u8");
+		assertThat(classUnderTest.insertVariantSpecifierBeforeExtension("stream.ts"))
+				.isEqualTo("stream_%v.ts");
+		assertThat(classUnderTest.insertVariantSpecifierBeforeExtension("stream"))
+				.isEqualTo("stream_%v");
+	}
+
+	@Test
+	void testGetVariantSegmentFilename() {
+		ReflectionTestUtils.setField(classUnderTest, "segmentFileNameSuffix", "%09d");
+		ReflectionTestUtils.setField(classUnderTest, "segmentFilename", "streams/stream%09d.ts");
+		assertThat(classUnderTest.getVariantSegmentFilename()).isEqualTo("streams/stream_%v%09d.ts");
+
+		ReflectionTestUtils.setField(classUnderTest, "segmentFilename", "streams/stream.ts");
+		assertThat(classUnderTest.getVariantSegmentFilename()).isEqualTo("streams/stream_%v.ts");
+
+		ReflectionTestUtils.setField(classUnderTest, "segmentFilename", "streams/stream_%v%09d.ts");
+		assertThat(classUnderTest.getVariantSegmentFilename()).isEqualTo("streams/stream_%v%09d.ts");
+	}
+
+	@Test
+	void testVariantHlsFilePattern() {
+		String segmentFilename = "streams/stream_%v%09d.ts";
+		ReflectionTestUtils.setField(classUnderTest, "segmentFilename", segmentFilename);
+		ReflectionTestUtils.setField(classUnderTest, "variantStreamMappingEnabled", true);
+
+		String pattern = classUnderTest.getHLSFilesRegularExpression(segmentFilename.indexOf("%09d"));
+
+		assertThat("stream_0.m3u8").matches(pattern);
+		assertThat("stream_audio_0.m3u8").matches(pattern);
+		assertThat("stream_audio_000000001.vtt").matches(pattern);
+		assertThat("other_0.m3u8").doesNotMatch(pattern);
 	}
 }
