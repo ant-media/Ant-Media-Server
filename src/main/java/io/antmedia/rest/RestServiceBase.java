@@ -479,7 +479,9 @@ public abstract class RestServiceBase {
 				String endpointUrl = endpoint != null ? endpoint.getEndpointUrl() : null;
 				if (endpointUrl == null || !endpointUrl.contains("://"))
 				{
-					logger.warn("Endpoint with invalid url:{} is removed from broadcast:{}", endpointUrl, streamId);
+					logger.warn("Endpoint with invalid url:{} is removed from broadcast:{}",
+							String.valueOf(endpointUrl).replaceAll(REPLACE_CHARS, "_"),
+							String.valueOf(streamId).replaceAll(REPLACE_CHARS, "_"));
 					iterator.remove();
 				}
 			}

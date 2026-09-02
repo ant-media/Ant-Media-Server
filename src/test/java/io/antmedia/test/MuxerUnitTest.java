@@ -1206,6 +1206,8 @@ public class MuxerUnitTest {
 			return 0 == muxAdaptor.getEndpointStatusUpdateMap().size();
 		});
 
+		muxAdaptor.endpointStatusUpdated(null, BROADCAST_STATUS_BROADCASTING);
+		assertEquals(0, muxAdaptor.getEndpointStatusUpdateMap().size());
 	}
 
 	@Test
