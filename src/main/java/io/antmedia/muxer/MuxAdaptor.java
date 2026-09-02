@@ -99,6 +99,7 @@ import io.vertx.core.Vertx;
 
 
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
+	private static final int INITIAL_RTMP_PACKET_BUFFER_CAPACITY = 64 * 1024;
 
 
 	public static final int STAT_UPDATE_PERIOD_MS = 10000;
@@ -297,6 +298,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected List<Integer> audioStreamIndexList = Collections.synchronizedList(new ArrayList<>());
 	private BytePointer audioExtraDataPointer;
 	private BytePointer videoExtraDataPointer;
+	private BytePointer reusableRtmpAudioPacketPointer;
+	private ByteBuffer reusableRtmpAudioPacketBuffer;
+	private BytePointer reusableRtmpVideoPacketPointer;
+	private ByteBuffer reusableRtmpVideoPacketBuffer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
 
@@ -1204,7 +1209,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			pts = dts + compositionTimeOffset;
 			//we get 5 less bytes because first 5 bytes is related to the video tag. It's not part of the generic packet
-			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-offset);
+			ByteBuffer byteBuffer = getReusableRtmpVideoPacketBuffer(bodySize-offset);
 			byteBuffer.put(packet.getData().buf().position(offset));
 			byteBuffer.position(0);
 
@@ -1225,7 +1230,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 			int bodySize = packet.getData().limit();
 			//we get 2 less bytes because first 2 bytes is related to the audio tag. It's not part of the generic packet
-			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-2);
+			ByteBuffer byteBuffer = getReusableRtmpAudioPacketBuffer(bodySize-2);
 			byteBuffer.put(packet.getData().buf().position(2));
 			byteBuffer.position(0);
 			logger.trace("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{} streamId:{}", dts, packet.getTimestamp(), streamId);
@@ -1889,6 +1894,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		writeTrailer();
+		releaseReusableRtmpPacketBuffer();
 
 		if (videoExtraDataPointer != null) {
 			av_free(videoExtraDataPointer.position(0));
@@ -1906,6 +1912,58 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		getStreamHandler().muxAdaptorRemoved(this);
 
 		isRecording.set(false);
+	}
+
+	ByteBuffer getReusableRtmpAudioPacketBuffer(int requiredCapacity) {
+		if (reusableRtmpAudioPacketBuffer == null || reusableRtmpAudioPacketBuffer.capacity() < requiredCapacity) {
+			reusableRtmpAudioPacketPointer = releaseReusableRtmpPacketBuffer(reusableRtmpAudioPacketPointer);
+			reusableRtmpAudioPacketPointer = allocateReusableRtmpPacketPointer(requiredCapacity);
+			reusableRtmpAudioPacketBuffer = reusableRtmpAudioPacketPointer.asByteBuffer();
+		}
+		return prepareReusableRtmpPacketBuffer(reusableRtmpAudioPacketBuffer, requiredCapacity);
+	}
+
+	ByteBuffer getReusableRtmpVideoPacketBuffer(int requiredCapacity) {
+		if (reusableRtmpVideoPacketBuffer == null || reusableRtmpVideoPacketBuffer.capacity() < requiredCapacity) {
+			reusableRtmpVideoPacketPointer = releaseReusableRtmpPacketBuffer(reusableRtmpVideoPacketPointer);
+			reusableRtmpVideoPacketPointer = allocateReusableRtmpPacketPointer(requiredCapacity);
+			reusableRtmpVideoPacketBuffer = reusableRtmpVideoPacketPointer.asByteBuffer();
+		}
+		return prepareReusableRtmpPacketBuffer(reusableRtmpVideoPacketBuffer, requiredCapacity);
+	}
+
+	private BytePointer allocateReusableRtmpPacketPointer(int requiredCapacity) {
+		if (requiredCapacity < 0) {
+			throw new IllegalArgumentException("requiredCapacity cannot be negative");
+		}
+		int newCapacity = INITIAL_RTMP_PACKET_BUFFER_CAPACITY;
+		while (newCapacity < requiredCapacity && newCapacity <= Integer.MAX_VALUE / 2) {
+			newCapacity *= 2;
+		}
+		if (newCapacity < requiredCapacity) {
+			newCapacity = requiredCapacity;
+		}
+		return new BytePointer(newCapacity);
+	}
+
+	private ByteBuffer prepareReusableRtmpPacketBuffer(ByteBuffer packetBuffer, int requiredCapacity) {
+		packetBuffer.clear();
+		packetBuffer.limit(requiredCapacity);
+		return packetBuffer;
+	}
+
+	void releaseReusableRtmpPacketBuffer() {
+		reusableRtmpAudioPacketBuffer = null;
+		reusableRtmpVideoPacketBuffer = null;
+		reusableRtmpAudioPacketPointer = releaseReusableRtmpPacketBuffer(reusableRtmpAudioPacketPointer);
+		reusableRtmpVideoPacketPointer = releaseReusableRtmpPacketBuffer(reusableRtmpVideoPacketPointer);
+	}
+
+	private BytePointer releaseReusableRtmpPacketBuffer(BytePointer packetPointer) {
+		if (packetPointer != null) {
+			packetPointer.close();
+		}
+		return null;
 	}
 
 
