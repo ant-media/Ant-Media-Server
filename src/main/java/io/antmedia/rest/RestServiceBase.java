@@ -284,6 +284,7 @@ public abstract class RestServiceBase {
 			broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 		}
 		removeEmptyPlayListItems(broadcast.getPlayListItemList());
+		removeInvalidEndpoints(broadcast.getEndPointList(), broadcast.getStreamId());
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 		}
@@ -462,8 +463,29 @@ public abstract class RestServiceBase {
 
 
 	protected Result updateBroadcast(String streamId, BroadcastUpdate updatedBroadcast) {
+		removeInvalidEndpoints(updatedBroadcast.getEndPointList(), streamId);
 		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
 		return new Result(result);
+	}
+
+	private static void removeInvalidEndpoints(List<Endpoint> endPointList, String streamId)
+	{
+		if (endPointList != null)
+		{
+			Iterator<Endpoint> iterator = endPointList.iterator();
+			while (iterator.hasNext())
+			{
+				Endpoint endpoint = iterator.next();
+				String endpointUrl = endpoint != null ? endpoint.getEndpointUrl() : null;
+				if (endpointUrl == null || !endpointUrl.contains("://"))
+				{
+					logger.warn("Endpoint with invalid url:{} is removed from broadcast:{}",
+							String.valueOf(endpointUrl).replaceAll(REPLACE_CHARS, "_"),
+							String.valueOf(streamId).replaceAll(REPLACE_CHARS, "_"));
+					iterator.remove();
+				}
+			}
+		}
 	}
 
 	private static void removeEmptyPlayListItems(List<PlayListItem> playListItemList)
@@ -495,6 +517,8 @@ public abstract class RestServiceBase {
 	 */
 	protected Result updateStreamSource(String streamId, BroadcastUpdate updatedBroadcast, Broadcast broadcastInDB) {
 		logger.debug("Updating stream source for stream {}", updatedBroadcast.getStreamId());
+
+		removeInvalidEndpoints(updatedBroadcast.getEndPointList(), streamId);
 
 		boolean isPlayList = AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType());
 
