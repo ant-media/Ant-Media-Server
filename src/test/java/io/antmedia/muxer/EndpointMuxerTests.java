@@ -1190,7 +1190,7 @@ public class EndpointMuxerTests {
 	private EndpointMuxer newFileEndpoint(String name) {
 		File file = new File("target", name);
 		file.delete();
-		EndpointMuxer muxer = new EndpointMuxer(file.getAbsolutePath(), vertx);
+		EndpointMuxer muxer = new EndpointMuxer("file://" + file.getAbsolutePath(), vertx);
 		muxer.init(appScope, "test", 0, null, 0);
 		return muxer;
 	}
