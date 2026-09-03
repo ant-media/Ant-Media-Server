@@ -99,6 +99,11 @@ public class StreamFetcher {
 	private volatile boolean stopRequestReceived = false;
 
 	/**
+	 * Id of the pending retry timer scheduled in close(), -1 when no retry is pending
+	 */
+	private volatile long retryTimerId = -1;
+
+	/**
 	 * Buffer time in milliseconds
 	 */
 	private int bufferTime = 0;
@@ -238,6 +243,8 @@ public class StreamFetcher {
 		private static final long STREAM_FETCH_RE_TRY_PERIOD_MS = 3000;
 
 		private volatile boolean streamPublished = false;
+		//worker gave up before pulling anything, so the status belongs to somebody else
+		private volatile boolean pullSkipped = false;
 		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 		AVFormatContext inputFormatContext = null;
 
@@ -378,11 +385,13 @@ public class StreamFetcher {
 					//if broadcast null, it means it's deleted
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					stopRequestReceived = true; //set stop request to finish the thread
+					pullSkipped = true;
 					return;
 				}
 				else if (!forceStart && AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
 					stopRequestReceived = true; //set stop request to finish the thread
+					pullSkipped = true;
 					return;
 				}
 
@@ -428,6 +437,10 @@ public class StreamFetcher {
 
             setThreadActive(false);
             close(pkt);
+
+            if (pullSkipped) {
+            	deregisterIfOwner();
+            }
             
             if (isThreadStopedSemaphore.hasQueuedThreads()) {
             	isThreadStopedSemaphore.release();
@@ -783,8 +796,9 @@ public class StreamFetcher {
 					updateStatusToFinishedIfOwner();
 
 
-					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
+					retryTimerId = vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
+						retryTimerId = -1;
 						thread = new WorkerThread();
 						thread.start();
 					});
@@ -810,6 +824,10 @@ public class StreamFetcher {
 		}
 
 		private void closeBroadcastIfOwner() {
+			if (pullSkipped) {
+				logger.warn("Skipping close broadcast for {} because this worker gave up before pulling", streamId);
+				return;
+			}
 			if (isReplacedByAnotherFetcher()) {
 				logger.warn("Skipping close broadcast for {} because a replacement fetcher owns the stream", streamId);
 				return;
@@ -826,6 +844,18 @@ public class StreamFetcher {
 			broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 			broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+		}
+
+		/**
+		 * Drop the registration so a dead fetcher does not veto later restarts, but only if we still own it
+		 */
+		private void deregisterIfOwner() {
+			AntMediaApplicationAdapter instance = getInstance();
+			StreamFetcherManager manager = instance != null ? instance.getStreamFetcherManager() : null;
+			if (manager != null && manager.getStreamFetcher(streamId) == StreamFetcher.this) {
+				logger.info("Deregistering stream fetcher for streamId:{} because this worker gave up before pulling", streamId);
+				manager.stopStreaming(streamId, false);
+			}
 		}
 
 		private boolean isReplacedByAnotherFetcher() {
@@ -1158,6 +1188,11 @@ public class StreamFetcher {
     {
         logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
         stopRequestReceived = true;
+        retryTimerId = -1;
+    }
+
+    public boolean isRetryPending() {
+        return retryTimerId != -1;
     }
     
     

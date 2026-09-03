@@ -628,10 +628,17 @@ public class StreamFetcherManager {
 					//restart this stream only
 					restartCurrentStream = true;
 				}
-				else if (streamScheduler.isStreamAlive() && !AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
+				//alive is only packet recency; in the 3s retry gap no thread runs and healing there makes the retry worker give up
+				else if (streamScheduler.isThreadActive() && streamScheduler.isStreamAlive() && !AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					//fetcher is streaming but the status got corrupted (e.g. by a dying superseded worker): heal it
 					logger.warn("Stream:{} is actively fetching but status is {}. Setting status to broadcasting", streamScheduler.getStreamId(), broadcast.getStatus());
 					getAppAdaptor().updateBroadcastStatus(streamScheduler.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				}
+				else if (!streamScheduler.isThreadActive() && !streamScheduler.isRetryPending() && !streamScheduler.isStreamAlive()) {
+					//registration without a worker and without a pending retry can never come back by itself
+					logger.warn("Stream:{} has no worker thread and no retry pending. Evicting and restarting", streamScheduler.getStreamId());
+					stopStreaming(streamScheduler.getStreamId(), false);
+					restartCurrentStream = true;
 				}
 			}
 
