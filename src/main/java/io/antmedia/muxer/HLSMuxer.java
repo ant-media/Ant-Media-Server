@@ -855,7 +855,7 @@ public class HLSMuxer extends Muxer  {
 		if (encoderSettings != null) {
 			for (EncoderSettings settings : encoderSettings) {
 				if (settings.getHeight() == getResolution()) {
-					bitrate = settings.getVideoBitrate() + settings.getAudioBitrate();
+					bitrate = (long) settings.getVideoBitrate() + settings.getAudioBitrate();
 					break;
 				}
 			}
