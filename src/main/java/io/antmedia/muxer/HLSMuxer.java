@@ -40,6 +40,7 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.EncoderSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
@@ -58,6 +59,9 @@ public class HLSMuxer extends Muxer  {
 	public static final String HLS_FILES_REGEX_MATCHER = "(\\d{9}\\.(ts|fmp4)|\\.m3u8)$";
 	
 	private static final String VARIANT_AUDIO_GROUP = "audio";
+
+	public static final long BANDWIDTH_STEP = 500000;
+	public static final int BANDWIDTH_HEADROOM_PERCENT = 15;
 
 
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
@@ -103,6 +107,8 @@ public class HLSMuxer extends Muxer  {
 	private String segmentFileNameSuffix;
 	
 	private boolean variantStreamMappingEnabled;
+
+	private long stableBandwidth;
 	
 
 
@@ -837,6 +843,35 @@ public class HLSMuxer extends Muxer  {
 			}
 		}
 		return nextAvailableStreamIndex;
+	}
+
+	/**
+	 * Gets stable bandwidth for generation of _adaptive master file, since that's what spec requires.
+	 * Tries to get it from ABR settings, if ABR is not set then calculates it from the average.
+	 */
+	public long getStableBandwidth() {
+		long bitrate = 0;
+		List<EncoderSettings> encoderSettings = getAppSettings().getEncoderSettings();
+		if (encoderSettings != null) {
+			for (EncoderSettings settings : encoderSettings) {
+				if (settings.getHeight() == getResolution()) {
+					bitrate = settings.getVideoBitrate() + settings.getAudioBitrate();
+					break;
+				}
+			}
+		}
+
+		if (bitrate == 0) {
+			bitrate = getAverageBitrate();
+		}
+
+		//round up to a coarse step so small changes don't move it, and never go back down
+		long capped = bitrate + (bitrate * BANDWIDTH_HEADROOM_PERCENT / 100);
+		capped = (capped / BANDWIDTH_STEP + 1) * BANDWIDTH_STEP;
+		if (capped > stableBandwidth) {
+			stableBandwidth = capped;
+		}
+		return stableBandwidth;
 	}
 
 	public String getHlsListSize() {
