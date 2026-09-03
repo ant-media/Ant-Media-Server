@@ -59,7 +59,7 @@
 					<property name="connectionProperties">
 						<map>
 							<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}" />
-							<entry key="keepAliveTimout" value="-1" />
+							<entry key="keepAliveTimeout" value="30000" />
 							<!--  max http upload/connection timeout to not terminate ffmpeg vod fetching   -->
 							<entry key="disableUploadTimeout" value="false" /> 
 							<entry key="connectionTimeout" value="-1" />
@@ -97,7 +97,7 @@
 								<entry key="SSLCertificateKeyFile" value="${http.ssl_certificate_key_file}" />
 								<entry key="clientAuth" value="false" />
 								<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
-								<entry key="keepAliveTimout" value="-1"/>
+								<entry key="keepAliveTimeout" value="30000"/>
 								<entry key="disableUploadTimeout" value="false" />
 								<entry key="connectionTimeout" value="-1" />
 								<entry key="connectionUploadTimeout" value="-1" />
