@@ -3,6 +3,7 @@ package io.antmedia.streamsource;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,8 +73,6 @@ public class StreamFetcherManager {
 
 	private ServerSettings serverSettings;
 
-	private AntMediaApplicationAdapter appAdaptor;
-
 	private int waitForTestMilliseconds = 0;
 
 	public void setWaitForTestMilliseconds(int waitForTestMilliseconds) {
@@ -96,13 +95,6 @@ public class StreamFetcherManager {
 
     public void shuttingDown() {
 		serverShuttingDown = true;
-	}
-
-	private AntMediaApplicationAdapter getAppAdaptor() {
-		if (appAdaptor == null) {
-			appAdaptor = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		}
-		return appAdaptor;
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
@@ -587,7 +579,16 @@ public class StreamFetcherManager {
 	}
 
 	public void controlStreamFetchers(boolean restart) {
-		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
+		//iterate a snapshot: stopStreaming/startStreaming below mutate streamFetcherList, and a
+		//re-inserted entry can be handed back by the same iterator, which then stops and poisons
+		//the replacement fetcher we just created
+		for (StreamFetcher streamScheduler : new ArrayList<>(streamFetcherList.values())) {
+
+			//the snapshot can outlive an entry that was stopped or replaced while we were iterating,
+			//and acting on it would resurrect a stream somebody just stopped
+			if (streamFetcherList.get(streamScheduler.getStreamId()) != streamScheduler) {
+				continue;
+			}
 
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
@@ -628,11 +629,12 @@ public class StreamFetcherManager {
 					//restart this stream only
 					restartCurrentStream = true;
 				}
-				//alive is only packet recency; in the 3s retry gap no thread runs and healing there makes the retry worker give up
+				//report, never correct. Writing the status back here is what stranded streams in production:
+				//isStreamAlive() only means a packet arrived in the last 3s, it does not mean this fetcher owns the
+				//stream, and it is still true in the reconnect gap and while close() is finishing. The status belongs
+				//to StreamFetcher. If this fires, find what wrote it instead of masking it
 				else if (streamScheduler.isThreadActive() && streamScheduler.isStreamAlive() && !AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
-					//fetcher is streaming but the status got corrupted (e.g. by a dying superseded worker): heal it
-					logger.warn("Stream:{} is actively fetching but status is {}. Setting status to broadcasting", streamScheduler.getStreamId(), broadcast.getStatus());
-					getAppAdaptor().updateBroadcastStatus(streamScheduler.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+					logger.error("Stream source {} is still receiving data but it is recorded as '{}', so it shows as offline. Please report this with the surrounding log lines", streamScheduler.getStreamId(), broadcast.getStatus());
 				}
 				else if (!streamScheduler.isThreadActive() && !streamScheduler.isRetryPending() && !streamScheduler.isStreamAlive()) {
 					//registration without a worker and without a pending retry can never come back by itself

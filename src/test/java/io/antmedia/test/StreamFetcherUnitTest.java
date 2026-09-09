@@ -355,9 +355,6 @@ public class StreamFetcherUnitTest {
 	 * An old worker is stopped while opening the source, then a new fetcher is started for the same stream
 	 * and goes live. When the old worker finally tears down it must not overwrite the live fetcher's status
 	 * with finished.
-	 *
-	 * Also checks that if the status is somehow left at finished while the fetcher is alive, the checker
-	 * puts it back to broadcasting.
 	 */
 	@Test
 	public void testDyingWorkerDoesNotOverwriteLiveFetcherStatus() throws Exception {
@@ -431,12 +428,6 @@ public class StreamFetcherUnitTest {
 			assertFalse(restartResult.isSuccess());
 			assertTrue(restartResult.getMessage().contains("already active"));
 
-			// if the status is left at finished while the fetcher is alive, the checker fixes it
-			dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-			manager.controlStreamFetchers(false);
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() ->
-					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
-			assertTrue(manager.getStreamFetcher(streamId).isStreamAlive());
 		}
 		finally {
 			manager.stopStreaming(streamId, false);

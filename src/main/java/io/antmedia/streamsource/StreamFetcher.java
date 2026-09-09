@@ -60,8 +60,8 @@ public class StreamFetcher {
 	/**
 	 * Last packet received time
 	 */
-	private long lastPacketReceivedTime = 0;
-	private AtomicBoolean threadActive = new AtomicBoolean(false);
+	private volatile long lastPacketReceivedTime = 0;
+	private final AtomicBoolean threadActive = new AtomicBoolean(false);
 	//when the worker started this attempt, for startup duration checks
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
@@ -117,9 +117,9 @@ public class StreamFetcher {
 
 	private DataStore dataStore;
 
-	private long readNextPacketStartTime;
+	private volatile long readNextPacketStartTime;
 
-	private long readNextPacketCompleteTime;
+	private volatile long readNextPacketCompleteTime;
 
 	public interface IStreamFetcherListener {
 
@@ -372,9 +372,6 @@ public class StreamFetcher {
 
 			AVPacket pkt = null;
 			try {
-				//start clean so a stop from a previous run doesn't cancel this one
-				stopRequestReceived = false;
-
 				//update broadcast status to preparing
 
 				Broadcast broadcast = getDataStore().get(streamId);
@@ -435,8 +432,11 @@ public class StreamFetcher {
 			}
 			finally {
 
-            setThreadActive(false);
+            //stay active across close(): writing trailers and uploading segments can take tens of
+            //seconds, and a fetcher that reports no thread while it is still writing to the datastore
+            //looks like a dead registration to the checker
             close(pkt);
+            setThreadActive(false);
 
             if (pullSkipped) {
             	deregisterIfOwner();
@@ -818,12 +818,15 @@ public class StreamFetcher {
 				}
 
 				logger.debug("Leaving thread for {}", streamUrl);
-
-				stopRequestReceived = false;
 			}
 			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 
+			}
+			finally {
+				//clear it here rather than at the top of run(), so a stop arriving while the next
+				//worker is being spawned is still honoured
+				stopRequestReceived = false;
 			}
 		}
 
@@ -1192,7 +1195,13 @@ public class StreamFetcher {
     {
         logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
         stopRequestReceived = true;
+
+        //a stopped fetcher must not wake up 3s later and start pulling again after it was deregistered
+        long pendingRetry = retryTimerId;
         retryTimerId = -1;
+        if (pendingRetry != -1) {
+            vertx.cancelTimer(pendingRetry);
+        }
     }
 
     public boolean isRetryPending() {
@@ -1210,8 +1219,7 @@ public class StreamFetcher {
      */
     public boolean stopStreamBlocking()
 	{
-        stopRequestReceived = true;
-        logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
+        stopStream();
         int streamThreadStopTimeout = 10;
         try {
             if(!isThreadActive() || (isThreadStopedSemaphore.availablePermits() > 0 || isThreadStopedSemaphore.tryAcquire(streamThreadStopTimeout, TimeUnit.SECONDS))) {
