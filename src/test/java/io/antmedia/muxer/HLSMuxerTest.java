@@ -24,6 +24,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.UnitTestBase;
+import io.lindstrom.m3u8.model.AlternativeRendition;
+import io.lindstrom.m3u8.parser.MasterPlaylistParser;
 
 @Tag("fast")
 class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
@@ -74,6 +76,66 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 				.contains("URI=\"test_subtitles_3.m3u8\"")
 				.containsOnlyOnce("DEFAULT=YES")
 				.endsWith("test.m3u8\n");
+	}
+
+	@Test
+	void testSubtitleNamesPreferMetadataLabels() throws IOException {
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(List.of(
+				new WebVttTrack(3, "ara", "العربية"),
+				new WebVttTrack(4, "rus", "Russian captions")), "test", "test.m3u8");
+		assertThat(new MasterPlaylistParser().readPlaylist(playlist).alternativeRenditions())
+				.extracting(AlternativeRendition::name).containsExactly("العربية", "Russian captions");
+	}
+
+	@Test
+	void testGenericSubtitleNamesUseLanguageMetadata() throws IOException {
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(List.of(
+				new WebVttTrack(4, "eng", "DVB-TTML"),
+				new WebVttTrack(5, "ara", "DVB-TTML"),
+				new WebVttTrack(6, "rus", "DVB-TTML")), "syncwords", "syncwords_0.m3u8");
+		var renditions = new MasterPlaylistParser().readPlaylist(playlist).alternativeRenditions();
+		assertThat(renditions).extracting(AlternativeRendition::name).containsExactly("English", "Arabic", "Russian");
+		assertThat(playlist).contains("LANGUAGE=\"eng\"", "LANGUAGE=\"ara\"", "LANGUAGE=\"rus\"")
+				.contains("syncwords_subtitles_4.m3u8", "syncwords_subtitles_5.m3u8", "syncwords_subtitles_6.m3u8")
+				.containsOnlyOnce("DEFAULT=YES").doesNotContain("DVB-TTML");
+	}
+
+	@Test
+	void testDuplicateSubtitleNamesDoNotTakeOtherMetadataLabels() throws IOException {
+		List<WebVttTrack> tracks = List.of(new WebVttTrack(5, "eng", "English (2)"),
+				new WebVttTrack(4, "eng", "DVB-TTML"), new WebVttTrack(3, "eng", "DVB-TTML"));
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(tracks, "test", "test.m3u8");
+		assertThat(new MasterPlaylistParser().readPlaylist(playlist).alternativeRenditions())
+				.extracting(AlternativeRendition::name).containsExactly("English", "English (3)", "English (2)");
+		assertThat(HLSMuxer.createWebVttMasterPlaylistContent(List.of(tracks.get(2), tracks.get(0), tracks.get(1)),
+				"test", "test.m3u8")).isEqualTo(playlist);
+	}
+
+	@Test
+	void testSubtitleNamesAreUniqueAfterSanitizingMetadata() throws IOException {
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(List.of(
+				new WebVttTrack(3, "eng", "News \"captions\""),
+				new WebVttTrack(4, "eng", "News 'captions'")), "test", "test.m3u8");
+		assertThat(new MasterPlaylistParser().readPlaylist(playlist).alternativeRenditions())
+				.extracting(AlternativeRendition::name).containsExactly("News 'captions'", "News 'captions' (2)");
+	}
+
+	@Test
+	void testMissingSubtitleMetadataFallsBackToUniqueNames() throws IOException {
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(List.of(
+				new WebVttTrack(3, null, null), new WebVttTrack(4, "und", "DVB-TTML"),
+				new WebVttTrack(5, "ara", null)), "test", "test.m3u8");
+		assertThat(new MasterPlaylistParser().readPlaylist(playlist).alternativeRenditions())
+				.extracting(AlternativeRendition::name).containsExactly("Subtitles", "Subtitles (2)", "Arabic");
+	}
+
+	@Test
+	void testMergedMasterUsesUniqueSubtitleNames() throws IOException {
+		String master = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1000000\ntest_0.m3u8\n";
+		String playlist = HLSMuxer.addWebVttToMasterPlaylistContent(List.of(
+				new WebVttTrack(3, "eng", "DVB-TTML"), new WebVttTrack(4, "ara", "DVB-TTML")), "test", master);
+		assertThat(new MasterPlaylistParser().readPlaylist(playlist).alternativeRenditions())
+				.extracting(AlternativeRendition::name).containsExactly("English", "Arabic");
 	}
 
 	@Test
