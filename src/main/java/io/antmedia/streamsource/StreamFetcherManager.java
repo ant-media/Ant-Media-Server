@@ -618,7 +618,7 @@ public class StreamFetcherManager {
 			}
 			else {
 
-				logger.info("Stream:{} is alive -> {}, is it blocked -> {}, threadActive -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked(), streamScheduler.isThreadActive());
+				logger.info("Stream:{} is alive -> {}, is it blocked -> {}, threadActive -> {}, tearingDown -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked(), streamScheduler.isThreadActive(), streamScheduler.isTearingDown());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
 
@@ -629,14 +629,12 @@ public class StreamFetcherManager {
 					//restart this stream only
 					restartCurrentStream = true;
 				}
-				//report, never correct. Writing the status back here is what stranded streams in production:
-				//isStreamAlive() only means a packet arrived in the last 3s, it does not mean this fetcher owns the
-				//stream, and it is still true in the reconnect gap and while close() is finishing. The status belongs
-				//to StreamFetcher. If this fires, find what wrote it instead of masking it
+				//report, never correct. isStreamAlive() is only 3s packet recency, not ownership, and it is still
+				//true in the reconnect gap and during close(). Writing the status back here stranded streams
 				else if (streamScheduler.isThreadActive() && streamScheduler.isStreamAlive() && !AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
 					logger.error("Stream source {} is still receiving data but it is recorded as '{}', so it shows as offline. Please report this with the surrounding log lines", streamScheduler.getStreamId(), broadcast.getStatus());
 				}
-				else if (!streamScheduler.isThreadActive() && !streamScheduler.isRetryPending() && !streamScheduler.isStreamAlive()) {
+				else if (!streamScheduler.isThreadActive() && !streamScheduler.isTearingDown() && !streamScheduler.isRetryPending() && !streamScheduler.isStreamAlive()) {
 					//registration without a worker and without a pending retry can never come back by itself
 					logger.warn("Stream:{} has no worker thread and no retry pending. Evicting and restarting", streamScheduler.getStreamId());
 					stopStreaming(streamScheduler.getStreamId(), false);
@@ -650,7 +648,7 @@ public class StreamFetcherManager {
 			if (restartCurrentStream && broadcast != null)
 			{
 				//don't start a second fetcher while the old one is still tearing down or starting up
-				if (isStreamRunning(broadcast) || streamScheduler.isThreadActive())
+				if (isStreamRunning(broadcast) || streamScheduler.isThreadActive() || streamScheduler.isTearingDown())
 				{
 					logger.info("Restart deferred for {} until current worker finishes", broadcast.getStreamId());
 					streamScheduler.setStreamFetcherListener(

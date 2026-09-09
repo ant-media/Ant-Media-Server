@@ -2,11 +2,11 @@ package io.antmedia.test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -132,33 +132,53 @@ public class StreamFetcherStuckStateTest {
 	}
 
 	/**
-	 * Teardown can block for tens of seconds writing trailers and uploading segments.
-	 * setThreadActive(false) used to run before close(), so the checker saw a live fetcher as a registration
-	 * with no thread and evicted it mid teardown.
+	 * Teardown can block for tens of seconds writing trailers and uploading segments. The checker used to
+	 * read that as a registration with no worker thread and evict a fetcher that was still very much alive,
+	 * which is what happened to the customer's streams while writeTrailer ran for 24s.
 	 */
 	@Test
-	public void testFetcherReportsActiveWhileClosing() throws Exception {
+	public void testCheckerDoesNotEvictAFetcherThatIsStillClosing() throws Exception {
+		StreamFetcherManager manager = app.getStreamFetcherManager();
 		//unreadable source, so prepare fails and we reach close() without depending on any stop handling
 		StreamFetcher fetcher = newFetcher("/nonexistent/no-such-source.flv",
 				AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
 
-		AtomicBoolean activeWhenClosing = new AtomicBoolean();
-		CountDownLatch closed = new CountDownLatch(1);
+		CountDownLatch insideClose = new CountDownLatch(1);
+		CountDownLatch releaseClose = new CountDownLatch(1);
 
 		//subclass rather than spy, a Mockito spy on a Thread breaks once it is started
 		WorkerThread worker = fetcher.new WorkerThread() {
 			@Override
 			public void close(AVPacket pkt) {
-				activeWhenClosing.set(fetcher.isThreadActive());
+				insideClose.countDown();
+				try {
+					releaseClose.await(30, TimeUnit.SECONDS);
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
 				super.close(pkt);
-				closed.countDown();
 			}
 		};
 
-		worker.start();
+		manager.getStreamFetcherList().put(streamId, fetcher);
+		try {
+			worker.start();
+			assertTrue(insideClose.await(30, TimeUnit.SECONDS), "worker never reached close()");
 
-		assertTrue(closed.await(30, TimeUnit.SECONDS), "worker never reached close()");
-		assertTrue(activeWhenClosing.get(),
-				"fetcher must not report a dead thread while it is still tearing down");
+			//no worker thread, no packets, no retry pending: everything the eviction branch looks for
+			assertFalse(fetcher.isThreadActive());
+			assertFalse(fetcher.isStreamAlive());
+			assertFalse(fetcher.isRetryPending());
+			assertTrue(fetcher.isTearingDown());
+
+			manager.controlStreamFetchers(false);
+
+			assertSame(fetcher, manager.getStreamFetcher(streamId),
+					"a fetcher that is still tearing down must not be evicted");
+		}
+		finally {
+			releaseClose.countDown();
+		}
 	}
 }

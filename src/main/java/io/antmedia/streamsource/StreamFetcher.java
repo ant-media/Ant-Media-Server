@@ -62,6 +62,8 @@ public class StreamFetcher {
 	 */
 	private volatile long lastPacketReceivedTime = 0;
 	private final AtomicBoolean threadActive = new AtomicBoolean(false);
+	//read loop is done but close() is still running
+	private final AtomicBoolean tearingDown = new AtomicBoolean(false);
 	//when the worker started this attempt, for startup duration checks
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
@@ -392,6 +394,13 @@ public class StreamFetcher {
 					return;
 				}
 
+				// a stop can arrive before this worker gets going.
+				if (stopRequestReceived) {
+					logger.info("Stop request arrived before this worker started pulling streamId:{}", streamId);
+					pullSkipped = true;
+					return;
+				}
+
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
@@ -432,11 +441,13 @@ public class StreamFetcher {
 			}
 			finally {
 
-            //stay active across close(): writing trailers and uploading segments can take tens of
-            //seconds, and a fetcher that reports no thread while it is still writing to the datastore
-            //looks like a dead registration to the checker
-            close(pkt);
+			//stay active across close(): writing trailers and uploading segments can take tens of
+			//seconds, and a fetcher that reports no thread while it is still writing to the datastore
+			//looks like a dead registration to the checker
+            tearingDown.set(true);
             setThreadActive(false);
+            close(pkt);
+            tearingDown.set(false);
 
             if (pullSkipped) {
             	deregisterIfOwner();
@@ -824,8 +835,7 @@ public class StreamFetcher {
 
 			}
 			finally {
-				//clear it here rather than at the top of run(), so a stop arriving while the next
-				//worker is being spawned is still honoured
+				//not at the top of run(), that would swallow a stop arriving while the worker is spawned
 				stopRequestReceived = false;
 			}
 		}
@@ -1134,7 +1144,7 @@ public class StreamFetcher {
 			public void run() {
 				try {
 					int i = 0;
-					while (threadActive.get()) {
+					while (threadActive.get() || tearingDown.get()) {
 						Thread.sleep(100);
 						if (i % 50 == 0) {
 							logger.info("waiting for thread to be finished for stream {}", streamUrl);
@@ -1260,26 +1270,6 @@ public class StreamFetcher {
 		this.thread = thread;
 	}
 
-	public void restart() {
-		stopStream();
-		new Thread() {
-			@Override
-			public void run() {
-				try {
-					while (threadActive.get()) {
-						Thread.sleep(100);
-					}
-
-				} catch (InterruptedException e) {
-					logger.error(e.getMessage());
-					Thread.currentThread().interrupt();
-				}
-				startStream();
-			}
-		}.start();
-
-	}
-
 	/**
 	 * Set timeout when establishing connection
 	 * @param timeoutMs in ms
@@ -1298,6 +1288,10 @@ public class StreamFetcher {
 
 	public boolean isThreadActive() {
 		return threadActive.get();
+	}
+
+	public boolean isTearingDown() {
+		return tearingDown.get();
 	}
 
 	public Result getCameraError() {
