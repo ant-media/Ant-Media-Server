@@ -172,6 +172,7 @@ public class FrontEndTest {
 		chrome_options.addArguments("--disable-extensions");
 		chrome_options.addArguments("--disable-gpu");
 		chrome_options.addArguments("--headless=new");
+		chrome_options.addArguments("--window-size=1280,1024");
 		chrome_options.addArguments("--use-fake-ui-for-media-stream",
 				"--use-fake-device-for-media-stream");
 		chrome_options.addArguments("--no-sandbox");
