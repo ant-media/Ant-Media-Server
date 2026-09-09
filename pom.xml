@@ -63,6 +63,8 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
    
     <properties>
         <skipTests>false</skipTests>
+        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.testRelease>17</maven.compiler.testRelease>
         <build.dir>target</build.dir>
         <finalName>${project.artifactId}</finalName>
         <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
@@ -87,6 +89,21 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <defaultGoal>install</defaultGoal>
         <directory>${build.dir}</directory>
         <finalName>${finalName}</finalName>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                    <testRelease>${maven.compiler.testRelease}</testRelease>
+                    <jdkToolchain>
+                        <version>17</version>
+                    </jdkToolchain>
+                </configuration>
+            </plugin>
+        </plugins>
         
         <resources>
             <resource>
@@ -560,7 +577,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.27.3</version>
+            <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -14,8 +14,8 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          distribution: adopt
-          java-version: '17'
+          distribution: temurin
+          java-version: '21'
           cache: maven
 
       - name: Get current date

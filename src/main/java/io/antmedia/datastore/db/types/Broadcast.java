@@ -50,15 +50,15 @@ public class Broadcast {
 	private String playListStatus;
 	
 	/**
-	 * "liveStream", "ipCamera", "streamSource", "VoD"
+	 * "liveStream", "ipCamera", "streamSource", "VoD", "playlist", "NDI"
 	 */
-	@Schema(description = "the type of the stream", allowableValues = {"liveStream","ipCamera","streamSource","VoD","playlist"})
+	@Schema(description = "the type of the stream", allowableValues = {"liveStream","ipCamera","streamSource","VoD","playlist","NDI"})
 	private String type;
 
 	/**
-	 * "WebRTC", "RTMP", "Pull"
+	 * "WebRTC", "RTMP", "Pull", "SRT", "NDI"
 	 */
-	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = {"WebRTC","RTMP","Pull","SRT"})
+	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = {"WebRTC","RTMP","Pull","SRT","NDI"})
 	private String publishType;
 
 	/**
@@ -350,9 +350,9 @@ public class Broadcast {
 	private int currentPlayIndex = 0;
 	
 	/**
-	 * Meta data filed for the custom usage
+	 * Metadata field for custom usage
 	 */
-	@Schema(description ="Meta data filed for the custom usage")
+	@Schema(description ="Metadata for custom usage. NDI broadcasts store NDI in this field.")
 	private String metaData = null;
 	
 	/**

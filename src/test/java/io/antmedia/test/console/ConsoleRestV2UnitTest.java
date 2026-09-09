@@ -1,5 +1,6 @@
 package io.antmedia.test.console;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -280,6 +281,37 @@ public class ConsoleRestV2UnitTest {
 
 		assertEquals(statsCollector, restService.getStatsCollector());
 
+	}
+
+	@Test
+	void testStatsHistoryEndpoints() {
+		RestServiceV2 restServiceSpy = spy(restService);
+		IStatsCollector collector = mock(IStatsCollector.class);
+		doReturn(collector).when(restServiceSpy).getStatsCollector();
+
+		Gson gson = new Gson();
+
+		JsonObject resources = new JsonObject();
+		resources.addProperty("cpu", 55);
+		when(collector.getSystemResourcesHistory()).thenReturn(resources);
+		assertEquals(gson.toJson(resources), restServiceSpy.getSystemResourcesHistory());
+
+		JsonObject network = new JsonObject();
+		network.addProperty("outboundMbps", 12.5);
+		when(collector.getNetworkStatus()).thenReturn(network);
+		assertEquals(gson.toJson(network), restServiceSpy.getNetworkStatus());
+
+		// appName has to reach the collector: the stub only answers for "live"
+		JsonObject appMetrics = new JsonObject();
+		appMetrics.addProperty("viewers", 7);
+		when(collector.getAppMetricsHistory("live")).thenReturn(appMetrics);
+		assertEquals(gson.toJson(appMetrics), restServiceSpy.getAppMetricsHistory("live"));
+
+		// no collector -> empty json instead of an exception
+		doReturn(null).when(restServiceSpy).getStatsCollector();
+		assertEquals("{}", restServiceSpy.getSystemResourcesHistory());
+		assertEquals("{}", restServiceSpy.getNetworkStatus());
+		assertEquals("{}", restServiceSpy.getAppMetricsHistory("live"));
 	}
 
 	@Test

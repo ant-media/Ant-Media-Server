@@ -785,8 +785,6 @@ public class StreamFetcher {
 				{
 					stopRequestReceived = true;
 					restartStream = false;
-					logger.info("Calling streamFinished listener for streamId:{} and it will not restart the stream automatically because callback is getting the responsbility", streamId);
-                    streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
 				if(!stopRequestReceived && restartStream) {
@@ -811,6 +809,12 @@ public class StreamFetcher {
 					if (!closeCalled) {
 						closeBroadcastIfOwner();
 					}
+				}
+
+				if(streamFetcherListener != null)
+				{
+					logger.info("Stream source {} finished. Not auto-restarting it here; its completion handler will decide the next step (reconnect or next playlist item)", streamId);
+					streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
 				logger.debug("Leaving thread for {}", streamUrl);

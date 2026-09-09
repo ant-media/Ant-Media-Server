@@ -285,6 +285,23 @@ public class ServerSettingsTest {
 		}
 	}
 
+	@Test
+	public void testMetricsHistorySettings() {
+		ServerSettings settings = new ServerSettings();
+
+		settings.setMetricsHistorySamplePeriodMs(7000);
+		settings.setMetricsHistorySize(120);
+		settings.setAppMetricsHistorySamplePeriodMs(45000);
+		settings.setAppMetricsHistorySize(2000);
+		settings.setStreamMetricsHistorySize(500);
+
+		assertEquals(7000, settings.getMetricsHistorySamplePeriodMs());
+		assertEquals(120, settings.getMetricsHistorySize());
+		assertEquals(45000, settings.getAppMetricsHistorySamplePeriodMs());
+		assertEquals(2000, settings.getAppMetricsHistorySize());
+		assertEquals(500, settings.getStreamMetricsHistorySize());
+	}
+
 	private NetworkInterface mockNetworkInterface(boolean up, boolean loopback, InetAddress... addresses) throws Exception {
 		NetworkInterface networkInterface = Mockito.mock(NetworkInterface.class);
 		Mockito.when(networkInterface.isUp()).thenReturn(up);
