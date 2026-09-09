@@ -20,9 +20,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -524,12 +527,26 @@ public class HLSMuxer extends Muxer  {
 	private static List<AlternativeRendition> createSubtitleRenditions(Collection<WebVttTrack> tracks,
 			String baseName) {
 		List<AlternativeRendition> renditions = new ArrayList<>();
+		List<WebVttTrack> sortedTracks = tracks.stream()
+				.sorted(Comparator.comparingInt(WebVttTrack::inputStreamIndex)).toList();
+		List<String> preferredNames = sortedTracks.stream().map(HLSMuxer::subtitleName).toList();
+		Set<String> reservedNames = new HashSet<>(preferredNames);
+		Set<String> usedNames = new HashSet<>();
 		int trackNumber = 0;
-		for (WebVttTrack track : tracks.stream().sorted(Comparator.comparingInt(WebVttTrack::inputStreamIndex)).toList()) {
+		for (WebVttTrack track : sortedTracks) {
+			String preferredName = preferredNames.get(trackNumber);
+			String name = preferredName;
+			int suffix = 2;
+			// HLS rendition names must be unique within the group. Reserve metadata
+			// labels so an auto-generated suffix cannot take another track's name.
+			while (usedNames.contains(name) || (!name.equals(preferredName) && reservedNames.contains(name))) {
+				name = preferredName + " (" + suffix++ + ")";
+			}
+			usedNames.add(name);
 			renditions.add(AlternativeRendition.builder()
 					.type(MediaType.SUBTITLES)
 					.groupId(SUBTITLE_GROUP)
-					.name(sanitizePlaylistAttribute(track.name()))
+					.name(name)
 					.language(sanitizePlaylistAttribute(track.language()))
 					.defaultRendition(trackNumber++ == 0)
 					.autoSelect(true)
@@ -537,6 +554,21 @@ public class HLSMuxer extends Muxer  {
 					.build());
 		}
 		return renditions;
+	}
+
+	private static String subtitleName(WebVttTrack track) {
+		String name = sanitizePlaylistAttribute(track.name()).strip();
+		if (!name.isEmpty() && !"DVB-TTML".equalsIgnoreCase(name) && !"Subtitles".equalsIgnoreCase(name)) {
+			return name;
+		}
+		String language = track.language().strip();
+		if (!"und".equalsIgnoreCase(language)) {
+			String languageName = Locale.forLanguageTag(language).getDisplayLanguage(Locale.ENGLISH);
+			if (!languageName.isBlank()) {
+				return sanitizePlaylistAttribute(languageName);
+			}
+		}
+		return "Subtitles";
 	}
 
 	static String getPrimaryVariantUri(String masterPlaylistContent) throws IOException {
