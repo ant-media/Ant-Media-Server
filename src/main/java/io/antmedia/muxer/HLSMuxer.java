@@ -558,7 +558,7 @@ public class HLSMuxer extends Muxer  {
 
 	private static String subtitleName(WebVttTrack track) {
 		String name = sanitizePlaylistAttribute(track.name()).strip();
-		if (!name.isEmpty() && !"DVB-TTML".equalsIgnoreCase(name) && !"Subtitles".equalsIgnoreCase(name)) {
+		if (!"DVB-TTML".equalsIgnoreCase(name) && !"Subtitles".equalsIgnoreCase(name)) {
 			return name;
 		}
 		String language = track.language().strip();

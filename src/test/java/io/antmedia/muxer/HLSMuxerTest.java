@@ -130,6 +130,26 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 	}
 
 	@Test
+	void testInvalidLanguageMetadataFallsBackToUniqueNames() throws IOException {
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(List.of(
+				new WebVttTrack(3, "_", "DVB-TTML"),
+				new WebVttTrack(4, "_", "Subtitles")), "test", "test.m3u8");
+		assertThat(new MasterPlaylistParser().readPlaylist(playlist).alternativeRenditions())
+				.extracting(AlternativeRendition::name).containsExactly("Subtitles", "Subtitles (2)");
+	}
+
+	@Test
+	void testSubtitleLabelsNormalizeWhitespaceAndGenericNameCase() throws IOException {
+		String playlist = HLSMuxer.createWebVttMasterPlaylistContent(List.of(
+				new WebVttTrack(3, " eng ", " dvb-ttml "),
+				new WebVttTrack(4, "ara", " SUBTITLES "),
+				new WebVttTrack(5, " UND ", "\t\n"),
+				new WebVttTrack(6, "rus", " Russian captions ")), "test", "test.m3u8");
+		assertThat(new MasterPlaylistParser().readPlaylist(playlist).alternativeRenditions())
+				.extracting(AlternativeRendition::name).containsExactly("English", "Arabic", "Subtitles", "Russian captions");
+	}
+
+	@Test
 	void testMergedMasterUsesUniqueSubtitleNames() throws IOException {
 		String master = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1000000\ntest_0.m3u8\n";
 		String playlist = HLSMuxer.addWebVttToMasterPlaylistContent(List.of(
