@@ -143,9 +143,10 @@ public class UploadHLSChunk extends HttpServlet{
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException 
 	{
 		logger.debug("Received GET request for HLS chunk upload: {}", req.getPathInfo());
+		long getStartMs = System.currentTimeMillis();
 		StorageClient storageClient = getStorageClient(req);
 
-		try 
+		try
 		{
 			if (storageClient != null) 
 			{
@@ -198,6 +199,12 @@ public class UploadHLSChunk extends HttpServlet{
 		catch (Exception e) {
 			logger.error("Error processing GET request for HLS chunk upload: {}", ExceptionUtils.getStackTrace(e));
 			sendError(resp, "Error processing request: " + e.getMessage());
+		}
+		finally {
+			String pathInfo = req.getPathInfo();
+			if (pathInfo != null && pathInfo.endsWith(".m3u8")) {
+				logger.info("Get m3u8 {} took {} ms", pathInfo, System.currentTimeMillis() - getStartMs);
+			}
 		}
 	}
 
@@ -295,7 +302,9 @@ public class UploadHLSChunk extends HttpServlet{
 			}
 		});
 
+		long start = System.currentTimeMillis();
 		storageClient.save(s3FileKey, inputStream, true );
+		logger.info("Uploaded {} in {} ms", s3FileKey, System.currentTimeMillis() - start);
 	}
 
 	public static String getS3Key(HttpServletRequest req, AppSettings appSettings) {

@@ -3,10 +3,10 @@ package io.antmedia.streamsource;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
@@ -58,8 +58,6 @@ public class StreamFetcherManager {
 	private IScope scope;
 
 	private long streamFetcherScheduleJobName = -1L;
-
-	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
 	private boolean restartStreamAutomatically = true;
 
@@ -581,9 +579,16 @@ public class StreamFetcherManager {
 	}
 
 	public void controlStreamFetchers(boolean restart) {
-		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
+		//iterate a snapshot: stopStreaming/startStreaming below mutate streamFetcherList, and a
+		//re-inserted entry can be handed back by the same iterator, which then stops and poisons
+		//the replacement fetcher we just created
+		for (StreamFetcher streamScheduler : new ArrayList<>(streamFetcherList.values())) {
 
-			boolean restartThisStream = restart;
+			//the snapshot can outlive an entry that was stopped or replaced while we were iterating,
+			//and acting on it would resurrect a stream somebody just stopped
+			if (streamFetcherList.get(streamScheduler.getStreamId()) != streamScheduler) {
+				continue;
+			}
 
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
@@ -597,42 +602,55 @@ public class StreamFetcherManager {
 				continue;
 			}
 
+			//restart decision for this stream only, so an eviction below doesn't affect the others
+			boolean restartCurrentStream = restart;
+
 			boolean autoStop = false;
-			if (restartThisStream || broadcast == null ||
+			if (restartCurrentStream || broadcast == null ||
 					(autoStop = isToBeStoppedAutomatically(broadcast)))
 			{
-				
-				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
-						streamScheduler.getStreamId(), restartThisStream, broadcast == null, autoStop);
-				
+
+				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}",
+						streamScheduler.getStreamId(), restartCurrentStream, broadcast == null, autoStop);
+
 				stopStreaming(streamScheduler.getStreamId(), false);
-				
+
 			}
 			else {
-				
-				logger.info("Stream:{} is alive -> {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
+
+				logger.info("Stream:{} is alive -> {}, is it blocked -> {}, threadActive -> {}, tearingDown -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked(), streamScheduler.isThreadActive(), streamScheduler.isTearingDown());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
-				
+
 				if (!streamScheduler.isStreamBlocked() && !streamScheduler.isStreamAlive() && AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
-					// if it's not blocked and it's not alive, stop the stream 
+					// if it's not blocked and it's not alive, stop the stream
 					logger.info("Stopping the stream because it is not getting updated(aka terminated_unexpectedly) and it will start for the streamId:{}", streamScheduler.getStreamId());
 					stopStreaming(streamScheduler.getStreamId(), false);
-					//turn restart to true because we restart the stream to reconnect
-					restartThisStream = true;
+					//restart this stream only
+					restartCurrentStream = true;
+				}
+				//report, never correct. isStreamAlive() is only 3s packet recency, not ownership, and it is still
+				//true in the reconnect gap and during close(). Writing the status back here stranded streams
+				else if (streamScheduler.isThreadActive() && streamScheduler.isStreamAlive() && !AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {
+					logger.error("Stream source {} is still receiving data but it is recorded as '{}', so it shows as offline. Please report this with the surrounding log lines", streamScheduler.getStreamId(), broadcast.getStatus());
+				}
+				else if (!streamScheduler.isThreadActive() && !streamScheduler.isTearingDown() && !streamScheduler.isRetryPending() && !streamScheduler.isStreamAlive()) {
+					//registration without a worker and without a pending retry can never come back by itself
+					logger.warn("Stream:{} has no worker thread and no retry pending. Evicting and restarting", streamScheduler.getStreamId());
+					stopStreaming(streamScheduler.getStreamId(), false);
+					restartCurrentStream = true;
 				}
 			}
-			
-			
-			
+
+
+
 			//start streaming if broadcast object is in db(it means not deleted)
-			if (restartThisStream && broadcast != null)
-			{	
-				//it may be still running because stop operation is async
-				//So start streaming after it's finished
-				if (isStreamRunning(broadcast)) 
+			if (restartCurrentStream && broadcast != null)
+			{
+				//don't start a second fetcher while the old one is still tearing down or starting up
+				if (isStreamRunning(broadcast) || streamScheduler.isThreadActive() || streamScheduler.isTearingDown())
 				{
-					logger.info("Setting stream fetcher listener to restart when it's finished for streamId:{}", broadcast.getStreamId());
+					logger.info("Restart deferred for {} until current worker finishes", broadcast.getStreamId());
 					streamScheduler.setStreamFetcherListener(
 						new IStreamFetcherListener() {
 							@Override

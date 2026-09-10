@@ -20,9 +20,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -255,6 +259,311 @@ public class StreamFetcherUnitTest {
 		Mockito.doReturn(false).when(workerAfter).prepareInputContext(Mockito.any());
 		workerAfter.run();
 		Mockito.verify(workerAfter, Mockito.never()).prepareInputContext(Mockito.any());
+	}
+	
+	/**
+	 * A stop can arrive while the worker is still opening the source. The worker must not go live after
+	 * that, and the deferred restart must actually start a new fetcher instead of being rejected as
+	 * "already active".
+	 */
+	@Test
+	public void testDeferredRestartSurvivesStopDuringPrepare() throws Exception {
+		StreamFetcherManager manager = app.getStreamFetcherManager();
+		manager.setRestartStreamAutomatically(false);
+
+		DataStore dataStore = getInstance().getDataStore();
+
+		// VOD type paces local-file reads to 1.0x; stream_source would EOF in ~2 s and legitimately write finished mid-assertion
+		Broadcast broadcast = new Broadcast("streamSource1", "127.0.0.1:8080", "admin", "admin",
+				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.VOD);
+		String streamId = dataStore.save(broadcast);
+		assertNotNull(streamId);
+
+		// capture manager logs so we can check the restart was not rejected as "already active"
+		ch.qos.logback.classic.Logger mgrLogger =
+				(ch.qos.logback.classic.Logger) LoggerFactory.getLogger(StreamFetcherManager.class);
+		ListAppender<ILoggingEvent> logWatcher = new ListAppender<>();
+		logWatcher.start();
+		mgrLogger.addAppender(logWatcher);
+
+		try {
+			StreamFetcher fetcher = new StreamFetcher(broadcast.getStreamUrl(), streamId,
+					broadcast.getType(), appScope, vertx, 0);
+			fetcher.setDataStore(dataStore);
+			fetcher.setRestartStream(false);
+
+			// hold the worker inside prepare() until we release the latch (subclass instead of a
+			// Mockito spy, because spying a Thread breaks when it is started)
+			final CountDownLatch prepareLatch = new CountDownLatch(1);
+			WorkerThread worker = fetcher.new WorkerThread() {
+				@Override
+				public Result prepare(AVFormatContext inputFormatContext) {
+					try {
+						prepareLatch.await(30, TimeUnit.SECONDS);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+					}
+					return super.prepare(inputFormatContext);
+				}
+			};
+
+			manager.getStreamFetcherList().put(streamId, fetcher);
+			worker.start();
+
+			// worker is now waiting inside prepare: status is preparing, not yet alive
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING.equals(dataStore.get(streamId).getStatus()));
+			assertTrue(fetcher.isThreadActive());
+			assertFalse(fetcher.isStreamAlive());
+			assertFalse(fetcher.isStreamBlocked());
+
+			// mark it dead and run the checker: it should stop this worker and defer a restart
+			dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+			manager.controlStreamFetchers(false);
+			assertFalse(manager.getStreamFetcherList().containsKey(streamId));
+
+			// let the worker finish. It was stopped, so it should not go live; the deferred restart
+			// should start a new fetcher instead
+			prepareLatch.countDown();
+
+			// a new fetcher is registered and goes live
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() ->
+					manager.getStreamFetcherList().containsKey(streamId));
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+
+			// the stopped worker did not overwrite the new one's status with finished
+			// during() asserts the status never flips to finished across the whole window
+			Awaitility.await().during(3, TimeUnit.SECONDS).atMost(8, TimeUnit.SECONDS).until(() ->
+					!AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get(streamId).getStatus()));
+
+			// the restart was not rejected as "already active"
+			boolean alreadyActiveLogged = logWatcher.list.stream()
+					.anyMatch(e -> e.getFormattedMessage().contains("already active"));
+			assertFalse(alreadyActiveLogged, "restart must not be rejected as 'already active'");
+		}
+		finally {
+			mgrLogger.detachAppender(logWatcher);
+			manager.stopStreaming(streamId, false);
+			manager.stopCheckerJob();
+			manager.getStreamFetcherList().remove(streamId);
+			dataStore.delete(streamId);
+		}
+	}
+
+	/**
+	 * An old worker is stopped while opening the source, then a new fetcher is started for the same stream
+	 * and goes live. When the old worker finally tears down it must not overwrite the live fetcher's status
+	 * with finished.
+	 */
+	@Test
+	public void testDyingWorkerDoesNotOverwriteLiveFetcherStatus() throws Exception {
+		StreamFetcherManager manager = app.getStreamFetcherManager();
+		manager.setRestartStreamAutomatically(false);
+
+		DataStore dataStore = getInstance().getDataStore();
+
+		// VOD type paces local-file reads to 1.0x; stream_source would EOF in ~2 s and legitimately write finished mid-assertion
+		Broadcast broadcast = new Broadcast("streamSource1", "127.0.0.1:8080", "admin", "admin",
+				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.VOD);
+		String streamId = dataStore.save(broadcast);
+		assertNotNull(streamId);
+
+		try {
+			// old worker: hold it inside prepare, then let the checker stop it and defer a restart
+			StreamFetcher oldFetcher = new StreamFetcher(broadcast.getStreamUrl(), streamId,
+					broadcast.getType(), appScope, vertx, 0);
+			oldFetcher.setDataStore(dataStore);
+			oldFetcher.setRestartStream(false);
+
+			// subclass instead of a Mockito spy, because spying a Thread breaks when it is started
+			final CountDownLatch prepareLatch = new CountDownLatch(1);
+			WorkerThread oldWorker = oldFetcher.new WorkerThread() {
+				@Override
+				public Result prepare(AVFormatContext inputFormatContext) {
+					try {
+						prepareLatch.await(30, TimeUnit.SECONDS);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+					}
+					return super.prepare(inputFormatContext);
+				}
+			};
+
+			manager.getStreamFetcherList().put(streamId, oldFetcher);
+			oldWorker.start();
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING.equals(dataStore.get(streamId).getStatus()));
+
+			dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+			manager.controlStreamFetchers(false);
+			assertFalse(manager.getStreamFetcherList().containsKey(streamId));
+
+			// start a new fetcher for the same stream and wait until it is live. Set the status back to
+			// terminated first so the new worker does not skip pulling the source
+			dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+			Result startResult = manager.startStreaming(broadcast);
+			assertTrue(startResult.isSuccess());
+			// stop the periodic checker so only our own controlStreamFetchers() calls run
+			manager.stopCheckerJob();
+
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+				StreamFetcher f = manager.getStreamFetcher(streamId);
+				return f != null && f.isStreamAlive()
+						&& AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus());
+			});
+
+			// now let the old worker finish; it must not touch the live fetcher's status
+			prepareLatch.countDown();
+
+			// status stays broadcasting and the fetcher keeps running (never flips to finished)
+			// during() asserts both hold continuously: live status and an alive fetcher
+			Awaitility.await().during(10, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus())
+							&& manager.getStreamFetcher(streamId).isStreamAlive());
+
+			// restarting now is correctly rejected, since the stream really is running
+			Result restartResult = manager.startStreaming(broadcast);
+			assertFalse(restartResult.isSuccess());
+			assertTrue(restartResult.getMessage().contains("already active"));
+
+		}
+		finally {
+			manager.stopStreaming(streamId, false);
+			manager.getStreamFetcherList().remove(streamId);
+			dataStore.delete(streamId);
+		}
+	}
+
+	/**
+	 * The checker must not heal a status just because packets were recent: in the 3 s retry gap the fetcher
+	 * is still "alive" but has no worker thread, and healing there makes the retry worker give up and zombify.
+	 */
+	@Test
+	public void testHealDoesNotFireWithoutWorkerThread() {
+		StreamFetcherManager manager = app.getStreamFetcherManager();
+		manager.stopCheckerJob();
+
+		DataStore dataStore = getInstance().getDataStore();
+
+		Broadcast broadcast = new Broadcast("streamSource1", "127.0.0.1:8080", "admin", "admin",
+				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.VOD);
+		String streamId = dataStore.save(broadcast);
+		assertNotNull(streamId);
+		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+
+		// exactly the 3 s retry gap: packets are recent, but no worker thread is running
+		StreamFetcher fetcher = Mockito.spy(new StreamFetcher(broadcast.getStreamUrl(), streamId,
+				broadcast.getType(), appScope, vertx, 0));
+		fetcher.setDataStore(dataStore);
+		Mockito.doReturn(true).when(fetcher).isStreamAlive();
+		Mockito.doReturn(false).when(fetcher).isThreadActive();
+		Mockito.doReturn(true).when(fetcher).isRetryPending();
+
+		try {
+			manager.getStreamFetcherList().put(streamId, fetcher);
+			manager.controlStreamFetchers(false);
+
+			// the status belongs to the pending retry worker, the checker must leave it alone
+			Awaitility.await().during(2, TimeUnit.SECONDS).atMost(6, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get(streamId).getStatus()));
+		}
+		finally {
+			manager.getStreamFetcherList().remove(streamId);
+			dataStore.delete(streamId);
+		}
+	}
+
+	/**
+	 * A worker that finds the stream already in streaming mode gives up before pulling anything. It must not
+	 * write finished over the live owner's status, and it must drop its own registration instead of lingering
+	 * as a zombie that vetoes every restart.
+	 */
+	@Test
+	public void testSkippedPullDoesNotPoisonStatusAndDeregisters() {
+		StreamFetcherManager manager = app.getStreamFetcherManager();
+		manager.stopCheckerJob();
+
+		DataStore dataStore = getInstance().getDataStore();
+
+		// VOD type paces local-file reads to 1.0x; stream_source would EOF in ~2 s and legitimately write finished mid-assertion
+		Broadcast broadcast = new Broadcast("streamSource1", "127.0.0.1:8080", "admin", "admin",
+				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.VOD);
+		String streamId = dataStore.save(broadcast);
+		assertNotNull(streamId);
+		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+		StreamFetcher fetcher = new StreamFetcher(broadcast.getStreamUrl(), streamId,
+				broadcast.getType(), appScope, vertx, 0);
+		fetcher.setDataStore(dataStore);
+		fetcher.setRestartStream(false);
+
+		try {
+			manager.getStreamFetcherList().put(streamId, fetcher);
+			// the worker hits the "is streaming mode" guard and gives up before pulling anything
+			fetcher.new WorkerThread().start();
+
+			// it drops its own registration, so a later restart is not vetoed
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() ->
+					!manager.getStreamFetcherList().containsKey(streamId));
+
+			// and it never writes finished over the owner's status
+			Awaitility.await().during(3, TimeUnit.SECONDS).atMost(8, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+		}
+		finally {
+			manager.getStreamFetcherList().remove(streamId);
+			dataStore.delete(streamId);
+		}
+	}
+
+	/**
+	 * A registration whose worker is gone and which has no retry pending can never come back by itself.
+	 * The checker must evict it and start a fresh fetcher.
+	 */
+	@Test
+	public void testDeadRegistrationIsEvictedAndRestarted() {
+		StreamFetcherManager manager = app.getStreamFetcherManager();
+		manager.setRestartStreamAutomatically(false);
+		manager.stopCheckerJob();
+
+		DataStore dataStore = getInstance().getDataStore();
+
+		// VOD type paces local-file reads to 1.0x; stream_source would EOF in ~2 s and legitimately write finished mid-assertion
+		Broadcast broadcast = new Broadcast("streamSource1", "127.0.0.1:8080", "admin", "admin",
+				"src/test/resources/test_video_360p.flv", AntMediaApplicationAdapter.VOD);
+		String streamId = dataStore.save(broadcast);
+		assertNotNull(streamId);
+		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+
+		// zombie: registered, but no worker thread, no retry pending and no packets ever
+		StreamFetcher deadFetcher = new StreamFetcher(broadcast.getStreamUrl(), streamId,
+				broadcast.getType(), appScope, vertx, 0);
+		deadFetcher.setDataStore(dataStore);
+		deadFetcher.setRestartStream(false);
+		assertFalse(deadFetcher.isThreadActive());
+		assertFalse(deadFetcher.isRetryPending());
+		assertFalse(deadFetcher.isStreamAlive());
+
+		try {
+			manager.getStreamFetcherList().put(streamId, deadFetcher);
+			manager.controlStreamFetchers(false);
+
+			// a fresh fetcher replaces the zombie and goes live
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+				StreamFetcher current = manager.getStreamFetcher(streamId);
+				return current != null && current != deadFetcher;
+			});
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+		}
+		finally {
+			manager.stopStreaming(streamId, false);
+			manager.stopCheckerJob();
+			manager.getStreamFetcherList().remove(streamId);
+			dataStore.delete(streamId);
+		}
 	}
 
 	@Test
