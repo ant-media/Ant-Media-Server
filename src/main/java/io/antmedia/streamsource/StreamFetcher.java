@@ -1139,6 +1139,12 @@ public class StreamFetcher {
 
 	public void startStream() {
 
+		//a stop that landed after the previous worker already exited is stale. One that lands after this
+		//call belongs to the worker we are about to spawn, so it is not cleared here
+		if (!threadActive.get() && !tearingDown.get()) {
+			stopRequestReceived = false;
+		}
+
 		new Thread() {
 			@Override
 			public void run() {
