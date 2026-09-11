@@ -1,8 +1,11 @@
 package io.antmedia.test.token;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -21,10 +24,10 @@ import jakarta.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -43,17 +46,18 @@ import io.antmedia.security.ITokenService;
 import io.antmedia.security.MockTokenService;
 
 
+@Tag("fast")
 public class TokenFilterTest {
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterTest.class);
 
 	private TokenFilterManager tokenFilter;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		tokenFilter = new TokenFilterManager();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		tokenFilter = null;
 	}

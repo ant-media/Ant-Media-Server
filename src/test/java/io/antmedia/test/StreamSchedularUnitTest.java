@@ -5,11 +5,12 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,24 +33,22 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -72,7 +72,11 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
+@ExtendWith(SpringExtension.class)
+public class StreamSchedularUnitTest {
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
 	public Application app = null;
 	public static String VALID_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
@@ -91,32 +95,18 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			e.printStackTrace();
-			System.out.println("Failed test: " + description.getMethodName());
-		};
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		};
-	};
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;
 	private Vertx vertx;
 
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		//avformat.av_register_all();
 		avformat.avformat_network_init();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		File webApps = new File("webapps");
 		if (!webApps.exists()) {
@@ -146,7 +136,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 
 		try {
@@ -943,6 +933,67 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	
 	
 	@Test
+	public void testControlStreamFetchersRestartFlagDoesNotLeakToHealthyStreams() {
+		//controlStreamFetchers used to mutate its shared 'restart' parameter when it found a
+		//terminated stream, leaking restart=true into later iterations and bouncing healthy
+		//streams. The fix isolates the decision per stream with restartThisStream.
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+
+		//stub the stop/start machinery: we only assert the restart decision, and leaving the list
+		//unmodified during iteration lets us use an ordered LinkedHashMap deterministically
+		Mockito.doReturn(new Result(true)).when(streamFetcherManager).stopStreaming(Mockito.anyString(), Mockito.anyBoolean());
+		Mockito.doReturn(new Result(true)).when(streamFetcherManager).startStreaming(Mockito.any());
+		Mockito.doReturn(false).when(streamFetcherManager).isStreamRunning(Mockito.any());
+		Mockito.doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
+
+		//dead stream: terminated unexpectedly, not alive, not blocked -> should restart
+		String deadId = "deadStream";
+		StreamFetcher deadFetcher = Mockito.mock(StreamFetcher.class);
+		when(deadFetcher.getStreamId()).thenReturn(deadId);
+		when(deadFetcher.getStreamUrl()).thenReturn("deadUrl");
+		when(deadFetcher.isStreamAlive()).thenReturn(false);
+		when(deadFetcher.isStreamBlocked()).thenReturn(false);
+		Broadcast deadBroadcast = mock(Broadcast.class);
+		when(deadBroadcast.getStreamId()).thenReturn(deadId);
+		when(deadBroadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
+		when(deadBroadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+
+		//healthy stream: alive -> must be left untouched
+		String healthyId = "healthyStream";
+		StreamFetcher healthyFetcher = Mockito.mock(StreamFetcher.class);
+		when(healthyFetcher.getStreamId()).thenReturn(healthyId);
+		when(healthyFetcher.getStreamUrl()).thenReturn("healthyUrl");
+		when(healthyFetcher.isStreamAlive()).thenReturn(true);
+		when(healthyFetcher.isStreamBlocked()).thenReturn(false);
+		Broadcast healthyBroadcast = mock(Broadcast.class);
+		when(healthyBroadcast.getStreamId()).thenReturn(healthyId);
+		when(healthyBroadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
+		when(healthyBroadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+		when(dataStore.get(deadId)).thenReturn(deadBroadcast);
+		when(dataStore.get(healthyId)).thenReturn(healthyBroadcast);
+
+		//ordered map so the dead stream is always visited before the healthy one; the leak only
+		//manifests when a terminated stream precedes a healthy one in iteration
+		Map<String, StreamFetcher> streamFetcherList = new LinkedHashMap<>();
+		streamFetcherList.put(deadId, deadFetcher);
+		streamFetcherList.put(healthyId, healthyFetcher);
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+
+		streamFetcherManager.controlStreamFetchers(false);
+
+		//dead stream restarts
+		verify(streamFetcherManager, times(1)).stopStreaming(deadId, false);
+		verify(streamFetcherManager, times(1)).startStreaming(deadBroadcast);
+
+		//healthy stream must not be touched by a leaked restart flag
+		verify(streamFetcherManager, Mockito.never()).stopStreaming(healthyId, false);
+		verify(streamFetcherManager, Mockito.never()).startStreaming(healthyBroadcast);
+	}
+
+
+	@Test
 	public void testControlStreamFetchers() {
 		//create a test db
 		DataStore dataStore = Mockito.mock(DataStore.class); 
@@ -1560,5 +1611,3 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 }
-
-

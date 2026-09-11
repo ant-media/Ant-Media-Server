@@ -3,6 +3,7 @@ package io.antmedia;
 import static org.bytedeco.ffmpeg.global.avutil.avutil_configuration;
 
 import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.Pointer;
 
 import java.nio.charset.StandardCharsets;
 
@@ -36,4 +37,13 @@ public class FFmpegUtilities {
 		}
 		return new String(nullTerminatedChars, 0, termin, StandardCharsets.UTF_8);
 	}
+
+    /**
+     * Helper method that check if the pointer is not null in the Java heap
+     * and if the underlying pointed memory address is not null off-heap
+     * @param p pointer
+     */
+    public static boolean isNull(Pointer p) {
+        return p == null || p.isNull();
+    }
 }

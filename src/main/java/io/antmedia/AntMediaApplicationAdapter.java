@@ -92,6 +92,7 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RtmpProvider;
+import io.antmedia.ndi.NdiSourceProvider;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
@@ -755,6 +756,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
+			getStatsCollector().removeStreamHistory(scope.getName(), streamId);
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
 
@@ -1774,14 +1776,36 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
 			result = getStreamFetcherManager().startPlaylist(broadcast);
 		}
+		else if (broadcast.getType().equals(IAntMediaStreamHandler.PUBLISH_TYPE_NDI)) {
+			result = startNdiSource(broadcast);
+		}
 		// Handle unsupported broadcast types
 		else {
 			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}",
 					broadcast.getType(), broadcast.getStreamId());
-			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist");
+			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist, NDI");
 		}
 
 		return result;
+	}
+
+	protected Result startNdiSource(Broadcast broadcast) {
+		if (StringUtils.isBlank(broadcast.getStreamUrl())) {
+			return new Result(false, "NDI source name is not defined.");
+		}
+
+		NdiSourceProvider ndiSourceProvider = getScope().getContext().getApplicationContext()
+				.getBeanProvider(NdiSourceProvider.class).getIfAvailable();
+		if (ndiSourceProvider == null) {
+			return new Result(false, "NDI support is not available.");
+		}
+
+		boolean started = ndiSourceProvider.startNdiSource(broadcast.getStreamUrl(), broadcast.getStreamId(), getScope());
+		if (!started) {
+			return new Result(false, broadcast.getStreamId(), "NDI source is not available or is already running.");
+		}
+
+		return new Result(true, broadcast.getStreamId(), "");
 	}
 
 	public void forwardStartStreaming(Broadcast broadcast) {
@@ -2019,6 +2043,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				LoggerUtils.logAnalyticsFromServer(viewerCountEvent);
 
+				int totalViewers = broadcastLocal.getWebRTCViewerCount() + broadcastLocal.getHlsViewerCount() + broadcastLocal.getDashViewerCount();
+				getStatsCollector().addStreamSample(getScope().getName(), streamId, stats, totalViewers, currentTimeMillis);
+
 				logger.debug("update source quality for stream:{} width:{} height:{} bitrate:{} input queue size:{} encoding queue size:{} packetsLost:{} packetLostRatio:{} jitter:{} rtt:{}",
 
 						streamId, stats.getWidth(), stats.getHeight(), broadcastUpdate.getBitrate(), stats.getInputQueueSize(), stats.getEncodingQueueSize(),
@@ -2140,11 +2167,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
 				if (i > 3) {
-					logger.warn("Waiting for active broadcasts number decrease to zero for app: {}"
+					logger.warn("Waiting for active broadcast number decrease to zero for app: {}"
 							+ " total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
-					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished_unexpectedly");
+					logger.error("Not all live streams stopped gracefully. It will update the streams' status to finished_unexpectedly");
 					everythingHasStopped = false;
 					break;
 				}

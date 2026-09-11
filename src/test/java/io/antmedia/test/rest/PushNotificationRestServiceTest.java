@@ -1,7 +1,10 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.json.simple.JSONObject;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 
@@ -24,6 +27,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.ServletContext;
 
+@Tag("fast")
 public class PushNotificationRestServiceTest {
 	
 	

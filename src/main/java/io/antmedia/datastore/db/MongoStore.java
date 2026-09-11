@@ -200,7 +200,7 @@ public class MongoStore extends DataStore {
 	
 	public static String getMongoConnectionUri(String url) {
 		//If it is DNS seed name, no need to check for username and password since it needs to be integrated to the given uri.
-		//Mongodb Atlas users will have such syntax and won't need to enter seperate username and password to the script since it is already in the uri.
+		//Mongodb Atlas users will have such syntax and won't need to enter separate username and password to the script since it is already in the uri.
 
 		//if host includes starts with mongodb:// or mongodb+srv://, let's use the connection string and don't build new one
 		if(url.indexOf("mongodb://") == 0 || url.indexOf("mongodb+srv://") == 0)
@@ -1976,6 +1976,28 @@ public class MongoStore extends DataStore {
 		
 		recordQueryDuration(startTime, "getTotalWebRTCViewersCount");
 		return totalWebRTCViewerCount;
+	}
+
+	@Override
+	public int getTotalViewersCount() {
+		long startTime = System.nanoTime();
+		int total = sumBroadcastingField(WEBRTC_VIEWER_COUNT) + sumBroadcastingField(HLS_VIEWER_COUNT) + sumBroadcastingField(DASH_VIEWER_COUNT);
+		recordQueryDuration(startTime, "getTotalViewersCount");
+		return total;
+	}
+
+	private int sumBroadcastingField(String fieldName) {
+		synchronized (broadcastLock) {
+			int total = 0;
+			MorphiaCursor<Summation> cursor = datastore.aggregate(Broadcast.class)
+					.match(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+					.group(Group.group().field("total", sum(field(fieldName))))
+					.execute(Summation.class);
+			if (cursor.hasNext()) {
+				total = cursor.next().getTotal();
+			}
+			return total;
+		}
 	}
 
 	/**

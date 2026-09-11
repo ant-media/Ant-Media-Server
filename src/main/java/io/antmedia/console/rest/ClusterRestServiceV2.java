@@ -18,9 +18,11 @@ import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.model.Result;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
@@ -28,7 +30,9 @@ import jakarta.ws.rs.core.MediaType;
 @Path("/v2/cluster")
 public class ClusterRestServiceV2 {
 	protected static Logger logger = LoggerFactory.getLogger(ClusterRestServiceV2.class);
-	
+
+	public static final int MAX_NODE_NOTE_LENGTH = 500;
+
 	@Context
 	private ServletContext servletContext;
 	
@@ -79,10 +83,29 @@ public class ClusterRestServiceV2 {
 	{
 		boolean result = false;
 		IClusterStore clusterStore = getClusterStore();
-		if (clusterStore != null) 
+		if (clusterStore != null)
 		{
 			result = clusterStore.deleteNode(nodeId);
 		}
+		return new Result(result);
+	}
+
+	@PUT
+	@Path("/node/{id}/note")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result updateNodeNote(@PathParam("id") String nodeId, @QueryParam("note") String noteParam)
+	{
+		IClusterStore clusterStore = getClusterStore();
+		if (clusterStore == null) {
+			return new Result(false, "Cluster is not enabled on this server");
+		}
+
+		String note = noteParam != null ? noteParam.trim() : "";
+		if (note.length() > MAX_NODE_NOTE_LENGTH) {
+			return new Result(false, "Note is too long. Maximum " + MAX_NODE_NOTE_LENGTH + " characters allowed.");
+		}
+
+		boolean result = clusterStore.updateClusterNodeNote(nodeId, note);
 		return new Result(result);
 	}
 }

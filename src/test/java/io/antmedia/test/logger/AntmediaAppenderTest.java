@@ -3,9 +3,9 @@ package io.antmedia.test.logger;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -18,7 +18,7 @@ public class AntmediaAppenderTest {
 
     private AntmediaAppender antmediaAppender;
 
-    @Before
+    @BeforeEach
     public void before(){
         LoggerEnvironment.stopManagingThread();
         antmediaAppender = Mockito.spy(new AntmediaAppender());
@@ -47,13 +47,13 @@ public class AntmediaAppenderTest {
     @Test
     public void stopShouldStartManagingThread(){
         antmediaAppender.stop();
-        Assert.assertNotNull(antmediaAppender);
+        Assertions.assertNotNull(antmediaAppender);
     }
 
     @Test
     public void constructorTest(){
         AntmediaAppender appender = new AntmediaAppender();
-        Assert.assertNotNull(appender);
+        Assertions.assertNotNull(appender);
     }
 
     @Test

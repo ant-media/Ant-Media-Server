@@ -3,12 +3,13 @@ package io.antmedia.test;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -36,23 +38,27 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -75,7 +81,11 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
+@ExtendWith(SpringExtension.class)
+public class StreamFetcherUnitTest {
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
@@ -104,14 +114,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	};
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		//	avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 
 		try {
@@ -156,7 +166,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 
 		stopCameraEmulator();
@@ -246,7 +256,31 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		workerAfter.run();
 		Mockito.verify(workerAfter, Mockito.never()).prepareInputContext(Mockito.any());
 	}
-	
+
+	@Test
+	public void testStreamFinishedCalledAfterBroadcastClosed() {
+		//when a source never published (streamPublished=false) and a reconnect/playlist listener is
+		//attached, streamFinished() used to fire before closeBroadcast(), so the late closeBroadcast()
+		//clobbered the stream the listener had just restarted. It must run after the broadcast is closed.
+		Vertx mockedVertx = Mockito.mock(Vertx.class);
+		AntMediaApplicationAdapter appAdapter = Mockito.mock(AntMediaApplicationAdapter.class);
+
+		StreamFetcher fetcher = Mockito.spy(new StreamFetcher("url", "streamId", AntMediaApplicationAdapter.STREAM_SOURCE, appScope, mockedVertx, 0));
+		Mockito.doReturn(appAdapter).when(fetcher).getInstance();
+
+		StreamFetcher.IStreamFetcherListener listener = Mockito.mock(StreamFetcher.IStreamFetcherListener.class);
+		fetcher.setStreamFetcherListener(listener);
+
+		//streamPublished defaults to false; muxAdaptor/inputFormatContext/bufferQueue are null and pkt is
+		//null, so every native branch in close() is skipped
+		WorkerThread worker = fetcher.new WorkerThread();
+		worker.close(null);
+
+		InOrder inOrder = Mockito.inOrder(appAdapter, listener);
+		inOrder.verify(appAdapter).closeBroadcast(Mockito.eq("streamId"), Mockito.any(), Mockito.any());
+		inOrder.verify(listener).streamFinished(Mockito.any());
+	}
+
 	boolean inTheThread = false;
 	@Test
 	public void testPlayListSynch() throws Exception {
@@ -1174,9 +1208,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
         String regex = streamId + "_\\d{13}_init.mp4";
 		System.out.println("regex:"+regex);
 
+		Pattern REGEX = Pattern.compile(regex);
+
 		for (int i = 0; i < filesInStreams.length; i++) {
 			System.out.println("files:"+filesInStreams[i]);
-			initFileFound |= filesInStreams[i].matches(regex);
+			initFileFound |= REGEX.matcher(filesInStreams[i]).matches();
 		}
 		assertTrue(initFileFound);
 		
@@ -1890,12 +1926,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Original URL: {}", originalUrl);
 		logger.info("Resulting URL: {}", streamFetcher.getStreamUrl());
 		
-		assertEquals("The stream URL should preserve the encoded @ character in the password to avoid ambiguity", 
-					 expectedUrl, streamFetcher.getStreamUrl());
+		assertEquals(expectedUrl, 
+					 streamFetcher.getStreamUrl(), "The stream URL should preserve the encoded @ character in the password to avoid ambiguity");
 		
 		// Also verify the parameter was extracted
 		AVDictionaryEntry entry = avutil.av_dict_get(options, "allowed_media_types", null, 0);
-		assertNotNull("allowed_media_types should be extracted to options", entry);
+		assertNotNull(entry, "allowed_media_types should be extracted to options");
 		assertEquals("video", entry.value().getString());
 	}
 }

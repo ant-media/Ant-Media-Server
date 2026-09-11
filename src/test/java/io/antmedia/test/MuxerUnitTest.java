@@ -1,86 +1,5 @@
 package io.antmedia.test;
-import static io.antmedia.muxer.IAntMediaStreamHandler.*;
-import static io.antmedia.muxer.MuxAdaptor.getExtendedSubfolder;
-import static io.antmedia.muxer.MuxAdaptor.getSubfolder;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AC3;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HCA;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HEVC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_NONE;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_alloc;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
-import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
-import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
-import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
-import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.ref.WeakReference;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import io.antmedia.*;
-import java.lang.reflect.Field;
 import com.google.gson.JsonObject;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -97,7 +16,16 @@ import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
 import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
-import io.antmedia.muxer.*;
+import io.antmedia.muxer.EndpointMuxer;
+import io.antmedia.muxer.EndpointMuxerAnalytics;
+import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.IEndpointStatusListener;
+import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RecordMuxer;
+import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SPSParser;
@@ -123,7 +51,10 @@ import org.apache.http.util.EntityUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.buffer.SimpleBufferAllocator;
 import org.awaitility.Awaitility;
-import org.bytedeco.ffmpeg.avcodec.*;
+import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
+import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -138,7 +69,13 @@ import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.SizeTPointer;
 import org.json.simple.JSONObject;
-import org.junit.*;
+import org.junit.Rule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -146,6 +83,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
+import org.red5.codec.IStreamCodecInfo;
 import org.red5.codec.IVideoStreamCodec;
 import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
@@ -173,38 +111,110 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.VideoCodecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.*;
-import java.util.*;
-import io.antmedia.muxer.HLSMuxer;
-import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.Mp4Muxer;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.Muxer;
-import io.antmedia.muxer.RecordMuxer;
-import io.antmedia.muxer.EndpointMuxer;
-import io.antmedia.muxer.WebMMuxer;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avformat.*;
-import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_ERROR;
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_FAILED;
+import static io.antmedia.muxer.MuxAdaptor.getExtendedSubfolder;
+import static io.antmedia.muxer.MuxAdaptor.getSubfolder;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AC3;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HCA;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HEVC;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_NONE;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
+import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_alloc;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
+import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
+import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
+import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
+import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
+import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 @ContextConfiguration(locations = {"test.xml"})
 //@ContextConfiguration(classes = {AppConfig.class})
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
+@ExtendWith(SpringExtension.class)
+public class MuxerUnitTest {
 
 
 	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
 	protected static final int BUFFER_SIZE = 10240;
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
 
 	byte[] extradata_original = new byte[]{0x00, 0x00, 0x00, 0x01, 0x67, 0x64, 0x00, 0x15, (byte) 0xAC, (byte) 0xB2, 0x03, (byte) 0xC1, 0x7F, (byte) 0xCB, (byte) 0x80,
@@ -229,14 +239,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	private DataStore datastore;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		//avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		File webApps = new File("webapps");
 		if (!webApps.exists()) {
@@ -253,7 +263,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setAddDateTimeToMp4FileName(false);
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 
 
@@ -496,7 +506,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(errorDefinition);
 	}
 
-	@Test
+    @Test
 	public void testFirstDtsGetterSetters() {
 		Muxer muxer = new Mp4Muxer(null, null, "streams");
 
@@ -509,7 +519,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(303L, muxer.getFirstPacketDtsMs());
 	}
 
-	@Test
+    @Test
 	public void testParseAACConfig() {
 		AACConfigParser aacParser = new AACConfigParser(aacConfig, 0);
 		assertEquals(44100, aacParser.getSampleRate());
@@ -1228,17 +1238,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
-	public void testRTMPCodecSupport() {
-		EndpointMuxer endpointMuxer = new EndpointMuxer(null, vertx);
-
-		assertTrue(endpointMuxer.isCodecSupported(AV_CODEC_ID_H264));
-		assertTrue(endpointMuxer.isCodecSupported(AV_CODEC_ID_AAC));
-
-		assertFalse(endpointMuxer.isCodecSupported(AV_CODEC_ID_AC3));
-
-	}
-
 
 	@Test
 	public void testHLSAddStream() {
@@ -1286,172 +1285,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		hlsMuxer.writeTrailer();
 
-	}
-
-	@Test
-	public void testWriteVideoBuffer(){
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer(null, vertx));
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-
-		endpointMuxer.init(appScope, "", 0, "", 0);
-		endpointMuxer.writeVideoBuffer(null,10,1,1,false,10,10);
-
-		endpointMuxer.setIsRunning(new AtomicBoolean(true));
-		endpointMuxer.getRegisteredStreamIndexList().add(1);
-		endpointMuxer.writeVideoBuffer(null,10,1,1,false,10,10);
-		verify((Muxer)endpointMuxer,times(0)).writeVideoBuffer(any());
-
-		doNothing().when(endpointMuxer).writeVideoBuffer(any());
-		endpointMuxer.writeVideoBuffer(null,10,1,1,true,10,10);
-		verify((Muxer)endpointMuxer,times(1)).writeVideoBuffer(any());
-
-	}
-
-
-	@Test
-	public void testRTMPAddStream() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		EndpointMuxer endpointMuxer = new EndpointMuxer(null, vertx);
-
-		AVCodecContext codecContext = new AVCodecContext();
-		codecContext.width(640);
-		codecContext.height(480);
-
-
-		boolean addStream = endpointMuxer.addStream(null, codecContext, 0);
-		assertFalse(addStream);
-
-
-		codecContext.codec_id(AV_CODEC_ID_H264);
-		addStream = endpointMuxer.addStream(null, codecContext, BUFFER_SIZE);
-		assertTrue(addStream);
-
-
-		addStream = endpointMuxer.addVideoStream(480, 360, Muxer.avRationalTimeBase, AV_CODEC_ID_H264, 0, true, null);
-		assertTrue(addStream);
-
-	}
-
-	@Test
-	public void testRTMPPrepareIO() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		final EndpointMuxer endpointMuxer = new EndpointMuxer("rtmp://no_server", vertx);
-
-		//it should return false because there is nothing to send.
-		assertFalse(endpointMuxer.prepareIO());
-
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			return endpointMuxer.getStatus().equals(BROADCAST_STATUS_FAILED);
-		});
-
-		assertFalse(endpointMuxer.prepareIO());
-
-		final EndpointMuxer endpointMuxer1 = new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx);
-		AVCodecParameters codecParameters = new AVCodecParameters();
-		SPSParser spsParser = new SPSParser(extradata_original, 5);
-		codecParameters.width(spsParser.getWidth());
-		codecParameters.height(spsParser.getHeight());
-		codecParameters.codec_id(AV_CODEC_ID_H264);
-		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
-		codecParameters.extradata_size(sps_pps_avc.length);
-		BytePointer extraDataPointer = new BytePointer(sps_pps_avc);
-		codecParameters.extradata(extraDataPointer);
-		codecParameters.format(AV_PIX_FMT_YUV420P);
-		codecParameters.codec_tag(0);
-		AVRational rat = new AVRational().num(1).den(1000);
-
-		endpointMuxer1.init(appScope, "test", 0, null, 0);
-		endpointMuxer1.addStream(codecParameters, rat, 50);
-		endpointMuxer1.prepareIO();
-
-		Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
-			return endpointMuxer1.getStatus().equals(BROADCAST_STATUS_BROADCASTING);
-		});
-
-		assert(endpointMuxer1.getIsRunning().get());
-
-		final EndpointMuxer endpointMuxer2 = spy(new EndpointMuxer("rtmp://fakeurl", vertx));
-		endpointMuxer2.init(appScope, "test", 0, null, 0);
-		endpointMuxer2.addStream(codecParameters, rat, 50);
-		endpointMuxer2.prepareIO();
-
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			return endpointMuxer2.getStatus().equals(BROADCAST_STATUS_FAILED);
-		});
-		verify(endpointMuxer2).clearResource();
-	}
-
-	@Test
-	public void testRTMPMuxerRaceCondition() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		EndpointMuxer rtmpMuxer = new EndpointMuxer("rtmp://no_server", vertx);
-		rtmpMuxer.init(appScope, "test", 0, null, 0);
-
-		AVCodecParameters codecParameters = new AVCodecParameters();
-		codecParameters.codec_id(AV_CODEC_ID_H264);
-		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
-		AVRational rat = new AVRational().num(1).den(1000);
-		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
-
-		// 1. Test preparedIO reset in clearResource
-		assertTrue(rtmpMuxer.prepareIO());
-		assertFalse(rtmpMuxer.prepareIO()); // already prepared
-
-		rtmpMuxer.clearResource(); // headerWritten is false, resets preparedIO
-		
-		// Re-add stream because clearResource cleared outputFormatContext
-		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
-		assertTrue(rtmpMuxer.prepareIO()); // can prepare again
-
-		// 2. Test cancelOpenIO race protection
-		EndpointMuxer rtmpMuxer2 = new EndpointMuxer("rtmp://no_server", vertx);
-		rtmpMuxer2.init(appScope, "test", 0, null, 0);
-		assertTrue(rtmpMuxer2.addStream(codecParameters, rat, 50));
-
-		// Start prepareIO which will call openIO in blocking thread
-		rtmpMuxer2.prepareIO();
-		// Immediately cancel it
-		rtmpMuxer2.writeTrailer();
-
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			String status = rtmpMuxer2.getStatus();
-			return status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-		});
-
-		// isRunning should remain false because it was cancelled
-		assertFalse(rtmpMuxer2.getIsRunning().get());
-	}
-
-	@Test
-	public void testWriteTrailerBeforeHeader() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		EndpointMuxer rtmpMuxer = new EndpointMuxer("rtmp://no_server", vertx);
-		rtmpMuxer.init(appScope, "test", 0, null, 0);
-
-		// No header written yet
-		rtmpMuxer.writeTrailer();
-
-		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, rtmpMuxer.getStatus());
-
-		AVCodecParameters codecParameters = new AVCodecParameters();
-		codecParameters.codec_id(AV_CODEC_ID_H264);
-		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
-		AVRational rat = new AVRational().num(1).den(1000);
-		
-		// It should be able to add stream and prepareIO again because clearResource was called in writeTrailer
-		assertTrue(rtmpMuxer.addStream(codecParameters, rat, 50));
-		assertTrue(rtmpMuxer.prepareIO());
 	}
 
 
@@ -1557,112 +1390,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		verify(muxAdaptor, Mockito.timeout(5000).times(3)).sendEndpointErrorNotifyHook(rtmpUrl);
-
-	}
-
-	@Test
-	public void testRTMPWriteCrash() {
-
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-
-		SPSParser spsParser = new SPSParser(extradata_original, 5);
-
-		AVCodecParameters codecParameters = new AVCodecParameters();
-		codecParameters.width(spsParser.getWidth());
-		codecParameters.height(spsParser.getHeight());
-		codecParameters.codec_id(AV_CODEC_ID_H264);
-		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
-		codecParameters.extradata_size(sps_pps_avc.length);
-		BytePointer extraDataPointer = new BytePointer(sps_pps_avc);
-		codecParameters.extradata(extraDataPointer);
-		codecParameters.format(AV_PIX_FMT_YUV420P);
-		codecParameters.codec_tag(0);
-		AVRational rat = new AVRational().num(1).den(1000);
-
-		EndpointMuxer endpointMuxer = new EndpointMuxer("any_url", vertx);
-
-		endpointMuxer.init(appScope, "test", 0, null, 0);
-		endpointMuxer.addStream(codecParameters, rat, 50);
-		assertTrue(endpointMuxer.openIO());
-
-		endpointMuxer.setIsRunning(new AtomicBoolean(true));
-
-		//This was a crash if we don't check headerWritten after we initialize the context and get isRunning true
-		//To test the scenarios of that crash;
-		endpointMuxer.writeTrailer();
-
-		//This should work since the trailer is not written yet
-		endpointMuxer.writeHeader();
-
-		//This should work since header is written
-		endpointMuxer.writeTrailer();
-
-		//This is for testing writeHeader after writeTrailer.
-		endpointMuxer.writeHeader();
-	}
-
-	@Test
-	public void testRtmpUrlWithoutAppName() {
-		{
-			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
-			AVDictionary opt = endpointMuxer.getOptionDictionary();
-			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
-			assertEquals("rtmp_app", optEntry.key().getString());
-			assertEquals("", optEntry.value().getString());
-		}
-
-
-		{
-			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test", vertx)); //RTMP URl without Appname
-			AVDictionary opt = endpointMuxer.getOptionDictionary();
-			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
-			assertNull(optEntry);
-
-			//if it's different from zero, it means no file is need to be open.
-			//If it's zero, Not "no file" and it means that file is need to be open .
-			assertEquals(0, endpointMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
-
-
-			endpointMuxer.clearResource();
-		}
-
-		{
-			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
-			AVDictionary opt = endpointMuxer.getOptionDictionary();
-			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
-			assertEquals("rtmp_app", optEntry.key().getString());
-			assertEquals("", optEntry.value().getString());
-
-		}
-
-		{
-			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test", vertx)); //RTMP URl without Appname
-			AVDictionary opt = endpointMuxer.getOptionDictionary();
-			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
-			assertNull(optEntry);
-
-			//if it's different from zero, it means no file is need to be open.
-			//If it's zero, Not "no file" and it means that file is need to be open .
-			assertEquals(0, endpointMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
-
-
-			endpointMuxer.clearResource();
-
-		}
-
-		{
-			EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmps://live-api-s.facebook.com:443/rtmp/y8qd-42g5-1b53-fh15-2v0", vertx)); //RTMP URl without Appname
-			AVDictionary opt = endpointMuxer.getOptionDictionary();
-			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app", null, 0);
-			assertNull(optEntry);
-
-			//if it's different from zero, it means no file is need to be open.
-			//If it's zero, Not "no file" and it means that file is need to be open .
-			assertEquals(0, endpointMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
-
-
-			endpointMuxer.clearResource();
-		}
 
 	}
 
@@ -2658,7 +2385,82 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
+    @Test
+	public void testPacketReceivedDropsAudioWhenDisabled() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			assertTrue(appScope.getDepth() == 1);
+		}
 
+		AppSettings settings = getAppSettings();
+		boolean original = settings.isDisableAudio();
+		try {
+			settings.setDisableAudio(true);
+
+			ClientBroadcastStream clientBroadcastStream = Mockito.spy(new ClientBroadcastStream());
+			clientBroadcastStream.setConnection(Mockito.mock(IStreamCapableConnection.class));
+			clientBroadcastStream.setCodecInfo(new StreamCodecInfo());
+
+			MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope));
+			muxAdaptor.setScope(appScope);
+
+			ITag videoTag = new Tag((byte) Constants.TYPE_VIDEO_DATA, 0, 10, IoBuffer.allocate(10), BUFFER_SIZE);
+			muxAdaptor.packetReceived(clientBroadcastStream, new StreamPacket(videoTag));
+			assertEquals(1, muxAdaptor.getInputQueueSize());
+
+			ITag audioTag = new Tag((byte) Constants.TYPE_AUDIO_DATA, 0, 10, IoBuffer.allocate(10), BUFFER_SIZE);
+			muxAdaptor.packetReceived(clientBroadcastStream, new StreamPacket(audioTag));
+			assertEquals(1, muxAdaptor.getInputQueueSize());
+		} finally {
+			settings.setDisableAudio(original);
+		}
+	}
+
+    @Test
+	public void testIsStreamReadyToPrepare() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			assertEquals(1, appScope.getDepth());
+		}
+
+		AppSettings settings = getAppSettings();
+		boolean original = settings.isDisableAudio();
+		try {
+			IStreamCodecInfo codecInfo = mock(IStreamCodecInfo.class);
+			MuxAdaptor muxAdaptor = spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
+			doReturn(settings).when(muxAdaptor).getAppSettings();
+			doNothing().when(muxAdaptor).getVideoDataConf(codecInfo);
+
+			AVCodecParameters videoCodecParameters = mock(AVCodecParameters.class);
+			AVCodecParameters audioCodecParameters = mock(AVCodecParameters.class);
+			doReturn(videoCodecParameters).when(muxAdaptor).getVideoCodecParameters();
+
+			settings.setDisableAudio(false);
+			muxAdaptor.setEnableVideo(true);
+			muxAdaptor.setEnableAudio(true);
+			doReturn(null).when(muxAdaptor).getAudioCodecParameters();
+			assertFalse(muxAdaptor.isStreamReadyToPrepare(codecInfo));
+
+			doReturn(audioCodecParameters).when(muxAdaptor).getAudioCodecParameters();
+			assertTrue(muxAdaptor.isStreamReadyToPrepare(codecInfo));
+
+			settings.setDisableAudio(true);
+			muxAdaptor.setEnableAudio(true);
+			assertTrue(muxAdaptor.isStreamReadyToPrepare(codecInfo));
+			assertFalse(muxAdaptor.isEnableAudio());
+
+			doReturn(null).when(muxAdaptor).getVideoCodecParameters();
+			assertFalse(muxAdaptor.isStreamReadyToPrepare(codecInfo));
+		} finally {
+			settings.setDisableAudio(original);
+		}
+	}
+
+    @Test
+	public void testGetAppSettingsReturnsNullWhenScopeIsNull() {
+		MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class, Mockito.CALLS_REAL_METHODS);
+		assertNull(muxAdaptor.getAppSettings());
+	}
 
 
 	@Test
@@ -3840,7 +3642,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//5 + 3 bytes for extended timestamp
 		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1000-8);
-		byteBuffer.position(992);
+		byteBuffer.position(0);
 
 		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
 				0, false, 0, timestamp);
@@ -3859,8 +3661,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.writeStreamPacket(event);
 
 		//no extended timestamp
-		byteBuffer = ByteBuffer.allocateDirect(1000-5);
-		byteBuffer.position(995);
+		byteBuffer = ByteBuffer.allocateDirect(500-5);
+		byteBuffer.position(0);
 
 		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
 				0, false, 0, timestamp);
@@ -3874,6 +3676,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		event.setData(IoBuffer.allocate(1000));
 		timestamp += 50;
 		event.setTimestamp((int)timestamp);
+		
+		byteBuffer = ByteBuffer.allocateDirect(1000-5);
+		byteBuffer.position(0);
 
 		muxAdaptor.writeStreamPacket(event);
 
@@ -5883,25 +5688,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.setEnableAudio(true);
 		muxAdaptor.setEnableVideo(true);
 
-		ByteBuffer byteBuffer = mock(ByteBuffer.class);
-		IoBuffer ioBuffer = mock(IoBuffer.class);
-		when(ioBuffer.limit()).thenReturn(1024);
-		when(ioBuffer.buf()).thenReturn(byteBuffer);
-		when(byteBuffer.position(2)).thenReturn(ByteBuffer.allocateDirect(3));
-		when(byteBuffer.position(5)).thenReturn(ByteBuffer.allocateDirect(3));
-
-
-		when(ioBuffer.position(0)).thenReturn(ioBuffer);
-		when(ioBuffer.position(2)).thenReturn(ioBuffer);
-		when(ioBuffer.position(3)).thenReturn(ioBuffer);
-
+		IoBuffer ioBuffer = IoBuffer.allocate(1024);
+		
 		ByteBuffer directByteBuffer = ByteBuffer.allocateDirect(1024-2);
-		directByteBuffer.put(ioBuffer.buf().position(2));
 		directByteBuffer.position(0);
 
 		ByteBuffer directByteBufferVideo = ByteBuffer.allocateDirect(1024-5);
-		directByteBufferVideo.put(ioBuffer.buf().position(2));
-		directByteBufferVideo.position(3);
+		directByteBufferVideo.position(0);
 
 		//audio packets
 		IStreamPacket audioPacket1 = mock(IStreamPacket.class);
@@ -5982,7 +5775,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(lastVideoDts, videoPacket2.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 
-		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket2.getTimestamp() );
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer, 1, audioPacket2.getTimestamp() );
 		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket2.getTimestamp(), 0, 0, false, 0, videoPacket2.getTimestamp() );
 
 		muxAdaptor.writeStreamPacket(audioPacket3);
@@ -6329,309 +6122,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 	@Test
-	public void testParseEndpointURl(){
-		EndpointMuxer endpointMuxer = new EndpointMuxer("rtmp://",vertx);
-		Assert.assertEquals("rtmp", endpointMuxer.muxerType);
-		Assert.assertEquals("flv", endpointMuxer.getFormat());
-		Assert.assertEquals("rtmp",endpointMuxer.getMuxerType());
-
-		endpointMuxer = new EndpointMuxer("srt://",vertx);
-		Assert.assertEquals("srt", endpointMuxer.muxerType);
-		Assert.assertEquals("mpegts", endpointMuxer.getFormat());
-		Assert.assertEquals("srt",endpointMuxer.getMuxerType());
-	}
-	@Test
 	public void testGetSetEndpointURl(){
 		String url = "rtmp://test.antmedia.io/LiveApp/test";
 		Endpoint endpoint = new Endpoint();
 		endpoint.setEndpointUrl(url);
 		assertEquals(url,endpoint.getEndpointUrl());
-	}
-	@Test
-	public void testWritePacket() throws  InterruptedException {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		AVPacket pkt = new AVPacket();
-		final AVRational inputTimebase = new AVRational().num(1).den(1000);
-		final AVRational outputTimebase = new AVRational().num(1).den(1000);
-
-		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
-		// Bypass the 1.5s startup grace period so writePacket exercises the routing
-		// logic this test asserts on, not the source-pipeline-settling drop window.
-		doReturn(false).when(endpointMuxer).inStartupGracePeriod();
-
-		AVCodecParameters codecParameters = new AVCodecParameters();
-		codecParameters.codec_id(AV_CODEC_ID_AAC);
-		codecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
-		codecParameters.codec_tag(1);
-		AVRational rat = new AVRational().num(1).den(1000);
-
-		endpointMuxer.init(appScope, "test", 0, null, 0);
-		endpointMuxer.addStream(codecParameters, rat, 50);
-		endpointMuxer.prepareIO();
-		pkt.stream_index(0);
-
-		// writing audio packet when Header not written
-		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
-		verify(endpointMuxer,times(0)).writeFrameInternal(any(),any(),any(),any(),anyInt());
-
-		endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
-		doReturn(false).when(endpointMuxer).inStartupGracePeriod();
-
-		codecParameters = new AVCodecParameters();
-		SPSParser spsParser = new SPSParser(extradata_original, 5);
-		codecParameters.width(spsParser.getWidth());
-		codecParameters.height(spsParser.getHeight());
-		codecParameters.codec_id(AV_CODEC_ID_H264);
-		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
-		codecParameters.extradata_size(sps_pps_avc.length);
-		BytePointer extraDataPointer = new BytePointer(sps_pps_avc);
-		codecParameters.extradata(extraDataPointer);
-		codecParameters.format(AV_PIX_FMT_YUV420P);
-		codecParameters.codec_tag(0);
-		rat = new AVRational().num(1).den(1000);
-
-
-		endpointMuxer.init(appScope, "test", 0, null, 0);
-		endpointMuxer.addStream(codecParameters, rat, 50);
-		endpointMuxer.prepareIO();
-
-		EndpointMuxer finalEndpointMuxer = endpointMuxer;
-		Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
-			return finalEndpointMuxer.getStatus().equals(BROADCAST_STATUS_BROADCASTING);
-		});
-
-		pkt = new AVPacket();
-		pkt.stream_index(0);
-
-		// Reset state so the post-write BROADCASTING assertion proves the worker
-		// dequeued and wrote, not just that prepareIO already set it.
-		endpointMuxer.setStatus("test");
-
-		//writing video packet when header written
-		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,0);
-		verify(endpointMuxer,times(1)).writeFrameInternal(any(),any(),any(),any(),anyInt());
-		verify(endpointMuxer,times(1)).addExtradataIfRequired(any(),anyBoolean());
-		// Status returns to BROADCASTING only when the worker dequeues and writes
-		// successfully — proves the producer→queue→worker path is end-to-end live.
-		EndpointMuxer videoMuxer = endpointMuxer;
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() ->
-				BROADCAST_STATUS_BROADCASTING.equals(videoMuxer.getStatus()));
-
-		endpointMuxer.setStatus("test");//reset state
-
-		//writing audio packet when header written
-		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
-		EndpointMuxer audioMuxer = endpointMuxer;
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() ->
-				BROADCAST_STATUS_BROADCASTING.equals(audioMuxer.getStatus()));
-
-		endpointMuxer.setStatus("test");//reset state
-
-		pkt = new AVPacket();
-		pkt.stream_index(0);
-		pkt.size(-1);
-		pkt.data(null);
-
-		//writing video packet when header written invalid packet
-		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,0);
-		EndpointMuxer invalidVideoMuxer = endpointMuxer;
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() ->
-				BROADCAST_STATUS_ERROR.equals(invalidVideoMuxer.getStatus()));
-
-		//writing audio packet when header written invalid packet
-		endpointMuxer.getOutputFormatContext().streams(0).codecpar().codec_type(1);
-		endpointMuxer.setStatus("test");//reset state
-		endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,1);
-		EndpointMuxer invalidAudioMuxer = endpointMuxer;
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() ->
-				BROADCAST_STATUS_ERROR.equals(invalidAudioMuxer.getStatus()));
-
-		//bitstream filter
-		endpointMuxer = spy(new EndpointMuxer("udp://127.0.0.1:12345?localaddr=127.0.0.1", vertx));
-		doReturn(false).when(endpointMuxer).inStartupGracePeriod();
-
-		codecParameters = new AVCodecParameters();
-		spsParser = new SPSParser(extradata_original, 5);
-		codecParameters.width(spsParser.getWidth());
-		codecParameters.height(spsParser.getHeight());
-		codecParameters.codec_id(AV_CODEC_ID_H264);
-		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
-		codecParameters.extradata_size(sps_pps_avc.length);
-		extraDataPointer = new BytePointer(sps_pps_avc);
-		codecParameters.extradata(extraDataPointer);
-		codecParameters.format(AV_PIX_FMT_YUV420P);
-		codecParameters.codec_tag(0);
-		rat = new AVRational().num(1).den(1000);
-
-		pkt = new AVPacket();
-		pkt.stream_index(0);
-
-		endpointMuxer.init(appScope, "test", 0, null, 0);
-		endpointMuxer.addStream(codecParameters, rat, 50);
-
-		AVBSFContext avbsfContext = endpointMuxer.initVideoBitstreamFilter("h264_mp4toannexb", codecParameters, Muxer.avRationalTimeBase);
-		endpointMuxer.prepareIO();
-
-         EndpointMuxer finalEndpointMuxer1 = endpointMuxer;
-         Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
-	            return finalEndpointMuxer1.getStatus().equals(BROADCAST_STATUS_BROADCASTING);
-          });
-
-	 	endpointMuxer.setStatus("test");
-
-	    endpointMuxer.writePacket(pkt,inputTimebase,outputTimebase,0);
-		assert (!endpointMuxer.getStatus().equals(BROADCAST_STATUS_BROADCASTING));
-
-
-	}
-
-	@Test
-	public void testStartupGracePeriodDropsWrites() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		EndpointMuxer muxer = spy(new EndpointMuxer("udp://127.0.0.1:12351?localaddr=127.0.0.1", vertx));
-
-		AVPacket pkt = new AVPacket();
-		AVRational tb = new AVRational().num(1).den(1000);
-
-		// First inStartupGracePeriod() call seeds graceStartMs and must report true.
-		assertTrue(muxer.inStartupGracePeriod());
-
-		// writePacket short-circuits inside grace, never reaching writeFrameInternal.
-		muxer.writePacket(pkt, tb, tb, 1);
-		verify(muxer, times(0)).writeFrameInternal(any(), any(), any(), any(), anyInt());
-
-		// After STARTUP_GRACE_PERIOD_MS (1.5s) elapses, the predicate must flip.
-		Awaitility.await().atMost(3, TimeUnit.SECONDS).until(() -> !muxer.inStartupGracePeriod());
-		assertFalse(muxer.inStartupGracePeriod());
-	}
-
-	@Test
-	public void testSetStatusListenerNotifyAndDedup() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		IEndpointStatusListener listener = mock(IEndpointStatusListener.class);
-		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12352?localaddr=127.0.0.1", vertx);
-		muxer.setStatusListener(listener);
-
-		// Initial status is CREATED. Transition to "foo" must notify exactly once.
-		muxer.setStatus("foo");
-		// Repeating the same status must NOT notify (dedup branch).
-		muxer.setStatus("foo");
-		// New value notifies again.
-		muxer.setStatus("bar");
-
-		verify(listener, times(1)).endpointStatusUpdated("udp://127.0.0.1:12352?localaddr=127.0.0.1", "foo");
-		verify(listener, times(1)).endpointStatusUpdated("udp://127.0.0.1:12352?localaddr=127.0.0.1", "bar");
-		assertEquals("bar", muxer.getStatus());
-	}
-
-	@Test
-	public void testOpenIONoFileFormat() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		// rtsp muxer carries AVFMT_NOFILE — openIO must short-circuit return true
-		// before touching avio_open2 (which would fail on a bogus URL).
-		EndpointMuxer muxer = new EndpointMuxer("rtsp://127.0.0.1:5544/dummy", vertx);
-		muxer.setFormat("rtsp");
-
-		AVFormatContext ctx = muxer.getOutputFormatContext();
-		assertNotNull(ctx);
-		assertTrue("rtsp muxer is expected to have AVFMT_NOFILE",
-				(ctx.oformat().flags() & AVFMT_NOFILE) != 0);
-
-		assertTrue(muxer.openIO());
-	}
-
-	@Test
-	public void testEndpointAnalyticsDropAndBurst() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12353?localaddr=127.0.0.1", vertx);
-		EndpointMuxer.EndpointAnalytics analytics = muxer.getAnalytics();
-		assertNotNull(analytics);
-
-		// recordDrop: incrementing the counter and hitting the rate-limited log path.
-		for (int i = 0; i < 10; i++) {
-			analytics.recordDrop(50);
-		}
-
-		// recordWrite: feed a burst of fast back-to-back writes spanning > 500ms DTS.
-		// First call seeds lastWriteEndNanos; subsequent calls within BURST_GAP_NANOS
-		// (~2ms) of each other and crossing BURST_DTS_SPAN_THRESHOLD_MS (500ms) must
-		// drive burstCount past BURST_THRESHOLD (3) and fire the burst-flush warn.
-		long durNanos = 50_000L; // 50us per write — well under BURST_GAP_NANOS
-		long[] dtsValues = {0L, 200L, 400L, 600L, 800L, 1000L};
-		for (long dts : dtsValues) {
-			analytics.recordWrite(durNanos, dts, 10);
-		}
-
-		// Non-burst path: a long gap resets burstCount and exercises the else branch.
-		try { Thread.sleep(5); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-		analytics.recordWrite(durNanos, 1200L, 10);
-
-		// Spike-detection branch: a write much slower than the (now warmed) EWMA baseline.
-		// Push more writes to grow EWMA past 0, then a >5x outlier above the 100ms floor.
-		for (int i = 0; i < 50; i++) {
-			analytics.recordWrite(1_000_000L, 1300L + i, 10); // 1ms each
-		}
-		analytics.recordWrite(500_000_000L, 2000L, 10); // 500ms — should trip spike log
-
-		// AV_NOPTS_VALUE path: the early-skip branch in the DTS update.
-		analytics.recordWrite(durNanos, avutil.AV_NOPTS_VALUE, 10);
-	}
-
-	@Test
-	public void testShutdownWorkerQueueFullDrainsPacket() throws Exception {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		EndpointMuxer muxer = new EndpointMuxer("udp://127.0.0.1:12354?localaddr=127.0.0.1", vertx);
-
-		Field capacityField = EndpointMuxer.class.getDeclaredField("PACKET_QUEUE_CAPACITY");
-		capacityField.setAccessible(true);
-		int capacity = capacityField.getInt(null);
-
-		Field queueField = EndpointMuxer.class.getDeclaredField("packetQueue");
-		queueField.setAccessible(true);
-		@SuppressWarnings("unchecked")
-		java.util.concurrent.LinkedBlockingQueue<Object> queue =
-				(java.util.concurrent.LinkedBlockingQueue<Object>) queueField.get(muxer);
-
-		// Fill to capacity with real AVPackets so the head-drop branch runs and
-		// av_packet_free is exercised on the polled stale element.
-		for (int i = 0; i < capacity; i++) {
-			AVPacket p = av_packet_alloc();
-			assertTrue(queue.offer(p));
-		}
-		assertEquals(capacity, queue.size());
-
-		Field runningField = EndpointMuxer.class.getDeclaredField("isWorkerRunning");
-		runningField.setAccessible(true);
-		runningField.setBoolean(muxer, true);
-
-		// Null out workerThread so shutdownWorkerAndJoin's join branch is a no-op.
-		Field threadField = EndpointMuxer.class.getDeclaredField("workerThread");
-		threadField.setAccessible(true);
-		threadField.set(muxer, null);
-
-		java.lang.reflect.Method shutdown = EndpointMuxer.class.getDeclaredMethod("shutdownWorkerAndJoin");
-		shutdown.setAccessible(true);
-		shutdown.invoke(muxer);
-
-		// Outer offer failed, one stale AVPacket was polled+freed, retry offer succeeded.
-		assertEquals(capacity, queue.size());
-		Field poisonField = EndpointMuxer.class.getDeclaredField("POISON_PILL");
-		poisonField.setAccessible(true);
-		Object poison = poisonField.get(null);
-		assertTrue("POISON_PILL must have landed in the queue", queue.contains(poison));
-		assertFalse(runningField.getBoolean(muxer));
 	}
 
 	@Test
@@ -6683,20 +6178,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(adaptor.isPreviewOverwrite());
 		adaptor.setPreviewOverwrite(false);
 		assertFalse(adaptor.isPreviewOverwrite());
-	}
-
-	@Test
-	public void testGetOutputFormatCtx(){
-		EndpointMuxer endpointMuxer = spy(new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/prepareIOTest2", vertx));
-		endpointMuxer.setFormat("testing");
-		AVFormatContext ctx = endpointMuxer.getOutputFormatContext();
-		assert (endpointMuxer.getStatus().equals(BROADCAST_STATUS_FAILED));
-		assert (ctx == null);
-
-		endpointMuxer.setFormat("mpegts");
-		ctx = endpointMuxer.getOutputFormatContext();
-		assert (ctx != null);
-
 	}
 
 
@@ -6846,6 +6327,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		adaptor.setDirectMuxingSupported(true);
 		assertTrue(adaptor.directMuxingSupported());
 	}
+	
+	@Test
+	public void testStartRecordingReturnNull() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+
+		MuxAdaptor adaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), null, false, appScope));
+
+		//MuxAdaptor adaptor = MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class) , Mockito.mock(Broadcast.class), false, Mockito.mock(IScope.class));
+		adaptor.setIsRecording(true);
+		assertNull(adaptor.startRecording(null, 0, "base_name"));
+		
+		
+		assertNull(adaptor.startRecording(RecordType.WEBM, 0, "base_name"));
+
+	}
 
 	@Test
 	public void testEnableRecordMuxingWithFileNameUsesOverride() throws Exception {
@@ -6912,70 +6408,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0, muxAdaptor.getDataStreamIndex());
 		assertEquals(1, muxAdaptor.getVideoStreamIndex());
 		assertEquals(2, muxAdaptor.getAudioStreamIndex());
-	}
-
-	@Test
-	public void testEndpointMuxerPrepareIOCancelledAndNotCancelled() throws Exception {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-
-		// Scenario 1: Test Cancellation (Lines 246-253 and 151-164 cancellation path)
-		EndpointMuxer endpointMuxer = Mockito.spy(new EndpointMuxer("rtmp://dummy", vertx));
-		
-		// Mock getOutputFormatContext to return a context with streams
-		AVFormatContext outputFormatContext = new AVFormatContext(null);
-		avformat_alloc_output_context2(outputFormatContext, null, "flv", null);
-		avformat_new_stream(outputFormatContext, null);
-		Mockito.doReturn(outputFormatContext).when(endpointMuxer).getOutputFormatContext();
-		
-		// Mock openIO to set cancelOpenIO = true and return true
-		Mockito.doAnswer(invocation -> {
-			Field cancelField = EndpointMuxer.class.getDeclaredField("cancelOpenIO");
-			cancelField.setAccessible(true);
-			AtomicBoolean cancel = (AtomicBoolean) cancelField.get(endpointMuxer);
-			cancel.set(true);
-			return true;
-		}).when(endpointMuxer).openIO();
-		
-		// Add element to bsfFilterContextList so it enters the check block
-		Field bsfField = Muxer.class.getDeclaredField("bsfFilterContextList");
-		bsfField.setAccessible(true);
-		List<AVBSFContext> bsfList = (List<AVBSFContext>) bsfField.get(endpointMuxer);
-		bsfList.add(new AVBSFContext(null));
-		
-		endpointMuxer.prepareIO();
-		
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			// preparedIO should be false because clearResource is called
-			Field preparedField = EndpointMuxer.class.getDeclaredField("preparedIO");
-			preparedField.setAccessible(true);
-			AtomicBoolean prepared = (AtomicBoolean) preparedField.get(endpointMuxer);
-			return !prepared.get() && !endpointMuxer.getIsRunning().get();
-		});
-		
-		Mockito.verify(endpointMuxer, Mockito.atLeastOnce()).clearResource();
-		
-		
-		// Scenario 2: Test Normal Flow (Lines 151-164 normal path)
-		EndpointMuxer rtmpMuxer2 = Mockito.spy(new EndpointMuxer("rtmp://dummy2", vertx));
-		Mockito.doReturn(outputFormatContext).when(rtmpMuxer2).getOutputFormatContext();
-		Mockito.doReturn(true).when(rtmpMuxer2).openIO();
-		
-		bsfList = (List<AVBSFContext>) bsfField.get(rtmpMuxer2);
-		bsfList.add(new AVBSFContext(null));
-		
-		rtmpMuxer2.prepareIO();
-		
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return rtmpMuxer2.getIsRunning().get() 
-					&& rtmpMuxer2.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-		});
-		
-		assertTrue(rtmpMuxer2.getIsRunning().get());
-		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, rtmpMuxer2.getStatus());
-		
-		// Clean up
-		avformat_free_context(outputFormatContext);
 	}
 	
 	

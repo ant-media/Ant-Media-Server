@@ -10,6 +10,10 @@ on:
   pull_request:
     branches:
       - '**'
+
+permissions:
+  contents: read
+  checks: write
   
       
 env:
@@ -17,6 +21,7 @@ env:
       
 jobs:  
   run-unit-tests:
+    name: Run unit tests
     runs-on: ubuntu-22.04
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
@@ -31,11 +36,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
           
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' #openjdk
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
           cache: 'maven'
         
       - name: Add MongoDB 6.0 GPG key and repository
@@ -74,6 +79,25 @@ jobs:
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
           mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/* -Dorg.bytedeco.javacpp.logger.debug=false org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+      - name: Publish unit test report
+        if: always()
+        uses: mikepenz/action-junit-report@v6
+        with:
+          check_name: Unit Test Report
+          report_paths: target/surefire-reports/TEST-*.xml
+          fail_on_failure: false
+          require_tests: false
+          detailed_summary: true
+          include_time_in_summary: true
       
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
@@ -91,16 +115,16 @@ jobs:
 
   check-vulnerabilities:
     runs-on: ubuntu-22.04
-    
+    name: Check vulnerabilities
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
           
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' #openjdk
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
           cache: 'maven'
         
       - name: Build projects
@@ -147,17 +171,18 @@ jobs:
           sudo service redis-server status           
           
   run-integration-tests:
+    name: Run integration tests
     runs-on: ubuntu-22.04
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
           
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' #openjdk
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
           cache: 'maven'
           
     
@@ -174,18 +199,18 @@ jobs:
             curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
       
-      - name: Install FFmpeg 7
+      - name: Install FFmpeg 8
         run: |
-          curl -L --retry 5 --retry-delay 10 \
+          curl -fL --retry 5 --retry-delay 10 --retry-all-errors \
             -o /tmp/ffmpeg.tar.xz \
-            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz
+            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz
           mkdir -p /tmp/ffmpeg
           tar -xf /tmp/ffmpeg.tar.xz -C /tmp/ffmpeg --strip-components=1
           sudo install -m 0755 /tmp/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
           sudo install -m 0755 /tmp/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
           ffmpeg_version="$(ffmpeg -version | head -n 1)"
           echo "$ffmpeg_version"
-          echo "$ffmpeg_version" | grep -Eq "ffmpeg version n?7\."
+          echo "$ffmpeg_version" | grep -Eq "ffmpeg version n?8\."
             
       - name: Install dependencies
         run: |
@@ -237,6 +262,25 @@ jobs:
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
           mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=*/integration/* -Dmaven.javadoc.skip=true --quiet
+
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+      - name: Publish integration test report
+        if: always()
+        uses: mikepenz/action-junit-report@v6
+        with:
+          check_name: Integration Test Report
+          report_paths: target/surefire-reports/TEST-*.xml
+          fail_on_failure: false
+          require_tests: false
+          detailed_summary: true
+          include_time_in_summary: true
       
 
       - name: Show Ant Media Server Error Log on failure
@@ -278,11 +322,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
           
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' #openjdk
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
           cache: 'maven'
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           

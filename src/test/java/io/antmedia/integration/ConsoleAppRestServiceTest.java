@@ -1,12 +1,12 @@
 package io.antmedia.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,16 +53,16 @@ import org.codehaus.plexus.util.ExceptionUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer.MethodName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +82,7 @@ import io.antmedia.statistic.StatsCollector;
 import io.antmedia.test.StreamFetcherUnitTest;
 import net.bytebuddy.utility.RandomString;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodName.class)
 public class ConsoleAppRestServiceTest{
 
 	private static String ROOT_SERVICE_URL;
@@ -122,7 +123,7 @@ public class ConsoleAppRestServiceTest{
 		httpCookieStore = new BasicCookieStore();
 	}
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		if (AppFunctionalV2Test.getOS() == AppFunctionalV2Test.MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
@@ -148,7 +149,7 @@ public class ConsoleAppRestServiceTest{
 		return callAuthenticateUser(user).isSuccess();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		try {
 			restService = new CommonRestService();
@@ -178,7 +179,7 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
-	@After
+	@AfterEach
 	public void teardown() {
 	}
 
@@ -221,8 +222,8 @@ public class ConsoleAppRestServiceTest{
 				assertTrue(callAuthenticateUser(user).isSuccess());
 				return;
 			}
-			assertTrue("Server is not started from scratch. Please delete server.db file and restart server",
-					firstLogin.isSuccess());
+			assertTrue(firstLogin.isSuccess(),
+					"Server is not started from scratch. Please delete server.db file and restart server");
 
 			User user = new User();
 
@@ -402,7 +403,7 @@ public class ConsoleAppRestServiceTest{
 	 * https://github.com/ant-media/Ant-Media-Server/issues/6933
 	 */
 	@Test
-	public void testRestartServerUnderHttpLoad() {
+	public void testRestartServerUnderHttpLoad() throws InterruptedException {
 
 
 		//give load to the server by sending http requests to m3u8
@@ -462,6 +463,7 @@ public class ConsoleAppRestServiceTest{
 		//restart the server
 
 		Process process = AppFunctionalV2Test.execute("sudo service antmedia restart");
+		assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Server restart command timed out");
 		assertEquals(0, process.exitValue());
 
 		//check that live is started
@@ -504,8 +506,82 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
+	/**
+	 * Guards the "app settings lost on restart" race: the Spring context was published to request
+	 * threads before it finished refreshing, so a concurrent HLS request could read a half-initialized
+	 * app.settings bean and the app came back up with defaults. Plants a non-default value and requires
+	 * it to survive a restart taken under HLS load.
+	 */
 	@Test
-	public void testCreateCustomApp() 
+	public void testAppSettingsSurviveRestartUnderHttpLoad() throws Exception {
+
+		final String app = "LiveApp";
+		final String hlsUrl = "http://127.0.0.1:5080/" + app + "/streams/stream.m3u8";
+		final int spamThreads = 10;
+
+		resetCookieStore();
+		assertTrue(authenticateDefaultUser().isSuccess());
+		AppSettings appSettings = callGetAppSettings(app);
+		final String originalHlsListSize = appSettings.getHlsListSize();
+
+		appSettings.setHlsListSize("7");   // non-default
+		assertTrue(callSetAppSettings(app, appSettings).isSuccess());
+
+		// keep HLS requests landing across the restart to recreate the race
+		final AtomicBoolean spam = new AtomicBoolean(true);
+		Thread[] spammers = new Thread[spamThreads];
+		for (int i = 0; i < spamThreads; i++) {
+			spammers[i] = new Thread(() -> {
+				try (CloseableHttpClient client = HttpClients.custom()
+						.setRedirectStrategy(new LaxRedirectStrategy()).build()) {
+					while (spam.get()) {
+						try {
+							client.execute(RequestBuilder.get().setUri(hlsUrl).build()).close();
+						} catch (Exception e) {
+							// expected while the server is down
+						}
+					}
+				} catch (Exception e) {
+					// irrelevant to the assertion
+				}
+			});
+			spammers[i].start();
+		}
+
+		try {
+			assertEquals(0, AppFunctionalV2Test.execute("sudo service antmedia restart").waitFor());
+
+			// Wait for the planted value, not just any answer: the app can serve defaults briefly while the
+			// datastore remounts. This also leaves it ready for the next test, which reads it with no retry.
+			Awaitility.await("app settings must survive restart under http load")
+					.atMost(90, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+					.until(() -> {
+						try {
+							resetCookieStore();
+							return authenticateDefaultUser().isSuccess()
+									&& "7".equals(callGetAppSettings(app).getHlsListSize());
+						} catch (Exception e) {
+							return false;
+						}
+					});
+		} finally {
+			spam.set(false);
+			for (Thread t : spammers) {
+				t.join();
+			}
+
+			// restore for the next test
+			resetCookieStore();
+			if (authenticateDefaultUser().isSuccess()) {
+				AppSettings restore = callGetAppSettings(app);
+				restore.setHlsListSize(originalHlsListSize);
+				callSetAppSettings(app, restore);
+			}
+		}
+	}
+
+	@Test
+	public void testCreateCustomApp()
 	{
 		String appName = RandomString.make(20);
 		log.info("app:{} will be created", appName);

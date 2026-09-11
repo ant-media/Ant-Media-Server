@@ -1,13 +1,13 @@
 package io.antmedia.test.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,9 +16,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
@@ -31,12 +31,13 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.storage.StorageClient;
 
+@Tag("fast")
 public class AppSettingsTest {
 	String appName = "TestApp";
 	String path = "webapps/"+appName+"/WEB-INF/red5-web.properties";
 	File settingsFile = new File(path);
 	
-	@Before
+	@BeforeEach
 	public void before() {
 		assertFalse(settingsFile.exists());
 		
@@ -51,7 +52,7 @@ public class AppSettingsTest {
 		assertEquals(0, settingsFile.length());
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		deleteDir(new File("webapps"));
 	}

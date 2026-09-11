@@ -18,11 +18,14 @@
 
 package org.red5.server.service;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.util.TreeSet;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.red5.cache.impl.NoCacheImpl;
 import org.red5.io.ITag;
 import org.red5.io.ITagReader;
@@ -38,32 +41,32 @@ import org.red5.io.object.Serializer;
 import org.red5.server.service.flv.IFLVService;
 import org.red5.server.service.flv.impl.FLVService;
 
-import junit.framework.TestCase;
-
 /**
  * @author The Red5 Project
  * @author Dominick Accattato (daccattato@gmail.com)
  * @author Luke Hubbard, Codegent Ltd (luke@codegent.com)
  */
-public class MetaDataInjectionTest extends TestCase {
+@org.junit.jupiter.api.Tag("fast")
+public class MetaDataInjectionTest {
 
     private IFLVService service;
 
-    /**
-     * SetUp is called before each test
-     */
-    @Override
-    public void setUp() {
+	/**
+	 * SetUp is called before each test
+	 */
+	@BeforeEach
+	public void setUp() {
         service = new FLVService();
     }
 
-    /**
-     * Test MetaData injection
-     * 
-     * @throws IOException
+	/**
+	 * Test MetaData injection
+	 * 
+	 * @throws IOException
      *             if io exception
-     */
-    public void testMetaDataInjection() throws IOException {
+	 */
+	@Test
+	public void testMetaDataInjection() throws IOException {
         String path = "target/test-classes/fixtures/test_cue1.flv";
         File f = new File(path);
         System.out.println("Path: " + f.getAbsolutePath());

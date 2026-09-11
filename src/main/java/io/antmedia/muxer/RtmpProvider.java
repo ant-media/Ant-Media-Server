@@ -2,6 +2,7 @@ package io.antmedia.muxer;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -78,6 +79,12 @@ public class RtmpProvider extends Muxer implements IProvider {
 
     @Override
     public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
+        return addStream(codecParameters, timebase, streamIndex, Optional.empty());
+    }
+
+    @Override
+    public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex,
+            Optional<String> language) {
         if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
         {
             videoExtradata = new byte[codecParameters.extradata_size()];
@@ -107,7 +114,7 @@ public class RtmpProvider extends Muxer implements IProvider {
             else
                 videoExtradata = null;
         }
-        super.addStream(codecParameters,timebase,streamIndex);
+        super.addStream(codecParameters, timebase, streamIndex, language);
         return true;
     }
     

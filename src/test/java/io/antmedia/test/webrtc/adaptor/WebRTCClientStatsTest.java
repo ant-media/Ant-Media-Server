@@ -1,11 +1,13 @@
 package io.antmedia.test.webrtc.adaptor;
 
-import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-
+import org.junit.jupiter.api.Tag;
 import io.antmedia.rest.WebRTCClientStats;
+import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@Tag("fast")
 public class WebRTCClientStatsTest {
 
 	@Test

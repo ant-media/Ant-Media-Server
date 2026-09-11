@@ -1,20 +1,21 @@
 package io.antmedia.test.webrtc.adaptor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
-
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.Frame.Type;
 
+@Tag("fast")
 public class FrameTest {
 	
 	@Test

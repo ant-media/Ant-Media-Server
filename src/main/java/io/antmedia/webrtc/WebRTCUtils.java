@@ -4,7 +4,12 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class WebRTCUtils {
+    private static final Logger logger = LoggerFactory.getLogger(WebRTCUtils.class);
+
     public static boolean validateSdpMediaPayloads(String sdp) {
         String[] lines = sdp.split("\\r?\\n");
         Map<String, Set<Integer>> mediaPayloads = new HashMap<>();
@@ -12,12 +17,14 @@ public class WebRTCUtils {
 
         Pattern mLinePattern = Pattern.compile("^m=(\\w+)\\s+\\d+\\s+UDP/TLS/RTP/SAVPF\\s+(.+)$");
         Pattern rtpmapPattern = Pattern.compile("^a=rtpmap:(\\d+)\\s+.+$");
+        Pattern opusRtpmapPattern = Pattern.compile("^a=rtpmap:\\d++\\s++(?:multi)?opus/(\\d++)/(\\d++)", Pattern.CASE_INSENSITIVE);
 
         String currentMedia = null;
         for (String line : lines) {
             line = line.trim();
-            if(line.contains("opus") && !line.contains("opus/48000/2")){
-                System.out.println("Invalid SDP: opus should be opus/48000/2 ");
+            Matcher opusRtpmap = opusRtpmapPattern.matcher(line);
+            if(opusRtpmap.find() && (!"48000".equals(opusRtpmap.group(1)) || Integer.parseInt(opusRtpmap.group(2)) < 2)){
+                logger.warn("Invalid SDP: opus should be 48000 Hz with at least 2 channels");
                 return false;
             }
 
@@ -46,7 +53,7 @@ public class WebRTCUtils {
             if (mediaPayloads.containsKey(media)) {
                 for (int pt : mediaPayloads.get(media)) {
                     if (!allRtpMaps.contains(pt)) {
-                        System.out.println("Invalid SDP : Missing rtpmap for " + media + " payload type: " + pt);
+                        logger.warn("Invalid SDP: Missing rtpmap for {} payload type: {}", media, pt);
                         return false;
                     }
                 }
