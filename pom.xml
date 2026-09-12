@@ -81,7 +81,20 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <!-- Spring Java configuration is not measured intentionally -->
             **/io/antmedia/config/*Configuration.java
         </sonar.coverage.exclusions>
+        <prometheus.metrics.version>1.5.0</prometheus.metrics.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>prometheus-metrics-bom</artifactId>
+                <version>${prometheus.metrics.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <defaultGoal>install</defaultGoal>
@@ -675,27 +688,27 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>prometheus-metrics-core</artifactId>
-            <version>1.5.0</version>
+            <version>${prometheus.metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>prometheus-metrics-exporter-pushgateway</artifactId>
-            <version>1.5.0</version>
+            <version>${prometheus.metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>prometheus-metrics-instrumentation-jvm</artifactId>
-            <version>1.5.0</version>
+            <version>${prometheus.metrics.version}</version>
         </dependency>
         <dependency>
           <groupId>io.prometheus</groupId>
           <artifactId>prometheus-metrics-exposition-formats</artifactId>
-          <version>1.5.0</version>
+          <version>${prometheus.metrics.version}</version>
         </dependency>
         <dependency>
           <groupId>io.prometheus</groupId>
           <artifactId>prometheus-metrics-exposition-textformats</artifactId>
-          <version>1.5.0</version>
+          <version>${prometheus.metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
