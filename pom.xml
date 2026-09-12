@@ -63,8 +63,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
    
     <properties>
         <skipTests>false</skipTests>
-        <maven.compiler.release>17</maven.compiler.release>
-        <maven.compiler.testRelease>17</maven.compiler.testRelease>
         <build.dir>target</build.dir>
         <finalName>${project.artifactId}</finalName>
         <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
@@ -83,27 +81,25 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <!-- Spring Java configuration is not measured intentionally -->
             **/io/antmedia/config/*Configuration.java
         </sonar.coverage.exclusions>
+        <prometheus.metrics.version>1.5.0</prometheus.metrics.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>prometheus-metrics-bom</artifactId>
+                <version>${prometheus.metrics.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <defaultGoal>install</defaultGoal>
         <directory>${build.dir}</directory>
         <finalName>${finalName}</finalName>
-
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
-                <configuration>
-                    <release>${maven.compiler.release}</release>
-                    <testRelease>${maven.compiler.testRelease}</testRelease>
-                    <jdkToolchain>
-                        <version>17</version>
-                    </jdkToolchain>
-                </configuration>
-            </plugin>
-        </plugins>
         
         <resources>
             <resource>
@@ -272,6 +268,25 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             </plugin>
         </plugins>
          </pluginManagement>
+         <plugins>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies-to-lib</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <includeScope>compile</includeScope>
+                            <includeGroupIds>io.prometheus</includeGroupIds>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+         </plugins>
     </build>
     <dependencies>
         <dependency>
@@ -336,6 +351,14 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
@@ -377,6 +400,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
+       <dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
 		</dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -505,6 +533,12 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <groupId>com.googlecode.json-simple</groupId>
     		<artifactId>json-simple</artifactId>
     		<version>${json-simple.version}</version>
+    		<exclusions>
+				<exclusion>
+					<groupId>junit</groupId>
+					<artifactId>junit</artifactId>
+				</exclusion>
+			</exclusions>
         </dependency>
         <dependency>
 			<groupId>com.google.code.gson</groupId>
@@ -649,6 +683,32 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>3.1.8</version>
+        </dependency>
+        <!-- Prometheus metrics -->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>prometheus-metrics-core</artifactId>
+            <version>${prometheus.metrics.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>prometheus-metrics-exporter-pushgateway</artifactId>
+            <version>${prometheus.metrics.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>prometheus-metrics-instrumentation-jvm</artifactId>
+            <version>${prometheus.metrics.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>io.prometheus</groupId>
+          <artifactId>prometheus-metrics-exposition-formats</artifactId>
+          <version>${prometheus.metrics.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>io.prometheus</groupId>
+          <artifactId>prometheus-metrics-exposition-textformats</artifactId>
+          <version>${prometheus.metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
@@ -900,6 +960,12 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
+				 <dependency>
+		    		<groupId>org.bytedeco</groupId>
+		    		<artifactId>srt-platform</artifactId>
+		           	<version>${javacpp.srt.version}</version>
+		            <scope>provided</scope>
+        		</dependency>
                 <dependency>
                     <groupId>org.bytedeco</groupId>
                     <artifactId>srt-platform</artifactId>

@@ -7,19 +7,21 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.ToLongFunction;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -34,12 +36,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.LongSerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.bytedeco.javacpp.Pointer;
 import org.red5.server.Launcher;
 import org.red5.server.api.IServer;
@@ -54,7 +51,6 @@ import org.springframework.context.ApplicationContextAware;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -139,6 +135,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String MARKETPLACE_NAME = "marketplace";
 
 	public static final String USER_EMAIL = "userEmail";
+	public static final String USER_EMAIL_HASH = "userEmailHash";
+	public static final String LICENSE_KEY_HASH = "licenseKeyHash";
 
 	public static final String LICENSE_VALID = "licenseValid";
 
@@ -272,9 +270,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private String kafkaBrokers = null;
 
-	public static final String INSTANCE_STATS_TOPIC_NAME = "ams-instance-stats";
+	public static final String EXPORTER_KAFKA = "kafka";
+	public static final String EXPORTER_PROMETHEUS = "prometheus";
 
-	public static final String WEBRTC_STATS_TOPIC_NAME = "ams-webrtc-stats";
+	private String statsExporterType = "";
+	private String prometheusPushGatewayAddress;
+	private String prometheusPushJob;
+	private String prometheusPushInstanceId;
+	private IStatsExporter statsExporter = null;
 
 	public static final String UP_TIME = "up-time";
 
@@ -363,11 +366,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private static final String SOFTWARE_VERSION = "softwareVersion";
 
 
-	private Producer<Long,String> kafkaProducer = null;
-
 	private long cpuMeasurementTimerId = -1;
 
-	private long kafkaTimerId = -1;
+	private long statsTimerId = -1;
 
 	private boolean heartBeatEnabled = true;
 
@@ -390,6 +391,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private ILicenceService licenseService;
 
 	private String userEmail;
+	private String licenceKey;
 
 	/**
 	 * Webhook url to notify high resource usage, unexpected shutdown. More callbacks can be added
@@ -439,7 +441,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			}
 			time2Log++;
 		});
-		startKafkaProducer();
 
 		startResourceHistory();
 
@@ -483,15 +484,48 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 	}
 
-	private void startKafkaProducer() {
-		if (kafkaBrokers != null && !kafkaBrokers.isEmpty()) {
-			kafkaProducer = createKafkaProducer();		
+	private void startStatsExporter() {
+		if (EXPORTER_KAFKA.equalsIgnoreCase(statsExporterType)) {
+			if (kafkaBrokers == null || kafkaBrokers.isEmpty()) {
+				logger.warn("Kafka exporter selected but no brokers configured. Stats export disabled.");
+				return;
+			}
+			statsExporter = new KafkaStatsExporter(kafkaBrokers);
 
-			kafkaTimerId  = getVertx().setPeriodic(staticSendPeriod, l -> {
-				sendInstanceStats(scopes);
-				sendWebRTCClientStats();
-			});
-		}	
+			logger.info("starting Kafka StatsExporter");
+		} else if (EXPORTER_PROMETHEUS.equalsIgnoreCase(statsExporterType)) {
+				String address = prometheusPushGatewayAddress;
+				if (address == null || address.isEmpty()) {
+					logger.warn("Prometheus exporter selected but no Pushgateway address configured. Stats export disabled.");
+					return;
+				}
+				String instanceId = prometheusPushInstanceId;
+				if (instanceId == null || instanceId.isEmpty()) {
+					instanceId = hostAddress;
+				}
+
+				String emailLabel = getUserEmail();
+
+				statsExporter = new PrometheusStatsExporter(address, instanceId, emailLabel);
+				logger.info("starting Prometheus PushGateway StatsExporter with address={}  instance={} user={}",
+						address,  instanceId, emailLabel);
+		} else {
+				logger.info("Stats export disabled.");
+				logger.info("Stats exporter type set to {}", statsExporterType);
+				return;
+		}
+
+		try {
+			statsExporter.start();
+		} catch (Exception e) {
+			logger.error("Failed to start stats exporter: {}", e.getMessage());
+			return;
+		}
+
+		statsTimerId = getVertx().setPeriodic(staticSendPeriod, l -> {
+			sendInstanceStats(scopes);
+			sendWebRTCClientStats();
+		});
 	}
 
 	private static int getVertWorkerQueueSizeStatic() {
@@ -542,7 +576,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				List<WebRTCClientStats> webRTCClientStats;
 				for (String streamId : streams) {
 					webRTCClientStats = webrtcAdaptor.getWebRTCClientStats(streamId);
-					sendWebRTCClientStats2Kafka(webRTCClientStats, streamId);			
+					sendWebRTCClientStats(webRTCClientStats, streamId);			
 				}							
 			}
 		}
@@ -550,7 +584,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	}
 
-	public void sendWebRTCClientStats2Kafka(List<WebRTCClientStats> webRTCClientStatList, String streamId) {
+	public void sendWebRTCClientStats(List<WebRTCClientStats> webRTCClientStatList, String streamId) {
+		if (statsExporter == null) {
+			return;
+		}
 		JsonObject jsonObject;
 		String dateTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 		for (WebRTCClientStats webRTCClientStat : webRTCClientStatList) 
@@ -568,18 +605,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			jsonObject.addProperty(IP_ADDRESS, webRTCClientStat.getClientIp());
 
 			//logstash cannot parse json array so that we send each info separately
-			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
+			 statsExporter.sendStats(jsonObject, IStatsExporter.WEBRTC_CLIENT_STATS);
 		}
-	}
-
-	public Producer<Long, String> createKafkaProducer() {
-		Properties props = new Properties();
-		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers);
-		props.put(ProducerConfig.CLIENT_ID_CONFIG, Launcher.getInstanceId());
-		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class.getName());
-		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-		props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000);
-		return new KafkaProducer<>(props);
 	}
 
 	public static JsonObject getFileSystemInfoJSObject() {
@@ -1214,26 +1241,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(TIME, DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
 		jsonObject.addProperty(HOST_ADDRESS, hostAddress);
 		jsonObject.addProperty(IP_ADDRESS, ServerSettings.getGlobalHostAddress());
-
-		send2Kafka(jsonObject, INSTANCE_STATS_TOPIC_NAME); 
-	}
-
-	public void send2Kafka(String jsonString, String topicName) {
-		ProducerRecord<Long, String> record = new ProducerRecord<>(topicName,
-				jsonString);
-		try {
-			kafkaProducer.send(record).get();
-		} 
-		catch (ExecutionException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
+		String email = getUserEmail();
+		if (StringUtils.isNotBlank(email)) {
+			jsonObject.addProperty(USER_EMAIL, email);
+			jsonObject.addProperty(USER_EMAIL_HASH, hashStringToLong(email));
 		}
+		if (StringUtils.isNotBlank(licenceKey)) {
+			jsonObject.addProperty(LICENSE_KEY_HASH, hashStringToLong(licenceKey));
+		}
+
+		statsExporter.sendStats(jsonObject, IStatsExporter.INSTANCE_STATS); 
 	}
 
-	public void send2Kafka(JsonElement jsonElement, String topicName) {
-		send2Kafka(gson.toJson(jsonElement), topicName);
+	private long hashStringToLong(String input) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] hashBytes = digest.digest(input.trim().toLowerCase().getBytes(StandardCharsets.UTF_8));
+			long hashLong = ByteBuffer.wrap(hashBytes, 0, Long.BYTES).getLong();
+			return hashLong & Long.MAX_VALUE;
+		} catch (NoSuchAlgorithmException e) {
+			logger.warn("Could not hash value with SHA-256. Falling back to hashCode.");
+			return Integer.toUnsignedLong(input.hashCode());
+		}
 	}
 
 	public void addCpuMeasurement(int systemCpuLoad, int processCpu) {
@@ -1475,6 +1504,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				if (appMetricsHistorySize > 0) {
 					appMetricsHistory.computeIfAbsent(scope.getName(), k -> new ConcurrentLinkedQueue<>()).offer(new AppSample(0, 0));
 				}
+				if(scope.getName().equals("root")){
+					startStatsExporter();
+				}
 			}
 		});
 
@@ -1490,6 +1522,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		streamMetricsHistorySize = serverSettings.getStreamMetricsHistorySize();
 		marketplace = serverSettings.getMarketplace();
 		webhookURL = serverSettings.getServerStatusWebHookURL();
+		licenceKey = serverSettings.getLicenceKey();
 
 		licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BEAN_NAME);
 
@@ -1508,16 +1541,62 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		this.staticSendPeriod = staticSendPeriod;
 	}
 
-	public void setKafkaProducer(Producer<Long, String> kafkaProducer) {
-		this.kafkaProducer = kafkaProducer;
-	}
-
 	public String getKafkaBrokers() {
 		return kafkaBrokers;
 	}
 
 	public void setKafkaBrokers(String kafkaBrokers) {
 		this.kafkaBrokers = kafkaBrokers;
+	}
+	public void setKafkaProducer(Producer<Long, String> producers) {
+		if(this.statsExporter != null) {
+			((KafkaStatsExporter) this.statsExporter).setKafkaProducer(producers);
+		}
+	}
+	public  Producer<Long, String>  getKafkaProducer() {
+		return ((KafkaStatsExporter)this.statsExporter).getKafkaProducer();
+	}
+
+
+	public String getStatsExporterType() {
+		return statsExporterType;
+	}
+
+	public void setStatsExporterType(String statsExporterType) {
+		this.statsExporterType = statsExporterType;
+	}
+
+	public String getPrometheusPushGatewayAddress() {
+		return prometheusPushGatewayAddress;
+	}
+
+	public void setPrometheusPushGatewayAddress(String prometheusPushGatewayAddress) {
+		this.prometheusPushGatewayAddress = prometheusPushGatewayAddress;
+	}
+
+	public String getPrometheusPushJob() {
+		return prometheusPushJob;
+	}
+
+	public void setPrometheusPushJob(String prometheusPushJob) {
+		this.prometheusPushJob = prometheusPushJob;
+	}
+
+	public String getPrometheusPushInstanceId() {
+		return prometheusPushInstanceId;
+	}
+
+	public void setPrometheusPushInstanceId(String prometheusPushInstanceId) {
+		this.prometheusPushInstanceId = prometheusPushInstanceId;
+	}
+
+
+	public IStatsExporter getStatsExporter() {
+		return statsExporter;
+	}
+
+	public void setStatsExporter(IStatsExporter statsExporter) {
+		this.statsExporter = statsExporter;
 	}
 
 	public void setScopes(Queue<IScope> scopes) {
@@ -1552,11 +1631,21 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		if (heartBeatEnabled) 
 		{  
-			//send session end if heartBeatEnabled 
 			if(logger != null) {
 				logger.info("Ending analytic session");
 			}
 		}
+
+		if (statsTimerId != -1) {
+			vertx.cancelTimer(statsTimerId);
+			statsTimerId = -1;
+		}
+
+		if (statsExporter != null) {
+			statsExporter.stop();
+			statsExporter = null;
+		}
+
 		vertx.close();
 		webRTCVertx.close();
 		if(logger != null) {
