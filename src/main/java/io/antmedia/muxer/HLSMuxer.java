@@ -384,7 +384,11 @@ public class HLSMuxer extends Muxer  {
 	public boolean writeHeader() {
 		configureVariantStreamMappingIfRequired();
 		createID3StreamIfRequired();
-		return super.writeHeader();
+		logger.info("Writing hls header for stream:{} to {}", streamId, getOutputURL());
+		long start = System.currentTimeMillis();
+		boolean result = super.writeHeader();
+		logger.info("Hls header write took {} ms for stream:{}", System.currentTimeMillis() - start, streamId);
+		return result;
 	}
 	
 	public void configureVariantStreamMappingIfRequired() {

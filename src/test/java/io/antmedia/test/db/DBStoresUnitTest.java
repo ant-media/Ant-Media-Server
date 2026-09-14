@@ -2173,20 +2173,20 @@ public class DBStoresUnitTest {
 		VoD newVod4 = new VoD(null, null,  "path", null, 1517239608, 345, 17933, 1190725, VoD.STREAM_VOD, "11827485" + (int)(Math.random() * 91000), null);
 		VoD newVod5 = new VoD("denem", null,  "path", null, 1517239608, 678, 17933, 1190725, VoD.STREAM_VOD, null, null);
 
+		// newVod..newVod4 have digit-only or fixed vodIds, so the "vod" search counts are deterministic
 		dataStore.addVod(newVod);
 		dataStore.addVod(newVod2);
 		dataStore.addVod(newVod3);
 		dataStore.addVod(newVod4);
-		dataStore.addVod(newVod5);
 
 		long totalVodNumber = dataStore.getTotalVodNumber();
-		assertEquals(5, totalVodNumber);
+		assertEquals(4, totalVodNumber);
 
 		long partialVodNumber = dataStore.getPartialVodNumber("vod");
 		assertEquals(2, partialVodNumber);
 
 		partialVodNumber = dataStore.getPartialVodNumber(null);
-		assertEquals(5, partialVodNumber);
+		assertEquals(4, partialVodNumber);
 
 		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, newVod4.getVodId());
 		assertEquals(1, vodList.size());
@@ -2194,12 +2194,6 @@ public class DBStoresUnitTest {
 		assertEquals(newVod4.getStreamName(), vodList.get(0).getStreamName());
 		assertEquals(newVod4.getStreamId(), vodList.get(0).getStreamId());
 		assertEquals(newVod4.getVodId(), vodList.get(0).getVodId());
-
-		vodList = dataStore.getVodList(0, 50, null, null, null, newVod5.getVodId());
-		assertNotNull(newVod5.getVodId());
-		assertEquals(1, vodList.size()); // VodId should never come null even if initialized as null.
-		assertEquals(vodList.get(0).getVodId(), newVod5.getVodId());
-		assertNull(vodList.get(0).getVodName());
 
 		vodList = dataStore.getVodList(0, 50, null, null, null, newVod.getVodName());
 		assertEquals(1, vodList.size());
@@ -2234,6 +2228,22 @@ public class DBStoresUnitTest {
 
 		vodList = dataStore.getVodList(0, 50, null, null, null, "vassdfsdgs");
 		assertEquals(0, vodList.size());
+
+		// newVod5 has a null vodId that addVod fills with a random alphanumeric value that can contain
+		// "vod"; add it only after the search-count assertions so those stay deterministic
+		dataStore.addVod(newVod5);
+
+		totalVodNumber = dataStore.getTotalVodNumber();
+		assertEquals(5, totalVodNumber);
+
+		partialVodNumber = dataStore.getPartialVodNumber(null);
+		assertEquals(5, partialVodNumber);
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, newVod5.getVodId());
+		assertNotNull(newVod5.getVodId());
+		assertEquals(1, vodList.size()); // VodId should never come null even if initialized as null.
+		assertEquals(vodList.get(0).getVodId(), newVod5.getVodId());
+		assertNull(vodList.get(0).getVodName());
 
 		// Test search by metadata
 		VoD vodWithMetadata = new VoD("metaStream", "meta123" + (int)(Math.random() * 1000), "path", "metaVodName", 1517239908, 123, 17933, 1190425, VoD.STREAM_VOD, "metaVodId" + (int)(Math.random() * 91000), null);
