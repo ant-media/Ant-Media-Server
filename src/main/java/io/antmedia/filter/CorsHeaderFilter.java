@@ -58,6 +58,8 @@ public class CorsHeaderFilter extends CorsFilter {
 		}
 
 		addStandardHeadersInternal(request, response, origin);
+		response.addHeader(CorsFilter.REQUEST_HEADER_VARY,
+        CorsFilter.REQUEST_HEADER_ORIGIN);
 
 		// Forward the request down the filter chain.
 		filterChain.doFilter(request, response);
