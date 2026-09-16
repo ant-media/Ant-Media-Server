@@ -13,7 +13,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -270,10 +269,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected static final int END_POINT_LIMIT = 20;
 	public static final int CLUSTER_POST_RETRY_ATTEMPT_COUNT = 3;
 	public static final int CLUSTER_POST_TIMEOUT_MS = 1000;
-
-	//Allow any sub directory under /
-	private static final String VOD_IMPORT_ALLOWED_DIRECTORY = "/";
-
 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private List<IStreamPlaybackSecurity> streamPlaySecurityList;
@@ -548,66 +543,60 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
-		Result result = null;
-		try {
-			if (!streamsFolder.exists()) {
-				streamsFolder.mkdirs();
-			}
-			if (vodFolder.exists() && vodFolder.isDirectory())
-			{
-				File newLinkFile = new File(streamsFolder, vodFolder.getName());
-				if (!Files.isSymbolicLink(newLinkFile.toPath()))
-				{
-					Path target = vodFolder.toPath();
-					Files.createSymbolicLink(newLinkFile.toPath(), target);
-					result = new Result(true);
-				}
-				else {
-					result = new Result(false, "There is already a file with the name "+ vodFolder.getName()+" in the streams directory");
-				}
-			}
-			else {
-				result = new Result(false, vodFolder.getAbsolutePath() + " does not exist or is not a directory");
-			}
-
-		} catch (IOException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			result = new Result(false, "Exception in creating symbolic link");
+	/**
+	 * Configure the application's VoD folder through the legacy import API.
+	 * Relative paths accepted by the old API are resolved to absolute paths.
+	 */
+	public synchronized Result importVoDFolder(String vodFolderPath) {
+		if (StringUtils.isBlank(vodFolderPath)) {
+			return new Result(false, "VoD directory must not be empty");
 		}
-		return result;
+		File directory = new File(vodFolderPath);
+		if (!directory.isDirectory() || !directory.canRead()) {
+			return new Result(false, "VoD folder is not a readable directory");
+		}
+		try {
+			return updateVodFolder(directory.getCanonicalPath());
+		}
+		catch (IOException e) {
+			logger.warn("Cannot resolve VoD directory {}", vodFolderPath, e);
+			return new Result(false, "Cannot resolve VoD directory");
+		}
 	}
 
 	/**
-	 * Import vod files recursively in the directory. It also created symbolic link to make the files streamable
-	 * @param vodFolderPath absolute path of the vod folder to be imported
-	 * @return
+	 * Stop using the specified VoD directory without deleting its files.
 	 */
-	public Result importVoDFolder(String vodFolderPath) {
-		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + STREAMS_PATH);
-		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
-
-		File allowedDirectory = new File(VOD_IMPORT_ALLOWED_DIRECTORY);
-		Result result = null;
-		try {
-			if (FileUtils.directoryContains(allowedDirectory, directory))
-			{
-
-				result = createSymbolicLink(streamsFolder, directory);
-				if (result.isSuccess()) {
-					int numberOfFilesImported = importToDB(directory, directory);
-					result.setMessage(numberOfFilesImported + " files are imported");
-				}
-			}
-			else {
-				result = new Result(false, "VoD import directory is allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
-			}
-		} catch (IOException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			result = new Result(false, "VoD import directory is allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
+	public synchronized Result unlinksVoD(String directory) {
+		if (StringUtils.isBlank(directory)) {
+			return new Result(false, "VoD directory must not be empty");
 		}
+		File configuredFolder = getVodFolderForScanning();
+		try {
+			if (configuredFolder == null || !configuredFolder.getCanonicalFile().equals(new File(directory).getCanonicalFile())) {
+				return new Result(false, "Directory is not the configured VoD folder");
+			}
+			return updateVodFolder(STREAMS);
+		}
+		catch (IOException e) {
+			logger.warn("Cannot resolve VoD directory {}", directory, e);
+			return new Result(false, "Cannot resolve VoD directory");
+		}
+	}
 
-		return result;
+	private Result updateVodFolder(String directory) {
+		AppSettings newSettings = new AppSettings();
+		for (Field field : AppSettings.class.getDeclaredFields()) {
+			setAppSettingsFieldValue(newSettings, getAppSettings(), field);
+		}
+		newSettings.setVodFolder(directory);
+		boolean folderChanged = !StringUtils.equals(getAppSettings().getVodFolder(), directory);
+		if (!updateSettings(newSettings, true, false)) {
+			return new Result(false, "VoD folder settings could not be saved");
+		}
+		// A changed setting is rescanned by updateSettings. Repeated imports also
+		// discover newly added files without creating duplicate datastore entries.
+		return folderChanged ? new Result(true, "VoD folder updated") : rescanVodAssets();
 	}
 
 	public int importToDB(File subDirectory, File baseDirectory)

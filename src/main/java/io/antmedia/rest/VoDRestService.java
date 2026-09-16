@@ -143,12 +143,36 @@ public class VoDRestService extends RestServiceBase{
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces(MediaType.APPLICATION_JSON)
     @Override
-	    public Result uploadVoDFile(
+    public Result uploadVoDFile(
             @Parameter(description = "Name of the VoD File", required = true) @QueryParam("name") String fileName,
             @Parameter(description = "VoD file", required = true) @FormDataParam("file") InputStream inputStream,
             @Parameter(description = "Custom metadata for the VoD file", required = false) @FormDataParam("metadata") String metadata) {
-	        return super.uploadVoDFile(fileName, inputStream, metadata);
-	    }
+        return super.uploadVoDFile(fileName, inputStream, metadata);
+    }
+
+	@Operation(summary = "Import VoD files from a directory", description = "Sets vodFolder to the specified directory and reconciles its VoD assets. Replaces the previously configured VoD directory.", responses = {
+			@ApiResponse(responseCode = "200", description = "VoD directory update result", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
+	})
+	@POST
+	@Path("/directory")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result importVoDs(
+			@Parameter(description = "The full path of the directory containing VoD files", required = true) @QueryParam("directory") String directory) {
+		return super.importVoDs(directory);
+	}
+
+	@Operation(summary = "Unlink a VoD directory", description = "Resets vodFolder to streams when the specified directory matches the configured VoD folder and reconciles VoD records without deleting files.", responses = {
+			@ApiResponse(responseCode = "200", description = "VoD directory unlink result", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
+	})
+	@DELETE
+	@Path("/directory")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result unlinksVoD(
+			@Parameter(description = "The full path of the configured VoD directory to unlink", required = true) @QueryParam("directory") String directory) {
+		return super.unlinksVoD(directory);
+	}
 
 	@Operation(summary = "Re-scan VoD assets", description = "Reconciles the VoD datastore with assets in the configured vodFolder.", responses = {
 			@ApiResponse(responseCode = "200", description = "VoD assets scanned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
