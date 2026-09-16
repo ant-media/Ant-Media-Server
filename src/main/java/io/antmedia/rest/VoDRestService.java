@@ -150,7 +150,7 @@ public class VoDRestService extends RestServiceBase{
         return super.uploadVoDFile(fileName, inputStream, metadata);
     }
 
-	@Operation(summary = "Import VoD files from a directory", description = "Sets vodFolder to the specified directory and reconciles its VoD assets. Replaces the previously configured VoD directory.", responses = {
+	@Operation(summary = "Import VoD files from a directory", description = "Sets vodFolder to the specified directory and reconciles its VoD assets. Replaces the previously configured VoD directory. The result reports whether settings were saved; scan failures are logged on the server.", responses = {
 			@ApiResponse(responseCode = "200", description = "VoD directory update result", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
 	})
 	@POST

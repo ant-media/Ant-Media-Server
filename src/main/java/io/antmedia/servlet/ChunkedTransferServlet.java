@@ -433,7 +433,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 	File resolveFileForRead(HttpServletRequest request, ApplicationContext applicationContext) {
 		AppSettings settings = getAppSettings(applicationContext);
 		File externalFile = resolveExternalVodFile(request.getServletPath(),
-				settings != null ? settings.getVodFolder() : null);
+				settings.getVodFolder());
 		if (externalFile != null && externalFile.isFile() && externalFile.canRead()) {
 			return externalFile;
 		}

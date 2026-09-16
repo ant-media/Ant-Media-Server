@@ -120,16 +120,34 @@ class VoDRestServiceRescanTest extends UnitTestBase<VoDRestService> {
 	}
 
 	@Test
-	void testImportRejectsInvalidDirectoriesWithoutChangingSettings() throws Exception {
+	void testImportRejectsInvalidPathsWithoutChangingSettings() {
 		AntMediaApplicationAdapter application = createApplication();
 		VoDRestService service = createService(application);
-		Path regularFile = Files.writeString(temporaryDirectory.resolve("file.mp4"), "asset");
-		for (String directory : new String[] {null, "", "  ", temporaryDirectory.resolve("missing").toString(), regularFile.toString()}) {
+		for (String directory : new String[] {null, "", "  ", "invalid\0path"}) {
 			assertThat(service.importVoDs(directory).isSuccess()).isFalse();
 		}
 		assertThat(application.getAppSettings().getVodFolder()).isEqualTo("streams");
 		verify(application, never()).updateSettings(any(), eq(true), eq(false));
 		verify(application, never()).rescanVodAssets();
+	}
+
+	@Test
+	void testImportResponseDoesNotRevealFilesystemState() throws Exception {
+		AntMediaApplicationAdapter application = createApplication();
+		VoDRestService service = createService(application);
+		Path directory = Files.createDirectory(temporaryDirectory.resolve("videos"));
+		Path regularFile = Files.writeString(temporaryDirectory.resolve("file.mp4"), "asset");
+		Path missingDirectory = temporaryDirectory.resolve("missing");
+
+		Result expected = service.importVoDs(directory.toString());
+		assertThat(expected.isSuccess()).isTrue();
+		for (Path path : new Path[] {directory, regularFile, missingDirectory}) {
+			for (int attempt = 0; attempt < 2; attempt++) {
+				Result result = service.importVoDs(path.toString());
+				assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+				assertThat(application.getAppSettings().getVodFolder()).isEqualTo(path.toString());
+			}
+		}
 	}
 
 	@Test

@@ -13,6 +13,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -546,21 +547,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/**
 	 * Configure the application's VoD folder through the legacy import API.
 	 * Relative paths accepted by the old API are resolved to absolute paths.
+	 * The result reports settings persistence, not filesystem accessibility.
 	 */
 	public synchronized Result importVoDFolder(String vodFolderPath) {
 		if (StringUtils.isBlank(vodFolderPath)) {
 			return new Result(false, "VoD directory must not be empty");
 		}
-		File directory = new File(vodFolderPath);
-		if (!directory.isDirectory() || !directory.canRead()) {
-			return new Result(false, "VoD folder is not a readable directory");
-		}
 		try {
-			return updateVodFolder(directory.getCanonicalPath());
+			return updateVodFolder(Path.of(vodFolderPath).toAbsolutePath().normalize().toString());
 		}
-		catch (IOException e) {
-			logger.warn("Cannot resolve VoD directory {}", vodFolderPath, e);
-			return new Result(false, "Cannot resolve VoD directory");
+		catch (InvalidPathException e) {
+			return new Result(false, "Invalid VoD directory path");
 		}
 	}
 
@@ -596,7 +593,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		// A changed setting is rescanned by updateSettings. Repeated imports also
 		// discover newly added files without creating duplicate datastore entries.
-		return folderChanged ? new Result(true, "VoD folder updated") : rescanVodAssets();
+		rescanVodAssetsIfFolderChanged(!folderChanged);
+		// Like the settings API, do not expose filesystem state in the response.
+		return new Result(true, "VoD folder updated");
 	}
 
 	public int importToDB(File subDirectory, File baseDirectory)
