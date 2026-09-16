@@ -156,10 +156,9 @@ public class VoDRestService extends RestServiceBase{
 	@POST
 	@Path("/directory")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
 	public Result importVoDs(
 			@Parameter(description = "The full path of the directory containing VoD files", required = true) @QueryParam("directory") String directory) {
-		return super.importVoDs(directory);
+		return getApplication().importVoDFolder(directory);
 	}
 
 	@Operation(summary = "Unlink a VoD directory", description = "Resets vodFolder to streams when the specified directory matches the configured VoD folder and reconciles VoD records without deleting files.", responses = {
@@ -168,10 +167,9 @@ public class VoDRestService extends RestServiceBase{
 	@DELETE
 	@Path("/directory")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
 	public Result unlinksVoD(
 			@Parameter(description = "The full path of the configured VoD directory to unlink", required = true) @QueryParam("directory") String directory) {
-		return super.unlinksVoD(directory);
+		return getApplication().unlinksVoD(directory);
 	}
 
 }
