@@ -371,6 +371,7 @@ public abstract class Muxer {
 		return addStream(codec, codecContext, streamIndex, Optional.empty());
 	}
 
+	@SuppressWarnings("java:S1172") // Kept for the polymorphic API; subclasses such as DASHMuxer use the codec.
 	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex,
 			Optional<String> language) {
 
@@ -507,49 +508,10 @@ public abstract class Muxer {
 	}
 
 	protected synchronized void clearResource() {
-		if (tmpPacket != null) {
-			av_packet_free(tmpPacket);
-			tmpPacket = null;
-		}
+		clearPackets();
+		clearBitstreamFilters();
 
-		if (videoPkt != null) {
-			av_packet_free(videoPkt);
-			videoPkt = null;
-		}
-
-		if (audioPkt != null) {
-			av_packet_free(audioPkt);
-			audioPkt = null;
-		}
-
-		for (AVBSFContext videoBsfFilterContext: bsfFilterContextList) {
-			av_bsf_free(videoBsfFilterContext);
-		}
-		bsfFilterContextList.clear();
-		
-		Set<AVBSFContext> releasedAudioBsfFilterContextSet = new HashSet<>();
-		for (Set<AVBSFContext> audioBsfFilterContextSet : bsfAudioFilterContextMap.values()) {
-			for (AVBSFContext audioBsfFilterContext : audioBsfFilterContextSet) {
-				if (releasedAudioBsfFilterContextSet.add(audioBsfFilterContext)) {
-					av_bsf_free(audioBsfFilterContext);
-				}
-			}
-		}
-		for (AVBSFContext audioBsfFilterContext : bsfAudioFilterContextList) {
-			if (releasedAudioBsfFilterContextSet.add(audioBsfFilterContext)) {
-				av_bsf_free(audioBsfFilterContext);
-			}
-		}
-		bsfAudioFilterContextMap.clear();
-		bsfAudioFilterContextList.clear();
-		firstAudioDtsMap.clear();
-
-		/* close output */
-		if (outputFormatContext != null &&
-				(outputFormatContext.oformat().flags() & AVFMT_NOFILE) == 0 
-						&& outputFormatContext.pb() != null
-						&& (outputFormatContext.flags() & AVFormatContext.AVFMT_FLAG_CUSTOM_IO) == 0)
-		{
+		if (shouldCloseOutputContext()) {
 			avio_closep(outputFormatContext.pb());
 		}
 
@@ -583,6 +545,54 @@ public abstract class Muxer {
 		//      test callers (build a Map-backed copy on demand).
 		// See: crash investigation 2026-04-30 (av_dict_free → av_freep SEGV after
 		// rw_timeout-bounded openIO race with writeTrailer teardown).
+	}
+
+	private void clearPackets() {
+		if (tmpPacket != null) {
+			av_packet_free(tmpPacket);
+			tmpPacket = null;
+		}
+
+		if (videoPkt != null) {
+			av_packet_free(videoPkt);
+			videoPkt = null;
+		}
+
+		if (audioPkt != null) {
+			av_packet_free(audioPkt);
+			audioPkt = null;
+		}
+	}
+
+	private void clearBitstreamFilters() {
+		for (AVBSFContext videoBsfFilterContext: bsfFilterContextList) {
+			av_bsf_free(videoBsfFilterContext);
+		}
+		bsfFilterContextList.clear();
+		
+		Set<AVBSFContext> releasedAudioBsfFilterContextSet = new HashSet<>();
+		for (Set<AVBSFContext> audioBsfFilterContextSet : bsfAudioFilterContextMap.values()) {
+			for (AVBSFContext audioBsfFilterContext : audioBsfFilterContextSet) {
+				if (releasedAudioBsfFilterContextSet.add(audioBsfFilterContext)) {
+					av_bsf_free(audioBsfFilterContext);
+				}
+			}
+		}
+		for (AVBSFContext audioBsfFilterContext : bsfAudioFilterContextList) {
+			if (releasedAudioBsfFilterContextSet.add(audioBsfFilterContext)) {
+				av_bsf_free(audioBsfFilterContext);
+			}
+		}
+		bsfAudioFilterContextMap.clear();
+		bsfAudioFilterContextList.clear();
+		firstAudioDtsMap.clear();
+	}
+
+	private boolean shouldCloseOutputContext() {
+		return outputFormatContext != null &&
+				(outputFormatContext.oformat().flags() & AVFMT_NOFILE) == 0 
+						&& outputFormatContext.pb() != null
+						&& (outputFormatContext.flags() & AVFormatContext.AVFMT_FLAG_CUSTOM_IO) == 0;
 	}
 
 	/**
@@ -987,84 +997,100 @@ public abstract class Muxer {
 			logger.warn("It is already running and cannot add new stream while it's running for stream:{} and output:{}", streamId, getOutputURL());
 			return false;
 		}
-		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
-		if (outputContext != null 
-				&& isCodecSupported(codecParameters.codec_id()) &&
-				(codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO || codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
-				)
-		{
+		if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
+			return addDataStream(outputContext, codecParameters, timebase, streamIndex);
+		}
+		if (!isSupportedMediaStream(outputContext, codecParameters)) {
+			logger.warn("Stream is not added for muxing to {} for stream:{}", getFileName(), streamId);
+			return false;
+		}
+		return addMediaStream(outputContext, codecParameters, timebase, streamIndex, language);
+	}
 
-			
+	private boolean isSupportedMediaStream(AVFormatContext outputContext, AVCodecParameters codecParameters) {
+		int codecType = codecParameters.codec_type();
+		return outputContext != null && isCodecSupported(codecParameters.codec_id())
+				&& (codecType == AVMEDIA_TYPE_AUDIO || codecType == AVMEDIA_TYPE_VIDEO);
+	}
+
+	private boolean addMediaStream(AVFormatContext outputContext, AVCodecParameters codecParameters,
+			AVRational timebase, int streamIndex, Optional<String> language) {
+		AVStream outStream = avNewStream(outputContext);
+		registeredStreamIndexList.add(streamIndex);
+
+		boolean video = codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO;
+		FilteredStreamParameters filtered = video
+				? applyVideoBitstreamFilters(codecParameters, timebase)
+				: applyAudioBitstreamFilters(codecParameters, timebase, streamIndex);
+		codecParameters = filtered.codecParameters();
+		timebase = filtered.timebase();
+
+		if (video) {
+			videoWidth = codecParameters.width();
+			videoHeight = codecParameters.height();
+			videoCodecId = codecParameters.codec_id();
+		}
+
+		avcodec_parameters_copy(outStream.codecpar(), codecParameters);
+		setStreamLanguage(outStream, language);
+		logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{} type:{}",
+				outStream.index(), timebase.num(), timebase.den(), streamId, video ? "video" : "audio");
+		inputTimeBaseMap.put(streamIndex, timebase);
+		inputOutputStreamIndexMap.put(streamIndex, outStream.index());
+		mapAudioBitstreamFiltersToOutputStream(codecParameters, streamIndex, outStream.index());
+		outStream.codecpar().codec_tag(0);
+		return true;
+	}
+
+	private FilteredStreamParameters applyVideoBitstreamFilters(AVCodecParameters codecParameters,
+			AVRational timebase) {
+		for (String bsfVideoName: bsfVideoNames) {
+			AVBSFContext filter = initVideoBitstreamFilter(bsfVideoName, codecParameters, timebase);
+			if (filter != null) {
+				codecParameters = filter.par_out();
+				timebase = filter.time_base_out();
+			}
+		}
+		return new FilteredStreamParameters(codecParameters, timebase);
+	}
+
+	private FilteredStreamParameters applyAudioBitstreamFilters(AVCodecParameters codecParameters,
+			AVRational timebase, int streamIndex) {
+		for (String bsfAudioName : bsfAudioNames) {
+			AVBSFContext filter = initAudioBitstreamFilter(bsfAudioName, codecParameters, timebase, streamIndex);
+			if (filter != null) {
+				codecParameters = filter.par_out();
+				timebase = filter.time_base_out();
+			}
+		}
+		return new FilteredStreamParameters(codecParameters, timebase);
+	}
+
+	private void mapAudioBitstreamFiltersToOutputStream(AVCodecParameters codecParameters, int inputStreamIndex,
+			int outputStreamIndex) {
+		Set<AVBSFContext> filters = bsfAudioFilterContextMap.get(inputStreamIndex);
+		if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO && outputStreamIndex != inputStreamIndex
+				&& filters != null) {
+			bsfAudioFilterContextMap.put(outputStreamIndex, filters);
+		}
+	}
+
+	private boolean addDataStream(AVFormatContext outputContext, AVCodecParameters codecParameters,
+			AVRational timebase, int streamIndex) {
+		if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) {
 			AVStream outStream = avNewStream(outputContext);
-			//if it's not running add to the list
 			registeredStreamIndexList.add(streamIndex);
-
-			String codecType;
-			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
-			{
-				codecType = "video";
-				for (String bsfVideoName: bsfVideoNames) {
-					AVBSFContext videoBitstreamFilter = initVideoBitstreamFilter(bsfVideoName, codecParameters, timebase);
-					if (videoBitstreamFilter != null)
-					{
-						codecParameters = videoBitstreamFilter.par_out();
-						timebase = videoBitstreamFilter.time_base_out();
-					}
-				}
-				videoWidth = codecParameters.width();
-				videoHeight = codecParameters.height();
-				videoCodecId = codecParameters.codec_id();
-			}
-			else 
-			{
-				codecType = "audio";
-				for (String bsfAudioName : bsfAudioNames) {
-					AVBSFContext audioBitstreamFilter = initAudioBitstreamFilter(bsfAudioName, codecParameters,
-							timebase, streamIndex);
-					if (audioBitstreamFilter != null) {
-						codecParameters = audioBitstreamFilter.par_out();
-						timebase = audioBitstreamFilter.time_base_out();
-					}
-				}
-			}
-
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
-			setStreamLanguage(outStream, language);
-			logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{} type:{}", 
-					outStream.index(), timebase.num(), timebase.den(), streamId, codecType);
+			logger.info("Adding ID3 stream timebase to the input time base map index:{} value: {}/{} for stream:{}",
+					outStream.index(), timebase.num(), timebase.den(), streamId);
 			inputTimeBaseMap.put(streamIndex, timebase);
 			inputOutputStreamIndexMap.put(streamIndex, outStream.index());
-			Set<AVBSFContext> audioFilterContexts = bsfAudioFilterContextMap.get(streamIndex);
-			if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO && outStream.index() != streamIndex && audioFilterContexts != null) {
-				bsfAudioFilterContextMap.put(outStream.index(), audioFilterContexts);
-			}
-
-			outStream.codecpar().codec_tag(0);
-			result = true;
-
 		}
-		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) 
-		{
-			if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) 
-			{
-				AVStream outStream = avNewStream(outputContext);
-				registeredStreamIndexList.add(streamIndex);
-
-				avcodec_parameters_copy(outStream.codecpar(), codecParameters);
-				logger.info("Adding ID3 stream timebase to the input time base map index:{} value: {}/{} for stream:{}",
-						outStream.index(), timebase.num(), timebase.den(), streamId);
-				inputTimeBaseMap.put(streamIndex, timebase);
-				inputOutputStreamIndexMap.put(streamIndex, outStream.index());
-			}
-			//if it's data, do not add and return true
-			result = true;
-		}
-		else {
-			logger.warn("Stream is not added for muxing to {} for stream:{}", getFileName(), streamId);
-		}
-		return result;
+		return true;
 	}
+
+	private record FilteredStreamParameters(AVCodecParameters codecParameters, AVRational timebase) { }
 
 	protected Optional<String> normalizeLanguage(Optional<String> language) {
 		return language.map(String::trim).filter(value -> !value.isEmpty());
@@ -1233,7 +1259,7 @@ public abstract class Muxer {
 	 * @param codecType
 	 * @return true to drop the packet, false to not drop packet
 	 */
-	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
+	protected boolean checkToDropPacket(AVPacket pkt, int codecType) {
 		if (!firstKeyFrameReceived && codecType == AVMEDIA_TYPE_VIDEO) 
 		{
 			if(firstPacketDtsMs == -1) {
@@ -1303,11 +1329,7 @@ public abstract class Muxer {
 	public synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 		AVFormatContext context = getOutputFormatContext();
-
-		long pts = pkt.pts();
-		long dts = pkt.dts();
-		long duration = pkt.duration();
-		long pos = pkt.pos();
+		PacketTiming originalTiming = new PacketTiming(pkt.pts(), pkt.dts(), pkt.duration(), pkt.pos());
 
 		pkt.duration(av_rescale_q(pkt.duration(), inputTimebase, outputTimebase));
 		pkt.pos(-1);
@@ -1319,94 +1341,90 @@ public abstract class Muxer {
 			startTimeInSeconds = currentTimeInSeconds;
 		}
 
-		if (codecType == AVMEDIA_TYPE_AUDIO)
-		{
-			int audioStreamIndex = pkt.stream_index();
-			long firstAudioDtsForStream;
-			//removing firstAudioDTS is required when recording/muxing has started on the fly
-			if(firstPacketDtsMs == -1) {
-				firstAudioDtsForStream = pkt.dts();
-				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimebase, MuxAdaptor.TIME_BASE_FOR_MS);
-				firstAudioDtsMap.put(audioStreamIndex, firstAudioDtsForStream);
-				firstAudioDts = firstAudioDtsForStream;
-				logger.debug("The first incoming packet is audio and its packet dts:{}ms streamId:{} ", firstPacketDtsMs, streamId);
-			}
-			else {
-				Long storedFirstAudioDts = firstAudioDtsMap.get(audioStreamIndex);
-				if (storedFirstAudioDts == null) {
-					firstAudioDtsForStream = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimebase);
-					logger.debug("First packetDtsMs:{}ms is already received calculated the firstAudioDts:{} and incoming packet dts:{} streamId:{}",
-								firstPacketDtsMs, firstAudioDtsForStream, pkt.dts(), streamId);
-
-					if ((pkt.dts() - firstAudioDtsForStream) < 0) {
-						firstAudioDtsForStream = pkt.dts();
-					}
-					firstAudioDtsMap.put(audioStreamIndex, firstAudioDtsForStream);
-					if (firstAudioDts == -1) {
-						firstAudioDts = firstAudioDtsForStream;
-					}
-				}
-				else {
-					firstAudioDtsForStream = storedFirstAudioDts;
-				}
-			}
-			
-			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDtsForStream, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDtsForStream , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-
-
-			int ret = av_packet_ref(tmpPacket , pkt);
-			if (ret < 0) {
-				logger.error("Cannot copy audio packet for {}", streamId);
-				return;
-			}
-			writeAudioFrame(tmpPacket, inputTimebase, outputTimebase, context, dts);
-
-			av_packet_unref(tmpPacket);
-		}
-		else if (codecType == AVMEDIA_TYPE_VIDEO)
-		{
-			//removing firstVideoDts is required when recording/muxing has started on the fly
-			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-
-			//we set the firstVideoDts in checkToDropPacket Method to not have audio/video synch issue
-
-			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
-			// until the first key frame
-			boolean isKeyFrame = (pkt.flags() & AV_PKT_FLAG_KEY) == 1;
-
-            int ret = av_packet_ref(tmpPacket , pkt);
-			if (ret < 0) {
-				logger.error("Cannot copy video packet for {}", streamId);
-				return;
-			}			
-			/*
-			 * We add this check because when encoder calls this method the packet needs extra data inside
-			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
-			 * To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
-			 */
-			addExtradataIfRequired(pkt, isKeyFrame);
-
-			lastPts = tmpPacket.pts();
-
-			writeVideoFrame(tmpPacket, context);
-			av_packet_unref(tmpPacket);
-		}
-		else {
-			//for any other stream like subtitle, etc.
-			pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-
-			writeDataFrame(pkt, context);
+		switch (codecType) {
+			case AVMEDIA_TYPE_AUDIO -> writeAudioPacket(pkt, inputTimebase, outputTimebase, context, originalTiming.dts());
+			case AVMEDIA_TYPE_VIDEO -> writeVideoPacket(pkt, inputTimebase, outputTimebase, context);
+			default -> writeOtherPacket(pkt, inputTimebase, outputTimebase, context);
 		}
 
-		pkt.pts(pts);
-		pkt.dts(dts);
-		pkt.duration(duration);
-		pkt.pos(pos);
-
+		restorePacketTiming(pkt, originalTiming);
 	}
+
+	private void writeAudioPacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
+			AVFormatContext context, long originalDts) {
+		long firstAudioDtsForStream = getFirstAudioDtsForStream(pkt, inputTimebase);
+		pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDtsForStream, inputTimebase, outputTimebase,
+				AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+		pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDtsForStream, inputTimebase, outputTimebase,
+				AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+
+		if (av_packet_ref(tmpPacket, pkt) < 0) {
+			logger.error("Cannot copy audio packet for {}", streamId);
+			return;
+		}
+		writeAudioFrame(tmpPacket, inputTimebase, outputTimebase, context, originalDts);
+		av_packet_unref(tmpPacket);
+	}
+
+	private long getFirstAudioDtsForStream(AVPacket pkt, AVRational inputTimebase) {
+		int audioStreamIndex = pkt.stream_index();
+		if (firstPacketDtsMs == -1) {
+			firstPacketDtsMs = av_rescale_q(pkt.dts(), inputTimebase, MuxAdaptor.TIME_BASE_FOR_MS);
+			firstAudioDtsMap.put(audioStreamIndex, pkt.dts());
+			firstAudioDts = pkt.dts();
+			logger.debug("The first incoming packet is audio and its packet dts:{}ms streamId:{} ", firstPacketDtsMs, streamId);
+			return pkt.dts();
+		}
+
+		Long storedFirstAudioDts = firstAudioDtsMap.get(audioStreamIndex);
+		if (storedFirstAudioDts != null) {
+			return storedFirstAudioDts;
+		}
+
+		long calculatedFirstAudioDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimebase);
+		logger.debug("First packetDtsMs:{}ms is already received calculated the firstAudioDts:{} and incoming packet dts:{} streamId:{}",
+				firstPacketDtsMs, calculatedFirstAudioDts, pkt.dts(), streamId);
+		calculatedFirstAudioDts = Math.min(calculatedFirstAudioDts, pkt.dts());
+		firstAudioDtsMap.put(audioStreamIndex, calculatedFirstAudioDts);
+		if (firstAudioDts == -1) {
+			firstAudioDts = calculatedFirstAudioDts;
+		}
+		return calculatedFirstAudioDts;
+	}
+
+	private void writeVideoPacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
+			AVFormatContext context) {
+		pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts, inputTimebase, outputTimebase,
+				AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+		pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase,
+				AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+		if (av_packet_ref(tmpPacket, pkt) < 0) {
+			logger.error("Cannot copy video packet for {}", streamId);
+			return;
+		}
+		addExtradataIfRequired(pkt, (pkt.flags() & AV_PKT_FLAG_KEY) == 1);
+		lastPts = tmpPacket.pts();
+		writeVideoFrame(tmpPacket, context);
+		av_packet_unref(tmpPacket);
+	}
+
+	private void writeOtherPacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
+			AVFormatContext context) {
+		pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase,
+				AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+		pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase,
+				AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+		writeDataFrame(pkt, context);
+	}
+
+	private void restorePacketTiming(AVPacket pkt, PacketTiming timing) {
+		pkt.pts(timing.pts());
+		pkt.dts(timing.dts());
+		pkt.duration(timing.duration());
+		pkt.pos(timing.position());
+	}
+
+	private record PacketTiming(long pts, long dts, long duration, long position) { }
 
 	public void writeDataFrame(AVPacket pkt, AVFormatContext context) {
 		int ret = av_packet_ref(tmpPacket , pkt);
