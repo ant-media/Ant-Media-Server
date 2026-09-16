@@ -1948,10 +1948,6 @@ public abstract class RestServiceBase {
 		return getApplication().unlinksVoD(directory);
 	}
 
-	public Result rescanVodAssets() {
-		return getApplication().rescanVodAssets();
-	}
-
 	public static String replaceCharsForSecurity(String value) {
 		return value.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_");
 	}

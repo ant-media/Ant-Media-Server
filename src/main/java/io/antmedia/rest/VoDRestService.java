@@ -174,14 +174,4 @@ public class VoDRestService extends RestServiceBase{
 		return super.unlinksVoD(directory);
 	}
 
-	@Operation(summary = "Re-scan VoD assets", description = "Reconciles the VoD datastore with assets in the configured vodFolder.", responses = {
-			@ApiResponse(responseCode = "200", description = "VoD assets scanned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
-	})
-	@POST
-	@Path("/rescan")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result rescanVodAssets() {
-		return super.rescanVodAssets();
-	}
 }

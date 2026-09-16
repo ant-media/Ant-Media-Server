@@ -34,7 +34,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.test.UnitTestBase;
 
 @Tag("fast")
-class VoDRestServiceRescanTest extends UnitTestBase<VoDRestService> {
+class VoDRestServiceDirectoryTest extends UnitTestBase<VoDRestService> {
 
 	@TempDir
 	Path temporaryDirectory;
@@ -208,18 +208,5 @@ class VoDRestServiceRescanTest extends UnitTestBase<VoDRestService> {
 			assertThat(method.getAnnotation(jakarta.ws.rs.Path.class).value()).isEqualTo("/directory");
 			assertThat(method.getParameters()[0].getAnnotation(jakarta.ws.rs.QueryParam.class).value()).isEqualTo("directory");
 		}
-	}
-
-	@Test
-	void testRescanEndpointDelegatesToApplication() {
-		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
-		Result expected = new Result(true, "scan complete");
-		when(application.rescanVodAssets()).thenReturn(expected);
-
-		VoDRestService service = new VoDRestService();
-		service.setApplication(application);
-
-		assertThat(service.rescanVodAssets()).isSameAs(expected);
-		verify(application).rescanVodAssets();
 	}
 }
