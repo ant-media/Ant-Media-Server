@@ -64,6 +64,8 @@ public class StreamFetcherV2Test {
 
 	public static final String BIG_BUNNY_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
 
+	private static final Random RANDOM = new Random();
+
 	private static int OS_TYPE;
 
 	static {
@@ -364,6 +366,7 @@ public class StreamFetcherV2Test {
 		RestServiceV2Test restService = new RestServiceV2Test();
 
 		AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+		boolean originalRtmpPlaybackEnabled = appSettingsModel.isRtmpPlaybackEnabled();
 		appSettingsModel.setRtmpPlaybackEnabled(true);
 
 		result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
@@ -410,27 +413,35 @@ public class StreamFetcherV2Test {
 		result = restService.callDeleteBroadcast(rtmpPullStreamId);
 		assertTrue(result.isSuccess());
 
-		appSettings.resetDefaults();
-		result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+		//restore only what this test changed - pushing resetDefaults() here used to blanket-overwrite
+		//every LiveApp setting mid-class
+		appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+		appSettingsModel.setRtmpPlaybackEnabled(originalRtmpPlaybackEnabled);
+		result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 		assertTrue(result.isSuccess());
 
 	}
 
 	@Test
 	public void testSeekTimeRefusedWhenSourceNotRunning() {
+		RestServiceV2Test restService = new RestServiceV2Test();
+		String streamId = null;
 		try {
-			RestServiceV2Test restService = new RestServiceV2Test();
 			//never started, so no StreamFetcher is registered for it - seek-time must refuse, not NPE
-			Broadcast source = restService.createBroadcast("seek refusal test", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:8899", null);
+			Broadcast source = restService.createBroadcast("seek refusal test", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:" + freeSrtPort(), null);
+			streamId = source.getStreamId();
 
-			Result result = RestServiceV2Test.callSeekTime(source.getStreamId(), 5000);
+			Result result = RestServiceV2Test.callSeekTime(streamId, 5000);
 			assertFalse(result.isSuccess());
-
-			RestServiceV2Test.callDeleteBroadcast(source.getStreamId());
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
+		}
+		finally {
+			if (streamId != null) {
+				RestServiceV2Test.callDeleteBroadcast(streamId);
+			}
 		}
 	}
 
@@ -475,7 +486,7 @@ public class StreamFetcherV2Test {
 		RestServiceV2Test restService = new RestServiceV2Test();
 		String streamId = null;
 		try {
-			int port = 8895;
+			int port = freeSrtPort();
 			//nothing listens on this port yet - the first connection attempt must fail
 			Broadcast source = restService.createBroadcast("camera error test", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:" + port, null);
 			streamId = source.getStreamId();
@@ -491,9 +502,7 @@ public class StreamFetcherV2Test {
 
 			//bring the source up - StreamFetcher retries every 3s (STREAM_FETCH_RE_TRY_PERIOD_MS), so the
 			//next attempt should succeed on its own without restarting the fetcher
-			publisher = AppFunctionalV2Test.execute("ffmpeg -hide_banner -loglevel error -re -f lavfi "
-					+ "-i testsrc=size=640x360:rate=15 -c:v libx264 -preset ultrafast -tune zerolatency "
-					+ "-g 15 -pix_fmt yuv420p -f mpegts srt://0.0.0.0:" + port + "?mode=listener");
+			publisher = startSrtPublisher(port);
 
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
 					RestServiceV2Test.callGetCameraError(finalStreamId).isSuccess());
@@ -509,27 +518,24 @@ public class StreamFetcherV2Test {
 				restService.stopStreaming(streamId);
 				RestServiceV2Test.callDeleteBroadcast(streamId);
 			}
-			if (publisher != null) {
-				publisher.destroy();
-			}
+			stopPublisher(publisher);
 		}
 	}
 
 	@Test
 	public void testDeleteWhileStreamSourceActivelyBroadcasting() {
-		int port = 8896;
-		Process publisher = AppFunctionalV2Test.execute("ffmpeg -hide_banner -loglevel error -re -f lavfi "
-				+ "-i testsrc=size=640x360:rate=15 -c:v libx264 -preset ultrafast -tune zerolatency "
-				+ "-g 15 -pix_fmt yuv420p -f mpegts srt://0.0.0.0:" + port + "?mode=listener");
+		int port = freeSrtPort();
+		Process publisher = startSrtPublisher(port);
+		RestServiceV2Test restService = new RestServiceV2Test();
+		//the recreate step below deliberately reuses this id, so one cleanup covers both broadcasts
+		final String streamId = "delete-active-" + RandomStringUtils.randomAlphanumeric(6);
 		try {
-			String streamId = "delete-active-" + RandomStringUtils.randomAlphanumeric(6);
 			Broadcast source = new Broadcast();
 			source.setStreamId(streamId);
 			source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 			source.setStreamUrl("srt://127.0.0.1:" + port);
 			RestServiceV2Test.createBroadcast(source);
 
-			RestServiceV2Test restService = new RestServiceV2Test();
 			Result result = restService.startStreaming(streamId);
 			assertTrue(result.isSuccess());
 
@@ -550,32 +556,32 @@ public class StreamFetcherV2Test {
 			recreated.setStreamUrl("srt://127.0.0.1:" + port);
 			Broadcast created = RestServiceV2Test.createBroadcast(recreated);
 			assertEquals(streamId, created.getStreamId());
-
-			RestServiceV2Test.callDeleteBroadcast(streamId);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		finally {
-			publisher.destroy();
+			//covers the original too if the delete under test failed, and it may still be pulling
+			restService.stopStreaming(streamId);
+			RestServiceV2Test.callDeleteBroadcast(streamId);
+			stopPublisher(publisher);
 		}
 	}
 
 	@Test
 	public void testCreateListBulkForStreamSourceAndPlaylist() {
+		String prefix = "bulk_" + RandomStringUtils.randomAlphanumeric(6) + "_";
 		try {
-			String prefix = "bulk_" + RandomStringUtils.randomAlphanumeric(6) + "_";
-
 			Broadcast streamSource1 = new Broadcast();
 			streamSource1.setStreamId(prefix + "source1");
 			streamSource1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-			streamSource1.setStreamUrl("srt://127.0.0.1:8897");
+			streamSource1.setStreamUrl("srt://127.0.0.1:" + freeSrtPort());
 
 			Broadcast streamSource2 = new Broadcast();
 			streamSource2.setStreamId(prefix + "source2");
 			streamSource2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-			streamSource2.setStreamUrl("srt://127.0.0.1:8898");
+			streamSource2.setStreamUrl("srt://127.0.0.1:" + freeSrtPort());
 
 			Broadcast playlist = new Broadcast();
 			playlist.setStreamId(prefix + "playlist");
@@ -594,26 +600,33 @@ public class StreamFetcherV2Test {
 			assertEquals(AntMediaApplicationAdapter.STREAM_SOURCE, RestServiceV2Test.callGetBroadcast(prefix + "source1").getType());
 			assertEquals(AntMediaApplicationAdapter.STREAM_SOURCE, RestServiceV2Test.callGetBroadcast(prefix + "source2").getType());
 			assertEquals(AntMediaApplicationAdapter.PLAY_LIST, RestServiceV2Test.callGetBroadcast(prefix + "playlist").getType());
-
-			RestServiceV2Test.callDeleteBroadcast(prefix + "source1");
-			RestServiceV2Test.callDeleteBroadcast(prefix + "source2");
-			RestServiceV2Test.callDeleteBroadcast(prefix + "playlist");
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		finally {
+			RestServiceV2Test.callDeleteBroadcast(prefix + "source1");
+			RestServiceV2Test.callDeleteBroadcast(prefix + "source2");
+			RestServiceV2Test.callDeleteBroadcast(prefix + "playlist");
+		}
 	}
 
 	@Test
 	public void testStreamSourceSelfHealsAfterTransientDrop() {
-		int port = 8894;
-		Process publisher = AppFunctionalV2Test.execute("ffmpeg -hide_banner -loglevel error -re -f lavfi "
-				+ "-i testsrc=size=640x360:rate=15 -c:v libx264 -preset ultrafast -tune zerolatency "
-				+ "-g 15 -pix_fmt yuv420p -f mpegts srt://0.0.0.0:" + port + "?mode=listener");
+		int port = freeSrtPort();
+		Process publisher = startSrtPublisher(port);
 		RestServiceV2Test restService = new RestServiceV2Test();
 		String streamId = null;
 		try {
+			//only meaningful if nothing forces a restart behind its back. @BeforeEach resets the local
+			//AppSettings bean, not the server's, so check the server's
+			ConsoleAppRestServiceTest.resetCookieStore();
+			assertTrue(new ConsoleAppRestServiceTest().createFirstUserAndLogin());
+			assertEquals(0, ConsoleAppRestServiceTest.callGetAppSettings("LiveApp").getRestartStreamFetcherPeriod(),
+					"restartStreamFetcherPeriod must be 0 here, otherwise controlStreamFetchers(true) forces a "
+					+ "stop+restart and this stops testing StreamFetcher's own retry loop");
+
 			Broadcast source = restService.createBroadcast("self heal test", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:" + port, null);
 			streamId = source.getStreamId();
 			final String activeStreamId = streamId;
@@ -624,21 +637,17 @@ public class StreamFetcherV2Test {
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(activeStreamId).getStatus()));
 
-			//simulate a plain network blip: kill the source with nothing else involved - no forced restart
-			//from outside, no checker intervention (restartStreamFetcherPeriod defaults to 0, see
-			//AppSettings#resetDefaults, so controlStreamFetchers never forces a stop+restart here) - just
-			//StreamFetcher's own internal retry loop (every STREAM_FETCH_RE_TRY_PERIOD_MS = 3s) doing its job
-			publisher.destroy();
-			publisher.waitFor();
+			//plain network blip: nothing forces a restart, so only StreamFetcher's own 3s retry loop
+			//(STREAM_FETCH_RE_TRY_PERIOD_MS) can heal this
+			stopPublisher(publisher);
+			publisher = null;
 
 			//confirm the drop was actually detected (status leaves broadcasting) before bringing the
 			//source back, so this proves reconnection, not tolerance of an outage nobody noticed
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(200, TimeUnit.MILLISECONDS).until(() ->
 					!AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(activeStreamId).getStatus()));
 
-			publisher = AppFunctionalV2Test.execute("ffmpeg -hide_banner -loglevel error -re -f lavfi "
-					+ "-i testsrc=size=640x360:rate=15 -c:v libx264 -preset ultrafast -tune zerolatency "
-					+ "-g 15 -pix_fmt yuv420p -f mpegts srt://0.0.0.0:" + port + "?mode=listener");
+			publisher = startSrtPublisher(port);
 
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(activeStreamId).getStatus()));
@@ -654,7 +663,7 @@ public class StreamFetcherV2Test {
 				restService.stopStreaming(streamId);
 				RestServiceV2Test.callDeleteBroadcast(streamId);
 			}
-			publisher.destroy();
+			stopPublisher(publisher);
 		}
 	}
 
@@ -672,14 +681,16 @@ public class StreamFetcherV2Test {
 	//after the state machine rewrite (or as its own fix, discuss with user first).
 	@Test
 	public void testBootTimeAutoResumeStartsUnattendedStreamSource() throws Exception {
+		//drives the embedded adapter directly, so the local bean is the right one here - the REST-driven
+		//tests in this class hit the server's instead
 		getAppSettings().setStartStreamFetcherAutomatically(true);
 
-		int port = 8893;
-		Process publisher = AppFunctionalV2Test.execute("ffmpeg -hide_banner -loglevel error -re -f lavfi "
-				+ "-i testsrc=size=640x360:rate=15 -c:v libx264 -preset ultrafast -tune zerolatency "
-				+ "-g 15 -pix_fmt yuv420p -f mpegts srt://0.0.0.0:" + port + "?mode=listener");
+		int port = freeSrtPort();
+		Process publisher = startSrtPublisher(port);
+		String cleanupStreamId = null;
 		try {
-			String streamId = "boot-resume-" + RandomStringUtils.randomAlphanumeric(6);
+			final String streamId = "boot-resume-" + RandomStringUtils.randomAlphanumeric(6);
+			cleanupStreamId = streamId;
 			Broadcast source = new Broadcast("boot resume test", null, null, null, "srt://127.0.0.1:" + port, AntMediaApplicationAdapter.STREAM_SOURCE);
 			source.setStreamId(streamId);
 			//this is exactly the set AntMediaApplicationAdapter#appStart's vertx.setTimer(1000, ...) block
@@ -706,29 +717,26 @@ public class StreamFetcherV2Test {
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(app.getDataStore().get(streamId).getStatus()));
 
 			assertNotNull(app.getStreamFetcherManager().getStreamFetcher(streamId));
-
-			app.getStreamFetcherManager().stopStreaming(streamId, true);
-			app.getDataStore().delete(streamId);
 		}
 		finally {
-			publisher.destroy();
+			//expected to fail on master, so cleanup has to be here or the source stays registered in the
+			//embedded context for the whole class
+			if (cleanupStreamId != null) {
+				app.getStreamFetcherManager().stopStreaming(cleanupStreamId, true);
+				app.getDataStore().delete(cleanupStreamId);
+			}
+			stopPublisher(publisher);
 		}
 	}
 
-	//TODO: expected to fail on current master, but the signal is currently confounded - see TODO-Progress.md
-	//checkpoint 6 (2026-09-17). This test's fixed SRT port (8892) collided with a leftover process from an
-	//earlier run ("Address already in use" in the surefire output), so the source never actually had a
-	//listener while this ran. The racing start/stop calls against a permanently-unreachable source did end
-	//with a REST /start refused as "already active" - matching the same isStreamRunning()/streamFetcherList
-	//split-brain family as StreamFetcherStuckSourceTest - but that result can't be trusted as a clean repro
-	//of the race until the port collision is fixed and this is re-run. Don't hack the assertion to pass;
-	//needs a real re-run with a clean port first.
+	//TODO: expected to fail on current master. Verified 2026-09-18 against a real listener: after the
+	//racing calls, /start is accepted but the stream never reaches broadcasting. Needs triage - either the
+	//same isStreamRunning()/streamFetcherList split-brain family as
+	//testStuckSourceUnderRestartRaceViaRestOnly, or its own bug. Don't hack the assertion to pass.
 	@Test
 	public void testConcurrentStartStopRequestsLeaveSystemInConsistentState() {
-		int port = 8892;
-		Process publisher = AppFunctionalV2Test.execute("ffmpeg -hide_banner -loglevel error -re -f lavfi "
-				+ "-i testsrc=size=640x360:rate=15 -c:v libx264 -preset ultrafast -tune zerolatency "
-				+ "-g 15 -pix_fmt yuv420p -f mpegts srt://0.0.0.0:" + port + "?mode=listener");
+		int port = freeSrtPort();
+		Process publisher = startSrtPublisher(port);
 		ExecutorService executor = Executors.newFixedThreadPool(2);
 		RestServiceV2Test restService = new RestServiceV2Test();
 		String cleanupStreamId = null;
@@ -736,6 +744,12 @@ public class StreamFetcherV2Test {
 			Broadcast source = restService.createBroadcast("concurrent race test", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:" + port, null);
 			String streamId = source.getStreamId();
 			cleanupStreamId = streamId;
+
+			//the racing calls only mean something against a source that can actually connect
+			Result initialStart = restService.startStreaming(streamId);
+			assertTrue(initialStart.isSuccess());
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(streamId).getStatus()));
 
 			//fire near-simultaneous external start+stop a handful of times - REST callers racing each other,
 			//distinct from the internal checker race testStuckSourceUnderRestartRaceViaRestOnly covers
@@ -779,10 +793,12 @@ public class StreamFetcherV2Test {
 				RestServiceV2Test.callDeleteBroadcast(cleanupStreamId);
 			}
 			executor.shutdownNow();
-			publisher.destroy();
+			stopPublisher(publisher);
 		}
 	}
 
+	//TODO: expected to fail on master by design - this is the repro for the bug the rewrite exists to fix,
+	//not a regression. Reproduces 6/6 streams stuck. Goes green when the rewrite lands, don't weaken it.
 	//A source's real feed comes back but REST refuses to restart it forever as "already active"
 	//(PR https://github.com/ant-media/Ant-Media-Server/pull/8072). Needs an internal checker tick to land
 	//inside the ~3s retry gap after a drop - a single stream only hits that window ~30% of the time, so
@@ -790,7 +806,7 @@ public class StreamFetcherV2Test {
 	@Test
 	public void testStuckSourceUnderRestartRaceViaRestOnly() {
 		int streamCount = 6;
-		int basePort = 20000 + new Random().nextInt(10000); //randomized so parallel CI runs don't collide on ports
+		int basePort = freeSrtPort();
 		List<String> streamIds = new ArrayList<>();
 		List<Process> publishers = new ArrayList<>();
 		RestServiceV2Test restService = new RestServiceV2Test();
@@ -839,11 +855,17 @@ public class StreamFetcherV2Test {
 			}
 			Collections.shuffle(order);
 			for (int i : order) {
+				//plain destroy() here, not stopPublisher() - waiting for exit would distort the stagger
 				publishers.get(i).destroy();
 				Thread.sleep(spacingMs);
 			}
 
 			Thread.sleep(3000); //give the last drop its full retry-gap window before recovering
+
+			//every port is rebound below, so make sure the old listeners are really gone first
+			for (Process publisher : publishers) {
+				stopPublisher(publisher);
+			}
 
 			for (int i = 0; i < streamCount; i++) {
 				publishers.set(i, startSrtPublisher(basePort + i));
@@ -879,12 +901,8 @@ public class StreamFetcherV2Test {
 			fail(e.getMessage());
 		}
 		finally {
-			for (Process publisher : publishers) {
-				publisher.destroy();
-			}
-			for (String streamId : streamIds) {
-				RestServiceV2Test.callDeleteBroadcast(streamId);
-			}
+			//restore first: this lives on the server and is written through to red5-web.properties, so
+			//leaving it set would leak into later tests and later runs
 			if (originalRestartStreamFetcherPeriod != null) {
 				try {
 					AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
@@ -895,6 +913,12 @@ public class StreamFetcherV2Test {
 					e.printStackTrace();
 				}
 			}
+			for (Process publisher : publishers) {
+				stopPublisher(publisher);
+			}
+			for (String streamId : streamIds) {
+				RestServiceV2Test.callDeleteBroadcast(streamId);
+			}
 		}
 	}
 
@@ -902,6 +926,27 @@ public class StreamFetcherV2Test {
 		return AppFunctionalV2Test.execute("ffmpeg -hide_banner -loglevel error -re -f lavfi "
 				+ "-i testsrc=size=640x360:rate=15 -c:v libx264 -preset ultrafast -tune zerolatency "
 				+ "-g 15 -pix_fmt yuv420p -f mpegts srt://0.0.0.0:" + port + "?mode=listener");
+	}
+
+	//fixed ports used to collide between methods here ("Address already in use")
+	private static int freeSrtPort() {
+		return 20000 + RANDOM.nextInt(20000);
+	}
+
+	private static void stopPublisher(Process publisher) {
+		if (publisher == null) {
+			return;
+		}
+		publisher.destroy();
+		try {
+			if (!publisher.waitFor(5, TimeUnit.SECONDS)) {
+				publisher.destroyForcibly();
+				publisher.waitFor(5, TimeUnit.SECONDS);
+			}
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 }

@@ -79,7 +79,6 @@ public class AppFunctionalV2Test {
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalV2Test.class);
 
 	public static Process process;
-	private static Process tmpExec;
 	private static String ROOT_SERVICE_URL;
 
 	public static final int MAC_OS_X = 0;
@@ -362,18 +361,18 @@ public class AppFunctionalV2Test {
 			broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
 			broadcast.setPlaylistLoopEnabled(false);
 			broadcast = RestServiceV2Test.createBroadcast(broadcast);
+			streamId = broadcast.getStreamId();
+			final String activeStreamId = streamId;
 
 			List<PlayListItem> playList = new ArrayList<>();
 			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			Result result = RestServiceV2Test.callUpdateBroadcast(broadcast.getStreamId(), null, null, "", null, null, playList);
+			Result result = RestServiceV2Test.callUpdateBroadcast(activeStreamId, null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
 
-			assertTrue(RestServiceV2Test.callStartBroadast(broadcast.getStreamId()));
+			assertTrue(RestServiceV2Test.callStartBroadast(activeStreamId));
 
 			//jump to the last item without waiting out its real playback duration
-			streamId = broadcast.getStreamId();
-			final String activeStreamId = streamId;
 			assertTrue(RestServiceV2Test.callPlayNextItem(activeStreamId, 1).isSuccess());
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
 					RestServiceV2Test.getBroadcast(activeStreamId).getCurrentPlayIndex() == 1);
@@ -396,9 +395,17 @@ public class AppFunctionalV2Test {
 		}
 		finally {
 			//run even if an assertion above failed - a stuck-running playlist otherwise leaks into
-			//later tests in this class that assert a clean slate (testStatistics, testStreamAcceptFilter)
+			//later tests in this class that assert a clean slate (testStatistics, testStreamAcceptFilter).
+			//best-effort: a cleanup failure here shouldn't mask a real assertion failure from the try block
 			if (streamId != null) {
-				RestServiceV2Test.callDeleteBroadcast(streamId);
+				try {
+					RestServiceV2Test.callStopBroadcastService(streamId);
+					awaitPlaylistFullyStopped(streamId);
+					RestServiceV2Test.callDeleteBroadcast(streamId);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -412,17 +419,17 @@ public class AppFunctionalV2Test {
 			broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
 			broadcast.setPlaylistLoopEnabled(true);
 			broadcast = RestServiceV2Test.createBroadcast(broadcast);
+			streamId = broadcast.getStreamId();
+			final String activeStreamId = streamId;
 
 			List<PlayListItem> playList = new ArrayList<>();
 			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			Result result = RestServiceV2Test.callUpdateBroadcast(broadcast.getStreamId(), null, null, "", null, null, playList);
+			Result result = RestServiceV2Test.callUpdateBroadcast(activeStreamId, null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
 
-			assertTrue(RestServiceV2Test.callStartBroadast(broadcast.getStreamId()));
+			assertTrue(RestServiceV2Test.callStartBroadast(activeStreamId));
 
-			streamId = broadcast.getStreamId();
-			final String activeStreamId = streamId;
 			assertTrue(RestServiceV2Test.callPlayNextItem(activeStreamId, 1).isSuccess());
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
 					RestServiceV2Test.getBroadcast(activeStreamId).getCurrentPlayIndex() == 1);
@@ -1305,36 +1312,32 @@ public class AppFunctionalV2Test {
 		}
 	}
 
+	//started on the calling thread: this used to publish through a static field, so overlapping calls
+	//could get each other's Process and destroy() would kill the wrong child
 	public static Process execute(final String command) {
-		tmpExec = null;
-		new Thread() {
-			public void run() {
-				try {
-
-					tmpExec = Runtime.getRuntime().exec(command);
-					InputStream errorStream = tmpExec.getErrorStream();
-					byte[] data = new byte[1024];
-					int length = 0;
-
-					while ((length = errorStream.read(data, 0, data.length)) > 0) {
-						System.out.println(new String(data, 0, length));
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			};
-		}.start();
-
-		while (tmpExec == null) {
-			try {
-				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		final Process startedProcess;
+		try {
+			startedProcess = Runtime.getRuntime().exec(command);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalStateException("cannot execute: " + command, e);
 		}
 
-		return tmpExec;
+		//drain stderr so a chatty child can't fill the pipe buffer and block
+		new Thread(() -> {
+			try (InputStream errorStream = startedProcess.getErrorStream()) {
+				byte[] data = new byte[1024];
+				int length = 0;
+
+				while ((length = errorStream.read(data, 0, data.length)) > 0) {
+					System.out.println(new String(data, 0, length));
+				}
+			} catch (IOException e) {
+				//closed when the process is destroyed
+			}
+		}).start();
+
+		return startedProcess;
 	}
 
 	public Result callIsEnterpriseEdition() throws Exception {
