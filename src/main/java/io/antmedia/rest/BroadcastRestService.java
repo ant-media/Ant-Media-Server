@@ -1259,7 +1259,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get IP Camera Error after connection failure",
-			description = "Checks for an error after a connection failure with an IP camera. Returning true indicates an error; false indicates no error.",
+			description = "Checks for an error after a connection failure with an IP camera or stream source. Returning true indicates no error (last connection attempt succeeded); false indicates an error occurred, with the message describing it.",
 			responses = {
 					@ApiResponse(responseCode = "200", description = "IP Camera error status",
 							content = @Content(
