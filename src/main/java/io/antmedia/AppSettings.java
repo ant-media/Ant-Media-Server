@@ -578,6 +578,24 @@ public class AppSettings implements Serializable {
 	@Value( "${streamFetcherBufferTime:0}" )
 	private int streamFetcherBufferTime = 0;
 
+	/**
+	 * How long a stream fetcher waits before connecting to the source again after a failed attempt,
+	 * in milliseconds.
+	 * Default value is 3000
+	 */
+	@Value( "${streamFetcherRetryDelayMs:3000}" )
+	private long streamFetcherRetryDelayMs = 3000;
+
+	/**
+	 * How many times in a row a stream fetcher tries to connect to the source before it gives up and
+	 * the stream source is stopped.
+	 *
+	 * -1 means it never gives up,
+	 * Default value is -1
+	 */
+	@Value( "${streamFetcherMaxRetryAttempts:-1}" )
+	private int streamFetcherMaxRetryAttempts = -1;
+
 
 	/**
 	 * HLS Flags for FFmpeg HLS Muxer,
@@ -1814,6 +1832,8 @@ public class AppSettings implements Serializable {
 		previewOverwrite = false;
 		createPreviewPeriod = 5000;
 		restartStreamFetcherPeriod = 0;
+		streamFetcherRetryDelayMs = 3000;
+		streamFetcherMaxRetryAttempts = -1;
 		webRTCFrameRate = 20;
 		hashControlPlayEnabled = false;
 		hashControlPublishEnabled = false;
