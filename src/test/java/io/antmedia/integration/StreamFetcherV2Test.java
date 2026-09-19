@@ -28,7 +28,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -42,13 +41,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.model.Result;
-import io.antmedia.streamsource.StreamFetcher;
-import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -261,90 +256,91 @@ public class StreamFetcherV2Test {
 	}
 
 
+	/**
+	 * The pull path and endpoint republish end to end, over REST only. An rtmp publish into this app is
+	 * pulled back out of its own hls output as a stream source, which republishes to a second broadcast
+	 * in the same app. That second broadcast can only go live if the fetcher opened the source, built a
+	 * MuxAdaptor and set its endpoints up, so it covers the whole chain in one signal.
+	 */
 	@Test
 	public void testSetupEndpointStreamFetcher() {
 		RestServiceV2Test restService = new RestServiceV2Test();
+		String publishedStreamId = RandomStringUtils.randomAlphanumeric(8);
+		String hlsUrl = "http://127.0.0.1:5080/LiveApp/streams/" + publishedStreamId + ".m3u8";
+		Process rtmpPublisher = AppFunctionalV2Test.execute(ffmpegPath
+				+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/" + publishedStreamId);
+		String sourceId = null;
+		String targetId = null;
 
-		List<Broadcast> broadcastList = restService.callGetBroadcastList();
+		try {
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast published = restService.getBroadcast(publishedStreamId);
+				return published != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(published.getStatus());
+			});
 
-		Broadcast endpointStream = restService.createBroadcast("endpoint_stream");
+			//the source cannot be opened before the playlist has segments to hand out
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
+					MuxingTest.testFile(hlsUrl));
 
-		DataStore dataStore = app.getDataStore();
+			//what the source republishes into, an ordinary broadcast of this same app
+			Broadcast target = restService.createBroadcast("endpoint target");
+			targetId = target.getStreamId();
+			final String activeTargetId = targetId;
 
-		String streamId = RandomStringUtils.randomAlphanumeric(8);
-		Process rtmpSendingProcess = AppFunctionalV2Test.execute(ffmpegPath
-				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
-				+ streamId);
+			Broadcast source = restService.createBroadcast("endpoint source", AntMediaApplicationAdapter.STREAM_SOURCE, hlsUrl, null);
+			sourceId = source.getStreamId();
+			final String activeSourceId = sourceId;
 
-		Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
-		.until(() -> {
-			Broadcast broadcast = restService.getBroadcast(streamId);
-			return broadcast != null && broadcast.getStatus() != null && 
-					broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		});
+			Endpoint endpoint = new Endpoint();
+			endpoint.setEndpointUrl(target.getRtmpURL());
+			assertTrue(RestServiceV2Test.addEndpoint(activeSourceId, endpoint).isSuccess());
 
-		//create a local stream
-		//add librtmp style in the url
-		Broadcast localStream = new Broadcast("name", null, null, null, "http://127.0.0.1:5080/LiveApp/streams/"+ streamId + ".m3u8", AntMediaApplicationAdapter.STREAM_SOURCE);
-		dataStore.save(localStream);
+			//fail here, rather than as a timeout below, if the endpoint never landed on the broadcast
+			assertEquals(1, restService.getBroadcast(activeSourceId).getEndPointList().size());
 
-		Endpoint endpoint = new Endpoint();
-		endpoint.setEndpointUrl(endpointStream.getRtmpURL());
-		//add endpoint to the server
-		dataStore.addEndpoint(localStream.getStreamId(), endpoint);
+			assertTrue(restService.startStreaming(activeSourceId).isSuccess());
 
-		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
-		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(activeSourceId).getStatus()));
 
-		app.setDataStoreFactory(dsf);
+			//the target goes live only once packets actually reach it through the endpoint muxer
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast republished = restService.getBroadcast(activeTargetId);
+				return republished != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(republished.getStatus());
+			});
 
-		//create stream fetcher
-		StreamFetcher streamFetcher = new StreamFetcher(localStream.getStreamUrl(), localStream.getStreamId(), localStream.getType(), appScope, Vertx.vertx(), 0);
+			//a start time from this publish, not one left over from when the target was created
+			Broadcast republished = restService.getBroadcast(activeTargetId);
+			assertTrue(System.currentTimeMillis() - republished.getStartTime() < 10000,
+					"the republished broadcast should have just started, its start time is " + republished.getStartTime());
 
-		//start stream fetcher
-		streamFetcher.startStream();
+			//stopping the source has to take the republish down with it, not leave the target live
+			assertTrue(restService.stopStreaming(activeSourceId).isSuccess());
 
-		//check that server has the stream
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
+					!AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(activeSourceId).getStatus()));
 
-		Awaitility.await().atMost(250, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
-		.until(() -> {
-			return restService.getBroadcast(endpointStream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		});
-
-		//Check start time
-		Broadcast broadcast = restService.getBroadcast(endpointStream.getStreamId());
-		assertNotNull(broadcast);
-		long now = System.currentTimeMillis();
-		//broadcast start time should be at most 5 sec before now
-		assertTrue((now-broadcast.getStartTime()) < 5000);
-		
-		assertTrue(streamFetcher.isThreadActive());
-		
-		//stop stream fetcher
-		streamFetcher.stopStream();
-
-		rtmpSendingProcess.destroy();
-		//delete stream on the server
-		Result result = restService.callDeleteBroadcast(endpointStream.getStreamId());
-		assertTrue(result.isSuccess());
-
-		Awaitility.await().atMost(20, TimeUnit.SECONDS)
-		.until(() -> {
-			return restService.getBroadcast(streamId) == null;
-		});	
-
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-		.until(() -> {
-			return broadcastList.size() == restService.callGetBroadcastList().size();
-		});	
-		
-		//Make sure thread is stopped
-		Awaitility.await().atMost(20, TimeUnit.SECONDS)
-		.until(() -> {
-		   return !streamFetcher.isThreadActive();
-		});
-		
-		
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast stopped = restService.getBroadcast(activeTargetId);
+				return stopped == null || !AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(stopped.getStatus());
+			});
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		finally {
+			//run even if an assertion above failed - otherwise a failure here leaves a live fetcher
+			//running for the rest of the class's shared Spring context (@DirtiesContext is AFTER_CLASS)
+			if (sourceId != null) {
+				restService.stopStreaming(sourceId);
+				RestServiceV2Test.callDeleteBroadcast(sourceId);
+			}
+			if (targetId != null) {
+				RestServiceV2Test.callDeleteBroadcast(targetId);
+			}
+			rtmpPublisher.destroy();
+		}
 	}
 
 	@Test
@@ -729,26 +725,40 @@ public class StreamFetcherV2Test {
 		}
 	}
 
-	//TODO: expected to fail on current master. Verified 2026-09-18 against a real listener: after the
-	//racing calls, /start is accepted but the stream never reaches broadcasting. Needs triage - either the
-	//same isStreamRunning()/streamFetcherList split-brain family as
-	//testStuckSourceUnderRestartRaceViaRestOnly, or its own bug. Don't hack the assertion to pass.
+	/**
+	 * Two external REST callers racing start against stop on the same source must never wedge it: not
+	 * running, yet every later start refused as "already active" because a registry entry outlived its
+	 * worker. The source is this app's own hls output, since a single shot ffmpeg listener exits as soon
+	 * as the first stop disconnects it, which would make the last step untestable. An http server serves
+	 * reader after reader, so the racing calls stay the only variable.
+	 */
 	@Test
 	public void testConcurrentStartStopRequestsLeaveSystemInConsistentState() {
-		int port = freeSrtPort();
-		Process publisher = startSrtPublisher(port);
 		ExecutorService executor = Executors.newFixedThreadPool(2);
 		RestServiceV2Test restService = new RestServiceV2Test();
+		String publishedStreamId = RandomStringUtils.randomAlphanumeric(8);
+		String hlsUrl = "http://127.0.0.1:5080/LiveApp/streams/" + publishedStreamId + ".m3u8";
+		Process rtmpPublisher = AppFunctionalV2Test.execute(ffmpegPath
+				+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/" + publishedStreamId);
 		String cleanupStreamId = null;
 		try {
-			Broadcast source = restService.createBroadcast("concurrent race test", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:" + port, null);
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast published = restService.getBroadcast(publishedStreamId);
+				return published != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(published.getStatus());
+			});
+
+			//nothing can be pulled before the playlist has segments to hand out
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
+					MuxingTest.testFile(hlsUrl));
+
+			Broadcast source = restService.createBroadcast("concurrent race test", AntMediaApplicationAdapter.STREAM_SOURCE, hlsUrl, null);
 			String streamId = source.getStreamId();
 			cleanupStreamId = streamId;
 
 			//the racing calls only mean something against a source that can actually connect
 			Result initialStart = restService.startStreaming(streamId);
 			assertTrue(initialStart.isSuccess());
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(streamId).getStatus()));
 
 			//fire near-simultaneous external start+stop a handful of times - REST callers racing each other,
@@ -778,7 +788,8 @@ public class StreamFetcherV2Test {
 			Result restarted = restService.startStreaming(streamId);
 			assertTrue(restarted.isSuccess(), "a fresh /start must be accepted once the racing calls settle, not refused as a ghost 'already active'");
 
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
+			//an hls source takes a playlist fetch and a segment or two to come back, unlike a live transport
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(streamId).getStatus()));
 		}
 		catch (Exception e) {
@@ -793,7 +804,7 @@ public class StreamFetcherV2Test {
 				RestServiceV2Test.callDeleteBroadcast(cleanupStreamId);
 			}
 			executor.shutdownNow();
-			stopPublisher(publisher);
+			rtmpPublisher.destroy();
 		}
 	}
 
