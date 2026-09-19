@@ -247,7 +247,6 @@ public class StreamFetcherV2Test {
 			});
 
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -663,18 +662,14 @@ public class StreamFetcherV2Test {
 		}
 	}
 
-	//TODO: expected to fail on current master - real bug found 2026-09-17, see TODO-Progress.md checkpoint
-	//6. Root cause: InMemoryDataStore#getExternalStreamsList() stores live Broadcast object references,
-	//not copies. It adds a broadcast to the returned list, then mutates that SAME object's status to
-	//"preparing" in place before persisting it. appStart()'s auto-resume loop then calls
-	//startStreaming(broadcast, true) on that already-mutated object; StreamFetcherManager#isStreamRunning()
-	//reads status=preparing, treats it as already streaming, and (since originAdress is blank so
-	//isInstanceAlive() trivially returns true) refuses to start it as "already active". Net effect: with
-	//InMemoryDataStore, boot-time auto-resume self-sabotages and never actually starts anything. Checked
-	//MapBasedDataStore and MongoStore's getExternalStreamsList() - both return a snapshot taken before the
-	//status mutation, so this looks InMemoryDataStore-specific, not necessarily hitting MapDB/Mongo-backed
-	//production - not verified end-to-end against those though. Don't hack this test to pass - revisit
-	//after the state machine rewrite (or as its own fix, discuss with user first).
+	/**
+	 * Why this used to fail: InMemoryDataStore#getExternalStreamsList() hands back live Broadcast
+	 * references rather than copies, and flips their status to "preparing" in place before persisting, so
+	 * the resume loop read rows that already looked like they were running and refused them as already
+	 * active. Resume now starts them with forceStart, which skips the database half of admission, so the
+	 * aliasing cannot wedge it. That aliasing is still there. MapBasedDataStore and MongoStore snapshot
+	 * before the mutation, so neither was ever affected.
+	 */
 	@Test
 	public void testBootTimeAutoResumeStartsUnattendedStreamSource() throws Exception {
 		//drives the embedded adapter directly, so the local bean is the right one here - the REST-driven
@@ -808,12 +803,13 @@ public class StreamFetcherV2Test {
 		}
 	}
 
-	//TODO: expected to fail on master by design - this is the repro for the bug the rewrite exists to fix,
-	//not a regression. Reproduces 6/6 streams stuck. Goes green when the rewrite lands, don't weaken it.
-	//A source's real feed comes back but REST refuses to restart it forever as "already active"
-	//(PR https://github.com/ant-media/Ant-Media-Server/pull/8072). Needs an internal checker tick to land
-	//inside the ~3s retry gap after a drop - a single stream only hits that window ~30% of the time, so
-	//this staggers several real sources across one checker period (10s) to cover it in one sweep.
+	/**
+	 * The repro for the bug the state machine rewrite exists to fix: a source's feed comes back, but REST
+	 * refuses to restart it forever as "already active" (https://github.com/ant-media/Ant-Media-Server/pull/8072).
+	 * It left 6 of 6 streams stuck before the rewrite. Catching it needs an internal tick to land inside
+	 * the retry gap after a drop, which one stream only manages about 30% of the time, so this staggers
+	 * several real sources across one tick period to cover the window in a single sweep. Don't weaken it.
+	 */
 	@Test
 	public void testStuckSourceUnderRestartRaceViaRestOnly() {
 		int streamCount = 6;
