@@ -50,8 +50,6 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 	private static final String ALREADY_ACTIVE_MESSAGE = "Stream is already active. It's already streaming or trying to connect";
 
-	private static final long SHUTDOWN_TIMEOUT_MS = 10000;
-
 	/** Non terminal StreamFetchers by stream id. An entry here means this node owns that source. */
 	@Setter
 	@Getter
@@ -66,7 +64,9 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	private final AppSettings appSettings;
 	private final ServerSettings serverSettings;
 	private final ILicenceService licenseService;
-	private final PlaylistController playlists;
+
+	@Getter
+	private final PlaylistController playlistController;
 
 	@Setter
 	@Getter
@@ -98,7 +98,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 			return thread;
 		});
 
-		this.playlists = new PlaylistController(this, vertx, context, appSettings);
+		this.playlistController = new PlaylistController(this, vertx, context, appSettings);
 
 		AMSShutdownManager.getInstance().subscribe(this::shuttingDown);
 	}
@@ -201,9 +201,12 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 			return result;
 		}
 
-		if (playlists.isRunning(streamId)) {
+		if (playlistController.isRunning(streamId)) {
 			//stopping only the item that happens to be playing would make the controller start the next one
-			return stopPlayList(streamId);
+			CompletableFuture<Void> stopped = playlistController.stopPlaylistAsync(streamId);
+			result.setSuccess(!stopBlocking || awaitStopped(stopped, streamId));
+			result.setMessage(result.isSuccess() ? "Playlist stopped" : "Failed to stop the playlist with Blocking :" + streamId);
+			return result;
 		}
 
 		StreamFetcher fetcher = streamFetcherList.get(streamId);
@@ -223,6 +226,33 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Waits for work that was posted to the shared context. Must not be called on that context, the
+	 * transitions it waits for need that thread.
+	 */
+	private boolean awaitStopped(CompletableFuture<Void> stopped, String logId) {
+		if (Context.isOnVertxThread()) {
+			logger.error("Blocking stop is called on a vert.x thread for:{}. It cannot complete there", logId);
+			return false;
+		}
+
+		//past the abandonment window, so this outlives the attempt it is waiting for
+		long waitMs = StreamFetcher.STOPPING_TIMEOUT_MS + 2000;
+
+		try {
+			stopped.get(waitMs, TimeUnit.MILLISECONDS);
+			return true;
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+		catch (Exception e) {
+			logger.warn("Did not stop in {}ms for:{}", waitMs, logId);
+		}
+
+		return false;
 	}
 
 	/**
@@ -255,7 +285,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 		if (to == State.STOPPED) {
 			//last, so a playlist starts its next item only once this one is completely gone
-			playlists.onItemStopped(fetcher);
+			playlistController.onItemStopped(fetcher);
 		}
 	}
 
@@ -274,18 +304,23 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		if (broadcast == null) {
 			logger.info("Stopping the stream fetcher because its broadcast is deleted, streamId:{}", streamId);
 			fetcher.stopStream();
+			return;
 		}
-		else if (AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
-			if (broadcast.isAutoStartStopEnabled() && isToBeStoppedAutomatically(broadcast)) {
-				logger.info("Auto stopping the playlist because nobody is watching it, streamId:{}", streamId);
-				stopPlayList(streamId);
+
+		//a playlist item is registered under the playlist's own id, so this broadcast is the playlist
+		boolean isPlaylist = AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType());
+
+		if (isToBeStoppedAutomatically(broadcast)) {
+			logger.info("Auto stopping the {} because nobody is watching it, streamId:{}", isPlaylist ? "playlist" : "stream source", streamId);
+			if (isPlaylist) {
+				playlistController.stopPlaylist(streamId);
+			}
+			else {
+				fetcher.stopStream();
 			}
 		}
-		else if (isToBeStoppedAutomatically(broadcast)) {
-			logger.info("Auto stopping the stream source because nobody is watching it, streamId:{}", streamId);
-			fetcher.stopStream();
-		}
-		else if (restartPeriodSeconds > 0 && state == State.STREAMING
+		//a forced reconnect would restart the current item, not the playlist, so playlists sit it out
+		else if (!isPlaylist && restartPeriodSeconds > 0 && state == State.STREAMING
 				&& System.currentTimeMillis() - fetcher.getStateSinceMs() >= restartPeriodSeconds * 1000L) {
 			logger.info("Reconnecting streamId:{} because it has been streaming for longer than the forced restart period of {}s", streamId, restartPeriodSeconds);
 			fetcher.restart();
@@ -317,9 +352,13 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		return isToBeStopped;
 	}
 
-	/** True if this node is fetching the source, or another node in the cluster is and still alive. */
+	/**
+	 * True when something holds this stream id: a StreamFetcher here, a playlist of this node sitting
+	 * between two items, or another node in the cluster that is still alive. Playlist items are started
+	 * through startPlaylistItem, which does not come through here, so a session never blocks a switch.
+	 */
 	public boolean isStreamRunning(Broadcast broadcast) {
-		if (streamFetcherList.containsKey(broadcast.getStreamId())) {
+		if (streamFetcherList.containsKey(broadcast.getStreamId()) || playlistController.isRunning(broadcast.getStreamId())) {
 			return true;
 		}
 
@@ -356,46 +395,20 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	public void shutdown() {
 		logger.info("Stopping all stream fetchers for app:{}", scope.getName());
 
-		if (Context.isOnVertxThread()) {
-			//the STOPPED transitions this waits for need the shared context, waiting on it blocks them
-			logger.error("shutdown is called on a vert.x thread for app:{}. Stream fetchers cannot finish stopping there", scope.getName());
-		}
-
 		//refuse late starts, the pool is gone at the end of this method and a StreamFetcher would retry forever
 		serverShuttingDown = true;
 
 		//a playlist has to be marked finished as a whole, not just have its current item stopped
-		playlists.shutdown();
+		awaitStopped(playlistController.shutdown(), scope.getName());
 
 		List<CompletableFuture<Void>> stopping = new ArrayList<>();
 		for (StreamFetcher fetcher : streamFetcherList.values()) {
 			stopping.add(fetcher.stopStream());
 		}
 
-		try {
-			CompletableFuture.allOf(stopping.toArray(new CompletableFuture[0])).get(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
-		catch (Exception e) {
-			logger.warn("{} stream fetchers did not stop in {}ms for app:{}", streamFetcherList.size(), SHUTDOWN_TIMEOUT_MS, scope.getName());
-		}
+		awaitStopped(CompletableFuture.allOf(stopping.toArray(new CompletableFuture[0])), scope.getName());
 
 		pool.shutdownNow();
-	}
-
-	public Result startPlaylist(Broadcast playlist) {
-		return playlists.startPlaylist(playlist);
-	}
-
-	public Result stopPlayList(String streamId) {
-		return playlists.stopPlaylist(streamId);
-	}
-
-	/** Plays the item at index, or the one after the current item when index is negative. */
-	public Result playItemInList(String streamId, int index) {
-		return playlists.playItem(streamId, index);
 	}
 
 	public StreamFetcher getStreamFetcher(String streamId) {
