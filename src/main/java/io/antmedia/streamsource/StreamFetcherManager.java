@@ -1,8 +1,5 @@
 package io.antmedia.streamsource;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +24,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -34,7 +32,6 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
-import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.streamsource.StreamFetcher.State;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -53,8 +50,6 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 	private static final String ALREADY_ACTIVE_MESSAGE = "Stream is already active. It's already streaming or trying to connect";
 
-	private static final String PLAYLIST_NOT_READY_MESSAGE = "Playlists are not available in this build";
-
 	private static final long SHUTDOWN_TIMEOUT_MS = 10000;
 
 	/** Non terminal StreamFetchers by stream id. An entry here means this node owns that source. */
@@ -71,6 +66,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	private final AppSettings appSettings;
 	private final ServerSettings serverSettings;
 	private final ILicenceService licenseService;
+	private final PlaylistController playlists;
 
 	@Setter
 	@Getter
@@ -102,6 +98,8 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 			return thread;
 		});
 
+		this.playlists = new PlaylistController(this, vertx, context, appSettings);
+
 		AMSShutdownManager.getInstance().subscribe(this::shuttingDown);
 	}
 
@@ -110,8 +108,8 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	}
 
 	/** Overridden by tests to hand out StreamFetchers that run without ffmpeg. */
-	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
-		return new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx, stream.getSeekTimeInMs());
+	public StreamFetcher make(String streamId, String streamUrl, String streamType, long seekTimeMs) {
+		return new StreamFetcher(streamUrl, streamId, streamType, scope, vertx, seekTimeMs);
 	}
 
 	public Result startStreaming(@Nonnull Broadcast broadcast) {
@@ -125,12 +123,30 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	 * preparing.
 	 */
 	public Result startStreaming(@Nonnull Broadcast broadcast, boolean forceStart) {
-		String streamId = broadcast.getStreamId();
+		if (!forceStart && isStreamRunning(broadcast)) {
+			logger.info("Stream is already active for streamId:{}", broadcast.getStreamId());
+			return new Result(false, broadcast.getStreamId(), ALREADY_ACTIVE_MESSAGE);
+		}
+
+		return startFetcher(broadcast.getStreamId(), broadcast.getStreamUrl(), broadcast.getType(),
+				broadcast.getSeekTimeInMs(), restartStreamAutomatically);
+	}
+
+	/**
+	 * Starts one playlist item under the playlist's own stream id, so everything outside this package
+	 * keeps seeing a single stream. What happens when it ends is the {@link PlaylistController}'s call,
+	 * which is why the item itself never retries.
+	 */
+	Result startPlaylistItem(String playlistId, PlayListItem item) {
+		return startFetcher(playlistId, item.getStreamUrl(), item.getType(), item.getSeekTimeInMs(), false);
+	}
+
+	private Result startFetcher(String streamId, String streamUrl, String streamType, long seekTimeMs, boolean restartOnFailure) {
 		Result result = new Result(false);
 		result.setDataId(streamId);
 
 		if (licenseService.isLicenceSuspended()) {
-			logger.error("License is suspended, not fetching the stream source:{}", broadcast.getStreamUrl());
+			logger.error("License is suspended, not fetching the stream source:{}", streamUrl);
 			result.setMessage("License is suspended");
 			return result;
 		}
@@ -141,18 +157,12 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 			return result;
 		}
 
-		if (!forceStart && isStreamRunning(broadcast)) {
-			logger.info("Stream is already active for streamId:{}", streamId);
-			result.setMessage(ALREADY_ACTIVE_MESSAGE);
-			return result;
-		}
-
 		StreamFetcher fetcher = null;
 		try {
-			fetcher = make(broadcast, scope, vertx);
+			fetcher = make(streamId, streamUrl, streamType, seekTimeMs);
 			fetcher.initialize(context, pool, this);
 			fetcher.setDataStore(datastore);
-			fetcher.setRestartStream(restartStreamAutomatically);
+			fetcher.setRestartStream(restartOnFailure);
 
 			if (streamFetcherList.putIfAbsent(streamId, fetcher) != null) {
 				logger.info("Another stream fetcher was registered first for streamId:{}", streamId);
@@ -186,7 +196,17 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		Result result = new Result(false);
 		result.setDataId(streamId);
 
-		StreamFetcher fetcher = StringUtils.isNotBlank(streamId) ? streamFetcherList.get(streamId) : null;
+		if (StringUtils.isBlank(streamId)) {
+			result.setMessage("Stream id is not defined");
+			return result;
+		}
+
+		if (playlists.isRunning(streamId)) {
+			//stopping only the item that happens to be playing would make the controller start the next one
+			return stopPlayList(streamId);
+		}
+
+		StreamFetcher fetcher = streamFetcherList.get(streamId);
 		if (fetcher == null) {
 			result.setMessage("No matching stream source in this server:" + streamId);
 			return result;
@@ -231,6 +251,11 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		}
 		else if (to == State.STREAMING) {
 			getApplication().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, null, null);
+		}
+
+		if (to == State.STOPPED) {
+			//last, so a playlist starts its next item only once this one is completely gone
+			playlists.onItemStopped(fetcher);
 		}
 	}
 
@@ -339,6 +364,9 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		//refuse late starts, the pool is gone at the end of this method and a StreamFetcher would retry forever
 		serverShuttingDown = true;
 
+		//a playlist has to be marked finished as a whole, not just have its current item stopped
+		playlists.shutdown();
+
 		List<CompletableFuture<Void>> stopping = new ArrayList<>();
 		for (StreamFetcher fetcher : streamFetcherList.values()) {
 			stopping.add(fetcher.stopStream());
@@ -357,50 +385,17 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		pool.shutdownNow();
 	}
 
-	public static Result checkStreamUrlWithHTTP(String url) {
-		Result result = new Result(false);
-		HttpURLConnection connection = null;
-
-		try {
-			connection = (HttpURLConnection) new URL(url).openConnection();
-			//without these a host that accepts and then stalls blocks the calling thread forever
-			connection.setConnectTimeout(5000);
-			connection.setReadTimeout(5000);
-
-			int responseCode = connection.getResponseCode();
-
-			if (responseCode >= HttpURLConnection.HTTP_OK && responseCode < HttpURLConnection.HTTP_MOVED_PERM) {
-				result.setSuccess(true);
-			}
-			else {
-				result.setMessage("URL " + url + "responded:" + responseCode);
-			}
-		}
-		catch (IOException e) {
-			result.setSuccess(false);
-		}
-		finally {
-			if (connection != null) {
-				connection.disconnect();
-			}
-		}
-
-		return result;
-	}
-
 	public Result startPlaylist(Broadcast playlist) {
-		logger.warn("Playlist is not started because the playlist controller is not implemented yet, streamId:{}", playlist.getStreamId());
-		return new Result(false, PLAYLIST_NOT_READY_MESSAGE);
+		return playlists.startPlaylist(playlist);
 	}
 
 	public Result stopPlayList(String streamId) {
-		logger.warn("Playlist is not stopped because the playlist controller is not implemented yet, streamId:{}", streamId);
-		return new Result(false, PLAYLIST_NOT_READY_MESSAGE);
+		return playlists.stopPlaylist(streamId);
 	}
 
-	public Result playItemInList(String streamId, IStreamFetcherListener listener, int index) {
-		logger.warn("Playlist item is not played because the playlist controller is not implemented yet, streamId:{}", streamId);
-		return new Result(false, PLAYLIST_NOT_READY_MESSAGE);
+	/** Plays the item at index, or the one after the current item when index is negative. */
+	public Result playItemInList(String streamId, int index) {
+		return playlists.playItem(streamId, index);
 	}
 
 	public StreamFetcher getStreamFetcher(String streamId) {
