@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
@@ -197,6 +198,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * Timeout value that stream is considered as finished or stuck
 	 */
 	public static final int STREAM_TIMEOUT_MS = 2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS;
+
+	/** Spread of the random delay added to a scheduled playlist start, so cluster nodes don't collide. */
+	private static final int PLAYLIST_SCHEDULE_JITTER_MS = 5000;
 
 	public static final String BEAN_NAME = "web.handler";
 
@@ -407,10 +411,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		}
 
-		//TODO: schedule the planned playlists here again once PlaylistController exists
 		vertx.setTimer(1000, l -> vertx.executeBlocking(() -> {
-			//this reads the whole stream source list from the database, so keep it off the event loop
+			//both of these read whole lists from the database, so keep them off the event loop
 			getStreamFetcherManager().resumeUnattendedSources();
+			scheduleStoredPlayLists();
 			return null;
 		}, false));
 
@@ -438,19 +442,69 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return true;
 	}
 
+	/** Arms the start timers of every stored playlist that has not reached its planned start date yet. */
+	private void scheduleStoredPlayLists() {
+		int offset = 0;
+		int batch = 50;
+		long now = System.currentTimeMillis();
+		List<Broadcast> playLists;
+
+		while ((playLists = getDataStore().getBroadcastList(offset, batch, PLAY_LIST, null, null, null)) != null && !playLists.isEmpty()) {
+			for (Broadcast playList : playLists) {
+				schedulePlayList(now, playList);
+			}
+			offset += batch;
+		}
+	}
+
 	/**
-	 * TODO: playlists are being rewritten, scheduling moves into PlaylistController. Until it exists
-	 * nothing can serve a scheduled playlist, so arming a timer here would only fire into a refusal.
-	 * The previous implementation is in git, and it dereferenced a null broadcast while cleaning up
-	 * its own timer entry for a playlist that was deleted before its start date. Don't bring that back.
+	 * Starts the playlist once its planned start date arrives. The delay gets some jitter so two
+	 * cluster nodes coming up together don't both grab the same playlist on the same millisecond.
 	 */
 	public void schedulePlayList(long now, Broadcast broadcast)
 	{
-		logger.warn("Playlist scheduling is not available in this build, streamId:{}", broadcast.getStreamId());
+		if (broadcast == null) {
+			logger.warn("Not scheduling a playlist that does not exist anymore");
+			return;
+		}
+
+		String streamId = broadcast.getStreamId();
+		long startTimeDelay = (broadcast.getPlannedStartDate() * 1000) - now;
+
+		//rescheduling is how an updated planned date takes effect, the old timer must not survive it
+		cancelPlaylistSchedule(streamId);
+
+		if (startTimeDelay <= 0) {
+			return;
+		}
+
+		long jitter = ThreadLocalRandom.current().nextInt(PLAYLIST_SCHEDULE_JITTER_MS);
+		logger.info("Scheduling playlist to play in {}ms including {}ms of jitter for id:{}", startTimeDelay + jitter, jitter, streamId);
+
+		long timerId = vertx.setTimer(startTimeDelay + jitter, timer -> {
+			playListSchedulerTimer.remove(streamId);
+
+			Broadcast freshBroadcast = getDataStore().get(streamId);
+			if (freshBroadcast == null) {
+				logger.warn("Not starting playlist:{} because it has been deleted", streamId);
+			}
+			else if (!PLAY_LIST.equals(freshBroadcast.getType())) {
+				logger.error("Not starting playlist:{} because it is not a playlist anymore", streamId);
+			}
+			else {
+				logger.info("Starting scheduled playlist for id:{}", streamId);
+				getStreamFetcherManager().startPlaylist(freshBroadcast);
+			}
+		});
+
+		playListSchedulerTimer.put(streamId, timerId);
 	}
 
 	public void cancelPlaylistSchedule(String streamId) {
-		//nothing is ever scheduled while playlist support is being rewritten
+		Long timerId = playListSchedulerTimer.remove(streamId);
+		if (timerId != null) {
+			vertx.cancelTimer(timerId);
+		}
 	}
 
 	/**
