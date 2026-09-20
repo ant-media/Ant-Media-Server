@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 import java.util.List;
@@ -228,8 +227,11 @@ class StreamFetcherTest {
 
 		//a stop landed while the retry was armed, the timer must not bring the source back
 		ScriptedFetcher stopped = fixture.newFetcher("retry-after-stop", new Recorder());
+		stopped.script(FakeWorker.ending(Reason.READ_ERROR));
 		stopped.startStream();
 		awaitState(stopped, State.RECONNECT_WAIT);
+
+		assertEquals(Reason.READ_ERROR, stopped.getLastReason(), "the owner is told why the attempt ended");
 		assertNotEquals(-1L, peek(stopped, "retryTimerId"));
 
 		stopped.stopStream();
@@ -368,7 +370,7 @@ class StreamFetcherTest {
 				new Transition(State.STREAMING, State.RECONNECT_WAIT, true),
 				new Transition(State.RECONNECT_WAIT, State.CONNECTING, false)), recorder.transitions);
 
-		verify(legacy, timeout(5000)).streamStarted(legacy);
+		verify(legacy).streamStarted(legacy);
 		verify(legacy, never()).streamFinished(any());
 
 		//a listener that throws must not keep the engine from finishing its teardown
@@ -378,7 +380,7 @@ class StreamFetcherTest {
 		stopped.get(15, TimeUnit.SECONDS);
 
 		assertEquals(State.STOPPED, fetcher.getState());
-		verify(legacy, timeout(5000)).streamFinished(legacy);
+		verify(legacy).streamFinished(legacy);
 	}
 
 	@Test
