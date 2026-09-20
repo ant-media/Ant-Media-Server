@@ -2,6 +2,7 @@ package io.antmedia.streamsource;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +21,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.awaitility.Awaitility;
 import org.red5.server.api.IContext;
@@ -32,6 +35,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.licence.ILicenceService;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.streamsource.StreamFetcher.State;
 import io.antmedia.streamsource.StreamFetcher.StateListener;
@@ -40,15 +44,14 @@ import io.vertx.core.Vertx;
 
 /**
  * Everything a {@link StreamFetcher} or a {@link StreamFetcherManager} reads at construction, without
- * Spring and without ffmpeg: a mocked scope that answers the four beans they look up, a data store
- * backed by a plain map, and one real vert.x.
+ * Spring and without ffmpeg: a mocked scope answering the beans they look up, a data store backed by a
+ * map, and one real vert.x.
  *
- * Lives in this package because the seam does. {@link StreamFetcherWorker}'s fields and half of the
- * manager and controller API are package private.
+ * In this package because the seam is: {@link StreamFetcherWorker}'s fields and half of the manager
+ * and controller API are package private.
  */
 class StreamSourceFixture implements AutoCloseable {
 
-	static final String APP_NAME = "junit";
 	static final String STREAM_TYPE = "streamSource";
 
 	/** Long enough that a retry never fires behind an assertion by accident. */
@@ -65,14 +68,12 @@ class StreamSourceFixture implements AutoCloseable {
 	final DataStore dataStore = mock(DataStore.class);
 	final IScope scope = mock(IScope.class);
 
-	/** The rows {@link #dataStore} serves. Delete one here to simulate a broadcast being removed. */
+	/** The rows {@link #dataStore} serves. Remove one to delete a broadcast mid test. */
 	final Map<String, Broadcast> rows = new ConcurrentHashMap<>();
-
-	private final AtomicInteger poolThreads = new AtomicInteger();
 
 	StreamSourceFixture() {
 		pool = Executors.newCachedThreadPool(runnable -> {
-			Thread thread = new Thread(runnable, "fixture-worker-" + poolThreads.incrementAndGet());
+			Thread thread = new Thread(runnable, "fixture-worker");
 			thread.setDaemon(true);
 			return thread;
 		});
@@ -80,7 +81,7 @@ class StreamSourceFixture implements AutoCloseable {
 		IContext red5Context = mock(IContext.class);
 		ApplicationContext springContext = mock(ApplicationContext.class);
 
-		when(scope.getName()).thenReturn(APP_NAME);
+		when(scope.getName()).thenReturn("junit");
 		when(scope.getContext()).thenReturn(red5Context);
 		when(red5Context.getApplicationContext()).thenReturn(springContext);
 
@@ -103,6 +104,15 @@ class StreamSourceFixture implements AutoCloseable {
 			update.setUpdateTime(System.currentTimeMillis());
 			return update;
 		});
+
+		//the real adapter writes finished from here, and the manager leans on that to free the stream id
+		doAnswer(call -> {
+			Broadcast row = rows.get((String) call.getArgument(0));
+			if (row != null) {
+				row.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+			}
+			return null;
+		}).when(app).closeBroadcast(anyString(), any(), any());
 
 		when(dataStore.get(anyString())).thenAnswer(call -> rows.get((String) call.getArgument(0)));
 		when(dataStore.getExternalStreamsList()).thenAnswer(call -> new ArrayList<>(rows.values()));
@@ -131,7 +141,7 @@ class StreamSourceFixture implements AutoCloseable {
 		return true;
 	}
 
-	/** A stored broadcast. Without one the worker is never even run, the fetcher calls the source deleted. */
+	/** Without a row the worker is never run at all, the fetcher calls the source deleted. */
 	Broadcast row(String streamId, String streamUrl) {
 		Broadcast broadcast = new Broadcast();
 		try {
@@ -142,6 +152,8 @@ class StreamSourceFixture implements AutoCloseable {
 		}
 		broadcast.setStreamUrl(streamUrl);
 		broadcast.setType(STREAM_TYPE);
+		//a broadcasting or preparing row decays to terminated_unexpectedly once this goes stale
+		broadcast.setUpdateTime(System.currentTimeMillis());
 		rows.put(streamId, broadcast);
 		return broadcast;
 	}
@@ -156,19 +168,27 @@ class StreamSourceFixture implements AutoCloseable {
 		return fetcher;
 	}
 
+	ScriptedManager newManager() {
+		return new ScriptedManager(vertx, dataStore, scope);
+	}
+
 	/**
-	 * Waits until everything already posted to the shared context has run. Asserting that something
+	 * Waits until everything already posted to the given context has run. Asserting that something
 	 * did *not* happen needs this, the entry points all return before their work does.
 	 */
-	void settle() {
+	void settle(Context target) {
 		CompletableFuture<Void> done = new CompletableFuture<>();
-		context.runOnContext(v -> done.complete(null));
+		target.runOnContext(v -> done.complete(null));
 		try {
 			done.get(10, TimeUnit.SECONDS);
 		}
 		catch (Exception e) {
 			throw new IllegalStateException("The shared context did not drain", e);
 		}
+	}
+
+	void settle() {
+		settle(context);
 	}
 
 	static void awaitState(StreamFetcher fetcher, State state) {
@@ -189,9 +209,8 @@ class StreamSourceFixture implements AutoCloseable {
 	}
 
 	/**
-	 * The engine's tick and its two deadlines are private and only reachable through a 10s timer, and
-	 * the production classes are not ours to change for a test. These four reach in so the tick rules
-	 * can be asserted in milliseconds instead of half a minute.
+	 * tick() is private and its timer only fires every 10s. This and {@link #peek}/{@link #poke} reach
+	 * in so the tick rules can be asserted in milliseconds instead of half a minute.
 	 */
 	void tick(StreamFetcher fetcher) {
 		context.runOnContext(v -> {
@@ -242,8 +261,14 @@ class StreamSourceFixture implements AutoCloseable {
 	/** A {@link StreamFetcher} that hands out the workers the test wrote instead of an ffmpeg one. */
 	static class ScriptedFetcher extends StreamFetcher {
 
-		/** Every worker this fetcher created, in attempt order. */
+		/** One per attempt, in order. */
 		final List<FakeWorker> workers = new CopyOnWriteArrayList<>();
+
+		/** Used once the script runs out, so a fetcher can retry forever without being written out. */
+		volatile Supplier<FakeWorker> workerSupplier = FakeWorker::new;
+
+		/** Makes startStream() throw, which is how the manager's registration rollback is tested. */
+		volatile boolean failOnStart;
 
 		private final Queue<FakeWorker> scripted = new ConcurrentLinkedQueue<>();
 
@@ -251,10 +276,17 @@ class StreamSourceFixture implements AutoCloseable {
 			super(streamUrl, streamId, STREAM_TYPE, scope, vertx, 0);
 		}
 
-		/** Used by the next attempts in order. Once they run out every attempt gets a plain worker. */
-		ScriptedFetcher script(FakeWorker... next) {
+		@Override
+		public void startStream() {
+			if (failOnStart) {
+				throw new IllegalStateException("this fetcher cannot start");
+			}
+			super.startStream();
+		}
+
+		/** Handed to the next attempts in order. */
+		void script(FakeWorker... next) {
 			scripted.addAll(List.of(next));
-			return this;
 		}
 
 		void releaseAll() {
@@ -265,16 +297,53 @@ class StreamSourceFixture implements AutoCloseable {
 		protected StreamFetcherWorker createWorker() {
 			FakeWorker worker = scripted.poll();
 			if (worker == null) {
-				worker = new FakeWorker();
+				worker = workerSupplier.get();
 			}
 			workers.add(worker);
 			return worker;
 		}
 	}
 
+	/** A manager that hands out scripted fetchers, so its registry and status writes run without ffmpeg. */
+	static class ScriptedManager extends StreamFetcherManager {
+
+		/** One per make(), in order. */
+		final List<ScriptedFetcher> fetchers = new CopyOnWriteArrayList<>();
+
+		/** Runs on each fetcher the moment it is made, before the manager starts it. */
+		volatile Consumer<ScriptedFetcher> prepare;
+
+		private final IScope managerScope;
+		private final Vertx managerVertx;
+
+		ScriptedManager(Vertx vertx, DataStore datastore, IScope scope) {
+			super(vertx, datastore, scope);
+			this.managerVertx = vertx;
+			this.managerScope = scope;
+		}
+
+		@Override
+		public StreamFetcher make(String streamId, String streamUrl, String streamType, long seekTimeMs) {
+			ScriptedFetcher fetcher = new ScriptedFetcher(streamId, streamUrl, managerScope, managerVertx);
+			//holding by default, so a state stays put until the test lets the attempt go
+			fetcher.workerSupplier = FakeWorker::holding;
+
+			if (prepare != null) {
+				prepare.accept(fetcher);
+			}
+
+			fetchers.add(fetcher);
+			return fetcher;
+		}
+
+		Context context() {
+			return (Context) peek(this, "context");
+		}
+	}
+
 	record Transition(State from, State to, boolean published) { }
 
-	/** The manager's seat, so a test can see exactly what the manager would have been told. */
+	/** The manager's seat, so a test sees exactly what the manager would have been told. */
 	static class Recorder implements StateListener {
 
 		final List<Transition> transitions = new CopyOnWriteArrayList<>();
