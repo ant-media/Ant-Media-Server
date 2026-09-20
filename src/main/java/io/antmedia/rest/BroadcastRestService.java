@@ -488,6 +488,9 @@ public class BroadcastRestService extends RestServiceBase{
 				streamFetcher.seekTime(seekTimeMs);
 				result.setSuccess(true);
 			}
+			else if (getApplication().getStreamFetcherManager().getPlaylistController().isRunning(id)) {
+				result.setMessage("Playlist item is preparing, try again shortly: " + id);
+			}
 			else {
 				result.setMessage("Not active stream source found with this id: " + id + " make sure you give the id of a running stream source");
 			}

@@ -38,7 +38,7 @@ public class StreamFetcher {
 	private static final long ACTIVITY_TIMEOUT_MS = AntMediaApplicationAdapter.STREAM_TIMEOUT_MS;
 
 	/** An attempt that does not return within this window after an abort is given up on. */
-	private static final long STOPPING_TIMEOUT_MS = 10000;
+	static final long STOPPING_TIMEOUT_MS = 10000;
 
 	/** How often the two timeouts above are checked.   */
 	private static final long TICK_PERIOD_MS = MuxAdaptor.STAT_UPDATE_PERIOD_MS;
@@ -88,9 +88,6 @@ public class StreamFetcher {
 	private final IScope scope;
 	private final Vertx vertx;
 	private final AppSettings appSettings;
-
-	private final long retryDelayMs;
-	private final int maxRetryAttempts;
 
 	private final CompletableFuture<Void> stopFuture = new CompletableFuture<>();
 
@@ -150,11 +147,6 @@ public class StreamFetcher {
 		this.seekTimeMs = seekTimeInMs;
 
 		this.appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
-		//vert.x refuses a timer shorter than 1ms, and a throw there would leave this stuck in RECONNECT_WAIT
-		this.retryDelayMs = Math.max(1, this.appSettings.getStreamFetcherRetryDelayMs());
-		this.maxRetryAttempts = this.appSettings.getStreamFetcherMaxRetryAttempts();
-
-		this.context = vertx != null ? vertx.getOrCreateContext() : null;
 	}
 
 	/** Puts this StreamFetcher on the manager's shared context, thread pool and transition listener. */
@@ -212,8 +204,11 @@ public class StreamFetcher {
 			logger.error("stopStreamBlocking is called on a vert.x thread for streamId:{}. It cannot complete there", streamId);
 		}
 
+		//past the abandonment window, so this outlives the attempt it is waiting for
+		long waitMs = STOPPING_TIMEOUT_MS + 2000;
+
 		try {
-			stopStream().get(STOPPING_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+			stopStream().get(waitMs, TimeUnit.MILLISECONDS);
 			return true;
 		}
 		catch (InterruptedException e) {
@@ -223,7 +218,7 @@ public class StreamFetcher {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
-		logger.warn("Stream fetcher did not stop in {}ms for streamId:{}", STOPPING_TIMEOUT_MS, streamId);
+		logger.warn("Stream fetcher did not stop in {}ms for streamId:{}", waitMs, streamId);
 		return false;
 	}
 
@@ -330,6 +325,8 @@ public class StreamFetcher {
 	}
 
 	private void retryOrStop(Reason reason) {
+		int maxRetryAttempts = appSettings.getStreamFetcherMaxRetryAttempts();
+
 		if (reason == Reason.DELETED) {
 			enterStopped(Reason.DELETED);
 		}
@@ -346,7 +343,6 @@ public class StreamFetcher {
 		else {
 			failures++;
 			lastReason = reason;
-			logger.info("Stream fetcher will try to fetch {} again after {}ms, failure:{} streamId:{}", streamUrl, retryDelayMs, failures, streamId);
 			transition(State.RECONNECT_WAIT);
 		}
 	}
@@ -413,6 +409,10 @@ public class StreamFetcher {
 
 		if (to == State.RECONNECT_WAIT) {
 			long id = attemptId;
+			//vert.x refuses a timer shorter than 1ms, and a throw here would leave this stuck in RECONNECT_WAIT
+			long retryDelayMs = Math.max(1, appSettings.getStreamFetcherRetryDelayMs());
+			logger.info("Stream fetcher will try to fetch {} again after {}ms, failure:{} streamId:{}", streamUrl, retryDelayMs, failures, streamId);
+
 			retryTimerId = vertx.setTimer(retryDelayMs, t -> {
 				if (id == attemptId && state == State.RECONNECT_WAIT) {
 					enterConnecting();

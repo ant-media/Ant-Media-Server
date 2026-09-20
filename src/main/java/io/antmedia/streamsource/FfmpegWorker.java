@@ -299,7 +299,8 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
 			parseRtspUrlParams(optionsDictionary);
 		}
-		else if (streamUrl.startsWith("udp://") || streamUrl.startsWith("tcp://") || streamUrl.startsWith("http://")) {
+		else if (streamUrl.startsWith("udp://") || streamUrl.startsWith("tcp://")
+				|| streamUrl.startsWith("http://") || streamUrl.startsWith("https://")) {
 			// for UDP/HTTP/TCP "rw_timeout" makes avformat_open_input fail if no packet arrives,
 			// "timeout" is the fallback for the protocols that read it instead, both in microseconds
 			String timeoutStr = String.valueOf(UDP_TCP_HTTP_TIMEOUT_MS * 1000);
@@ -482,7 +483,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		long latestTime = System.currentTimeMillis();
 		long dtsInMS = av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS) - firstPacketDtsInMs;
 
-		while (dtsInMS > System.currentTimeMillis() - firstPacketTime) {
+		while (dtsInMS > System.currentTimeMillis() - firstPacketTime && !abortRequested.get()) {
 			try {
 				Thread.sleep(1);
 			}
@@ -662,21 +663,6 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		}
 	}
 
-	private void writeAllBufferedPackets() {
-		synchronized (this) {
-			if (bufferQueue == null) {
-				return;
-			}
-
-			logger.info("write all buffered packets for stream: {}", streamId);
-			AVPacket pkt;
-			while ((pkt = bufferQueue.pollFirst()) != null) {
-				writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-				av_packet_unref(pkt);
-			}
-		}
-	}
-
 	private synchronized void closeInputFormatContext() {
 		if (inputFormatContext == null) {
 			return;
@@ -702,18 +688,27 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			}
 
 			//an abandoned worker that a newer attempt has already replaced must not touch the outputs
-			if (abandonedAtMs != 0 && getInstance().getMuxAdaptor(streamId) != muxAdaptor) {
+			boolean abandoned = abandonedAtMs != 0 && getInstance().getMuxAdaptor(streamId) != muxAdaptor;
+			if (abandoned) {
 				logger.error("Abandoned stream fetcher worker returned {}ms after it was given up on, for url:{} streamId:{}."
 						+ " Its buffered packets and trailer are dropped because a newer attempt owns the stream",
 						System.currentTimeMillis() - abandonedAtMs, streamUrl, streamId);
 			}
-			else {
-				writeAllBufferedPackets();
 
-				if (muxAdaptor != null) {
-					logger.info("Writing trailer in MuxAdaptor for streamId:{}", streamId);
-					muxAdaptor.writeTrailer();
+			//queued packets hold native memory either way, only write them out if we still own the stream
+			synchronized (this) {
+				AVPacket queued;
+				while (bufferQueue != null && (queued = bufferQueue.pollFirst()) != null) {
+					if (!abandoned) {
+						writePacket(inputFormatContext.streams(queued.stream_index()), queued);
+					}
+					av_packet_unref(queued);
 				}
+			}
+
+			if (!abandoned && muxAdaptor != null) {
+				logger.info("Writing trailer in MuxAdaptor for streamId:{}", streamId);
+				muxAdaptor.writeTrailer();
 			}
 
 			if (muxAdaptor != null) {

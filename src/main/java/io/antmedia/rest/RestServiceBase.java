@@ -1342,6 +1342,9 @@ public abstract class RestServiceBase {
 			if (camScheduler != null) {
 				result = camScheduler.getCameraError();
 			}
+			else if (getApplication().getStreamFetcherManager().getPlaylistController().isRunning(streamId)) {
+				result.setMessage("Playlist item is preparing, try again shortly: " + streamId);
+			}
 			else {
 				result.setMessage("Camera is not found with streamId: " + streamId);
 			}
@@ -1413,19 +1416,10 @@ public abstract class RestServiceBase {
 	}
 
 	public Result playNextItem(String id, Integer index) {
-		Broadcast broadcast = getDataStore().get(id);
-
-		if (broadcast == null) {
-			return new Result(false, "There is no playlist found. Please check Stream id again");
-		}
-		if (!AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
-			return new Result(false, "This broadcast type is not playlist. This method is only available for playlists");
-		}
-
 		int itemIndex = index != null ? index : -1;
 		logger.info("Switching to item:{} by REST method for playlist:{}", itemIndex, id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"));
 
-		return getApplication().getStreamFetcherManager().playItemInList(id, itemIndex);
+		return getApplication().getStreamFetcherManager().getPlaylistController().playItem(id, itemIndex);
 	}
 
 	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks, String subscriberId) {

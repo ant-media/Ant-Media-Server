@@ -199,7 +199,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	public static final int STREAM_TIMEOUT_MS = 2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS;
 
-	/** Spread of the random delay added to a scheduled playlist start, so cluster nodes don't collide. */
+	/** Spread of the random delay added to a scheduled playlist start, so they don't all fire at once. */
 	private static final int PLAYLIST_SCHEDULE_JITTER_MS = 5000;
 
 	public static final String BEAN_NAME = "web.handler";
@@ -458,8 +458,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	/**
-	 * Starts the playlist once its planned start date arrives. The delay gets some jitter so two
-	 * cluster nodes coming up together don't both grab the same playlist on the same millisecond.
+	 * Starts the playlist once its planned start date arrives. The delay gets some jitter so a restart
+	 * does not fire every stored playlist on the same tick.
 	 */
 	public void schedulePlayList(long now, Broadcast broadcast)
 	{
@@ -479,9 +479,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		long jitter = ThreadLocalRandom.current().nextInt(PLAYLIST_SCHEDULE_JITTER_MS);
-		logger.info("Scheduling playlist to play in {}ms including {}ms of jitter for id:{}", startTimeDelay + jitter, jitter, streamId);
+		//floor keeps a timer that is due right now from firing before the put below registers it
+		long delay = Math.max(10, startTimeDelay + jitter);
+		logger.info("Scheduling playlist to play in {}ms including {}ms of jitter for id:{}", delay, jitter, streamId);
 
-		long timerId = vertx.setTimer(startTimeDelay + jitter, timer -> {
+		long timerId = vertx.setTimer(delay, timer -> vertx.executeBlocking(() -> {
+			//the read and the cluster check inside startPlaylist both block, keep them off the event loop
 			playListSchedulerTimer.remove(streamId);
 
 			Broadcast freshBroadcast = getDataStore().get(streamId);
@@ -493,9 +496,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 			else {
 				logger.info("Starting scheduled playlist for id:{}", streamId);
-				getStreamFetcherManager().startPlaylist(freshBroadcast);
+				getStreamFetcherManager().getPlaylistController().startPlaylist(freshBroadcast);
 			}
-		});
+			return null;
+		}, false));
 
 		playListSchedulerTimer.put(streamId, timerId);
 	}
@@ -1726,7 +1730,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String type = broadcast.getType();
 
 		if (PLAY_LIST.equals(type)) {
-			return getStreamFetcherManager().startPlaylist(broadcast);
+			return getStreamFetcherManager().getPlaylistController().startPlaylist(broadcast);
 		}
 
 		if (IAntMediaStreamHandler.PUBLISH_TYPE_NDI.equals(type)) {
@@ -1827,7 +1831,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else if (PLAY_LIST.equals(type))
 		{
-			result = getStreamFetcherManager().stopPlayList(broadcast.getStreamId());
+			result = getStreamFetcherManager().getPlaylistController().stopPlaylist(broadcast.getStreamId());
 		}
 		else if (LIVE_STREAM.equals(type))
 		{

@@ -1,10 +1,10 @@
 package io.antmedia.streamsource;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang3.StringUtils;
@@ -37,7 +37,8 @@ public class PlaylistController {
 
 	private static final String NOT_RUNNING_MESSAGE = "Playlist is not running for stream:";
 
-	private static final int URL_CHECK_TIMEOUT_MS = 5000;
+	/** Before passing URL to ffmpeg, reachability is check. This is request timeout  */
+	private static final int URL_CHECK_TIMEOUT_MS = 2500;
 
 	/** One entry per playing playlist. Its presence is what "this playlist is running" means. */
 	private final Map<String, PlaylistSession> sessions = new ConcurrentHashMap<>();
@@ -75,15 +76,19 @@ public class PlaylistController {
 	 */
 	public Result startPlaylist(Broadcast playlist) {
 		String streamId = playlist.getStreamId();
-		List<PlayListItem> items = playlist.getPlayListItemList();
 
+		if (!AntMediaApplicationAdapter.PLAY_LIST.equals(playlist.getType())) {
+			return new Result(false, streamId, "This broadcast type is not playlist. This method is only available for playlists");
+		}
+
+		List<PlayListItem> items = playlist.getPlayListItemList();
 		if (items == null || items.isEmpty()) {
 			logger.warn("There is no item to play in playlist:{}", streamId);
 			return new Result(false, streamId, "There is no item to play in the playlist:" + streamId);
 		}
 
-		//isStreamRunning covers the other nodes of a cluster, the session is the local mutual exclusion:
-		//whoever creates it owns the playlist until it ends
+		//isStreamRunning also covers the other nodes of a cluster, putIfAbsent is what makes the local
+		//half atomic: whoever creates the session owns the playlist until it ends
 		if (manager.isStreamRunning(playlist) || sessions.putIfAbsent(streamId, new PlaylistSession()) != null) {
 			logger.warn("Playlist is already running for stream:{}", streamId);
 			return new Result(false, streamId, "Playlist is already running for stream:" + streamId);
@@ -107,12 +112,23 @@ public class PlaylistController {
 			return new Result(false, "Stream id is not defined");
 		}
 
-		logger.info("Stopping playlist for stream:{}", streamId);
-
 		boolean running = isRunning(streamId);
-		endPlaylist(streamId, false);
+		stopPlaylistAsync(streamId);
 
 		return new Result(running, streamId, running ? "Playlist is stopped" : NOT_RUNNING_MESSAGE + streamId);
+	}
+
+	/**
+	 * Ends the playlist on the shared context, never blocking the caller.
+	 * @return completes once the item that was playing reached its terminal state
+	 */
+	CompletableFuture<Void> stopPlaylistAsync(String streamId) {
+		logger.info("Stopping playlist for stream:{}", streamId);
+
+		CompletableFuture<Void> stopped = new CompletableFuture<>();
+		context.runOnContext(v -> endPlaylist(streamId, false).whenComplete((result, error) -> stopped.complete(null)));
+
+		return stopped;
 	}
 
 	/**
@@ -121,8 +137,12 @@ public class PlaylistController {
 	 */
 	public Result playItem(String streamId, int index) {
 		Broadcast playlist = manager.getDatastore().get(streamId);
-		if (playlist == null || !AntMediaApplicationAdapter.PLAY_LIST.equals(playlist.getType())) {
-			return new Result(false, streamId, "There is no playlist for stream id:" + streamId);
+		if (playlist == null) {
+			return new Result(false, streamId, "There is no playlist found. Please check Stream id again");
+		}
+
+		if (!AntMediaApplicationAdapter.PLAY_LIST.equals(playlist.getType())) {
+			return new Result(false, streamId, "This broadcast type is not playlist. This method is only available for playlists");
 		}
 
 		List<PlayListItem> items = playlist.getPlayListItemList();
@@ -140,7 +160,7 @@ public class PlaylistController {
 
 		int target = index >= 0 ? index : nextIndex(playlist);
 		if (target < 0) {
-			endPlaylist(streamId, true);
+			context.runOnContext(v -> endPlaylist(streamId, true));
 			return new Result(true, streamId, "Playlist is finished, there was no next item to play");
 		}
 
@@ -154,11 +174,17 @@ public class PlaylistController {
 
 	/**
 	 * Marks every playing playlist finished before the application goes down.
+	 * @return completes once the sessions are gone, so the caller can stop the fetchers behind them
 	 */
-	void shutdown() {
-		for (String streamId : sessions.keySet()) {
-			endPlaylist(streamId, false);
-		}
+	CompletableFuture<Void> shutdown() {
+		CompletableFuture<Void> ended = new CompletableFuture<>();
+
+		context.runOnContext(v -> {
+			sessions.keySet().forEach(streamId -> endPlaylist(streamId, false));
+			ended.complete(null);
+		});
+
+		return ended;
 	}
 
 	/**
@@ -179,8 +205,7 @@ public class PlaylistController {
 			advance(streamId, session, item.isPublished());
 		}
 		catch (Exception e) {
-			//a database blip here would otherwise leave a playlist that nothing plays and nothing ever
-			//restarts, which is the failure this whole rewrite exists to remove. Ending it is honest
+			//a DB blip here would strand the playlist: nothing playing, nothing left to restart it
 			logger.error("Playlist:{} could not pick its next item so it is finished. {}", streamId, ExceptionUtils.getStackTrace(e));
 			endPlaylist(streamId, false);
 		}
@@ -188,8 +213,7 @@ public class PlaylistController {
 
 	private void advance(String streamId, PlaylistSession session, boolean itemPlayed) {
 		if (manager.isServerShuttingDown()) {
-			//the shutdown flag can be set before shutdown() gets here, so finish the playlist properly
-			//instead of dropping the session and leaving the database saying it is still playing
+			//the flag can be set before shutdown() gets here, so finish properly instead of just dropping the session
 			logger.info("Playlist will not play the next item because the server is shutting down, streamId:{}", streamId);
 			endPlaylist(streamId, false);
 			return;
@@ -197,15 +221,9 @@ public class PlaylistController {
 
 		Integer pending = session.pendingIndex;
 		session.pendingIndex = null;
-		if (pending != null) {
-			//somebody asked for this item explicitly, so whatever the previous one did is history
-			session.failuresInPass = 0;
-			session.failedPasses = 0;
-			playIndex(streamId, pending);
-			return;
-		}
 
-		if (itemPlayed) {
+		if (itemPlayed || pending != null) {
+			//somebody asked for this item explicitly, so whatever the previous one did is history
 			session.failuresInPass = 0;
 			session.failedPasses = 0;
 		}
@@ -213,7 +231,12 @@ public class PlaylistController {
 			session.failuresInPass++;
 		}
 
-		playNext(streamId, session);
+		if (pending != null) {
+			playIndex(streamId, pending);
+		}
+		else {
+			playNext(streamId, session);
+		}
 	}
 
 	/**
@@ -246,15 +269,15 @@ public class PlaylistController {
 			playIndex(streamId, next);
 		}
 		else {
-			retryAfterFailedPass(streamId, session, next);
+			retryAfterFailedPass(streamId, session);
 		}
 	}
 
 	/**
-	 * A whole pass over the list played nothing. Without this a playlist of dead urls would cycle as
-	 * fast as ffmpeg can refuse them, so the next pass waits and an operator can bound the retries.
+	 * A whole pass over the list played nothing. Throttles the next pass, a list of dead urls would
+	 * otherwise spin the event loop, and lets an operator bound the retries.
 	 */
-	private void retryAfterFailedPass(String streamId, PlaylistSession session, int next) {
+	private void retryAfterFailedPass(String streamId, PlaylistSession session) {
 		session.failuresInPass = 0;
 		session.failedPasses++;
 
@@ -272,16 +295,15 @@ public class PlaylistController {
 		writePlaylistStatus(streamId, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, null);
 
 		vertx.setTimer(delayMs, t -> {
-			//the playlist may have been stopped or restarted while this timer was armed
+			//back through playNext so the list is read fresh, it may have been edited during the wait.
+			//the playlist may also have been stopped or restarted while this timer was armed
 			if (sessions.get(streamId) == session) {
-				playIndex(streamId, next);
+				playNext(streamId, session);
 			}
 		});
 	}
 
-	/**
-	 * Starts the item at index. The list is read fresh, so edits made while playing take effect here.
-	 */
+	/** Starts the item at index. The list is read fresh, so edits made while playing take effect here. */
 	private void playIndex(String streamId, int index) {
 		PlaylistSession session = sessions.get(streamId);
 		if (session == null) {
@@ -289,8 +311,8 @@ public class PlaylistController {
 		}
 
 		if (session.starting || manager.getStreamFetcher(streamId) != null) {
-			//a skip can beat a pending retry to it. Two items under one id is the one thing this class
-			//must never do, so it is worth refusing outright rather than unpicking how they got here
+			//a skip can beat a pending retry to it. Two items under one id is the thing we must never
+			//do, so refuse instead of untangling how they got here
 			logger.warn("Not starting item:{} of playlist:{} because one is already starting or playing", index, streamId);
 			return;
 		}
@@ -320,9 +342,9 @@ public class PlaylistController {
 	}
 
 	/**
-	 * False only when an http item answers badly, so a file that has been deleted is glided past
-	 * instead of waiting for ffmpeg to work it out. Anything else cannot be asked, rtsp and srt are
-	 * not urls {@link URI} understands, and is worth trying. Blocks, so keep it off the context.
+	 * False only when an http item answers badly, so a deleted file is glided past instead of waiting
+	 * for ffmpeg to work it out. Anything else, rtsp and srt included, cannot be asked and is worth
+	 * trying. Blocks, so keep it off the context.
 	 */
 	private static boolean isWorthTrying(String url) {
 		if (url == null || !(url.startsWith("http://") || url.startsWith("https://"))) {
@@ -344,8 +366,8 @@ public class PlaylistController {
 			logger.warn("Playlist item url {} responded:{}", url, responseCode);
 			return false;
 		}
-		catch (IOException | IllegalArgumentException e) {
-			//IllegalArgumentException is URI.create on a url somebody typed wrong
+		catch (Exception e) {
+			//catch all, this runs on a worker thread and the future it completes must never fail
 			logger.warn("Playlist item url {} cannot be reached. {}", url, e.getMessage());
 			return false;
 		}
@@ -409,19 +431,22 @@ public class PlaylistController {
 	}
 
 	/**
-	 * Nothing is playing and nothing will start until the playlist is started again.
+	 * Nothing is playing and nothing will start until the playlist is started again. Context only,
+	 * dropping the session anywhere else can race an item that is halfway through starting.
+	 *
 	 * @param rewind true when the playlist ran to its end, so the next start begins from the top
+	 * @return completes once the item that was playing reached its terminal state
 	 */
-	private void endPlaylist(String streamId, boolean rewind) {
+	private CompletableFuture<Void> endPlaylist(String streamId, boolean rewind) {
 		//dropping the session first is what keeps the stop below from starting the next item
 		sessions.remove(streamId);
 
 		StreamFetcher item = manager.getStreamFetcher(streamId);
-		if (item != null) {
-			item.stopStream();
-		}
+		CompletableFuture<Void> stopped = item != null ? item.stopStream() : CompletableFuture.completedFuture(null);
 
 		writePlaylistStatus(streamId, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, rewind ? 0 : null);
+
+		return stopped;
 	}
 
 	/** Either argument may be null, which leaves that stored field alone. */
