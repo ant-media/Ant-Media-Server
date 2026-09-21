@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
@@ -1069,6 +1070,43 @@ public class AppFunctionalV2Test {
 		}else{
 			//if file, then delete it
 			file.delete();
+		}
+	}
+
+	// stream ids containing '2' or 'F' were parsed as path-segment urls and their params overwrote metaData
+	@Test
+	public void testRTMPPublishDoesNotOverwriteMetaData() throws Exception {
+		String metaData = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
+		String streamId = "metaDataRegression2" + RandomStringUtils.randomAlphabetic(8).toLowerCase();
+		String controlStreamId = "metaDataControl" + RandomStringUtils.randomAlphabetic(8).toLowerCase();
+		List<Process> rtmpProcesses = new ArrayList<>();
+
+		try {
+			for (String id : new String[] { streamId, controlStreamId }) {
+				Broadcast broadcast = new Broadcast();
+				broadcast.setStreamId(id);
+				broadcast.setName("TestStream");
+				broadcast.setMetaData(metaData);
+
+				assertEquals(metaData, RestServiceV2Test.callCreateBroadcast(broadcast).getMetaData());
+				assertEquals(metaData, RestServiceV2Test.callGetBroadcast(id).getMetaData());
+
+				rtmpProcesses.add(execute(ffmpegPath
+						+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/" + id));
+
+				// metaData is written in MuxAdaptor#prepareParameters, before the status goes BROADCASTING
+				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+						.until(() -> IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING
+								.equals(RestServiceV2Test.callGetBroadcast(id).getStatus()));
+
+				assertEquals(metaData, RestServiceV2Test.callGetBroadcast(id).getMetaData(),
+						"metaData was overwritten by the RTMP publish of stream id " + id);
+			}
+		}
+		finally {
+			rtmpProcesses.forEach(Process::destroy);
+			RestServiceV2Test.callDeleteBroadcast(streamId);
+			RestServiceV2Test.callDeleteBroadcast(controlStreamId);
 		}
 	}
 

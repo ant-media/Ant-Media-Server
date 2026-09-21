@@ -351,7 +351,7 @@ public class StreamService implements IStreamService {
             // read and utilize the query string values
             params = parseQueryParameters(name);
             name = name.substring(0, name.indexOf("?"));
-        } else if (name != null && name.matches(".*[/%2F].*")) { // match / or %2F
+        } else if (name != null && hasPathSegments(name)) {
             params = parsePathSegments(name);
             name = params.getOrDefault( STREAM_NAME, name);
         }
@@ -668,6 +668,10 @@ public class StreamService implements IStreamService {
         return params;
     }
 
+    static boolean hasPathSegments(String name) {
+        return name.contains("/") || name.contains("%2F");
+    }
+
     // Handle the rtmp url format (e.g. /testStream/example_token/example_subscriberId/example_subscriberCode)
     public Map<String, String> parsePathSegments(String name) {
         Map<String, String> params = new HashMap<>();
@@ -779,7 +783,7 @@ public class StreamService implements IStreamService {
             // read and utilize the query string values
             params = parseQueryParameters(name);
             name = name.substring(0, name.indexOf("?"));
-        } else if (name != null && name.matches(".*[/%2F].*")) { // match / or %2F
+        } else if (name != null && hasPathSegments(name)) {
             params = parsePathSegments(name);
             name = params.getOrDefault(STREAM_NAME, name);
         }
