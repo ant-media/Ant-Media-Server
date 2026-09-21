@@ -926,6 +926,74 @@ public class MuxerUnitTest {
 
 	}
 
+	/**
+	 * Source is 0 video, 1 data, 2 audio. HLS cannot mux the data stream so its output holds
+	 * only 2 streams and audio moves from index 2 to index 1. The packet has to carry the output
+	 * index when it reaches ffmpeg, and carry the source index again when it comes back, because
+	 * the encoders hand the very same packet to every muxer in their list.
+	 */
+	@Test
+	public void testStreamIndexMappingWithUnmuxedDataStream() {
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
+		hlsMuxer.setHlsParameters(null, null, null, null, null, null);
+
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		hlsMuxer.init(appScope, "test_unmuxed_data", 0, null, 0);
+
+		AVRational rat = new AVRational().num(1).den(1000);
+
+		AVCodecParameters videoParameters = new AVCodecParameters();
+		videoParameters.width(640);
+		videoParameters.height(360);
+		videoParameters.codec_id(AV_CODEC_ID_H264);
+		videoParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		videoParameters.format(AV_PIX_FMT_YUV420P);
+		videoParameters.codec_tag(0);
+		assertTrue(hlsMuxer.addStream(videoParameters, rat, 0));
+
+		AVCodecParameters dataParameters = new AVCodecParameters();
+		dataParameters.codec_type(AVMEDIA_TYPE_DATA);
+		dataParameters.codec_id(AV_CODEC_ID_NONE);
+		assertTrue(hlsMuxer.addStream(dataParameters, rat, 1));
+
+		AVCodecParameters audioParameters = new AVCodecParameters();
+		audioParameters.sample_rate(44100);
+		AVChannelLayout chLayout = new AVChannelLayout();
+		av_channel_layout_default(chLayout, 2);
+		audioParameters.ch_layout(chLayout);
+		audioParameters.codec_id(AV_CODEC_ID_AAC);
+		audioParameters.codec_type(AVMEDIA_TYPE_AUDIO);
+		audioParameters.codec_tag(0);
+		assertTrue(hlsMuxer.addStream(audioParameters, rat, 2));
+
+		assertEquals(2, hlsMuxer.getOutputFormatContext().nb_streams());
+		assertFalse(hlsMuxer.getRegisteredStreamIndexList().contains(1));
+		assertEquals(AVMEDIA_TYPE_AUDIO, hlsMuxer.getOutputFormatContext().streams(1).codecpar().codec_type());
+
+		Muxer muxerSpy = spy(hlsMuxer);
+
+		int[] indexSeenByWrite = { -1 };
+		Mockito.doAnswer(invocation -> {
+			indexSeenByWrite[0] = ((AVPacket) invocation.getArgument(0)).stream_index();
+			return null;
+		}).when(muxerSpy).writePacket(any(AVPacket.class), any(AVRational.class), any(AVRational.class), anyInt());
+
+		muxerSpy.getIsRunning().set(true);
+
+		AVPacket audioPkt = av_packet_alloc();
+		av_init_packet(audioPkt);
+		audioPkt.stream_index(2);
+
+		muxerSpy.writePacket(audioPkt, (AVCodecContext) null);
+
+		assertEquals(1, indexSeenByWrite[0]);
+		assertEquals(2, audioPkt.stream_index());
+
+		av_packet_unref(audioPkt);
+		muxerSpy.getIsRunning().set(false);
+		hlsMuxer.writeTrailer();
+	}
+
 	@Test
 	public void testRecordMuxerS3Prefix() {
 		String s3Prefix = RecordMuxer.getS3Prefix("s3", null);
