@@ -201,7 +201,7 @@ jobs:
       
       - name: Install FFmpeg 8
         run: |
-          curl -L --retry 5 --retry-delay 10 \
+          curl -fL --retry 5 --retry-delay 10 --retry-all-errors \
             -o /tmp/ffmpeg.tar.xz \
             https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz
           mkdir -p /tmp/ffmpeg

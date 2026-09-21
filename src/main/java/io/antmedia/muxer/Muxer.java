@@ -563,7 +563,7 @@ public abstract class Muxer {
 		// Why: av_dict_free races with avio_open2 in openIO(). prepareIO() schedules
 		// openIO() on a vert.x worker thread, and avio_open2(..., AVDictionary**)
 		// reads / mutates / can reallocate the dict while it's blocked on the
-		// network. If the stream stops during that window (rw_timeout = 10s, dead
+		// network. If the stream stops during that window (rw_timeout = 5s, dead
 		// remote endpoint → frequent), MuxAdaptor.writeTrailer reaches clearResource
 		// on a different thread and frees a dict that FFmpeg is still operating on.
 		// Result: SEGV in av_dict_free (or intermittently inside avio_open2). The

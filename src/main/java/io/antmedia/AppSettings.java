@@ -296,6 +296,24 @@ public class AppSettings implements Serializable {
 	private int endpointRepublishLimit=3;
 
 	/**
+	 * Keeps a pushed endpoint at the live edge by absorbing publisher-side stalls. A jump
+	 * in incoming timestamps, or arrivals falling behind wall clock, is discarded and what
+	 * follows is renumbered, so the receiver sees an unbroken timeline instead of a gap it
+	 * would buffer through.
+	 *
+	 * Off by default, because it buys latency with content. A source persistently slower
+	 * than realtime accumulates lag legitimately and gets a freeze plus a jump cut every
+	 * time it reaches the budget, and a source delivering less than one frame per second
+	 * reads as a permanent gap, which compresses its timeline and grows latency without
+	 * bound. Neither is distinguishable from a real stall by timestamps alone.
+	 *
+	 * Independent of this setting, an endpoint that falls behind always has its send queue
+	 * dropped and everything after it renumbered. Only stall detection is behind the flag.
+	 */
+	@Value ( "${endpointLiveEdgeEnabled:false}" )
+	private boolean endpointLiveEdgeEnabled=false;
+
+	/**
 	 * Duration of segments in mpd files,
 	 * Segments are a property of DASH. A segment is the minimal download unit.
 	 *
