@@ -510,13 +510,17 @@ public class RestServiceV2Test {
 	}
 
 	public static Broadcast callCreateRegularBroadcast() throws Exception {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("testBroadcast");
+		return callCreateBroadcast(broadcast);
+	}
+
+	public static Broadcast callCreateBroadcast(Broadcast broadcast) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
-		Broadcast broadcast = new Broadcast();
-		broadcast.setName("testBroadcast");
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
