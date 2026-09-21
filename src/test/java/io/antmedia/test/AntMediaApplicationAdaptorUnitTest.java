@@ -4,6 +4,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -130,6 +131,7 @@ import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.streamsource.PlaylistController;
 import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -1363,10 +1365,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
+		when(streamFetcher.stopStream()).thenReturn(CompletableFuture.completedFuture(null));
+		when(streamFetcher2.stopStream()).thenReturn(CompletableFuture.completedFuture(null));
 
 
-		Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, scope, vertx);
-		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2, scope, vertx);
+		Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream.getStreamId(), stream.getStreamUrl(), stream.getType(), stream.getSeekTimeInMs());
+		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2.getStreamId(), stream2.getStreamUrl(), stream2.getType(), stream2.getSeekTimeInMs());
 
 
 		Map<String, StreamFetcher> sfQueue = new ConcurrentHashMap<>();
@@ -1413,8 +1417,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(streamFetcher, times(1)).stopStream();
 		verify(streamFetcher2, times(1)).stopStream();
 
-		assertEquals(0, fetcherManager.getStreamFetcherList().size());
-		assertEquals(0, sfQueue.size());
+		//the entries go on each fetcher's STOPPED transition, which a mock never reaches.
+		//shutdownEndsThePlaylistsFirstAndThenEverythingElse asserts the empty registry on real ones
 
 		verify(cbs, times(1)).stop();
 		verify(muxerAdaptor, times(1)).stop(true);
@@ -1443,7 +1447,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.closeStreamFetchers();
 
-		assertEquals(0, streamFetcherList.size());
+		//the manager stops them and waits for the database to say finished before the pool goes,
+		//which is what shutdownEndsThePlaylistsFirstAndThenEverythingElse covers
+		verify(fetcherManager).shutdown();
 	}
 
 	@Test
@@ -1826,15 +1832,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		spyAdapter.appStart(scope);
 
-		await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
-
-		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
-		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture(), anyBoolean());
-
-		broadcast = dataStore.get(broadcast.getStreamId());
-		assertNotNull(broadcastListCaptor.getValue());
-		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().getStreamId());
-		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().getStatus());
+		//boot resume is the manager's job now. Which rows it takes is asserted in StreamFetcherManagerTest
+		verify(streamFetcherManager, timeout(5000).times(1)).resumeUnattendedSources();
+		verify(streamFetcherManager, never()).startStreaming(Mockito.any(), Mockito.anyBoolean());
 	}
 
 	@Test
@@ -2699,13 +2699,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setDataStore(new InMemoryDataStore("testdb"));
 		adapter.getDataStore().save(broadcast);
 		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
+		PlaylistController playlistController = Mockito.mock(PlaylistController.class);
+		Mockito.when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
 		adapter.setStreamFetcherManager(fetcherManager);
 
 		adapter.schedulePlayList(now, broadcast);
 		assertFalse(adapter.getPlayListSchedulerTimer().isEmpty());
 
 		//it can take up 8 secs to start because of randomness about 5 seconds and 3 seconds 
-		Mockito.verify(fetcherManager, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
+		Mockito.verify(playlistController, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
 
 		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 
@@ -2718,9 +2720,21 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 
 		//it should be still 1 because we cancel the timer 
-		Mockito.verify(fetcherManager, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
+		Mockito.verify(playlistController, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
 
+		//rescheduling replaces the timer, the one it replaced must not fire as well
+		long rescheduledAt = System.currentTimeMillis();
+		broadcast.setPlannedStartDate((rescheduledAt + 3000) / 1000);
 
+		adapter.schedulePlayList(rescheduledAt, broadcast);
+		Long firstTimerId = adapter.getPlayListSchedulerTimer().get(broadcast.getStreamId());
+
+		adapter.schedulePlayList(rescheduledAt, broadcast);
+		Long secondTimerId = adapter.getPlayListSchedulerTimer().get(broadcast.getStreamId());
+
+		assertEquals(1, adapter.getPlayListSchedulerTimer().size());
+		assertNotEquals(firstTimerId, secondTimerId);
+		Mockito.verify(playlistController, Mockito.timeout(9000).times(2)).startPlaylist(broadcast);
 
 		adapter.cancelPlaylistSchedule("anyId");
 	}

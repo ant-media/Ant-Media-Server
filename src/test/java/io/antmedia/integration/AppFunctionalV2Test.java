@@ -69,7 +69,6 @@ import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.test.StreamSchedularUnitTest;
 
 public class AppFunctionalV2Test {
 
@@ -84,6 +83,8 @@ public class AppFunctionalV2Test {
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
+
+	public static final String VALID_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
 	static {
 		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
 		logger.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
@@ -244,8 +245,8 @@ public class AppFunctionalV2Test {
 
 			//add new items to play list
 			List<PlayListItem> playList = new ArrayList<>();
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 
 			Result result = RestServiceV2Test.callUpdateBroadcast(broadcast.getStreamId(), null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
@@ -312,9 +313,9 @@ public class AppFunctionalV2Test {
 			streamId = broadcast.getStreamId();
 
 			List<PlayListItem> playList = new ArrayList<>();
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 			Result result = RestServiceV2Test.callUpdateBroadcast(broadcast.getStreamId(), null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
 
@@ -365,8 +366,8 @@ public class AppFunctionalV2Test {
 			final String activeStreamId = streamId;
 
 			List<PlayListItem> playList = new ArrayList<>();
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 			Result result = RestServiceV2Test.callUpdateBroadcast(activeStreamId, null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
 
@@ -377,13 +378,10 @@ public class AppFunctionalV2Test {
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
 					RestServiceV2Test.getBroadcast(activeStreamId).getCurrentPlayIndex() == 1);
 
-			//advance past the last item: skipNextPlaylistQueue reports "no next item" here, so the Result
-			//comes back success=false even though it's the call that flips the playlist to finished
-			//TODO: this looks like a genuine REST-contract bug, not intentional design - a caller sees
-			//success=false and has no reason to think the playlist just finished. Revisit whether this
-			//should report success=true (see checkpoint 6 in TODO-Progress.md).
+			//advance past the last item: with looping disabled the playlist finishes, and the call that
+			//finished it reports success - it did what was asked
 			Result advancePastEnd = RestServiceV2Test.callPlayNextItem(activeStreamId, null);
-			assertFalse(advancePastEnd.isSuccess());
+			assertTrue(advancePastEnd.isSuccess());
 
 			awaitPlaylistFullyStopped(activeStreamId);
 
@@ -423,8 +421,8 @@ public class AppFunctionalV2Test {
 			final String activeStreamId = streamId;
 
 			List<PlayListItem> playList = new ArrayList<>();
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 			Result result = RestServiceV2Test.callUpdateBroadcast(activeStreamId, null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
 
@@ -474,8 +472,8 @@ public class AppFunctionalV2Test {
 			final String activeStreamId = streamId;
 
 			List<PlayListItem> originalList = new ArrayList<>();
-			originalList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			originalList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			originalList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			originalList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 			Result result = RestServiceV2Test.callUpdateBroadcast(streamId, null, null, "", null, null, originalList);
 			assertTrue(result.isSuccess());
 
@@ -485,9 +483,9 @@ public class AppFunctionalV2Test {
 			//mutate the list while item 0 is still playing: swap in a 3-item list, mixing VoD and streamSource
 			//item types, the way updateStreamSource() lets a running playlist be edited (see RestServiceBase)
 			List<PlayListItem> mutatedList = new ArrayList<>();
-			mutatedList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			mutatedList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.STREAM_SOURCE));
-			mutatedList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			mutatedList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			mutatedList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.STREAM_SOURCE));
+			mutatedList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 
 			BroadcastUpdate update = new BroadcastUpdate();
 			update.setPlayListItemList(mutatedList);

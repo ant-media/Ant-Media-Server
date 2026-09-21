@@ -36,6 +36,8 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
+import io.antmedia.streamsource.PlaylistController;
+import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
 import jakarta.ws.rs.core.Response.Status;
 
@@ -256,6 +258,12 @@ public class PlaylistRestServiceV2UnitTest {
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		when(app.getScope()).thenReturn(scope);
 		app.setDataStore(dataStore);
+		//the adapter would otherwise build a real StreamFetcherManager, whose context needs a vertx
+		PlaylistController playlistController = mock(PlaylistController.class);
+		when(playlistController.stopPlaylist(Mockito.anyString())).thenReturn(new Result(false));
+		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
+		app.setStreamFetcherManager(fetcherManager);
 
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
@@ -470,6 +478,12 @@ public class PlaylistRestServiceV2UnitTest {
 
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		app.setDataStore(dataStore);
+		//the adapter would otherwise build a real StreamFetcherManager, whose context needs a vertx
+		PlaylistController playlistController = mock(PlaylistController.class);
+		when(playlistController.stopPlaylist(Mockito.anyString())).thenReturn(new Result(false));
+		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
+		app.setStreamFetcherManager(fetcherManager);
 		when(app.getScope()).thenReturn(scope);
 
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
@@ -522,6 +536,10 @@ public class PlaylistRestServiceV2UnitTest {
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);	
 		//it's created because it's not started
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, playlist.getStatus());
+
+		//a playlist id goes to the controller, never to the plain stream source stop
+		Mockito.verify(playlistController, Mockito.times(3)).stopPlaylist("testPlaylistId");
+		Mockito.verify(fetcherManager, Mockito.never()).stopStreaming(Mockito.anyString(), Mockito.anyBoolean());
 
 	}
 
@@ -576,8 +594,13 @@ public class PlaylistRestServiceV2UnitTest {
 		
 		when(app.getScope()).thenReturn(scope);
 		app.setDataStore(dataStore);
-		//init stream fetcher
-		app.getStreamFetcherManager();
+
+		//the adapter would otherwise build a real StreamFetcherManager, whose context needs a vertx
+		PlaylistController playlistController = mock(PlaylistController.class);
+		when(playlistController.startPlaylist(Mockito.any())).thenReturn(new Result(false, "refused by the controller"));
+		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
+		app.setStreamFetcherManager(fetcherManager);
 
 		when(applicationContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		IStatsCollector collector = mock(IStatsCollector.class);
@@ -589,10 +612,13 @@ public class PlaylistRestServiceV2UnitTest {
 
 		dataStore.save(playlist);
 
-		// Playlist current broadcast is empty scenario
+		// A playlist is the controller's call, the rest layer only hands its answer back
 
 		result = restServiceReal.startStreamSourceV2(playlist.getStreamId());
 		assertEquals(false, result.isSuccess());
+		assertEquals("refused by the controller", result.getMessage());
+		Mockito.verify(playlistController).startPlaylist(playlist);
+		Mockito.verify(fetcherManager, Mockito.never()).startStreaming(Mockito.any());
 
 
 		// Playlist ID is null scenario
@@ -608,15 +634,9 @@ public class PlaylistRestServiceV2UnitTest {
 
 		assertEquals(false, result.isSuccess());
 
-		// Playlist current Broadcast null scenario
-
-		playlist.setCurrentPlayIndex(99);
-		result = restServiceReal.startStreamSourceV2(playlist.getStreamId());
-		assertEquals(false, result.isSuccess());
-		
-		Broadcast broadcast2 = dataStore.get(playlist.getStreamId());
-		
-		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getStatus());
+		//neither of the two above ever reached the controller. What an out of range stored index does
+		//is the controller's own business, PlaylistControllerTest covers it against a real playlist
+		Mockito.verify(playlistController, Mockito.times(1)).startPlaylist(Mockito.any());
 
 		
 		

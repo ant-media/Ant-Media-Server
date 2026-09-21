@@ -195,6 +195,19 @@ class StreamFetcherManagerTest {
 		verify(idle).stopStream();
 		verify(idle, never()).restart();
 
+		//one viewer of any kind is enough to keep the same source up
+		unwatched.setHlsViewerCount(1);
+		StreamFetcher watched = tickFetcher("unwatched", State.STREAMING, LONG_AGO);
+		manager.onTick(watched);
+		verify(watched, never()).stopStream();
+
+		//and a source nobody has found yet is left alone until its grace window is up
+		unwatched.setHlsViewerCount(0);
+		unwatched.setStartTime(System.currentTimeMillis());
+		StreamFetcher justStarted = tickFetcher("unwatched", State.STREAMING, LONG_AGO);
+		manager.onTick(justStarted);
+		verify(justStarted, never()).stopStream();
+
 		//up for longer than the forced restart period, so it reconnects in place
 		fixture.row("restarts", "fake://restarts");
 		StreamFetcher streaming = tickFetcher("restarts", State.STREAMING, LONG_AGO);
@@ -214,15 +227,24 @@ class StreamFetcherManagerTest {
 		manager.onTick(item);
 		verify(item, never()).restart();
 
-		//stopping just the playing item would make the controller start the next one
-		Broadcast unwatchedPlaylist = fixture.row("unwatched-playlist", "fake://unwatched-playlist");
-		unwatchedPlaylist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		//stopping just the playing item would make the controller start the next one, so the playlist goes whole
+		Broadcast unwatchedPlaylist = playlistRow("unwatched-playlist");
 		unwatchedPlaylist.setAutoStartStopEnabled(true);
 		unwatchedPlaylist.setStartTime(System.currentTimeMillis() - LONG_AGO);
+
+		manager.prepare = fetcher -> fetcher.script(FakeWorker.holding());
+		assertTrue(manager.getPlaylistController().startPlaylist(unwatchedPlaylist).isSuccess());
+		Awaitility.await("the playlist item is registered")
+				.atMost(15, TimeUnit.SECONDS)
+				.until(() -> manager.getStreamFetcher("unwatched-playlist") != null);
 
 		StreamFetcher playlistItem = tickFetcher("unwatched-playlist", State.STREAMING, LONG_AGO);
 		manager.onTick(playlistItem);
 		verify(playlistItem, never()).stopStream();
+
+		Awaitility.await("the playlist is finished, not just the item that was playing")
+				.atMost(15, TimeUnit.SECONDS)
+				.until(() -> !manager.getPlaylistController().isRunning("unwatched-playlist"));
 	}
 
 	@Test
@@ -340,9 +362,15 @@ class StreamFetcherManagerTest {
 		awaitState(async, State.CONNECTING);
 
 		assertTrue(manager.stopStreaming("stop-async", false).isSuccess());
+
+		//the entry goes on the STOPPED transition, not on the stop call, so a second one is still accepted
+		awaitState(async, State.STOPPING);
+		assertTrue(manager.stopStreaming("stop-async", false).isSuccess());
+
 		async.releaseAll();
 		awaitState(async, State.STOPPED);
 		assertFalse(manager.getStreamFetcherList().containsKey("stop-async"));
+		assertFalse(manager.stopStreaming("stop-async", false).isSuccess(), "the id is free, there is nothing left to stop");
 
 		//a blocking stop only returns once the database says finished
 		ScriptedManager quick = fixture.newManager();

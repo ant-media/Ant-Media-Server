@@ -699,13 +699,22 @@ public class AppSettingsUnitTest {
 		appSettings.setEndpointLiveEdgeEnabled(true);
 		assertTrue(appSettings.isEndpointLiveEdgeEnabled());
 
+		assertEquals(3000, appSettings.getStreamFetcherRetryDelayMs());
+		appSettings.setStreamFetcherRetryDelayMs(5000);
+		assertEquals(5000, appSettings.getStreamFetcherRetryDelayMs());
+
+		//negative means retry forever
+		assertEquals(-1, appSettings.getStreamFetcherMaxRetryAttempts());
+		appSettings.setStreamFetcherMaxRetryAttempts(3);
+		assertEquals(3, appSettings.getStreamFetcherMaxRetryAttempts());
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value.
 
 		assertThat(numberOfFields)
 				.as("When an AppSettings field is added or removed, check its default value and update the field count")
-				.isEqualTo(186);
+				.isEqualTo(188);
 	}
 
 
