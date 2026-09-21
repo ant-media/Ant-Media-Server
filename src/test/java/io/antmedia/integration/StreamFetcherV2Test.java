@@ -446,9 +446,8 @@ public class StreamFetcherV2Test {
 		Broadcast vodSource = null;
 		try {
 			//playlists register their active item's StreamFetcher under the playlist's own streamId
-			//(see StreamFetcherManager#startPlaylist/createAndStartNextPlaylistItem), so seek-time on a
-			//running playlist item goes through this exact same getStreamFetcher(id)+seekTime() path -
-			//no separate playlist-specific test needed here.
+			//(see PlaylistController), so seek-time on a running playlist item goes through this exact
+			//same getStreamFetcher(id)+seekTime() path - no separate playlist-specific test needed here.
 			vodSource = restService.createBroadcast("seek vod test", AntMediaApplicationAdapter.VOD, BIG_BUNNY_MP4_URL, null);
 			final String streamId = vodSource.getStreamId();
 
@@ -619,8 +618,8 @@ public class StreamFetcherV2Test {
 			ConsoleAppRestServiceTest.resetCookieStore();
 			assertTrue(new ConsoleAppRestServiceTest().createFirstUserAndLogin());
 			assertEquals(0, ConsoleAppRestServiceTest.callGetAppSettings("LiveApp").getRestartStreamFetcherPeriod(),
-					"restartStreamFetcherPeriod must be 0 here, otherwise controlStreamFetchers(true) forces a "
-					+ "stop+restart and this stops testing StreamFetcher's own retry loop");
+					"restartStreamFetcherPeriod must be 0 here, otherwise the periodic forced reconnect kicks "
+					+ "in and this stops testing StreamFetcher's own retry loop");
 
 			Broadcast source = restService.createBroadcast("self heal test", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:" + port, null);
 			streamId = source.getStreamId();
