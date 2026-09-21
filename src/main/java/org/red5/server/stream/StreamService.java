@@ -668,6 +668,17 @@ public class StreamService implements IStreamService {
         return params;
     }
 
+    // A token after the streamId in the path (rtmp://IP/LiveApp/stream1/token) is only meaningful if publish token security is on
+    public static boolean isTokenInPathExpected(IScope scope) {
+        if (scope == null || scope.getContext() == null) {
+            return true;
+        }
+        AppSettings appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+        return appSettings.isPublishTokenControlEnabled()
+                || appSettings.isPublishJwtControlEnabled()
+                || appSettings.isEnableTimeTokenForPublish();
+    }
+
     // Handle the rtmp url format (e.g. /testStream/example_token/example_subscriberId/example_subscriberCode)
     public Map<String, String> parsePathSegments(String name) {
         Map<String, String> params = new HashMap<>();
@@ -766,9 +777,10 @@ public class StreamService implements IStreamService {
          * rtmp://IP/LiveApp/stream1/my_token/subscriberid/subscribercode/
          * FFmpeg interprets "/LiveApp/stream1" as the application name 
          * instead of just "LiveApp". This code addresses that issue by correctly 
-         * extracting and handling the application name and streamid
+         * extracting and handling the application name and streamid.
+         * It's only applied if a token is expected; otherwise "LiveApp/0" is a subfolder and name is the streamid
          */
-        if (path.contains("/")) {
+        if (path.contains("/") && isTokenInPathExpected(conn.getScope())) {
             String[] pathSplit = path.split("/");
             if(pathSplit.length >=2) {
                 name = pathSplit[1] + "/" + name;
