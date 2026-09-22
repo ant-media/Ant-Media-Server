@@ -327,9 +327,10 @@ public class PlaylistController {
 				return;
 			}
 
-			//move the stored index before the check, it is what a failed check advances from
+			//move the stored index before the check, it is what a failed check advances from.
+			//nothing is on air while the url is checked, so don't leave the last item's status standing
 			PlayListItem item = items.get(index);
-			writePlaylistStatus(streamId, null, index);
+			writePlaylistStatus(streamId, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, index);
 
 			session.starting = true;
 			vertx.executeBlocking(() -> isWorthTrying(item.getStreamUrl()), false)
@@ -422,7 +423,7 @@ public class PlaylistController {
 
 	/** Index of the item to play after the current one, or -1 when the playlist is over. */
 	private int nextIndex(Broadcast playlist) {
-		int next = playlist.getCurrentPlayIndex() + 1;
+		int next = playlist.getCurrentPlayIndex() + 2;
 
 		if (next < playlist.getPlayListItemList().size()) {
 			return next;

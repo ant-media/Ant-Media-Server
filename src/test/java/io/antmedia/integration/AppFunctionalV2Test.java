@@ -326,30 +326,14 @@ public class AppFunctionalV2Test {
 			result = RestServiceV2Test.callPlayNextItem(broadcast.getStreamId(), 2);
 			assertTrue(result.isSuccess());
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
-					RestServiceV2Test.getBroadcast(broadcast.getStreamId()).getCurrentPlayIndex() == 2);
-
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING,
-					RestServiceV2Test.getBroadcast(broadcast.getStreamId()).getPlayListStatus());
+			awaitPlaylistItemStarted(streamId, 2);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		finally {
-			//run even if an assertion above failed - a stuck-running playlist otherwise leaks into
-			//later tests in this class that assert a clean slate (testStatistics, testStreamAcceptFilter).
-			//best-effort: a cleanup failure here shouldn't mask a real assertion failure from the try block
-			if (streamId != null) {
-				try {
-					RestServiceV2Test.callStopBroadcastService(streamId);
-					awaitPlaylistFullyStopped(streamId);
-					RestServiceV2Test.callDeleteBroadcast(streamId);
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			stopAndDeletePlaylist(streamId);
 		}
 	}
 
@@ -363,48 +347,34 @@ public class AppFunctionalV2Test {
 			broadcast.setPlaylistLoopEnabled(false);
 			broadcast = RestServiceV2Test.createBroadcast(broadcast);
 			streamId = broadcast.getStreamId();
-			final String activeStreamId = streamId;
 
 			List<PlayListItem> playList = new ArrayList<>();
 			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			Result result = RestServiceV2Test.callUpdateBroadcast(activeStreamId, null, null, "", null, null, playList);
+			Result result = RestServiceV2Test.callUpdateBroadcast(streamId, null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
 
-			assertTrue(RestServiceV2Test.callStartBroadast(activeStreamId));
+			assertTrue(RestServiceV2Test.callStartBroadast(streamId));
 
 			//jump to the last item without waiting out its real playback duration
-			assertTrue(RestServiceV2Test.callPlayNextItem(activeStreamId, 1).isSuccess());
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
-					RestServiceV2Test.getBroadcast(activeStreamId).getCurrentPlayIndex() == 1);
+			assertTrue(RestServiceV2Test.callPlayNextItem(streamId, 1).isSuccess());
+			awaitPlaylistItemStarted(streamId, 1);
 
 			//advance past the last item: with looping disabled the playlist finishes, and the call that
 			//finished it reports success - it did what was asked
-			Result advancePastEnd = RestServiceV2Test.callPlayNextItem(activeStreamId, null);
+			Result advancePastEnd = RestServiceV2Test.callPlayNextItem(streamId, null);
 			assertTrue(advancePastEnd.isSuccess());
 
-			awaitPlaylistFullyStopped(activeStreamId);
+			awaitPlaylistFullyStopped(streamId);
 
-			assertEquals(0, RestServiceV2Test.getBroadcast(activeStreamId).getCurrentPlayIndex());
+			assertEquals(0, RestServiceV2Test.getBroadcast(streamId).getCurrentPlayIndex());
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		finally {
-			//run even if an assertion above failed - a stuck-running playlist otherwise leaks into
-			//later tests in this class that assert a clean slate (testStatistics, testStreamAcceptFilter).
-			//best-effort: a cleanup failure here shouldn't mask a real assertion failure from the try block
-			if (streamId != null) {
-				try {
-					RestServiceV2Test.callStopBroadcastService(streamId);
-					awaitPlaylistFullyStopped(streamId);
-					RestServiceV2Test.callDeleteBroadcast(streamId);
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			stopAndDeletePlaylist(streamId);
 		}
 	}
 
@@ -423,43 +393,32 @@ public class AppFunctionalV2Test {
 			List<PlayListItem> playList = new ArrayList<>();
 			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			Result result = RestServiceV2Test.callUpdateBroadcast(activeStreamId, null, null, "", null, null, playList);
+			Result result = RestServiceV2Test.callUpdateBroadcast(streamId, null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
 
-			assertTrue(RestServiceV2Test.callStartBroadast(activeStreamId));
+			assertTrue(RestServiceV2Test.callStartBroadast(streamId));
 
-			assertTrue(RestServiceV2Test.callPlayNextItem(activeStreamId, 1).isSuccess());
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
-					RestServiceV2Test.getBroadcast(activeStreamId).getCurrentPlayIndex() == 1);
+			assertTrue(RestServiceV2Test.callPlayNextItem(streamId, 1).isSuccess());
+			awaitPlaylistItemStarted(streamId, 1);
 
 			//advance past the last item: with looping enabled this wraps back to index 0 and keeps playing
-			Result advancePastEnd = RestServiceV2Test.callPlayNextItem(activeStreamId, null);
+			Result advancePastEnd = RestServiceV2Test.callPlayNextItem(streamId, null);
 			assertTrue(advancePastEnd.isSuccess());
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
-					RestServiceV2Test.getBroadcast(activeStreamId).getCurrentPlayIndex() == 0);
+			awaitPlaylistItemStarted(streamId, 0);
 
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING,
-					RestServiceV2Test.getBroadcast(activeStreamId).getPlayListStatus());
+			//looping means it keeps going, so it must still be playing a moment later and not have
+			//wrapped straight into finishing
+			Awaitility.await().during(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING
+							.equals(RestServiceV2Test.getBroadcast(activeStreamId).getPlayListStatus()));
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		finally {
-			//run even if an assertion above failed - a stuck-running playlist otherwise leaks into
-			//later tests in this class that assert a clean slate (testStatistics, testStreamAcceptFilter).
-			//best-effort: a cleanup failure here shouldn't mask a real assertion failure from the try block
-			if (streamId != null) {
-				try {
-					RestServiceV2Test.callStopBroadcastService(streamId);
-					awaitPlaylistFullyStopped(streamId);
-					RestServiceV2Test.callDeleteBroadcast(streamId);
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			stopAndDeletePlaylist(streamId);
 		}
 	}
 
@@ -469,7 +428,6 @@ public class AppFunctionalV2Test {
 		try {
 			Broadcast broadcast = RestServiceV2Test.createBroadcast("live mutation playlist", AntMediaApplicationAdapter.PLAY_LIST, null, null);
 			streamId = broadcast.getStreamId();
-			final String activeStreamId = streamId;
 
 			List<PlayListItem> originalList = new ArrayList<>();
 			originalList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
@@ -478,7 +436,7 @@ public class AppFunctionalV2Test {
 			assertTrue(result.isSuccess());
 
 			assertTrue(RestServiceV2Test.callStartBroadast(streamId));
-			assertEquals(0, RestServiceV2Test.getBroadcast(streamId).getCurrentPlayIndex());
+			awaitPlaylistItemStarted(streamId, 0);
 
 			//mutate the list while item 0 is still playing: swap in a 3-item list, mixing VoD and streamSource
 			//item types, the way updateStreamSource() lets a running playlist be edited (see RestServiceBase)
@@ -501,8 +459,7 @@ public class AppFunctionalV2Test {
 			//advance: the next item must come from the freshly PUT-ed list, not the one playback started with
 			RestServiceV2Test.callPlayNextItem(streamId, null);
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
-					RestServiceV2Test.getBroadcast(activeStreamId).getCurrentPlayIndex() == 1);
+			awaitPlaylistItemStarted(streamId, 1);
 
 			Broadcast finalState = RestServiceV2Test.getBroadcast(streamId);
 			assertEquals(3, finalState.getPlayListItemList().size());
@@ -513,34 +470,54 @@ public class AppFunctionalV2Test {
 			fail(e.getMessage());
 		}
 		finally {
-			//run even if an assertion above failed - a stuck-running playlist otherwise leaks into
-			//later tests in this class that assert a clean slate (testStatistics, testStreamAcceptFilter).
-			//best-effort: a cleanup failure here shouldn't mask a real assertion failure from the try block
-			if (streamId != null) {
-				try {
-					RestServiceV2Test.callStopBroadcastService(streamId);
-					awaitPlaylistFullyStopped(streamId);
-					RestServiceV2Test.callDeleteBroadcast(streamId);
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			stopAndDeletePlaylist(streamId);
 		}
 	}
 
-	//mirrors testPlayList's own wait-for-FINISHED-before-delete idiom: stopping a playlist doesn't
-	//instantly zero out its live/HLS teardown, and this suite's other tests (testStatistics,
-	//testStreamAcceptFilter) assert a clean slate (e.g. live count back to 0) shortly after they start,
-	//so any test creating real playlist streams must fully quiesce before returning, not just fire the
-	//stop call and move on
+	//the stored index moves as soon as the controller picks an item, while its url is still being
+	//probed. Only playListStatus says the item was actually handed to a fetcher, so waiting on the
+	//index alone proves nothing started.
+	private static void awaitPlaylistItemStarted(String streamId, int index) {
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() -> {
+			Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
+			return broadcast != null
+					&& broadcast.getCurrentPlayIndex() == index
+					&& AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getPlayListStatus());
+		});
+	}
+
+	//stopping a playlist doesn't instantly tear down its HLS output, and later tests in this class
+	//(testStatistics, testStreamAcceptFilter) assert a clean slate soon after they start.
+	//status is the item's field, not the playlist's: it only reaches finished once something actually
+	//published, so a playlist that never got an item on air keeps whatever it had. All it must not be
+	//is still live.
 	private static void awaitPlaylistFullyStopped(String streamId) {
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() -> {
 			Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
-			return broadcast != null
-					&& AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(broadcast.getStatus())
-					&& AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(broadcast.getPlayListStatus());
+			if (broadcast == null
+					|| !AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(broadcast.getPlayListStatus())) {
+				return false;
+			}
+			String status = broadcast.getStatus();
+			return !AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(status)
+					&& !AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING.equals(status);
 		});
+	}
+
+	//best effort teardown for the finally of every playlist test: a stuck playlist otherwise leaks
+	//into the tests that follow, and a failure here must not mask the real one from the try block
+	private static void stopAndDeletePlaylist(String streamId) {
+		if (streamId == null) {
+			return;
+		}
+		try {
+			RestServiceV2Test.callStopBroadcastService(streamId);
+			awaitPlaylistFullyStopped(streamId);
+			RestServiceV2Test.callDeleteBroadcast(streamId);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Test
