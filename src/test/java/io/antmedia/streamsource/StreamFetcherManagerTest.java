@@ -2,6 +2,7 @@ package io.antmedia.streamsource;
 
 import static io.antmedia.streamsource.StreamSourceFixture.NO_RETRY_IN_THIS_TEST_MS;
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
+import static io.antmedia.streamsource.StreamSourceFixture.settle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -157,6 +158,8 @@ class StreamFetcherManagerTest {
 		Awaitility.await("the second attempt is connecting")
 				.atMost(15, TimeUnit.SECONDS)
 				.until(() -> fetcher.workers.size() == 2 && fetcher.getState() == State.CONNECTING);
+		//the writes below belong to the transition that published that state, so they land after it
+		settle(context);
 
 		//CONNECTING, RECONNECT_WAIT and CONNECTING again all claim the source as preparing
 		verify(fixture.app, times(3)).getFreshBroadcastUpdateForStatus(

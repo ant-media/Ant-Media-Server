@@ -174,9 +174,10 @@ class StreamSourceFixture implements AutoCloseable {
 
 	/**
 	 * Waits until everything already posted to the given context has run. Asserting that something
-	 * did *not* happen needs this, the entry points all return before their work does.
+	 * did *not* happen needs this, the entry points all return before their work does. It is also
+	 * what gives the calling thread a happens before edge on the plain fields those tasks wrote.
 	 */
-	void settle(Context target) {
+	static void settle(Context target) {
 		CompletableFuture<Void> done = new CompletableFuture<>();
 		target.runOnContext(v -> done.complete(null));
 		try {
@@ -187,14 +188,18 @@ class StreamSourceFixture implements AutoCloseable {
 		}
 	}
 
-	void settle() {
-		settle(context);
-	}
-
+	/**
+	 * A state is published at the top of the transition that reaches it, and everything that follows
+	 * from it, the registry entry, the status write, the timers, runs further down the same task.
+	 * Waiting on the state alone therefore hands the test a fetcher that is still half way through
+	 * its transition, so this settles the fetcher's own context before it returns.
+	 */
 	static void awaitState(StreamFetcher fetcher, State state) {
 		Awaitility.await("streamId:" + fetcher.getStreamId() + " reaches " + state)
 				.atMost(15, TimeUnit.SECONDS)
 				.until(() -> fetcher.getState() == state);
+
+		settle((Context) peek(fetcher, "context"));
 	}
 
 	@Override
@@ -212,8 +217,10 @@ class StreamSourceFixture implements AutoCloseable {
 	 * tick() is private and its timer only fires every 10s. This and {@link #peek}/{@link #poke} reach
 	 * in so the tick rules can be asserted in milliseconds instead of half a minute.
 	 */
-	void tick(StreamFetcher fetcher) {
-		context.runOnContext(v -> {
+	static void tick(StreamFetcher fetcher) {
+		Context target = (Context) peek(fetcher, "context");
+
+		target.runOnContext(v -> {
 			try {
 				Method tick = StreamFetcher.class.getDeclaredMethod("tick");
 				tick.setAccessible(true);
@@ -223,7 +230,7 @@ class StreamSourceFixture implements AutoCloseable {
 				throw new IllegalStateException(e);
 			}
 		});
-		settle();
+		settle(target);
 	}
 
 	static Object peek(Object target, String fieldName) {
