@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -279,7 +280,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private List<IStreamPlaybackSecurity> streamPlaySecurityList;
 	private Map<String, OnvifCamera> onvifCameraList = new ConcurrentHashMap<>();
-	protected volatile StreamFetcherManager streamFetcherManager;
+	protected final AtomicReference<StreamFetcherManager> streamFetcherManager = new AtomicReference<>();
 	protected Map<String, MuxAdaptor> muxAdaptors = new ConcurrentHashMap<>();
 	private DataStore dataStore;
 	private DataStoreFactory dataStoreFactory;
@@ -1959,14 +1960,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public synchronized StreamFetcherManager getStreamFetcherManager() {
-		if (streamFetcherManager == null) {
-			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), getScope());
+		StreamFetcherManager manager = streamFetcherManager.get();
+		if (manager == null) {
+			manager = new StreamFetcherManager(vertx, getDataStore(), getScope());
+			streamFetcherManager.set(manager);
 		}
-		return streamFetcherManager;
+		return manager;
 	}
 
-	public void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
-		this.streamFetcherManager = streamFetcherManager;
+	public synchronized void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
+		this.streamFetcherManager.set(streamFetcherManager);
 	}
 
 
@@ -2124,8 +2127,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void closeStreamFetchers() {
-		if (streamFetcherManager != null) {
-			streamFetcherManager.shutdown();
+		//read once and shut down without the monitor, shutdown blocks until every fetcher is stopped
+		StreamFetcherManager manager = streamFetcherManager.get();
+		if (manager != null) {
+			manager.shutdown();
 		}
 	}
 

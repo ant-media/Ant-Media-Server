@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verify;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -313,7 +314,9 @@ class StreamFetcherTest {
 		lost.startStream();
 		awaitState(lost, State.CONNECTING);
 
-		poke(lost, "currentWorker", null);
+		@SuppressWarnings("unchecked")
+		AtomicReference<StreamFetcherWorker> held = (AtomicReference<StreamFetcherWorker>) peek(lost, "currentWorker");
+		held.set(null);
 		tick(lost);
 
 		assertEquals(State.RECONNECT_WAIT, lost.getState());
@@ -490,7 +493,7 @@ class StreamFetcherTest {
 	void theCameraErrorOutlivesTheAttemptThatProducedIt() {
 		ScriptedFetcher healthy = fixture.newFetcher("camera-ok", new Recorder());
 		FakeWorker opened = FakeWorker.publishing();
-		opened.error = new Result(true);
+		opened.error.set(new Result(true));
 		healthy.script(opened);
 
 		healthy.startStream();
@@ -503,7 +506,7 @@ class StreamFetcherTest {
 
 		ScriptedFetcher failing = fixture.newFetcher("camera-error", new Recorder());
 		FakeWorker refused = FakeWorker.holding();
-		refused.error = new Result(false, "Connection refused");
+		refused.error.set(new Result(false, "Connection refused"));
 		failing.script(refused, FakeWorker.holding());
 
 		failing.startStream();

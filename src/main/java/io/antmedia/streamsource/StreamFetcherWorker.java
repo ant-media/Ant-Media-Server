@@ -1,6 +1,7 @@
 package io.antmedia.streamsource;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
@@ -23,7 +24,7 @@ public abstract class StreamFetcherWorker {
 	volatile long lastActivityMs;
 
 	/** Outcome of the last open, success or failure. Feeds {@link StreamFetcher#getCameraError()}. */
-	volatile Result error;
+	final AtomicReference<Result> error = new AtomicReference<>();
 
 	/** Run by the worker once the source starts delivering, which is what starts the broadcast. */
 	Runnable onFirstPacket;
