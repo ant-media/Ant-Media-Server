@@ -4,6 +4,7 @@ import static io.antmedia.streamsource.StreamSourceFixture.NO_RETRY_IN_THIS_TEST
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -12,7 +13,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -147,18 +147,24 @@ class PlaylistControllerTest {
 
 		assertEquals(List.of(false, false, false), previousStillRegistered,
 				"an item may only start once the one before it is completely gone");
+		assertEquals(List.of("rtsp://a", "rtsp://b", "rtsp://c"),
+				itemsOf("queue").stream().map(ScriptedFetcher::getStreamUrl).toList(),
+				"items start in the order the list has them, once each");
 		assertEquals(2, queue.getCurrentPlayIndex());
-		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, queue.getPlayListStatus());
 		assertEquals(1, itemsOf("queue").get(1).workers.size(), "an item never retries itself, the controller moves on");
 
-		List<PlayListItem> edited = new ArrayList<>(queue.getPlayListItemList());
-		edited.add(new PlayListItem("rtsp://added", AntMediaApplicationAdapter.VOD));
-		queue.setPlayListItemList(edited);
+		//a whole new row, not an edit of the one in hand: a controller that kept the broadcast it
+		//started with would pass an in place edit without ever going back to the store
+		Broadcast edited = playlist("queue", "rtsp://a", "rtsp://b", "rtsp://c", "rtsp://added");
+		edited.setCurrentPlayIndex(queue.getCurrentPlayIndex());
 
 		itemsOf("queue").forEach(ScriptedFetcher::releaseAll);
 		awaitItems("queue", 4);
+
 		assertEquals("rtsp://added", itemsOf("queue").get(3).getStreamUrl(),
 				"the list is read again for every item, so an edit made while it plays lands");
+		assertEquals(3, edited.getCurrentPlayIndex());
+		assertEquals(List.of(false, false, false, false), previousStillRegistered);
 	}
 
 	@Test
@@ -282,11 +288,12 @@ class PlaylistControllerTest {
 		Broadcast waiting = playlist("waiting", url("/gone-a"), url("/gone-b"));
 		assertTrue(controller.startPlaylist(waiting).isSuccess());
 
-		Awaitility.await("the playlist says it is trying again rather than playing")
+		//a list of dead urls is walked once and then left alone, never spun round the event loop
+		Awaitility.await("the whole list is checked once and nothing more")
+				.during(Duration.ofSeconds(1))
 				.atMost(15, TimeUnit.SECONDS)
-				.until(() -> IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(waiting.getPlayListStatus()));
+				.until(() -> List.of("/gone-a", "/gone-b").equals(probed));
 
-		assertEquals(List.of("/gone-a", "/gone-b"), probed, "a list of dead urls must not spin the event loop");
 		assertTrue(controller.isRunning("waiting"));
 
 		probed.clear();
@@ -300,6 +307,49 @@ class PlaylistControllerTest {
 		//two passes, and each one walked the whole list: the stored index moves even when the check fails
 		assertEquals(List.of("/gone-c", "/gone-d", "/gone-c", "/gone-d"), probed);
 		assertEquals(0, givingUp.getCurrentPlayIndex());
+	}
+
+	/**
+	 * The one status the rest of the server reads off a playlist, from the first url check to the end.
+	 * Every step here waits on something that can only happen after the status was written, so the
+	 * walk is exact rather than a snapshot taken at a hopeful moment.
+	 */
+	@Test
+	void theReportedStatusFollowsWhatIsPlaying() {
+		Broadcast reported = playlist("reported", url("/slow"), "rtsp://b");
+		itemWorkers.add(FakeWorker::holding);
+		itemWorkers.add(FakeWorker::holding);
+
+		assertNull(reported.getPlayListStatus(), "nothing is reported before the playlist starts");
+
+		assertTrue(controller.startPlaylist(reported).isSuccess());
+		awaitProbed("/slow");
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, reported.getPlayListStatus(),
+				"a url being checked is not something playing");
+
+		releaseSlowProbe.countDown();
+		awaitItems("reported", 1);
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, reported.getPlayListStatus());
+
+		//the item ends without ever publishing, so the next one is a fresh start and not a continuation
+		itemsOf("reported").get(0).releaseAll();
+		awaitItems("reported", 2);
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, reported.getPlayListStatus(),
+				"the second item reports for itself");
+
+		//that is the whole list gone without playing, so the playlist backs off and waits
+		itemsOf("reported").get(1).releaseAll();
+
+		Awaitility.await("waiting for the next pass is not playing either")
+				.during(Duration.ofSeconds(1))
+				.atMost(15, TimeUnit.SECONDS)
+				.until(() -> IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(reported.getPlayListStatus()));
+
+		assertTrue(controller.isRunning("reported"), "backing off is not the same as being over");
+		assertEquals(2, itemsOf("reported").size(), "nothing came up while it waits");
+
+		assertTrue(controller.stopPlaylist("reported").isSuccess());
+		awaitFinished("reported");
 	}
 
 	@Test
