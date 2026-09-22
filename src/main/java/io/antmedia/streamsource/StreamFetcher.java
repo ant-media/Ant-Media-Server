@@ -4,6 +4,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -99,9 +100,8 @@ public class StreamFetcher {
 	private IStreamFetcherListener streamFetcherListener;
 
 	//lazily resolved from both the context and a worker thread
-	@Setter
-	private volatile DataStore dataStore;
-	private volatile AntMediaApplicationAdapter appInstance;
+	private final AtomicReference<DataStore> dataStore = new AtomicReference<>();
+	private final AtomicReference<AntMediaApplicationAdapter> appInstance = new AtomicReference<>();
 
 	//only written on the shared context, volatile because getState() is public and read from anywhere
 	@Getter
@@ -131,7 +131,7 @@ public class StreamFetcher {
 	private long tickTimerId = -1;
 	private long retryTimerId = -1;
 
-	private volatile StreamFetcherWorker currentWorker;
+	private final AtomicReference<StreamFetcherWorker> currentWorker = new AtomicReference<>();
 
 	public StreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx, long seekTimeInMs) {
 		if (streamUrl == null || streamId == null) {
@@ -236,8 +236,9 @@ public class StreamFetcher {
 	public void seekTime(long seekTimeInMilliseconds) {
 		context.runOnContext(v -> {
 			seekTimeMs = seekTimeInMilliseconds;
-			if (currentWorker != null) {
-				currentWorker.seek(seekTimeInMilliseconds);
+			StreamFetcherWorker worker = currentWorker.get();
+			if (worker != null) {
+				worker.seek(seekTimeInMilliseconds);
 			}
 		});
 	}
@@ -249,7 +250,7 @@ public class StreamFetcher {
 		StreamFetcherWorker worker = createWorker();
 		worker.lastActivityMs = System.currentTimeMillis();
 		worker.onFirstPacket = () -> context.runOnContext(v -> firstPacket(id));
-		currentWorker = worker;
+		currentWorker.set(worker);
 
 		transition(State.CONNECTING);
 
@@ -299,10 +300,12 @@ public class StreamFetcher {
 			return;
 		}
 
-		if (currentWorker != null && currentWorker.error != null) {
-			lastError = currentWorker.error;
+		StreamFetcherWorker ended = currentWorker.get();
+		Result endedError = ended != null ? ended.error.get() : null;
+		if (endedError != null) {
+			lastError = endedError;
 		}
-		currentWorker = null;
+		currentWorker.set(null);
 
 		switch (state) {
 			case CONNECTING, STREAMING -> retryOrStop(reason);
@@ -350,8 +353,9 @@ public class StreamFetcher {
 	private void abort(Reason reason) {
 		pendingReason = reason;
 		lastReason = reason;
-		if (currentWorker != null) {
-			currentWorker.abortRequested.set(true);
+		StreamFetcherWorker worker = currentWorker.get();
+		if (worker != null) {
+			worker.abortRequested.set(true);
 		}
 		transition(State.STOPPING);
 	}
@@ -363,7 +367,7 @@ public class StreamFetcher {
 
 	private void tick() {
 		long now = System.currentTimeMillis();
-		StreamFetcherWorker worker = currentWorker;
+		StreamFetcherWorker worker = currentWorker.get();
 		boolean fetching = state == State.CONNECTING || state == State.STREAMING;
 
 		if (fetching && worker == null) {
@@ -462,27 +466,36 @@ public class StreamFetcher {
 	}
 
 	public Result getCameraError() {
-		StreamFetcherWorker worker = currentWorker;
-		return worker != null && worker.error != null ? worker.error : lastError;
+		StreamFetcherWorker worker = currentWorker.get();
+		Result workerError = worker != null ? worker.error.get() : null;
+		return workerError != null ? workerError : lastError;
 	}
 
 	public MuxAdaptor getMuxAdaptor() {
-		StreamFetcherWorker worker = currentWorker;
+		StreamFetcherWorker worker = currentWorker.get();
 		return worker != null ? worker.getMuxAdaptor() : null;
 	}
 
+	public void setDataStore(DataStore dataStore) {
+		this.dataStore.set(dataStore);
+	}
+
 	public DataStore getDataStore() {
-		if (dataStore == null) {
-			dataStore = getInstance().getDataStore();
+		DataStore store = dataStore.get();
+		if (store == null) {
+			store = getInstance().getDataStore();
+			dataStore.set(store);
 		}
-		return dataStore;
+		return store;
 	}
 
 	public AntMediaApplicationAdapter getInstance() {
-		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		AntMediaApplicationAdapter instance = appInstance.get();
+		if (instance == null) {
+			instance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+			appInstance.set(instance);
 		}
-		return appInstance;
+		return instance;
 	}
 
 }

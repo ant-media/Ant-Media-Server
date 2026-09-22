@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -97,7 +98,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 	private AntMediaApplicationAdapter appInstance;
 
 	private AVFormatContext inputFormatContext;
-	private volatile MuxAdaptor muxAdaptor;
+	private final AtomicReference<MuxAdaptor> muxAdaptor = new AtomicReference<>();
 
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
@@ -113,7 +114,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 	/** How long to buffer packages before pushing to muxer downstream (in ms) **/
 	private final int bufferTime;
-	private volatile ConcurrentSkipListSet<AVPacket> bufferQueue;
+	private final AtomicReference<ConcurrentSkipListSet<AVPacket>> bufferQueue = new AtomicReference<>();
 	/** Set while the queue fills, cleared once it holds bufferTime of media and it can pace again. */
 	private final AtomicBoolean buffering = new AtomicBoolean(true);
 
@@ -146,7 +147,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			inputFormatContext = avformat_alloc_context();
 			if (inputFormatContext == null) {
 				logger.warn("Cannot allocate the input context for streamId:{}", streamId);
-				error = new Result(false, "Cannot allocate the input context");
+				error.set(new Result(false, "Cannot allocate the input context"));
 				return reason;
 			}
 			inputFormatContext.interrupt_callback(interruptCallback);
@@ -173,7 +174,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 	@Override
 	public MuxAdaptor getMuxAdaptor() {
-		return muxAdaptor;
+		return muxAdaptor.get();
 	}
 
 	@Override
@@ -228,7 +229,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		}
 
 		Result result = prepareInput();
-		error = result;
+		error.set(result);
 
 		if (!result.isSuccess()) {
 			return false;
@@ -268,7 +269,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		adaptor.setBroadcast(broadcast);
 		//if stream is rtsp, then it's not AVC
 		adaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
-		muxAdaptor = adaptor;
+		muxAdaptor.set(adaptor);
 
 		MuxAdaptor.setUpEndPoints(adaptor, broadcast, vertx);
 		adaptor.init(scope, streamId, false);
@@ -432,16 +433,16 @@ public class FfmpegWorker extends StreamFetcherWorker {
 	private void packetRead(AVPacket pkt) {
 		if (!streamPublished) {
 			streamPublished = true;
-			muxAdaptor.setStartTime(System.currentTimeMillis());
+			muxAdaptor.get().setStartTime(System.currentTimeMillis());
 
 			if (bufferTime > 0) {
 				//the input context has to exist before the queue, the comparator reads the stream time bases.
 				//a Set drops whatever compares equal, and audio and video regularly land on the same
 				//millisecond, so the address tells them apart. Any stable order does, they are a millisecond apart
-				bufferQueue = new ConcurrentSkipListSet<>((a, b) -> {
+				bufferQueue.set(new ConcurrentSkipListSet<>((a, b) -> {
 					int byTime = Long.compare(toMs(a, a.dts()), toMs(b, b.dts()));
 					return byTime != 0 ? byTime : Long.compare(a.address(), b.address());
-				});
+				}));
 
 				//a tick that finds the writer still running must not take a worker thread only to block on
 				//the monitor, at 100 ticks a second they would pile up and starve the pool for everyone
@@ -461,7 +462,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		if (bufferTime > 0) {
 			AVPacket packet = new AVPacket();
 			av_packet_ref(packet, pkt);
-			bufferQueue.add(packet);
+			bufferQueue.get().add(packet);
 		}
 		else {
 			if (AntMediaApplicationAdapter.VOD.equals(streamType)) {
@@ -530,7 +531,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			pkt.pts(pkt.dts());
 		}
 
-		muxAdaptor.writePacket(stream, pkt);
+		muxAdaptor.get().writePacket(stream, pkt);
 	}
 
 	/** Pulls audio and video back together when their sent timestamps have drifted apart. */
@@ -597,7 +598,8 @@ public class FfmpegWorker extends StreamFetcherWorker {
 				return;
 			}
 
-			if (bufferQueue.isEmpty()) {
+			ConcurrentSkipListSet<AVPacket> queue = bufferQueue.get();
+			if (queue.isEmpty()) {
 				//an underrun, wait for it to fill again. Everything below needs a head and a tail
 				buffering.set(true);
 				return;
@@ -607,8 +609,8 @@ public class FfmpegWorker extends StreamFetcherWorker {
 				calculateBufferStatus();
 
 				if (!buffering.get()) {
-					while (!bufferQueue.isEmpty()) {
-						AVPacket tempPacket = bufferQueue.first();
+					while (!queue.isEmpty()) {
+						AVPacket tempPacket = queue.first();
 
 						long pktTime = toMs(tempPacket, tempPacket.pts());
 
@@ -619,13 +621,13 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 						//out of the queue first, writePacket rewrites the very dts the queue is sorted by and
 						//the packet would no longer be found where the set put it
-						bufferQueue.remove(tempPacket);
+						queue.remove(tempPacket);
 						writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
 						av_packet_unref(tempPacket);
 					}
 
 					//if the queue is drained, start buffering again
-					buffering.set(bufferQueue.isEmpty());
+					buffering.set(queue.isEmpty());
 				}
 
 				logBufferStatus();
@@ -639,8 +641,9 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 	private void calculateBufferStatus() {
 		//the caller holds the monitor and has checked the queue, so both of these have a packet
-		AVPacket pktHead = bufferQueue.first();
-		AVPacket pktTrailer = bufferQueue.last();
+		ConcurrentSkipListSet<AVPacket> queue = bufferQueue.get();
+		AVPacket pktHead = queue.first();
+		AVPacket pktTrailer = queue.last();
 
 		lastPacketTimeMsInQueue = toMs(pktTrailer, pktTrailer.dts());
 		firstPacketTimeMsInQueue = toMs(pktHead, pktHead.pts());
@@ -688,7 +691,8 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			}
 
 			//an abandoned worker that a newer attempt has already replaced must not touch the outputs
-			boolean abandoned = abandonedAtMs != 0 && getInstance().getMuxAdaptor(streamId) != muxAdaptor;
+			MuxAdaptor adaptor = muxAdaptor.get();
+			boolean abandoned = abandonedAtMs != 0 && getInstance().getMuxAdaptor(streamId) != adaptor;
 			if (abandoned) {
 				logger.error("Abandoned stream fetcher worker returned {}ms after it was given up on, for url:{} streamId:{}."
 						+ " Its buffered packets and trailer are dropped because a newer attempt owns the stream",
@@ -697,8 +701,9 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 			//queued packets hold native memory either way, only write them out if we still own the stream
 			synchronized (this) {
+				ConcurrentSkipListSet<AVPacket> queue = bufferQueue.get();
 				AVPacket queued;
-				while (bufferQueue != null && (queued = bufferQueue.pollFirst()) != null) {
+				while (queue != null && (queued = queue.pollFirst()) != null) {
 					if (!abandoned) {
 						writePacket(inputFormatContext.streams(queued.stream_index()), queued);
 					}
@@ -706,14 +711,14 @@ public class FfmpegWorker extends StreamFetcherWorker {
 				}
 			}
 
-			if (!abandoned && muxAdaptor != null) {
+			if (!abandoned && adaptor != null) {
 				logger.info("Writing trailer in MuxAdaptor for streamId:{}", streamId);
-				muxAdaptor.writeTrailer();
+				adaptor.writeTrailer();
 			}
 
-			if (muxAdaptor != null) {
-				getInstance().muxAdaptorRemoved(muxAdaptor);
-				muxAdaptor = null;
+			if (adaptor != null) {
+				getInstance().muxAdaptorRemoved(adaptor);
+				muxAdaptor.set(null);
 			}
 
 			if (pkt != null) {
