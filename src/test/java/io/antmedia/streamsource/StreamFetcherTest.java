@@ -4,6 +4,8 @@ import static io.antmedia.streamsource.StreamSourceFixture.NO_RETRY_IN_THIS_TEST
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
 import static io.antmedia.streamsource.StreamSourceFixture.peek;
 import static io.antmedia.streamsource.StreamSourceFixture.poke;
+import static io.antmedia.streamsource.StreamSourceFixture.settle;
+import static io.antmedia.streamsource.StreamSourceFixture.tick;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -64,7 +66,7 @@ class StreamFetcherTest {
 
 		fetcher.startStream();
 		fetcher.startStream();
-		fixture.settle();
+		settle(fixture.context);
 
 		assertEquals(State.CONNECTING, fetcher.getState());
 		assertEquals(1, fetcher.workers.size(), "a second start must not open a second attempt");
@@ -109,7 +111,7 @@ class StreamFetcherTest {
 			int attemptsBefore = fetcher.workers.size();
 
 			fetcher.restart();
-			fixture.settle();
+			settle(fixture.context);
 
 			assertEquals(state, fetcher.getState(), "restart must be ignored in " + state);
 			assertEquals(attemptsBefore, fetcher.workers.size());
@@ -151,7 +153,7 @@ class StreamFetcherTest {
 
 		//the attempt is still blocked inside its native call, so the tick past the deadline moves on without it
 		poke(fetcher, "stateSinceMs", System.currentTimeMillis() - StreamFetcher.STOPPING_TIMEOUT_MS - 1);
-		fixture.tick(fetcher);
+		tick(fetcher);
 
 		awaitState(fetcher, State.CONNECTING);
 		assertNotEquals(0L, stuck.abandonedAtMs, "an abandoned worker must be stamped, it may still touch shared state");
@@ -312,7 +314,7 @@ class StreamFetcherTest {
 		awaitState(lost, State.CONNECTING);
 
 		poke(lost, "currentWorker", null);
-		fixture.tick(lost);
+		tick(lost);
 
 		assertEquals(State.RECONNECT_WAIT, lost.getState());
 		assertEquals(Reason.READ_ERROR, lost.getLastReason());
@@ -332,7 +334,7 @@ class StreamFetcherTest {
 		awaitState(silent, State.STREAMING);
 
 		silent.workers.get(0).lastActivityMs = 0;
-		fixture.tick(silent);
+		tick(silent);
 		awaitState(silent, State.STOPPING);
 		assertTrue(silent.workers.get(0).abortRequested.get());
 
@@ -344,7 +346,7 @@ class StreamFetcherTest {
 		Recorder deadRecorder = new Recorder();
 		ScriptedFetcher dead = inState(State.STOPPED, "tick-dead", deadRecorder);
 		int ticksBefore = deadRecorder.ticks.get();
-		fixture.tick(dead);
+		tick(dead);
 		assertEquals(ticksBefore, deadRecorder.ticks.get());
 	}
 
@@ -362,6 +364,8 @@ class StreamFetcherTest {
 		Awaitility.await("the second attempt is connecting")
 				.atMost(15, TimeUnit.SECONDS)
 				.until(() -> fetcher.workers.size() == 2 && fetcher.getState() == State.CONNECTING);
+		//the last transition is recorded after the state it carries is published
+		settle(fixture.context);
 
 		//published is what tells the manager an attempt that was on air just ended
 		assertEquals(List.of(
@@ -390,7 +394,7 @@ class StreamFetcherTest {
 		stopWins.restart();
 		awaitState(stopWins, State.STOPPING);
 		stopWins.stopStream();
-		fixture.settle();
+		settle(fixture.context);
 		stopWins.releaseAll();
 
 		awaitState(stopWins, State.STOPPED);
@@ -402,7 +406,7 @@ class StreamFetcherTest {
 		stopStays.stopStream();
 		awaitState(stopStays, State.STOPPING);
 		stopStays.restart();
-		fixture.settle();
+		settle(fixture.context);
 		stopStays.releaseAll();
 
 		awaitState(stopStays, State.STOPPED);
@@ -519,13 +523,13 @@ class StreamFetcherTest {
 	void seekOnlyReachesAnAttemptThatIsRunning() {
 		ScriptedFetcher streaming = inState(State.STREAMING, "seek-live", new Recorder());
 		streaming.seekTime(4242);
-		fixture.settle();
+		settle(fixture.context);
 		assertEquals(4242L, streaming.workers.get(0).seekedToMs);
 
 		//nothing to forward to, but the value has to be there for the attempt that comes next
 		ScriptedFetcher idle = fixture.newFetcher("seek-idle", new Recorder());
 		idle.seekTime(777);
-		fixture.settle();
+		settle(fixture.context);
 		assertEquals(777L, peek(idle, "seekTimeMs"));
 	}
 
@@ -576,9 +580,9 @@ class StreamFetcherTest {
 			case RESTART -> fetcher.restart();
 			case SEEK -> fetcher.seekTime(4242);
 			case FIRST_PACKET -> fetcher.workers.get(fetcher.workers.size() - 1).onFirstPacket.run();
-			case TICK -> fixture.tick(fetcher);
+			case TICK -> tick(fetcher);
 		}
-		fixture.settle();
+		settle(fixture.context);
 	}
 
 	private static State expected(State from, Entry entry) {

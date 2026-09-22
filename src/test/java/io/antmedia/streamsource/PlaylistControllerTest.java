@@ -2,6 +2,7 @@ package io.antmedia.streamsource;
 
 import static io.antmedia.streamsource.StreamSourceFixture.NO_RETRY_IN_THIS_TEST_MS;
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
+import static io.antmedia.streamsource.StreamSourceFixture.settle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -209,7 +210,7 @@ class PlaylistControllerTest {
 		assertEquals("Playing item:1", skipped.getMessage());
 
 		//the item that was playing has to reach its terminal state before the skip target comes up
-		fixture.settle(context);
+		settle(context);
 		assertEquals(1, itemsOf("skipping").size());
 
 		itemsOf("skipping").forEach(ScriptedFetcher::releaseAll);
@@ -504,7 +505,7 @@ class PlaylistControllerTest {
 		Awaitility.await(streamId + " started " + count + " item(s)")
 				.atMost(15, TimeUnit.SECONDS)
 				.until(() -> itemsOf(streamId).size() >= count);
-		fixture.settle(context);
+		settle(context);
 	}
 
 	private void awaitFinished(String streamId) {
@@ -512,12 +513,16 @@ class PlaylistControllerTest {
 				.atMost(15, TimeUnit.SECONDS)
 				.until(() -> !controller.isRunning(streamId)
 						&& IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(fixture.rows.get(streamId).getPlayListStatus()));
+		settle(context);
 	}
 
 	private void awaitProbed(String path) {
 		Awaitility.await("the url check for " + path + " is in flight")
 				.atMost(15, TimeUnit.SECONDS)
 				.until(() -> probed.contains(path));
+		//the probe is answered on the http server's thread, this is the edge back to what the
+		//context wrote before it handed the url over
+		settle(context);
 	}
 
 	/** Proves nothing else came up afterwards, which a settle cannot: the url check is off context. */
@@ -535,6 +540,6 @@ class PlaylistControllerTest {
 		when(item.isPublished()).thenReturn(published);
 
 		context.runOnContext(v -> controller.onItemStopped(item));
-		fixture.settle(context);
+		settle(context);
 	}
 }
