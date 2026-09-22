@@ -423,7 +423,7 @@ public class PlaylistController {
 
 	/** Index of the item to play after the current one, or -1 when the playlist is over. */
 	private int nextIndex(Broadcast playlist) {
-		int next = playlist.getCurrentPlayIndex() + 2;
+		int next = playlist.getCurrentPlayIndex() + 1;
 
 		if (next < playlist.getPlayListItemList().size()) {
 			return next;

@@ -605,6 +605,9 @@ class StreamFetcherTest {
 	 */
 	private ScriptedFetcher inState(State target, String streamId, Recorder recorder) {
 		ScriptedFetcher fetcher = fixture.newFetcher(streamId, recorder);
+		//an attempt opened past the script has to hold too, or whichever state it lands in is a race
+		//between the pool thread and the assertion
+		fetcher.workerSupplier = FakeWorker::holding;
 
 		switch (target) {
 			case IDLE -> {
