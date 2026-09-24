@@ -9,12 +9,14 @@ import io.antmedia.cluster.IClusterStore;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.datastore.MapDBStore;
+import io.antmedia.console.plugin.PluginService;
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.console.rest.RestServiceV2;
 import io.antmedia.console.rest.SupportRequest;
 import io.antmedia.console.rest.SupportRestService;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.db.types.UserType;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
@@ -1062,5 +1064,77 @@ public class ConsoleRestV2UnitTest {
 		}
 
 
+	}
+
+	// --- plugin download endpoint ---
+	// The only plugin logic left in the REST layer: everything else delegates to PluginService.
+	// The negative token cases are covered for real in PluginServiceIntegrationTests; these pin
+	// the branches that need a validly signed JWT, which an integration test cannot forge.
+
+	private static final String CLUSTER_SECRET = "cluster-secret-for-tests";
+
+	private RestServiceV2 downloadRestService(PluginService pluginService, String clusterSecret) {
+		RestServiceV2 spyService = spy(new RestServiceV2());
+		AdminApplication adminApp = mock(AdminApplication.class);
+		when(adminApp.getClusterCommunicationKey()).thenReturn(clusterSecret);
+		doReturn(adminApp).when(spyService).getApplication();
+		spyService.setPluginService(pluginService);
+		return spyService;
+	}
+
+	private static String clusterToken(String secret) {
+		return JWTFilter.generateJwtToken(secret, System.currentTimeMillis() + 60000,
+				"pluginname", "clip-creator");
+	}
+
+	@Test
+	public void testDownloadPlugin_validJwt() throws Exception {
+		File zip = Files.createTempFile("clip-creator", ".zip").toFile();
+		Files.write(zip.toPath(), new byte[]{1, 2, 3});
+		PluginService pluginService = mock(PluginService.class);
+		when(pluginService.resolveZipForDownload("clip-creator")).thenReturn(zip);
+
+		Response response = downloadRestService(pluginService, CLUSTER_SECRET)
+				.downloadPlugin("clip-creator", clusterToken(CLUSTER_SECRET));
+
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		assertEquals("attachment; filename=\"clip-creator.zip\"",
+				response.getHeaderString("Content-Disposition"));
+		assertNotNull(response.getEntity());
+		Files.deleteIfExists(zip.toPath());
+	}
+
+	/** A token signed by another cluster must not open this node's plugin files. */
+	@Test
+	public void testDownloadPlugin_tokenFromDifferentSecret() {
+		PluginService pluginService = mock(PluginService.class);
+
+		Response response = downloadRestService(pluginService, CLUSTER_SECRET)
+				.downloadPlugin("clip-creator", clusterToken("some-other-cluster-secret"));
+
+		assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+		verify(pluginService, never()).resolveZipForDownload(anyString());
+	}
+
+	@Test
+	public void testDownloadPlugin_noClusterSecret() {
+		PluginService pluginService = mock(PluginService.class);
+
+		Response response = downloadRestService(pluginService, null)
+				.downloadPlugin("clip-creator", clusterToken(CLUSTER_SECRET));
+
+		assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+		verify(pluginService, never()).resolveZipForDownload(anyString());
+	}
+
+	@Test
+	public void testDownloadPlugin_unknownPlugin() {
+		PluginService pluginService = mock(PluginService.class);
+		when(pluginService.resolveZipForDownload("clip-creator")).thenReturn(null);
+
+		Response response = downloadRestService(pluginService, CLUSTER_SECRET)
+				.downloadPlugin("clip-creator", clusterToken(CLUSTER_SECRET));
+
+		assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
 	}
 }
