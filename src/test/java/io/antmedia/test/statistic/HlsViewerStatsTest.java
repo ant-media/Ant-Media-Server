@@ -3,6 +3,7 @@ package io.antmedia.test.statistic;
 
 import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -184,6 +185,31 @@ public class HlsViewerStatsTest {
 		
 	}
 	
+	@Test
+	public void testMigrateViewerEntry() {
+		HlsViewerStats viewerStats = new HlsViewerStats();
+		viewerStats.setVertx(vertx);
+		viewerStats.setDataStore(new InMemoryDataStore("datastore"));
+		viewerStats.setServerSettings(new ServerSettings());
+
+		String streamId = String.valueOf((Math.random() * 999999));
+		String subscriberId = "subscriber1";
+
+		viewerStats.registerNewViewer(streamId, "fingerprint", subscriberId);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+				() -> viewerStats.getSessionId2subscriberId().containsKey("fingerprint"));
+
+		//same client coming back with its cookie, it must not be counted a second time
+		viewerStats.migrateViewerEntry(streamId, "fingerprint", "viewerId");
+		viewerStats.registerNewViewer(streamId, "viewerId", subscriberId);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+				() -> viewerStats.getSessionId2subscriberId().containsKey("viewerId"));
+
+		assertEquals(1, viewerStats.getViewerCount(streamId));
+		assertEquals(1, viewerStats.getIncreaseCounterMap(streamId));
+		assertFalse(viewerStats.getSessionId2subscriberId().containsKey("fingerprint"));
+	}
+
 	@Test
 	public void testGetTimeout() {
 		AppSettings settings = mock(AppSettings.class);
