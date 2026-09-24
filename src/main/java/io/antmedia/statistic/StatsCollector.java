@@ -601,10 +601,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(GPU_DECODER_UTILIZATION, gpuUtils.getDecoderUtilization(deviceIndex));
 
 		MemoryStatus memoryStatus = gpuUtils.getMemoryStatus(deviceIndex);
-		jsonObject.addProperty(GPU_MEMORY_TOTAL, memoryStatus.getMemoryTotal());
-		jsonObject.addProperty(GPU_MEMORY_FREE, memoryStatus.getMemoryFree());
-		jsonObject.addProperty(GPU_MEMORY_USED, memoryStatus.getMemoryUsed());
 		jsonObject.addProperty(GPU_DEVICE_NAME, GPUUtils.getInstance().getDeviceName(deviceIndex));
+		if(memoryStatus != null) {
+			jsonObject.addProperty(GPU_MEMORY_TOTAL, memoryStatus.getMemoryTotal());
+			jsonObject.addProperty(GPU_MEMORY_FREE, memoryStatus.getMemoryFree());
+			jsonObject.addProperty(GPU_MEMORY_USED, memoryStatus.getMemoryUsed());
+		}
 
 		return jsonObject;
 	}
@@ -1189,6 +1191,67 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			this.netOutMbps = netOutMbps;
 			this.netInMbps = netInMbps;
 		}
+	}
+
+	public int getLocalLiveStreams() {
+		int count = 0;
+		for (IScope scope : scopes) {
+			AntMediaApplicationAdapter adaptor = getAppAdaptor(scope.getContext().getApplicationContext());
+			if (adaptor != null) {
+				count += adaptor.getMuxAdaptors().size();
+			}
+		}
+		return count;
+	}
+
+	public int getLocalWebRTCLiveStreams() {
+		return getWebRTCMetric(IWebRTCAdaptor::getNumberOfLiveStreams);
+	}
+
+	public int getLocalWebRTCViewers() {
+		return getWebRTCMetric(IWebRTCAdaptor::getNumberOfTotalViewers);
+	}
+
+	private int getWebRTCMetric(java.util.function.ToIntFunction<IWebRTCAdaptor> metric) {
+		int count = 0;
+		for (IScope scope : scopes) {
+			ApplicationContext context = scope.getContext().getApplicationContext();
+			if (context.containsBean(IWebRTCAdaptor.BEAN_NAME)) {
+				count += metric.applyAsInt((IWebRTCAdaptor) context.getBean(IWebRTCAdaptor.BEAN_NAME));
+			}
+		}
+		return count;
+	}
+
+	public int getLocalHLSViewers() {
+		return scopes.stream().mapToInt(StatsCollector::getHLSViewers).sum();
+	}
+
+	public int getLocalDASHViewers() {
+		return scopes.stream().mapToInt(StatsCollector::getDASHViewers).sum();
+	}
+
+	public int getEncodersBlocked() {
+		return getAdaptorMetric(AntMediaApplicationAdapter::getNumberOfEncodersBlocked);
+	}
+
+	public int getEncodersNotOpened() {
+		return getAdaptorMetric(AntMediaApplicationAdapter::getNumberOfEncoderNotOpenedErrors);
+	}
+
+	public int getPublishTimeoutErrors() {
+		return getAdaptorMetric(AntMediaApplicationAdapter::getNumberOfPublishTimeoutError);
+	}
+
+	private int getAdaptorMetric(java.util.function.ToIntFunction<AntMediaApplicationAdapter> metric) {
+		int count = 0;
+		for (IScope scope : scopes) {
+			AntMediaApplicationAdapter adaptor = getAppAdaptor(scope.getContext().getApplicationContext());
+			if (adaptor != null) {
+				count += metric.applyAsInt(adaptor);
+			}
+		}
+		return count;
 	}
 
 	private static int getHLSViewers(IScope scope) {
