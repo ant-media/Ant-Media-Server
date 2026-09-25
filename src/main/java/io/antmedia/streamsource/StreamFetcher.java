@@ -962,10 +962,7 @@ public class StreamFetcher {
 
 								if (pktTimeDifferenceMs < passedTime)
 								{
-
-									writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
-									bufferQueue.remove(tempPacket); //remove the packet from the queue
-									unReferencePacket(tempPacket);
+									writeFirstBufferedPacket();
 								}
 								else {
 									//break the loop and don't block the thread because it's not correct time to send the packet
@@ -991,6 +988,14 @@ public class StreamFetcher {
 					}
 				}
 
+			}
+		}
+
+		private void writeFirstBufferedPacket() {
+			AVPacket packet = bufferQueue.pollFirst();
+			if (packet != null) {
+				writePacket(inputFormatContext.streams(packet.stream_index()), packet);
+				unReferencePacket(packet);
 			}
 		}
 
