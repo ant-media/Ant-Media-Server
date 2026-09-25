@@ -26,6 +26,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.google.common.io.Files;
 
+import io.antmedia.AppSettings;
 import io.antmedia.servlet.ChunkedTransferServlet;
 import io.antmedia.servlet.ChunkedTransferServlet.ChunkListener;
 import io.antmedia.servlet.ChunkedTransferServlet.StatusListener;
@@ -321,6 +322,7 @@ public class ChunkedTransferServletTest {
 			Mockito.when(req.getRequestURI()).thenReturn("/junit/streams/" + streamId);
 
 			ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+			Mockito.when(appContext.getBean(AppSettings.class)).thenReturn(new AppSettings());
 			Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
 			Mockito.when(appContext.getApplicationName()).thenReturn("/junit");
 
