@@ -343,6 +343,9 @@ public class Broadcast {
 	@Schema(description ="Name of the subfolder that will contain stream files")
 	private String subFolder;
 
+	@Schema(description ="Passphrase this stream must be published with over SRT. It overrides the application level srtPassphrase. Blank falls back to the application setting.")
+	private String srtPassphrase;
+
 	/**
 	 * Current playing index for play lists
 	 */
@@ -944,6 +947,14 @@ public class Broadcast {
 	public void setSubFolder(String subFolder) { this.subFolder=subFolder; }
 
 	public String getSubFolder() { return subFolder; }
+
+	public String getSrtPassphrase() {
+		return srtPassphrase;
+	}
+
+	public void setSrtPassphrase(String srtPassphrase) {
+		this.srtPassphrase = srtPassphrase;
+	}
 	
 	public String getPublishType() {
 		return publishType;
