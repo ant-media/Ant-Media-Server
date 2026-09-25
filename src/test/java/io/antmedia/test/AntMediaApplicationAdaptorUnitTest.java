@@ -112,6 +112,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
@@ -2609,10 +2610,19 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStreamId("test123");
 
+		Endpoint validEndpoint = new Endpoint();
+		validEndpoint.setEndpointUrl("rtmp://localhost/LiveApp/test123");
+		Endpoint schemelessEndpoint = new Endpoint();
+		schemelessEndpoint.setEndpointUrl("null");
+		broadcast.setEndPointList(new ArrayList<>(Arrays.asList(null, schemelessEndpoint, validEndpoint)));
+
 		assertNull(dataStore.get(broadcast.getStreamId()));
 		AntMediaApplicationAdapter.saveBroadcast(broadcast, adapter);
 
-		assertNotNull(dataStore.get(broadcast.getStreamId()));
+		Broadcast saved = dataStore.get(broadcast.getStreamId());
+		assertNotNull(saved);
+		assertEquals(1, saved.getEndPointList().size());
+		assertEquals(validEndpoint.getEndpointUrl(), saved.getEndPointList().get(0).getEndpointUrl());
 
 
 	}

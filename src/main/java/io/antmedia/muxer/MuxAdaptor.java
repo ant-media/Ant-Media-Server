@@ -2618,6 +2618,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	{
 		logger.info("Endpoint status updated to {}  for streamId: {} for url: {}", status, streamId, url);
 
+		if (url == null) {
+			logger.warn("Endpoint status {} is ignored for streamId:{} because endpoint url is null", status, streamId);
+			return;
+		}
+
 		/**
 		 * Below code snippet updates the database at max 3 seconds interval
 		 */
