@@ -69,7 +69,6 @@ import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
-import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.ServletContext;
@@ -1343,6 +1342,9 @@ public abstract class RestServiceBase {
 			if (camScheduler != null) {
 				result = camScheduler.getCameraError();
 			}
+			else if (getApplication().getStreamFetcherManager().getPlaylistController().isRunning(streamId)) {
+				result.setMessage("Playlist item is preparing, try again shortly: " + streamId);
+			}
 			else {
 				result.setMessage("Camera is not found with streamId: " + streamId);
 			}
@@ -1414,52 +1416,10 @@ public abstract class RestServiceBase {
 	}
 
 	public Result playNextItem(String id, Integer index) {
-		Result result = new Result(false);
+		int itemIndex = index != null ? index : -1;
+		logger.info("Switching to item:{} by REST method for playlist:{}", itemIndex, id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"));
 
-		Broadcast broadcast = getDataStore().get(id);
-
-		if(broadcast == null) {
-			result.setMessage("There is no playlist found. Please check Stream id again");
-			return result;
-		}
-		else if (!AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
-			result.setMessage("This broadcast type is not playlist. This method is only available for playlists");
-			return result;
-		}
-
-		if(index == null) {
-			index = -1;
-		}
-
-
-		if (index < broadcast.getPlayListItemList().size()) 
-		{	
-			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
-			if (streamFetcher != null) 
-			{	
-				IStreamFetcherListener streamFetcherListener = streamFetcher.getStreamFetcherListener();
-				//don't let the streamFetcherListener be called again because it already automatically plays the next item
-
-				streamFetcher.setStreamFetcherListener(null);
-
-				if (logger.isInfoEnabled()) {
-					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"), streamFetcherListener.hashCode());
-				}
-
-				result = getApplication().getStreamFetcherManager().playItemInList(broadcast.getStreamId(), streamFetcherListener, index);
-			}
-			else {
-				result.setMessage("No active playlist for id:" + id + ". Start the playlist first");
-			}
-
-		}
-		else {
-			result.setMessage("Index is out of the list. Please specify the correct index");
-		}
-
-
-
-		return result;
+		return getApplication().getStreamFetcherManager().getPlaylistController().playItem(id, itemIndex);
 	}
 
 	private Result stopBroadcastInternal(Broadcast broadcast, boolean stopSubrtracks, String subscriberId) {

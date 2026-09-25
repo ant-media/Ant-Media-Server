@@ -60,6 +60,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -68,7 +69,6 @@ import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.test.StreamSchedularUnitTest;
 
 public class AppFunctionalV2Test {
 
@@ -78,12 +78,13 @@ public class AppFunctionalV2Test {
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalV2Test.class);
 
 	public static Process process;
-	private static Process tmpExec;
 	private static String ROOT_SERVICE_URL;
 
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
+
+	public static final String VALID_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
 	static {
 		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
 		logger.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
@@ -244,8 +245,8 @@ public class AppFunctionalV2Test {
 
 			//add new items to play list
 			List<PlayListItem> playList = new ArrayList<>();
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
-			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
 
 			Result result = RestServiceV2Test.callUpdateBroadcast(broadcast.getStreamId(), null, null, "", null, null, playList);
 			assertTrue(result.isSuccess());
@@ -304,6 +305,220 @@ public class AppFunctionalV2Test {
 
 	}
 
+	@Test
+	public void testPlayListSkipToIndex() {
+		String streamId = null;
+		try {
+			Broadcast broadcast = RestServiceV2Test.createBroadcast("skip to index playlist", AntMediaApplicationAdapter.PLAY_LIST, null, null);
+			streamId = broadcast.getStreamId();
+
+			List<PlayListItem> playList = new ArrayList<>();
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			Result result = RestServiceV2Test.callUpdateBroadcast(broadcast.getStreamId(), null, null, "", null, null, playList);
+			assertTrue(result.isSuccess());
+
+			assertTrue(RestServiceV2Test.callStartBroadast(broadcast.getStreamId()));
+			assertEquals(0, RestServiceV2Test.getBroadcast(broadcast.getStreamId()).getCurrentPlayIndex());
+
+			//jump straight to index 2, skipping index 1 entirely - explicit index bypasses the auto-advance path
+			result = RestServiceV2Test.callPlayNextItem(broadcast.getStreamId(), 2);
+			assertTrue(result.isSuccess());
+
+			awaitPlaylistItemStarted(streamId, 2);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		finally {
+			stopAndDeletePlaylist(streamId);
+		}
+	}
+
+	@Test
+	public void testPlaylistFinishesAtEndWhenLoopDisabled() {
+		String streamId = null;
+		try {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setName("loop disabled playlist");
+			broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
+			broadcast.setPlaylistLoopEnabled(false);
+			broadcast = RestServiceV2Test.createBroadcast(broadcast);
+			streamId = broadcast.getStreamId();
+
+			List<PlayListItem> playList = new ArrayList<>();
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			Result result = RestServiceV2Test.callUpdateBroadcast(streamId, null, null, "", null, null, playList);
+			assertTrue(result.isSuccess());
+
+			assertTrue(RestServiceV2Test.callStartBroadast(streamId));
+
+			//jump to the last item without waiting out its real playback duration
+			assertTrue(RestServiceV2Test.callPlayNextItem(streamId, 1).isSuccess());
+			awaitPlaylistItemStarted(streamId, 1);
+
+			//advance past the last item: with looping disabled the playlist finishes, and the call that
+			//finished it reports success - it did what was asked
+			Result advancePastEnd = RestServiceV2Test.callPlayNextItem(streamId, null);
+			assertTrue(advancePastEnd.isSuccess());
+
+			awaitPlaylistFullyStopped(streamId);
+
+			assertEquals(0, RestServiceV2Test.getBroadcast(streamId).getCurrentPlayIndex());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		finally {
+			stopAndDeletePlaylist(streamId);
+		}
+	}
+
+	@Test
+	public void testPlaylistWrapsToStartWhenLoopEnabled() {
+		String streamId = null;
+		try {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setName("loop enabled playlist");
+			broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
+			broadcast.setPlaylistLoopEnabled(true);
+			broadcast = RestServiceV2Test.createBroadcast(broadcast);
+			streamId = broadcast.getStreamId();
+			final String activeStreamId = streamId;
+
+			List<PlayListItem> playList = new ArrayList<>();
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			Result result = RestServiceV2Test.callUpdateBroadcast(streamId, null, null, "", null, null, playList);
+			assertTrue(result.isSuccess());
+
+			assertTrue(RestServiceV2Test.callStartBroadast(streamId));
+
+			assertTrue(RestServiceV2Test.callPlayNextItem(streamId, 1).isSuccess());
+			awaitPlaylistItemStarted(streamId, 1);
+
+			//advance past the last item: with looping enabled this wraps back to index 0 and keeps playing
+			Result advancePastEnd = RestServiceV2Test.callPlayNextItem(streamId, null);
+			assertTrue(advancePastEnd.isSuccess());
+
+			awaitPlaylistItemStarted(streamId, 0);
+
+			//looping means it keeps going, so it must still be playing a moment later and not have
+			//wrapped straight into finishing
+			Awaitility.await().during(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(() ->
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING
+							.equals(RestServiceV2Test.getBroadcast(activeStreamId).getPlayListStatus()));
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		finally {
+			stopAndDeletePlaylist(streamId);
+		}
+	}
+
+	@Test
+	public void testPlaylistLiveMutationTakesEffectOnNextItem() {
+		String streamId = null;
+		try {
+			Broadcast broadcast = RestServiceV2Test.createBroadcast("live mutation playlist", AntMediaApplicationAdapter.PLAY_LIST, null, null);
+			streamId = broadcast.getStreamId();
+
+			List<PlayListItem> originalList = new ArrayList<>();
+			originalList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			originalList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			Result result = RestServiceV2Test.callUpdateBroadcast(streamId, null, null, "", null, null, originalList);
+			assertTrue(result.isSuccess());
+
+			assertTrue(RestServiceV2Test.callStartBroadast(streamId));
+			awaitPlaylistItemStarted(streamId, 0);
+
+			//mutate the list while item 0 is still playing: swap in a 3-item list, mixing VoD and streamSource
+			//item types, the way updateStreamSource() lets a running playlist be edited (see RestServiceBase)
+			List<PlayListItem> mutatedList = new ArrayList<>();
+			mutatedList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			mutatedList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.STREAM_SOURCE));
+			mutatedList.add(new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+
+			BroadcastUpdate update = new BroadcastUpdate();
+			update.setPlayListItemList(mutatedList);
+			result = RestServiceV2Test.callUpdateBroadcast("", streamId, update);
+			assertTrue(result.isSuccess());
+
+			//the datastore record updates immediately - only the already-running fetcher for item 0 is
+			//oblivious to it (it grabbed item 0's URL at start time and won't re-consult the list until
+			//the next transition), which is what currentPlayIndex staying at 0 here confirms
+			assertEquals(0, RestServiceV2Test.getBroadcast(streamId).getCurrentPlayIndex());
+			assertEquals(3, RestServiceV2Test.getBroadcast(streamId).getPlayListItemList().size());
+
+			//advance: the next item must come from the freshly PUT-ed list, not the one playback started with
+			RestServiceV2Test.callPlayNextItem(streamId, null);
+
+			awaitPlaylistItemStarted(streamId, 1);
+
+			Broadcast finalState = RestServiceV2Test.getBroadcast(streamId);
+			assertEquals(3, finalState.getPlayListItemList().size());
+			assertEquals(AntMediaApplicationAdapter.STREAM_SOURCE, finalState.getPlayListItemList().get(1).getType());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		finally {
+			stopAndDeletePlaylist(streamId);
+		}
+	}
+
+	//the stored index moves as soon as the controller picks an item, while its url is still being
+	//probed. Only playListStatus says the item was actually handed to a fetcher, so waiting on the
+	//index alone proves nothing started.
+	private static void awaitPlaylistItemStarted(String streamId, int index) {
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() -> {
+			Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
+			return broadcast != null
+					&& broadcast.getCurrentPlayIndex() == index
+					&& AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getPlayListStatus());
+		});
+	}
+
+	//stopping a playlist doesn't instantly tear down its HLS output, and later tests in this class
+	//(testStatistics, testStreamAcceptFilter) assert a clean slate soon after they start.
+	//status is the item's field, not the playlist's: it only reaches finished once something actually
+	//published, so a playlist that never got an item on air keeps whatever it had. All it must not be
+	//is still live.
+	private static void awaitPlaylistFullyStopped(String streamId) {
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() -> {
+			Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
+			if (broadcast == null
+					|| !AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(broadcast.getPlayListStatus())) {
+				return false;
+			}
+			String status = broadcast.getStatus();
+			return !AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(status)
+					&& !AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING.equals(status);
+		});
+	}
+
+	//best effort teardown for the finally of every playlist test: a stuck playlist otherwise leaks
+	//into the tests that follow, and a failure here must not mask the real one from the try block
+	private static void stopAndDeletePlaylist(String streamId) {
+		if (streamId == null) {
+			return;
+		}
+		try {
+			RestServiceV2Test.callStopBroadcastService(streamId);
+			awaitPlaylistFullyStopped(streamId);
+			RestServiceV2Test.callDeleteBroadcast(streamId);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	@Test
 	public void testStreamAcceptFilter() {
@@ -1072,36 +1287,32 @@ public class AppFunctionalV2Test {
 		}
 	}
 
+	//started on the calling thread: this used to publish through a static field, so overlapping calls
+	//could get each other's Process and destroy() would kill the wrong child
 	public static Process execute(final String command) {
-		tmpExec = null;
-		new Thread() {
-			public void run() {
-				try {
-
-					tmpExec = Runtime.getRuntime().exec(command);
-					InputStream errorStream = tmpExec.getErrorStream();
-					byte[] data = new byte[1024];
-					int length = 0;
-
-					while ((length = errorStream.read(data, 0, data.length)) > 0) {
-						System.out.println(new String(data, 0, length));
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			};
-		}.start();
-
-		while (tmpExec == null) {
-			try {
-				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		final Process startedProcess;
+		try {
+			startedProcess = Runtime.getRuntime().exec(command);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalStateException("cannot execute: " + command, e);
 		}
 
-		return tmpExec;
+		//drain stderr so a chatty child can't fill the pipe buffer and block
+		new Thread(() -> {
+			try (InputStream errorStream = startedProcess.getErrorStream()) {
+				byte[] data = new byte[1024];
+				int length = 0;
+
+				while ((length = errorStream.read(data, 0, data.length)) > 0) {
+					System.out.println(new String(data, 0, length));
+				}
+			} catch (IOException e) {
+				//closed when the process is destroyed
+			}
+		}).start();
+
+		return startedProcess;
 	}
 
 	public Result callIsEnterpriseEdition() throws Exception {

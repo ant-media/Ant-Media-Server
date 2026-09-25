@@ -46,7 +46,7 @@ public class RTMPClusterStreamFetcherUnitTest {
 	private ApplicationContext applicationContext;
 	
 	private WebScope appScope;
-	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
+	protected static Logger logger = LoggerFactory.getLogger(RTMPClusterStreamFetcherUnitTest.class);
 	public AntMediaApplicationAdapter app = null;
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;

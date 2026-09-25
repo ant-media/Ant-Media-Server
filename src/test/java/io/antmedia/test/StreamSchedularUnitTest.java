@@ -5,25 +5,17 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomUtils;
@@ -38,7 +30,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -54,20 +45,15 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.FFmpegUtilities;
 import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.integration.AppFunctionalV2Test;
-import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.Muxer;
+import io.antmedia.integration.CameraEmulator;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
-import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
-import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -80,11 +66,7 @@ public class StreamSchedularUnitTest {
 
 	public Application app = null;
 	public static String VALID_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/cutting_orange_tuil_2000kbps_720p_59.94fps_h264.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL_2 = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/vegetables_tuil_2000kbps_720p_59.94fps_h264.mp4";
-	public static String VALID_LONG_DURATION_MP4_URL_3 = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_2/segments/Dancers_8s_2470kbps_720p_60.0fps_h264.mp4";
 	public static String INVALID_MP4_URL = "invalid_link";
-	public static String INVALID_403_MP4_URL = "https://httpstat.us/403";
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
 
@@ -150,101 +132,6 @@ public class StreamSchedularUnitTest {
 
 	}
 
-	/*
-	 *@Test This test is commented out, because isStreamAlive is controlled instead of just controlling thread aliveness in {@link testThreadStopStart}
-	 */
-	public void testStreamSchedular() throws InterruptedException {
-
-		try {
-			AVFormatContext inputFormatContext = new AVFormatContext();
-
-			Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
-					"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
-
-			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null, 0);
-
-			camScheduler.setConnectionTimeout(10000);
-
-			camScheduler.startStream();
-			Thread.sleep(7000);
-
-			//this should be false because this rtsp url cannot be used
-
-			assertTrue(camScheduler.isStreamAlive());
-
-			camScheduler.stopStream();
-
-			Thread.sleep(5000);
-
-			assertFalse(camScheduler.isStreamAlive());
-			assertFalse(camScheduler.isThreadActive());
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-	}
-
-
-	@Test
-	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
-		logger.info("running testStreamSchedularConnectionTimeout");
-		try (AVFormatContext inputFormatContext = new AVFormatContext()) {
-
-
-			Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
-					"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
-
-			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
-
-			StreamFetcher streamScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx, 0);
-
-			assertFalse(streamScheduler.isExceptionInThread());
-
-			assertNotNull(streamScheduler.getDataStore().save(newCam));
-
-
-
-			streamScheduler.startStream();
-
-			streamScheduler.setConnectionTimeout(2000);
-
-
-			Awaitility.await().pollDelay(3, TimeUnit.SECONDS).until(() -> 
-			!streamScheduler.isStreamAlive()
-					);
-			//this should be false because stream is not alive 
-			assertFalse(streamScheduler.isStreamAlive());
-
-
-			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, streamScheduler.getDataStore().get(newCam.getStreamId()).getStatus());
-
-
-			streamScheduler.stopStream();
-
-
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> 
-			!streamScheduler.isThreadActive());
-
-			assertFalse(streamScheduler.isStreamAlive());
-
-			assertFalse(streamScheduler.isExceptionInThread());
-
-			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, streamScheduler.getDataStore().get(newCam.getStreamId()).getStatus());
-
-
-			logger.info("leaving testStreamSchedularConnectionTimeout");
-
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-
-	}
-
 	@Test
 	public void testPrepareInput() throws InterruptedException {
 		try {
@@ -294,7 +181,7 @@ public class StreamSchedularUnitTest {
 		Application.enableSourceHealthUpdate = true;
 		assertNotNull(dataStore);
 
-		startCameraEmulator();
+		CameraEmulator.start();
 
 		Broadcast newCam = new Broadcast("testAddCamera", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.IP_CAMERA);
@@ -317,9 +204,8 @@ public class StreamSchedularUnitTest {
 		//getInstance().stopStreaming(newCam);
 		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId(), false).isSuccess();
 		assertTrue(result);
-		stopCameraEmulator();
+		CameraEmulator.stop();
 
-		streamFetcherManager.stopCheckerJob();
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return !streamFetcher.isThreadActive();
@@ -330,455 +216,9 @@ public class StreamSchedularUnitTest {
 
 	}
 
-	@Test
-	public void testStartPlaylistThread() {
-
-		BroadcastRestService service = new BroadcastRestService();
-
-		service.setApplication(app);
-
-
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
-
-		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
-
-		IStatsCollector statCollector = Mockito.mock(IStatsCollector.class);
-		when(statCollector.enoughResource()).thenReturn(true);
-		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
-
-
-		//create a test db
-		IDataStoreFactory dsf = (IDataStoreFactory) appScope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
-
-		DataStore dataStore = dsf.getDataStore(); //new InMemoryDataStore("dts");
-		assertNotNull(dataStore);
-		service.setDataStore(dataStore);
-		service.setAppCtx(context);
-
-		app.setDataStore(dataStore);
-
-
-		//create a stream Manager
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope)); // aaaa
-		//app.getAppAdaptor().getStreamFetcherManager();
-
-		app.setStreamFetcherManager(streamFetcherManager);
-
-		//create a broadcast
-		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
-		broadcastItem1.setDurationInMs(Muxer.getDurationInMs(broadcastItem1.getStreamUrl(), ""));
-		logger.info("Duration of the stream: {}", broadcastItem1.getDurationInMs());
-		assertTrue(10000 == broadcastItem1.getDurationInMs());
-
-		try {
-
-
-			//create a broadcast
-			PlayListItem broadcastItem2 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
-
-			//create a broadcast
-			PlayListItem broadcastItem3 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
-
-			//create a broadcast
-			PlayListItem broadcastItem4 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
-
-			List<PlayListItem> broadcastList = new ArrayList<>();
-
-			broadcastList.add(broadcastItem1);
-			broadcastList.add(broadcastItem2);
-			broadcastList.add(broadcastItem3);
-
-			Broadcast playlist = new Broadcast();
-			playlist.setStreamId("testId");
-			playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
-			playlist.setPlayListItemList(broadcastList);
-			playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-
-			dataStore.save(playlist);
-
-			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
-			assertTrue(startPlaylist.isSuccess());
-
-			{
-				//it should return false because it's already streaming
-				startPlaylist = streamFetcherManager.startPlaylist(playlist);
-				assertFalse(startPlaylist.isSuccess());
-			}
-
-			{
-				Broadcast playlist2Free = new Broadcast();
-				dataStore.save(playlist2Free);
-				//it should return false because it's no playlist item
-				startPlaylist = streamFetcherManager.startPlaylist(playlist2Free);
-				assertFalse(startPlaylist.isSuccess());
-			}
-
-
-			assertNotNull(streamFetcherManager);		
-
-			//check that there is no job related left related with stream fetching
-
-			logger.info("data store: {} testId data {} ", dataStore, dataStore.get("testId"));
-
-			Awaitility.await().atMost(41, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS)
-			.until(() -> dataStore.get("testId").getCurrentPlayIndex() == 2 && dataStore.get("testId").getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
-
-
-			boolean result = streamFetcherManager.stopPlayList("testId").isSuccess();
-			assertTrue(result);
-
-
-			String streamId = playlist.getStreamId();
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-				// Get playlist with DB
-				Broadcast tmp = dataStore.get(streamId);
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(tmp.getStatus());
-			});
-
-			//Get latest status of playlist
-			playlist = dataStore.get(streamId);
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getStatus());
-			assertEquals(2, playlist.getCurrentPlayIndex());
-
-
-			// Restore play index
-			playlist.setCurrentPlayIndex(0);
-
-			broadcastList.get(0).setStreamUrl(INVALID_MP4_URL);
-			broadcastList.get(1).setStreamUrl(INVALID_MP4_URL);
-			broadcastList.get(2).setStreamUrl(INVALID_MP4_URL);
-
-			playlist.setPlayListItemList(broadcastList);
-
-			streamFetcherManager.startPlaylist(playlist);	
-
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getStatus());	
-			assertEquals(1, playlist.getCurrentPlayIndex());
-
-
-			// Restore play index
-			playlist.setCurrentPlayIndex(0);
-
-			broadcastList.get(0).setStreamUrl(INVALID_MP4_URL);
-			broadcastList.get(1).setStreamUrl(VALID_MP4_URL);
-			broadcastList.get(2).setStreamUrl(INVALID_MP4_URL);
-			// Valid new broadcast
-			broadcastList.add(broadcastItem4);
-
-			playlist.setPlayListItemList(broadcastList);
-
-			Awaitility.await().atMost(10, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus()));
-
-
-			playlist.setPlaylistLoopEnabled(false);
-			assertTrue(streamFetcherManager.startPlaylist(playlist).isSuccess());
-
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 1);
-
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
-
-			//it should switch to third index - VALID_MP4_URL lenght is 15 seconds
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 3);
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
-
-			// Playlist will return Finished status and current play index = 0
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollDelay(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				String status = dataStore.get("testId").getStatus();
-				logger.info("Status for testId: {}", status);
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(status);
-			});
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() -> { 
-				int index = dataStore.get("testId").getCurrentPlayIndex();
-				logger.info("Checking index:{} if zero", index);
-
-				return index == 0;
-			});
-
-			Result checked = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
-
-			assertEquals(false, checked.isSuccess());
-
-			checked = StreamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
-
-			assertEquals(true, checked.isSuccess());		
-
-			checked = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_403_MP4_URL);
-
-			assertEquals(false, checked.isSuccess());		
-
-
-			{
-				Result stopPlayList = streamFetcherManager.stopPlayList(null);
-				assertFalse(stopPlayList.isSuccess());
-			}
-
-
-			//convert to original settings
-			getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
-			Application.enableSourceHealthUpdate = false;
-
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-	}
 
 	@Test
-	public void testServerShuttingDownForPlaylist() throws Exception {
-		BroadcastRestService service = new BroadcastRestService();
-
-		service.setApplication(app);
-
-
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
-
-		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
-
-		IStatsCollector statCollector = Mockito.mock(IStatsCollector.class);
-		when(statCollector.enoughResource()).thenReturn(true);
-		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
-
-
-		//create a test db
-		IDataStoreFactory dsf = (IDataStoreFactory) appScope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
-
-		DataStore dataStore = dsf.getDataStore(); //new InMemoryDataStore("dts");
-		assertNotNull(dataStore);
-		service.setDataStore(dataStore);
-		service.setAppCtx(context);
-
-		app.setDataStore(dataStore);
-
-
-		//create a stream Manager
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope)); // aaaa
-		//app.getAppAdaptor().getStreamFetcherManager();
-
-		app.setStreamFetcherManager(streamFetcherManager);
-
-		String streamId = "testPlaylistServerShuttingDownForPlaylist" + System.currentTimeMillis(); 
-
-
-
-		//create a broadcast
-		PlayListItem broadcastItem1 = new PlayListItem(VALID_LONG_DURATION_MP4_URL, AntMediaApplicationAdapter.VOD);
-
-		//create a broadcast
-		PlayListItem broadcastItem2 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_2, AntMediaApplicationAdapter.VOD);
-
-		//create a broadcast
-		PlayListItem broadcastItem3 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_3, AntMediaApplicationAdapter.VOD);
-
-		List<PlayListItem> broadcastList = new ArrayList<>();
-
-		broadcastList.add(broadcastItem1);
-		broadcastList.add(broadcastItem2);
-		broadcastList.add(broadcastItem3);
-
-		Broadcast playlist = new Broadcast();
-		playlist.setStreamId(streamId);
-		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
-		playlist.setPlayListItemList(broadcastList);
-		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-
-		dataStore.save(playlist);
-
-		{	
-			logger.info("Proceeding the last section ");
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
-				return !streamFetcherManager.isStreamRunning(playlist);
-			});
-			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
-			assertTrue(startPlaylist.isSuccess());
-			
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
-				return streamFetcherManager.isStreamRunning(playlist);
-			});
-			
-			logger.info("--isStreamRunning:{}", streamFetcherManager.isStreamRunning(playlist));
-			assertTrue(streamFetcherManager.isStreamRunning(playlist));
-			assertNotNull(streamFetcherManager.getStreamFetcher(streamId));
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
-
-			streamFetcherManager.shuttingDown();
-
-			logger.info("StreamFetcherManager:{} and sthis streamfetchermanager :{}", app.getStreamFetcherManager(), streamFetcherManager);
-			assertNotNull(streamFetcherManager.getStreamFetcher(streamId));
-			assertNotNull(app.getStreamFetcherManager().getStreamFetcher(streamId));
-
-			Result result = service.playNextItem(streamId, -1);
-			assertFalse(result.isSuccess());
-			logger.info("result message:{}", result.getMessage());
-			assertTrue(result.getMessage().contains("server is shutting down"));
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> {
-				return !streamFetcherManager.isStreamRunning(playlist);
-			});
-
-		}
-
-		
-	}
-
-	@Test
-	public void testSkipPlaylistItem() throws Exception {
-
-		BroadcastRestService service = new BroadcastRestService();
-
-		service.setApplication(app);
-
-
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
-
-		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
-
-		IStatsCollector statCollector = Mockito.mock(IStatsCollector.class);
-		when(statCollector.enoughResource()).thenReturn(true);
-		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
-
-
-		//create a test db
-		IDataStoreFactory dsf = (IDataStoreFactory) appScope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
-
-		DataStore dataStore = dsf.getDataStore(); //new InMemoryDataStore("dts");
-		assertNotNull(dataStore);
-		service.setDataStore(dataStore);
-		service.setAppCtx(context);
-
-		app.setDataStore(dataStore);
-
-
-		//create a stream Manager
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope)); // aaaa
-		//app.getAppAdaptor().getStreamFetcherManager();
-
-		app.setStreamFetcherManager(streamFetcherManager);
-
-		String streamId = "testPlaylistStreamId";
-
-
-
-		//create a broadcast
-		PlayListItem broadcastItem1 = new PlayListItem(VALID_LONG_DURATION_MP4_URL, AntMediaApplicationAdapter.VOD);
-
-		//create a broadcast
-		PlayListItem broadcastItem2 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_2, AntMediaApplicationAdapter.VOD);
-
-		//create a broadcast
-		PlayListItem broadcastItem3 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_3, AntMediaApplicationAdapter.VOD);
-
-		List<PlayListItem> broadcastList = new ArrayList<>();
-
-		broadcastList.add(broadcastItem1);
-		broadcastList.add(broadcastItem2);
-		broadcastList.add(broadcastItem3);
-
-		Broadcast playlist = new Broadcast();
-		playlist.setStreamId(streamId);
-		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
-		playlist.setPlayListItemList(broadcastList);
-		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-
-		dataStore.save(playlist);
-
-		Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
-		assertTrue(startPlaylist.isSuccess());
-
-		// Check it currentPlayIndex is 0
-		Awaitility.await().atMost(20, TimeUnit.SECONDS)
-		.until(() -> { 
-			int index = dataStore.get(streamId).getCurrentPlayIndex();
-			logger.info("Checking index:{} if zero", index);
-			return index == 0;
-		});
-
-		Awaitility.await().atMost(20, TimeUnit.SECONDS)
-		.until(() -> {
-			File f = new File("webapps/junit/streams/testPlaylistStreamId.m3u8");
-			return f.exists();
-		});
-
-
-		{
-			// It means that it will skip next playlist item
-			Result result = service.playNextItem(streamId, null);
-			assertTrue(result.isSuccess());
-
-			// Check it currentPlayIndex is 1
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 1);
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
-		}
-
-		{
-			// It means that it will skip 100. playlist item. If there is no playlist item, It will result false
-			Result result = service.playNextItem(streamId, 100);
-
-			assertFalse(result.isSuccess());
-
-			assertEquals(1, dataStore.get(streamId).getCurrentPlayIndex());
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
-		}
-
-		{
-			// It means that it will play the item in the index 2. playlist item.
-			service.playNextItem(streamId, 2);
-
-			// Check it currentPlayIndex is 1
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 2);
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
-		}
-
-
-		{
-			StreamFetcher streamFetcher = streamFetcherManager.getStreamFetcher(streamId);
-			assertNotNull(streamFetcher);
-			Result stopPlayList = streamFetcherManager.stopPlayList(streamId);
-			assertTrue(stopPlayList.isSuccess());
-
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
-				return !streamFetcher.isThreadActive();
-			});
-
-		}
-
-		
-
-		//convert to original settings
-		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
-		Application.enableSourceHealthUpdate = false;
-
-
-
-	}
-
-	@Test
-	public void testIsStreamRunning() 
+	public void testIsStreamRunning()
 	{
 		DataStore dataStore = new InMemoryDataStore("test");
 		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
@@ -808,310 +248,6 @@ public class StreamSchedularUnitTest {
 	}
 
 	@Test
-	public void testControlStreamFetchersPlayListAndRestart() {
-		DataStore dataStore = Mockito.mock(DataStore.class);
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
-		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
-
-		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
-		String streamId = "stream123456";
-		String streamUrl = "streamurl";
-		streamFetcherList.put(streamId, fetcher);
-		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
-		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
-
-		when(fetcher.isStreamAlive()).thenReturn(true);
-		when(fetcher.isStreamBlocked()).thenReturn(false);
-
-		Broadcast broadcast = mock(Broadcast.class);
-		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
-		when(broadcast.getStreamId()).thenReturn(streamId);
-		when(broadcast.getStreamUrl()).thenReturn("streamurl");
-		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.PLAY_LIST);
-		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
-
-		streamFetcherManager.setStreamFetcherList(streamFetcherList);
-
-		streamFetcherManager.controlStreamFetchers(false);
-		//it should not call isToBeStoppedAutomatically because type is playlist and autoStartStopEnabled is false
-		Mockito.verify(streamFetcherManager, Mockito.never()).isToBeStoppedAutomatically(Mockito.any());
-
-
-
-		assertFalse(streamFetcherManager.getStreamFetcherList().isEmpty());
-		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
-		streamFetcherManager.setStreamFetcherList(streamFetcherList);
-		Mockito.doReturn(true).when(streamFetcherManager).isStreamRunning(Mockito.any());
-		streamFetcherManager.controlStreamFetchers(true);
-
-
-		ArgumentCaptor<IStreamFetcherListener> listenerCaptor = ArgumentCaptor.forClass(IStreamFetcherListener.class);
-		Mockito.verify(fetcher).setStreamFetcherListener(listenerCaptor.capture());
-		listenerCaptor.getValue().streamFinished(null);;
-		Mockito.verify(streamFetcherManager).startStreaming(broadcast);
-
-	}
-
-	@Test
-	public void testControlStreamFetchersPlayListAutoStop() {
-		DataStore dataStore = Mockito.mock(DataStore.class);
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
-		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
-
-		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
-		String streamId = "playlistStream123";
-		String streamUrl = "streamurl";
-		streamFetcherList.put(streamId, fetcher);
-		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
-		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
-
-		when(fetcher.isStreamAlive()).thenReturn(true);
-		when(fetcher.isStreamBlocked()).thenReturn(false);
-
-		Broadcast broadcast = mock(Broadcast.class);
-		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
-		when(broadcast.getStreamId()).thenReturn(streamId);
-		when(broadcast.getStreamUrl()).thenReturn("streamurl");
-		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.PLAY_LIST);
-		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
-
-		streamFetcherManager.setStreamFetcherList(streamFetcherList);
-
-		// When autoStartStopEnabled is true, isToBeStoppedAutomatically should be called for playlists
-		Mockito.doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
-		streamFetcherManager.controlStreamFetchers(false);
-		Mockito.verify(streamFetcherManager, Mockito.times(1)).isToBeStoppedAutomatically(broadcast);
-
-		// Reset and test when isToBeStoppedAutomatically returns true - should call stopPlayList
-		Mockito.reset(streamFetcherManager);
-		streamFetcherManager.setStreamFetcherList(streamFetcherList);
-		Mockito.doReturn(true).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
-		Mockito.doReturn(new Result(true)).when(streamFetcherManager).stopPlayList(Mockito.any());
-
-		streamFetcherManager.controlStreamFetchers(false);
-		Mockito.verify(streamFetcherManager, Mockito.times(1)).isToBeStoppedAutomatically(broadcast);
-		Mockito.verify(streamFetcherManager, Mockito.times(1)).stopPlayList(streamId);
-	}
-	
-	
-	@Test
-	public void testRestartIsAliveAndNotBlocked() {
-		
-		DataStore dataStore = Mockito.mock(DataStore.class); 
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
-
-		streamFetcherManager.controlStreamFetchers(false);
-
-		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
-
-		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
-		String streamId = "stream123456";
-		String streamUrl = "streamurl";
-		streamFetcherList.put(streamId, fetcher);
-		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
-		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
-		
-		Broadcast broadcast = mock(Broadcast.class);
-		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
-		when(broadcast.getStreamId()).thenReturn(streamId);
-		when(broadcast.getStreamUrl()).thenReturn("streamurl");
-		
-		when(broadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
-
-
-		streamFetcherManager.setStreamFetcherList(streamFetcherList);
-		
-		when(fetcher.isStreamAlive()).thenReturn(false);
-		when(fetcher.isStreamBlocked()).thenReturn(false);
-		
-		streamFetcherManager.controlStreamFetchers(false);
-		
-		verify(fetcher, times(1)).stopStream();
-		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());
-		
-	}
-	
-	
-	@Test
-	public void testControlStreamFetchersRestartFlagDoesNotLeakToHealthyStreams() {
-		//controlStreamFetchers used to mutate its shared 'restart' parameter when it found a
-		//terminated stream, leaking restart=true into later iterations and bouncing healthy
-		//streams. The fix isolates the decision per stream with restartThisStream.
-		DataStore dataStore = Mockito.mock(DataStore.class);
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
-
-		//stub the stop/start machinery: we only assert the restart decision, and leaving the list
-		//unmodified during iteration lets us use an ordered LinkedHashMap deterministically
-		Mockito.doReturn(new Result(true)).when(streamFetcherManager).stopStreaming(Mockito.anyString(), Mockito.anyBoolean());
-		Mockito.doReturn(new Result(true)).when(streamFetcherManager).startStreaming(Mockito.any());
-		Mockito.doReturn(false).when(streamFetcherManager).isStreamRunning(Mockito.any());
-		Mockito.doReturn(false).when(streamFetcherManager).isToBeStoppedAutomatically(Mockito.any());
-
-		//dead stream: terminated unexpectedly, not alive, not blocked -> should restart
-		String deadId = "deadStream";
-		StreamFetcher deadFetcher = Mockito.mock(StreamFetcher.class);
-		when(deadFetcher.getStreamId()).thenReturn(deadId);
-		when(deadFetcher.getStreamUrl()).thenReturn("deadUrl");
-		when(deadFetcher.isStreamAlive()).thenReturn(false);
-		when(deadFetcher.isStreamBlocked()).thenReturn(false);
-		Broadcast deadBroadcast = mock(Broadcast.class);
-		when(deadBroadcast.getStreamId()).thenReturn(deadId);
-		when(deadBroadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
-		when(deadBroadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
-
-		//healthy stream: alive -> must be left untouched
-		String healthyId = "healthyStream";
-		StreamFetcher healthyFetcher = Mockito.mock(StreamFetcher.class);
-		when(healthyFetcher.getStreamId()).thenReturn(healthyId);
-		when(healthyFetcher.getStreamUrl()).thenReturn("healthyUrl");
-		when(healthyFetcher.isStreamAlive()).thenReturn(true);
-		when(healthyFetcher.isStreamBlocked()).thenReturn(false);
-		Broadcast healthyBroadcast = mock(Broadcast.class);
-		when(healthyBroadcast.getStreamId()).thenReturn(healthyId);
-		when(healthyBroadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
-		when(healthyBroadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-
-		when(dataStore.get(deadId)).thenReturn(deadBroadcast);
-		when(dataStore.get(healthyId)).thenReturn(healthyBroadcast);
-
-		//ordered map so the dead stream is always visited before the healthy one; the leak only
-		//manifests when a terminated stream precedes a healthy one in iteration
-		Map<String, StreamFetcher> streamFetcherList = new LinkedHashMap<>();
-		streamFetcherList.put(deadId, deadFetcher);
-		streamFetcherList.put(healthyId, healthyFetcher);
-		streamFetcherManager.setStreamFetcherList(streamFetcherList);
-
-		streamFetcherManager.controlStreamFetchers(false);
-
-		//dead stream restarts
-		verify(streamFetcherManager, times(1)).stopStreaming(deadId, false);
-		verify(streamFetcherManager, times(1)).startStreaming(deadBroadcast);
-
-		//healthy stream must not be touched by a leaked restart flag
-		verify(streamFetcherManager, Mockito.never()).stopStreaming(healthyId, false);
-		verify(streamFetcherManager, Mockito.never()).startStreaming(healthyBroadcast);
-	}
-
-
-	@Test
-	public void testControlStreamFetchers() {
-		//create a test db
-		DataStore dataStore = Mockito.mock(DataStore.class); 
-		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
-
-		streamFetcherManager.controlStreamFetchers(false);
-
-		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
-
-		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
-		String streamId = "stream123456";
-		String streamUrl = "streamurl";
-		streamFetcherList.put(streamId, fetcher);
-		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
-		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
-
-
-		streamFetcherManager.setStreamFetcherList(streamFetcherList);
-
-		streamFetcherManager.controlStreamFetchers(false);
-		//because broadcast is null
-		verify(fetcher, times(1)).stopStream();
-
-
-		assertEquals(0, streamFetcherManager.getStreamFetcherList().size());
-		streamFetcherList.put(streamId, fetcher);
-
-
-		streamFetcherManager.controlStreamFetchers(true);
-		//broadcast is null so stop stream will be called
-		verify(fetcher, times(2)).stopStream();
-		//it will not called because broadcast is null
-		verify(fetcher, times(0)).startStream();
-		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
-
-		assertEquals(0, streamFetcherManager.getStreamFetcherList().size());
-		streamFetcherList.put(streamId, fetcher);
-
-
-		Broadcast broadcast = mock(Broadcast.class);
-		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
-		when(broadcast.getStreamId()).thenReturn(streamId);
-		when(broadcast.getStreamUrl()).thenReturn("streamurl");
-		
-		when(fetcher.isStreamAlive()).thenReturn(true);
-		when(fetcher.isStreamBlocked()).thenReturn(false);
-
-		streamFetcherManager.controlStreamFetchers(false);
-		//it will not change above stream is alive and broadcast is not null
-		verify(fetcher, times(2)).stopStream();
-		verify(fetcher, times(0)).startStream();
-		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
-
-
-		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
-		when(broadcast.isAnyoneWatching()).thenReturn(true);
-		streamFetcherManager.controlStreamFetchers(false);
-		//it will not change above stream is alive and broadcast is not null and someone is watching
-		verify(fetcher, times(2)).stopStream();
-		verify(fetcher, times(0)).startStream();
-		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
-
-
-
-		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
-		when(broadcast.isAnyoneWatching()).thenReturn(false);
-		streamFetcherManager.controlStreamFetchers(false);
-		//it will not change above because it does not passed enough time
-		verify(fetcher, times(2)).stopStream();
-		verify(fetcher, times(0)).startStream();
-		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
-
-
-		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
-		when(broadcast.isAnyoneWatching()).thenReturn(false);
-		when(broadcast.getStartTime()).thenReturn(1l);
-		streamFetcherManager.controlStreamFetchers(false);
-		//it will not change above because it has passed enough time
-		verify(fetcher, times(3)).stopStream();
-		verify(fetcher, times(0)).startStream();
-		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
-
-		assertEquals(0, streamFetcherManager.getStreamFetcherList().size());
-		streamFetcherList.put(streamId, fetcher);
-
-
-		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
-		when(broadcast.isAnyoneWatching()).thenReturn(false);
-		streamFetcherManager.controlStreamFetchers(false);
-		//it will not change above stream is alive and broadcast is not null and isAutoStartStopEnabled false
-		verify(fetcher, times(3)).stopStream();
-		verify(fetcher, times(0)).startStream();
-		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
-
-
-		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
-		when(broadcast.isAnyoneWatching()).thenReturn(true);
-		streamFetcherManager.controlStreamFetchers(false);
-		//it will not change above stream is alive and broadcast is not null and  isAutoStartStopEnabled false
-		verify(fetcher, times(3)).stopStream();
-		verify(fetcher, times(0)).startStream();
-		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
-
-
-		streamFetcherManager.controlStreamFetchers(true);
-		//it willl not change because restart is true
-		verify(fetcher, times(4)).stopStream();
-		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());	
-		
-		streamFetcherManager.stopStreaming(streamId, false);
-
-
-
-	}
-
-
-
-	@Test
 	public void testStopFetchingWhenDeleted() {
 
 		BroadcastRestService service = new BroadcastRestService();
@@ -1127,7 +263,7 @@ public class StreamSchedularUnitTest {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		//create a test db
-		DataStore dataStore = new MapDBStore("target/testDelete.db", vertx); 
+		DataStore dataStore = new MapDBStore("target/testDelete.db", vertx);
 		service.setDataStore(dataStore);
 
 		//create a stream fetcher
@@ -1141,7 +277,7 @@ public class StreamSchedularUnitTest {
 		assertNotNull(dataStore);
 
 		//start emulator
-		startCameraEmulator();
+		CameraEmulator.start();
 
 		Broadcast newCam = new Broadcast("testStopCamera", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.IP_CAMERA);
@@ -1167,9 +303,8 @@ public class StreamSchedularUnitTest {
 		assertTrue(result.isSuccess());
 
 		//stop emulator
-		stopCameraEmulator();
+		CameraEmulator.stop();
 
-		streamFetcherManager.stopCheckerJob();
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
@@ -1197,7 +332,7 @@ public class StreamSchedularUnitTest {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		//create a test db
-		DataStore dataStore = new MapDBStore("target/testStop.db", vertx); 
+		DataStore dataStore = new MapDBStore("target/testStop.db", vertx);
 		service.setDataStore(dataStore);
 
 		//create a stream fetcher
@@ -1211,7 +346,7 @@ public class StreamSchedularUnitTest {
 		assertNotNull(dataStore);
 
 		//start emulator
-		startCameraEmulator();
+		CameraEmulator.start();
 
 		Broadcast newCam = new Broadcast("testStopCamera", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.IP_CAMERA);
@@ -1240,9 +375,8 @@ public class StreamSchedularUnitTest {
 
 		assertTrue(result.isSuccess());
 		//stop emulator
-		stopCameraEmulator();
+		CameraEmulator.stop();
 
-		streamFetcherManager.stopCheckerJob();
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
@@ -1314,10 +448,10 @@ public class StreamSchedularUnitTest {
 	}
 
 	/*
-	 * This test code may not run on local instance. Because, it includes commands having "sudo" pieces and waits reply 
-	 * for them. Therefore it may not proceed. It is configured for travis CI/CD tool which can run sudo commands 
+	 * This test code may not run on local instance. Because, it includes commands having "sudo" pieces and waits reply
+	 * for them. Therefore it may not proceed. It is configured for travis CI/CD tool which can run sudo commands
 	 * automatically.
-	 * 
+	 *
 	 */
 
 	//@Test
@@ -1460,55 +594,6 @@ public class StreamSchedularUnitTest {
 		return appInstance;
 	}
 
-	private void startCameraEmulator() {
-		stopCameraEmulator();
-
-		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
-		Process p = null;
-		try {
-			p = pb.start();
-			while (!p.isAlive()) {
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-			//wait here to let the emulator get ready
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-
-	}
-
-
-	private void stopCameraEmulator() {
-		// close emulator in order to simulate cut-off
-		String[] argsStop = new String[] { "/bin/bash", "-c",
-		"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
-		String[] argsStop2 = new String[] { "/bin/bash", "-c",
-		"kill -9 $(ps aux | grep 'rtspserve' | awk '{print $2}')" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop).start();
-			Process procStop2 = new ProcessBuilder(argsStop2).start();
-
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public AppSettings getAppSettings() {
 		if (appSettings == null) {
 			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
@@ -1517,13 +602,13 @@ public class StreamSchedularUnitTest {
 	}
 
 	@Test
-	public void testBroadcastStatusForStreamSource() 
+	public void testBroadcastStatusForStreamSource()
 	{
-		startCameraEmulator();
+		CameraEmulator.start();
 		try (AVFormatContext inputFormatContext = new AVFormatContext()) {
 
 			String existingStreamSource = "existingStreamSource"+RandomUtils.nextInt();
-			Broadcast existingBroadcast = new Broadcast(existingStreamSource, "10.2.40.63:8080", "admin", "admin", 
+			Broadcast existingBroadcast = new Broadcast(existingStreamSource, "10.2.40.63:8080", "admin", "admin",
 					"rtsp://127.0.0.1:6554/test.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
@@ -1539,7 +624,7 @@ public class StreamSchedularUnitTest {
 			Result startStreaming = fetcherManager.startStreaming(existingBroadcast);
 			assertTrue(startStreaming.isSuccess());
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
 			{
 				return dataStore.get(existingStreamSource).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
 			});
@@ -1557,7 +642,7 @@ public class StreamSchedularUnitTest {
 				return fetcherManager.getStreamFetcherList().size() == 0;
 			});
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
 			{
 				return dataStore.get(existingStreamSource).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED;
 			});
@@ -1567,7 +652,7 @@ public class StreamSchedularUnitTest {
 			//non existing url
 
 			String nonExistingStreamSource = "nonExistingStreamSource"+RandomUtils.nextInt();
-			Broadcast nonExistingBroadcast = new Broadcast(nonExistingStreamSource, "10.2.40.63:8080", "admin", "admin", 
+			Broadcast nonExistingBroadcast = new Broadcast(nonExistingStreamSource, "10.2.40.63:8080", "admin", "admin",
 					"rtsp://127.0.0.1:6554/fakeurl.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
@@ -1587,25 +672,29 @@ public class StreamSchedularUnitTest {
 			StreamFetcher streamFetcher = fetcherManager.getStreamFetcher(nonExistingStreamSource);
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-				return !streamFetcher.isStreamAlive();
+				return !streamFetcher.isThreadActive();
 			});
 
 
 			Result stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource, false);
 			assertTrue(stopStreaming2.isSuccess());
-			stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource, false);
-			assertFalse(stopStreaming2.isSuccess());
+
+			//the registry entry goes on the STOPPED transition, not on the stop call, so the id is
+			//still taken here and a second stop is still accepted
+			assertTrue(fetcherManager.stopStreaming(nonExistingStreamSource, false).isSuccess());
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return fetcherManager.getStreamFetcherList().size() == 0;
 			});
+
+			assertFalse(fetcherManager.stopStreaming(nonExistingStreamSource, false).isSuccess());
 
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		stopCameraEmulator();
+		CameraEmulator.stop();
 
 
 	}

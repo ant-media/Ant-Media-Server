@@ -23,12 +23,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -199,6 +200,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	public static final int STREAM_TIMEOUT_MS = 2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS;
 
+	/** Spread of the random delay added to a scheduled playlist start, so they don't all fire at once. */
+	private static final int PLAYLIST_SCHEDULE_JITTER_MS = 5000;
+
 	public static final String BEAN_NAME = "web.handler";
 
 	public static final int BROADCAST_STATS_RESET = 0;
@@ -275,7 +279,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private List<IStreamPlaybackSecurity> streamPlaySecurityList;
 	private Map<String, OnvifCamera> onvifCameraList = new ConcurrentHashMap<>();
-	protected StreamFetcherManager streamFetcherManager;
+	protected final AtomicReference<StreamFetcherManager> streamFetcherManager = new AtomicReference<>();
 	protected Map<String, MuxAdaptor> muxAdaptors = new ConcurrentHashMap<>();
 	private DataStore dataStore;
 	private DataStoreFactory dataStoreFactory;
@@ -312,8 +316,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	IClusterStreamFetcher clusterStreamFetcher;
 
 	protected ISubtrackPoller subtrackPoller;
-
-	private Random random = new Random();
 
 	private IStatsCollector statsCollector;
 
@@ -410,43 +412,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		}
 
-		vertx.setTimer(1000, l -> {
-
-			getStreamFetcherManager();
-			if(appSettings.isStartStreamFetcherAutomatically()) {
-				List<Broadcast> streams = getDataStore().getExternalStreamsList();
-				logger.info("Stream source size: {}", streams.size());
-				for (Broadcast broadcast : streams)
-				{
-					if (!broadcast.isAutoStartStopEnabled()) {
-						//start streaming is auto/stop is not enabled
-						streamFetcherManager.startStreaming(broadcast, true);
-					}
-				}
-			}
-
-			//Schedule Playlist items 
-			int offset = 0;
-			int batch = 50;
-			List<Broadcast> playlist;
-			long now = System.currentTimeMillis();
-			while ((playlist = getDataStore().getBroadcastList(offset, batch, AntMediaApplicationAdapter.PLAY_LIST, null, null, null)) != null ) {
-
-				if (playlist.isEmpty()) {
-					break;
-				}
-
-				for (Broadcast broadcast : playlist) 
-				{
-					schedulePlayList(now, broadcast);
-				}
-
-				offset += batch;
-
-			} 
-
-
-		});
+		vertx.setTimer(1000, l -> vertx.executeBlocking(() -> {
+			//both of these read whole lists from the database, so keep them off the event loop
+			getStreamFetcherManager().resumeUnattendedSources();
+			scheduleStoredPlayLists();
+			return null;
+		}, false));
 
 
 		AMSShutdownManager.getInstance().subscribe(this);
@@ -472,49 +443,66 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return true;
 	}
 
-	public void schedulePlayList(long now, Broadcast broadcast) 
-	{
-		if (broadcast.getPlannedStartDate() != 0) 
-		{	
-			long startTimeDelay = (broadcast.getPlannedStartDate()*1000) - now;
+	/** Arms the start timers of every stored playlist that has not reached its planned start date yet. */
+	private void scheduleStoredPlayLists() {
+		int offset = 0;
+		int batch = 50;
+		long now = System.currentTimeMillis();
+		List<Broadcast> playLists;
 
-			if (startTimeDelay > 0) 
-			{
-				//Create some random value to not let any other node pull the stream at the same time.
-				//I also improve the StreamFetcher to not get started in the WorkerThread if another node is pulling.
-				//TBH, It's not a good solution and I could not find something better for now
-				//@mekya
-
-				long randomDelay = random.nextInt(5000);
-				logger.info("Scheduling playlist to play after {}ms with random delay:{}ms, total delay:{}ms for id:{}", startTimeDelay, randomDelay, (startTimeDelay + randomDelay), broadcast.getStreamId());
-				startTimeDelay += randomDelay;
-				long timerId = vertx.setTimer(startTimeDelay, 
-						(timer) -> 
-				{
-
-					Broadcast freshBroadcast = getDataStore().get(broadcast.getStreamId());
-					if (freshBroadcast != null && 
-							AntMediaApplicationAdapter.PLAY_LIST.equals(freshBroadcast.getType())) 
-					{
-						logger.info("Starting scheduled playlist for id:{} ", freshBroadcast.getStreamId());
-						streamFetcherManager.startPlaylist(freshBroadcast);
-					}
-					else 
-					{
-						if (freshBroadcast == null) {
-							logger.warn("Not starting playlist because it's null for stream id:{}. It must have been deleted", broadcast.getStreamId());
-						}
-						else {
-							logger.error("Not starting playlist because wrong configuration for streamId:{}. It should be a bug in somewhere", broadcast.getStreamId());
-						}
-					}
-					playListSchedulerTimer.remove(freshBroadcast.getStreamId());
-
-				});
-
-				playListSchedulerTimer.put(broadcast.getStreamId(), timerId);
-			}		
+		while ((playLists = getDataStore().getBroadcastList(offset, batch, PLAY_LIST, null, null, null)) != null && !playLists.isEmpty()) {
+			for (Broadcast playList : playLists) {
+				schedulePlayList(now, playList);
+			}
+			offset += batch;
 		}
+	}
+
+	/**
+	 * Starts the playlist once its planned start date arrives. The delay gets some jitter so a restart
+	 * does not fire every stored playlist on the same tick.
+	 */
+	public void schedulePlayList(long now, Broadcast broadcast)
+	{
+		if (broadcast == null) {
+			logger.warn("Not scheduling a playlist that does not exist anymore");
+			return;
+		}
+
+		String streamId = broadcast.getStreamId();
+		long startTimeDelay = (broadcast.getPlannedStartDate() * 1000) - now;
+
+		//rescheduling is how an updated planned date takes effect, the old timer must not survive it
+		cancelPlaylistSchedule(streamId);
+
+		if (startTimeDelay <= 0) {
+			return;
+		}
+
+		long jitter = ThreadLocalRandom.current().nextInt(PLAYLIST_SCHEDULE_JITTER_MS);
+		//floor keeps a timer that is due right now from firing before the put below registers it
+		long delay = Math.max(10, startTimeDelay + jitter);
+		logger.info("Scheduling playlist to play in {}ms including {}ms of jitter for id:{}", delay, jitter, streamId);
+
+		long timerId = vertx.setTimer(delay, timer -> vertx.executeBlocking(() -> {
+			//the read and the cluster check inside startPlaylist both block, keep them off the event loop
+			playListSchedulerTimer.remove(streamId);
+
+			Broadcast freshBroadcast = getDataStore().get(streamId);
+			if (freshBroadcast == null) {
+				logger.warn("Not starting playlist:{} because it has been deleted", streamId);
+			}
+			else if (!PLAY_LIST.equals(freshBroadcast.getType())) {
+				logger.error("Not starting playlist:{} because it is not a playlist anymore", streamId);
+			}
+			else {
+				logger.info("Starting scheduled playlist for id:{}", streamId);
+				getStreamFetcherManager().getPlaylistController().startPlaylist(freshBroadcast);
+			}
+			return null;
+		}, false));
+
+		playListSchedulerTimer.put(streamId, timerId);
 	}
 
 	public void cancelPlaylistSchedule(String streamId) {
@@ -522,7 +510,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (timerId != null) {
 			vertx.cancelTimer(timerId);
 		}
-
 	}
 
 	/**
@@ -1000,10 +987,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> parameters) {
+
+		//write broadcasting on the calling thread. Done inside the block below it can land after a stop
+		//that followed it, and the stream stays live in the database until it decays 20 seconds later
+		final Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
+
 		vertx.executeBlocking( () -> {
 			try {
-
-				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
 
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				final String mainTrackId = broadcast.getMainTrackStreamId();
@@ -1738,52 +1728,37 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			return result;
 		}
 
-		// Handle streaming for IP camera, stream source, and VOD
-		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) {
+		String type = broadcast.getType();
 
-			if (isClusterMode()) {
-				String broadcastOriginAddress = broadcast.getOriginAdress();
-
-				// Handle null or empty origin address
-				if (StringUtils.isBlank(broadcastOriginAddress)) {
-					result = getStreamFetcherManager().startStreaming(broadcast);
-					result.setMessage("Broadcasts origin address is not set. " +
-							getServerSettings().getHostAddress() + " will fetch the stream.");
-					return result;
-				}
-
-				// Handle matching origin address
-				if (broadcastOriginAddress.equals(getServerSettings().getHostAddress())) {
-					result = getStreamFetcherManager().startStreaming(broadcast);
-					return result;
-				}
-
-				// Forward request to origin server
-				forwardStartStreaming(broadcast);
-				result.setSuccess(true);
-				result.setErrorId(FETCH_REQUEST_REDIRECTED_TO_ORIGIN);
-				result.setMessage("Request forwarded to origin server for fetching. " +
-						"Check broadcast status for final confirmation.");
-				return result;
-			} 
-			else {
-				result = getStreamFetcherManager().startStreaming(broadcast);
-			}
+		if (PLAY_LIST.equals(type)) {
+			return getStreamFetcherManager().getPlaylistController().startPlaylist(broadcast);
 		}
-		// Handle playlist type
-		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
-			result = getStreamFetcherManager().startPlaylist(broadcast);
+
+		if (IAntMediaStreamHandler.PUBLISH_TYPE_NDI.equals(type)) {
+			return startNdiSource(broadcast);
 		}
-		else if (broadcast.getType().equals(IAntMediaStreamHandler.PUBLISH_TYPE_NDI)) {
-			result = startNdiSource(broadcast);
-		}
-		// Handle unsupported broadcast types
-		else {
-			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}",
-					broadcast.getType(), broadcast.getStreamId());
+
+		if (!IP_CAMERA.equals(type) && !STREAM_SOURCE.equals(type) && !VOD.equals(type)) {
+			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", type, broadcast.getStreamId());
 			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist, NDI");
+			return result;
+		}
+
+		//a pulled source belongs to the node in its origin address, anybody else hands the request over
+		String originAddress = broadcast.getOriginAdress();
+		if (isClusterMode() && StringUtils.isNotBlank(originAddress) && !originAddress.equals(getServerSettings().getHostAddress())) {
+
+			forwardStartStreaming(broadcast);
+			result.setSuccess(true);
+			result.setErrorId(FETCH_REQUEST_REDIRECTED_TO_ORIGIN);
+			result.setMessage("Request forwarded to origin server for fetching. Check broadcast status for final confirmation.");
+			return result;
+		}
+
+		result = getStreamFetcherManager().startStreaming(broadcast);
+
+		if (isClusterMode() && StringUtils.isBlank(originAddress)) {
+			result.setMessage("Broadcasts origin address is not set. " + getServerSettings().getHostAddress() + " will fetch the stream.");
 		}
 
 		return result;
@@ -1848,17 +1823,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	{
 		Result result = new Result(false);
 		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
-		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.VOD))
+
+		String type = broadcast.getType();
+
+		if (IP_CAMERA.equals(type) || STREAM_SOURCE.equals(type) || VOD.equals(type))
 		{
 			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		}
-		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST))
+		else if (PLAY_LIST.equals(type))
 		{
-			result = getStreamFetcherManager().stopPlayList(broadcast.getStreamId());
+			result = getStreamFetcherManager().getPlaylistController().stopPlaylist(broadcast.getStreamId());
 		}
-		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM))
+		else if (LIVE_STREAM.equals(type))
 		{
 
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
@@ -1982,15 +1958,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return onvifCamera;
 	}
 
-	public StreamFetcherManager getStreamFetcherManager() {
-		if(streamFetcherManager == null) {
-			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), getScope());
+	public synchronized StreamFetcherManager getStreamFetcherManager() {
+		StreamFetcherManager manager = streamFetcherManager.get();
+		if (manager == null) {
+			manager = new StreamFetcherManager(vertx, getDataStore(), getScope());
+			streamFetcherManager.set(manager);
 		}
-		return streamFetcherManager;
+		return manager;
 	}
 
-	public void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
-		this.streamFetcherManager = streamFetcherManager;
+	public synchronized void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
+		this.streamFetcherManager.set(streamFetcherManager);
 	}
 
 
@@ -2148,15 +2126,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void closeStreamFetchers() {
-		if (streamFetcherManager != null) {
-			Map<String, StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
-			for (StreamFetcher streamFetcher : fetchers.values()) {
-				streamFetcher.stopStream();
-				//it may be also play list so stop it if it's 
-				getStreamFetcherManager().stopPlayList(streamFetcher.getStreamId());
-			}
-			fetchers.clear();
-
+		//read once and shut down without the monitor, shutdown blocks until every fetcher is stopped
+		StreamFetcherManager manager = streamFetcherManager.get();
+		if (manager != null) {
+			manager.shutdown();
 		}
 	}
 
@@ -2406,7 +2379,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void muxAdaptorRemoved(MuxAdaptor muxAdaptor) {
-		muxAdaptors.remove(muxAdaptor.getStreamId());
+		if (muxAdaptor == null || muxAdaptor.getStreamId() == null) {
+			logger.warn("muxAdaptorRemoved is called with a null adaptor or stream id, it was never registered");
+			return;
+		}
+
+		// remove by identity.
+		//  a late cleanup should not remove the adaptor that replaced this one
+		muxAdaptors.remove(muxAdaptor.getStreamId(), muxAdaptor);
 	}
 
 	public MuxAdaptor getMuxAdaptor(String streamId) {
