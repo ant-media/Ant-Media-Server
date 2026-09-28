@@ -292,6 +292,59 @@ public class StreamServiceTest {
 
 	}
 
+	private IConnection mockConnWithPath(String path, AppSettings appSettings) {
+		IConnection conn = mock(IConnection.class);
+		Map<String, Object> mockMap = mock(Map.class);
+		Mockito.doReturn(path).when(mockMap).get("path");
+		Mockito.doReturn(mockMap).when(conn).getConnectParams();
+
+		IScope scope = mock(IScope.class);
+		IContext context = mock(IContext.class);
+		when(conn.getScope()).thenReturn(scope);
+		when(scope.getContext()).thenReturn(context);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+		return conn;
+	}
+
+	@Test
+	public void testRtmpSubfolderInAppPath() {
+		// server rtmp://ip/LiveApp/0 + stream key test -> streamId is test, not 0
+		StreamService streamService = Mockito.spy(new StreamService());
+		Red5.setConnectionLocal(mockConnWithPath("LiveApp/0", new AppSettings()));
+
+		streamService.publish("test", "live");
+		Mockito.verify(streamService, never()).parsePathSegments(any());
+
+		// token expected -> legacy ffmpeg form rtmp://ip/LiveApp/0/test, 0 is the streamId and test is the token
+		AppSettings tokenSettings = new AppSettings();
+		tokenSettings.setPublishTokenControlEnabled(true);
+		Red5.setConnectionLocal(mockConnWithPath("LiveApp/0", tokenSettings));
+
+		streamService.publish("test", "live");
+		Mockito.verify(streamService).parsePathSegments("0/test");
+	}
+
+	@Test
+	public void testIsTokenInPathExpected() {
+		assertTrue(StreamService.isTokenInPathExpected(null));
+		assertTrue(StreamService.isTokenInPathExpected(mock(IScope.class)));
+
+		AppSettings appSettings = new AppSettings();
+		IScope scope = mockConnWithPath("LiveApp/0", appSettings).getScope();
+		assertFalse(StreamService.isTokenInPathExpected(scope));
+
+		appSettings.setPublishTokenControlEnabled(true);
+		assertTrue(StreamService.isTokenInPathExpected(scope));
+
+		appSettings.setPublishTokenControlEnabled(false);
+		appSettings.setPublishJwtControlEnabled(true);
+		assertTrue(StreamService.isTokenInPathExpected(scope));
+
+		appSettings.setPublishJwtControlEnabled(false);
+		appSettings.setEnableTimeTokenForPublish(true);
+		assertTrue(StreamService.isTokenInPathExpected(scope));
+	}
+
 	@Test
 	public void testStreamPublishSecurityServiceHandlers() {
 		StreamService streamService = Mockito.spy(new StreamService());
