@@ -23,10 +23,12 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -194,11 +196,13 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			}
 			else if (AntMediaApplicationAdapter.VOD.equals(streamType) && result != AVERROR_EOF) {
 				//for a VoD, one unreadable frame must not end the attempt, it would replay the file from the start
-				logger.warn("Frame can't be read for VOD {} error is {}", streamUrl, Muxer.getErrorDefinition(result));
+				String readError = Muxer.getErrorDefinition(result);
+				logger.warn("Frame can't be read for VOD {} error is {}", streamUrl, readError);
 				av_packet_unref(pkt);
 			}
 			else {
-				logger.warn("Cannot read the next packet for url:{} and error is {}", streamUrl, Muxer.getErrorDefinition(result));
+				String readError = Muxer.getErrorDefinition(result);
+				logger.warn("Cannot read the next packet for url:{} and error is {}", streamUrl, readError);
 				if (abortRequested.get()) {
 					return Reason.TIMEOUT;
 				}
@@ -222,7 +226,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		//HTTP sources are files or segment lists, so ffmpeg hands us a whole segment at once instead of
 		//pacing it. Only VoD is paced against the wall clock here, everything else needs the buffer
 		if (bufferTime <= 0 && !AntMediaApplicationAdapter.VOD.equals(streamType)
-				&& (streamUrl.startsWith("http://") || streamUrl.startsWith("https://"))) {
+				&& StringUtils.startsWithAny(streamUrl, "http://", "https://")) {
 			logger.warn("Source {} is pulled over HTTP and streamFetcherBufferTime is not set for streamId:{}."
 					+ " Packets will arrive in bursts and playback will not be smooth."
 					+ " Set streamFetcherBufferTime to 1000 or more in the application settings", streamUrl, streamId);
@@ -361,8 +365,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			return;
 		}
 
-		StringBuilder newQuery = new StringBuilder();
-		boolean first = true;
+		StringJoiner newQuery = new StringJoiner("&");
 
 		for (String param : streamUrl.substring(questionMarkIndex + 1).split("&")) {
 			String[] keyValue = param.split("=", 2);
@@ -381,11 +384,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 				continue;
 			}
 
-			if (!first) {
-				newQuery.append("&");
-			}
-			newQuery.append(param);
-			first = false;
+			newQuery.add(param);
 		}
 
 		String baseUrl = streamUrl.substring(0, questionMarkIndex);
@@ -423,7 +422,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			//reset firstPacketTime so the VoD pacing starts over from the new position
 			firstPacketTime = 0;
 		}
-		else {
+		else if (logger.isErrorEnabled()) {
 			logger.error("Error in seeking for streamId:{} and seekTimeInMs:{} url:{}. Error is {}", streamId, seekTimeMs, streamUrl, Muxer.getErrorDefinition(ret));
 		}
 
@@ -553,25 +552,24 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			}
 		}
 
+		//-1 means not set yet
 		long minValueInMilliseconds = -1;
 		long maxValueInMilliseconds = -1;
 		for (Long value : lastSentDTSInMsList) {
-			if (minValueInMilliseconds > value || minValueInMilliseconds == -1) {
-				minValueInMilliseconds = value;
-			}
-			if (maxValueInMilliseconds < value || maxValueInMilliseconds == -1) {
-				maxValueInMilliseconds = value;
-			}
+			minValueInMilliseconds = minValueInMilliseconds == -1 ? value : Math.min(minValueInMilliseconds, value);
+			maxValueInMilliseconds = maxValueInMilliseconds == -1 ? value : Math.max(maxValueInMilliseconds, value);
 		}
 
 		//the assumption is that we receive synched audio and video, so a gap this big is accumulated drift
 		long asyncThreshold = 150;
-		if (Math.abs(maxValueInMilliseconds - minValueInMilliseconds) > asyncThreshold) {
-			logger.warn("Audio/Video sync is more than {}ms for stream:{} and trying to synch the packets", asyncThreshold, streamId);
-			for (int i = 0; i < lastSentDTS.length; i++) {
-				if (isAudioOrVideo(i)) {
-					lastSentDTS[i] = av_rescale_q(maxValueInMilliseconds, MuxAdaptor.TIME_BASE_FOR_MS, getStreamTimebase(i));
-				}
+		if (Math.abs(maxValueInMilliseconds - minValueInMilliseconds) <= asyncThreshold) {
+			return;
+		}
+
+		logger.warn("Audio/Video sync is more than {}ms for stream:{} and trying to synch the packets", asyncThreshold, streamId);
+		for (int i = 0; i < lastSentDTS.length; i++) {
+			if (isAudioOrVideo(i)) {
+				lastSentDTS[i] = av_rescale_q(maxValueInMilliseconds, MuxAdaptor.TIME_BASE_FOR_MS, getStreamTimebase(i));
 			}
 		}
 	}
