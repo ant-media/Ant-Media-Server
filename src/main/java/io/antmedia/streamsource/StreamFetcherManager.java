@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
@@ -106,7 +107,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 	/** Addresses of the nodes that were alive on the previous check, null until the first one runs.
 	 * This exists for optimization reasons. */
-	private volatile Set<String> lastSeenHosts;
+	private final AtomicReference<Set<String>> lastSeenHosts = new AtomicReference<>();
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore, IScope scope) {
 		this.vertx = vertx;
@@ -454,8 +455,8 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 			//the scan is expensive, so it only runs when the cluster lost a node, plus once on the first check
 			//because a node that starts up cannot know which nodes were there before it
-			boolean nodeLeft = lastSeenHosts == null || !aliveHosts.containsAll(lastSeenHosts);
-			lastSeenHosts = aliveHosts;
+			Set<String> previousHosts = lastSeenHosts.getAndSet(aliveHosts);
+			boolean nodeLeft = previousHosts == null || !aliveHosts.containsAll(previousHosts);
 
 			//every node computes the same lowest address, so exactly one of them ever gets past this
 			if (!nodeLeft || !host.equals(Collections.min(aliveHosts))) {
