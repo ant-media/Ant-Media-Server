@@ -464,40 +464,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 			logger.info("Looking for stream sources whose owner is not in the cluster, app:{}, live nodes:{}", scope.getName(), aliveHosts);
 
-			for (String type : new String[] { AntMediaApplicationAdapter.IP_CAMERA, AntMediaApplicationAdapter.STREAM_SOURCE }) {
-				int offset = 0;
-				List<Broadcast> page;
-
-				while ((page = datastore.getBroadcastList(offset, BROADCAST_PAGE_SIZE, type, null, null, null)) != null && !page.isEmpty()) {
-					for (Broadcast broadcast : page) {
-						String origin = broadcast.getOriginAdress();
-
-						//getStatus decays a stale broadcasting or preparing row. A stopped source reads finished and a retrying
-						//one is kept fresh by its owner, so only a source whose owner is gone gets past here
-						if (StringUtils.isBlank(origin) || aliveHosts.contains(origin) || broadcast.isAutoStartStopEnabled()
-								|| !IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
-							continue;
-						}
-
-						//the node list can lag and a clock can be off, but a node that still answers http is still fetching
-						if (AntMediaApplicationAdapter.isInstanceAlive(origin, host, serverSettings.getDefaultHttpPort(), scope.getName())) {
-							continue;
-						}
-
-						//that answer costs up to a second each, so decide on a fresh row: the owner may have come back and taken it
-						Broadcast current = datastore.get(broadcast.getStreamId());
-						if (current == null || !IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(current.getStatus())) {
-							continue;
-						}
-
-						Result result = startStreaming(current, false);
-						logger.info("Adopted streamId:{} of the departed node:{}, success:{} message:{}",
-								current.getStreamId(), origin, result.isSuccess(), result.getMessage());
-					}
-
-					offset += BROADCAST_PAGE_SIZE;
-				}
-			}
+			adoptOrphanedSources(host, aliveHosts);
 		}
 		catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -505,6 +472,47 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		finally {
 			orphanCheckRunning.set(false);
 		}
+	}
+
+	private void adoptOrphanedSources(String host, Set<String> aliveHosts) {
+		for (String type : new String[] { AntMediaApplicationAdapter.IP_CAMERA, AntMediaApplicationAdapter.STREAM_SOURCE }) {
+			int offset = 0;
+			List<Broadcast> page;
+
+			while ((page = datastore.getBroadcastList(offset, BROADCAST_PAGE_SIZE, type, null, null, null)) != null && !page.isEmpty()) {
+				for (Broadcast broadcast : page) {
+					adoptIfOrphaned(broadcast, host, aliveHosts);
+				}
+
+				offset += BROADCAST_PAGE_SIZE;
+			}
+		}
+	}
+
+	private void adoptIfOrphaned(Broadcast broadcast, String host, Set<String> aliveHosts) {
+		String origin = broadcast.getOriginAdress();
+
+		//getStatus decays a stale broadcasting or preparing row. A stopped source reads finished and a retrying
+		//one is kept fresh by its owner, so only a source whose owner is gone gets past here
+		if (StringUtils.isBlank(origin) || aliveHosts.contains(origin) || broadcast.isAutoStartStopEnabled()
+				|| !IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
+			return;
+		}
+
+		//the node list can lag and a clock can be off, but a node that still answers http is still fetching
+		if (AntMediaApplicationAdapter.isInstanceAlive(origin, host, serverSettings.getDefaultHttpPort(), scope.getName())) {
+			return;
+		}
+
+		//that answer costs up to a second each, so decide on a fresh row: the owner may have come back and taken it
+		Broadcast current = datastore.get(broadcast.getStreamId());
+		if (current == null || !IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(current.getStatus())) {
+			return;
+		}
+
+		Result result = startStreaming(current, false);
+		logger.info("Adopted streamId:{} of the departed node:{}, success:{} message:{}",
+				current.getStreamId(), origin, result.isSuccess(), result.getMessage());
 	}
 
 	/** Stops every source and waits for the database to say finished before the application goes down. */

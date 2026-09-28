@@ -309,15 +309,12 @@ public class StreamFetcher {
 
 		switch (state) {
 			case CONNECTING, STREAMING -> retryOrStop(reason);
+			//abort() is the only way into STOPPING and it always sets pendingReason, so it is never null here
 			case STOPPING -> {
-				if (pendingReason == Reason.STOP_REQUESTED) {
-					enterStopped(Reason.STOP_REQUESTED);
-				}
-				else if (pendingReason == Reason.RECONNECT) {
-					enterConnecting();
-				}
-				else {
-					retryOrStop(Reason.TIMEOUT);
+				switch (pendingReason) {
+					case STOP_REQUESTED -> enterStopped(Reason.STOP_REQUESTED);
+					case RECONNECT -> enterConnecting();
+					default -> retryOrStop(Reason.TIMEOUT);
 				}
 			}
 			default -> logger.warn("Worker ended with {} in state:{} for streamId:{}", reason, state, streamId);
@@ -412,16 +409,7 @@ public class StreamFetcher {
 		stateSinceMs = System.currentTimeMillis();
 
 		if (to == State.RECONNECT_WAIT) {
-			long id = attemptId;
-			//vert.x refuses a timer shorter than 1ms, and a throw here would leave this stuck in RECONNECT_WAIT
-			long retryDelayMs = Math.max(1, appSettings.getStreamFetcherRetryDelayMs());
-			logger.info("Stream fetcher will try to fetch {} again after {}ms, failure:{} streamId:{}", streamUrl, retryDelayMs, failures, streamId);
-
-			retryTimerId = vertx.setTimer(retryDelayMs, t -> {
-				if (id == attemptId && state == State.RECONNECT_WAIT) {
-					enterConnecting();
-				}
-			});
+			scheduleRetry();
 		}
 		else if (retryTimerId != -1) {
 			vertx.cancelTimer(retryTimerId);
@@ -459,6 +447,19 @@ public class StreamFetcher {
 		if (to == State.STOPPED) {
 			stopFuture.complete(null);
 		}
+	}
+
+	private void scheduleRetry() {
+		long id = attemptId;
+		//vert.x refuses a timer shorter than 1ms, and a throw here would leave this stuck in RECONNECT_WAIT
+		long retryDelayMs = Math.max(1, appSettings.getStreamFetcherRetryDelayMs());
+		logger.info("Stream fetcher will try to fetch {} again after {}ms, failure:{} streamId:{}", streamUrl, retryDelayMs, failures, streamId);
+
+		retryTimerId = vertx.setTimer(retryDelayMs, t -> {
+			if (id == attemptId && state == State.RECONNECT_WAIT) {
+				enterConnecting();
+			}
+		});
 	}
 
 	public boolean isThreadActive() {

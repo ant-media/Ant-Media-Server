@@ -823,10 +823,10 @@ public class StreamFetcherV2Test {
 			assertTrue(new ConsoleAppRestServiceTest().createFirstUserAndLogin());
 
 			//force a restart on every checker tick to reliably land inside the retry-gap race window
-			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
-			originalRestartStreamFetcherPeriod = appSettings.getRestartStreamFetcherPeriod();
-			appSettings.setRestartStreamFetcherPeriod(4);
-			assertTrue(ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings).isSuccess());
+			AppSettings liveAppSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			originalRestartStreamFetcherPeriod = liveAppSettings.getRestartStreamFetcherPeriod();
+			liveAppSettings.setRestartStreamFetcherPeriod(4);
+			assertTrue(ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", liveAppSettings).isSuccess());
 
 			for (int i = 0; i < streamCount; i++) {
 				int port = basePort + i;
@@ -863,10 +863,11 @@ public class StreamFetcherV2Test {
 			for (int i : order) {
 				//plain destroy() here, not stopPublisher() - waiting for exit would distort the stagger
 				publishers.get(i).destroy();
-				Thread.sleep(spacingMs);
+				Awaitility.await().dontCatchUncaughtExceptions().pollDelay(spacingMs, TimeUnit.MILLISECONDS).until(() -> true);
 			}
 
-			Thread.sleep(3000); //give the last drop its full retry-gap window before recovering
+			//give the last drop its full retry-gap window before recovering
+			Awaitility.await().dontCatchUncaughtExceptions().pollDelay(3, TimeUnit.SECONDS).until(() -> true);
 
 			//every port is rebound below, so make sure the old listeners are really gone first
 			for (Process publisher : publishers) {
@@ -882,7 +883,7 @@ public class StreamFetcherV2Test {
 			long recoveryDeadline = System.currentTimeMillis() + 18000;
 			List<String> lagging;
 			do {
-				Thread.sleep(1000);
+				Awaitility.await().dontCatchUncaughtExceptions().pollDelay(1, TimeUnit.SECONDS).until(() -> true);
 				lagging = new ArrayList<>();
 				for (String streamId : streamIds) {
 					Broadcast broadcast = restService.getBroadcast(streamId);
@@ -911,9 +912,9 @@ public class StreamFetcherV2Test {
 			//leaving it set would leak into later tests and later runs
 			if (originalRestartStreamFetcherPeriod != null) {
 				try {
-					AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
-					appSettings.setRestartStreamFetcherPeriod(originalRestartStreamFetcherPeriod);
-					ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+					AppSettings liveAppSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+					liveAppSettings.setRestartStreamFetcherPeriod(originalRestartStreamFetcherPeriod);
+					ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", liveAppSettings);
 				}
 				catch (Exception e) {
 					e.printStackTrace();

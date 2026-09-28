@@ -1417,7 +1417,9 @@ public abstract class RestServiceBase {
 
 	public Result playNextItem(String id, Integer index) {
 		int itemIndex = index != null ? index : -1;
-		logger.info("Switching to item:{} by REST method for playlist:{}", itemIndex, id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"));
+		if (logger.isInfoEnabled()) {
+			logger.info("Switching to item:{} by REST method for playlist:{}", itemIndex, id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"));
+		}
 
 		return getApplication().getStreamFetcherManager().getPlaylistController().playItem(id, itemIndex);
 	}

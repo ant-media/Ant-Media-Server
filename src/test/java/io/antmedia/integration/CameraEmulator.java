@@ -1,6 +1,9 @@
 package io.antmedia.integration;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
+import org.awaitility.Awaitility;
 
 /**
  * The ONVIF camera simulator the RTSP tests pull from. It serves ONVIF on 127.0.0.1:8080 and RTSP on
@@ -20,13 +23,10 @@ public class CameraEmulator {
 
 		try {
 			new ProcessBuilder("/usr/local/onvif/runme.sh").start();
-			Thread.sleep(READY_WAIT_MS);
+			Awaitility.await().dontCatchUncaughtExceptions().pollDelay(READY_WAIT_MS, TimeUnit.MILLISECONDS).until(() -> true);
 		}
 		catch (IOException e) {
 			e.printStackTrace();
-		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
 		}
 	}
 
@@ -38,13 +38,10 @@ public class CameraEmulator {
 		try {
 			new ProcessBuilder(stopOnvif).start();
 			new ProcessBuilder(stopRtsp).start();
-			Thread.sleep(2000);
+			Awaitility.await().dontCatchUncaughtExceptions().pollDelay(2, TimeUnit.SECONDS).until(() -> true);
 		}
 		catch (IOException e) {
 			e.printStackTrace();
-		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
 		}
 	}
 }
