@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,8 @@ import static org.mockito.Mockito.verify;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.streamsource.StreamFetcher.Reason;
@@ -306,6 +310,33 @@ class StreamFetcherTest {
 	}
 
 	@Test
+	void anAttemptThatBlowsUpIsAnOrdinaryFailure() {
+		//a pool that refuses the attempt is an open that failed, never a CONNECTING with nothing behind it
+		ScriptedFetcher refused = fixture.newFetcher("pool-gone", new Recorder());
+		ExecutorService deadPool = Executors.newSingleThreadExecutor();
+		deadPool.shutdown();
+		refused.initialize(fixture.context, deadPool, new Recorder());
+
+		refused.startStream();
+		awaitState(refused, State.RECONNECT_WAIT);
+		assertEquals(Reason.OPEN_FAILED, refused.getLastReason());
+		assertEquals(0, refused.workers.get(0).runs.get());
+
+		//a worker that throws instead of returning a reason still ends its attempt
+		ScriptedFetcher throwing = fixture.newFetcher("worker-throws", new Recorder());
+		throwing.script(new FakeWorker() {
+			@Override
+			public Reason run(Broadcast broadcast) {
+				throw new IllegalStateException("native crash");
+			}
+		});
+
+		throwing.startStream();
+		awaitState(throwing, State.RECONNECT_WAIT);
+		assertEquals(Reason.READ_ERROR, throwing.getLastReason());
+	}
+
+	@Test
 	void theTickRescuesAnAttemptThatWentSilent() {
 		//an active state with no worker behind it: nothing is pulling and nothing would ever end it
 		Recorder recorder = new Recorder();
@@ -361,6 +392,8 @@ class StreamFetcherTest {
 		fixture.appSettings.setStreamFetcherRetryDelayMs(20);
 
 		IStreamFetcherListener legacy = mock(IStreamFetcherListener.class);
+		//outside code too. Its throw on the final transition must not keep the stop future from completing
+		doThrow(new IllegalStateException("legacy listener is broken")).when(legacy).streamFinished(legacy);
 		fetcher.setStreamFetcherListener(legacy);
 
 		fetcher.startStream();
@@ -396,6 +429,8 @@ class StreamFetcherTest {
 		ScriptedFetcher stopWins = inState(State.STREAMING, "stop-wins", new Recorder());
 		stopWins.restart();
 		awaitState(stopWins, State.STOPPING);
+		//the old fetcher said inactive here while its worker was still writing, which is half the stuck source bug
+		assertTrue(stopWins.isThreadActive(), "the attempt is still tearing down");
 		stopWins.stopStream();
 		settle(fixture.context);
 		stopWins.releaseAll();

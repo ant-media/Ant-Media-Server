@@ -297,6 +297,14 @@ class PlaylistControllerTest {
 
 		assertTrue(controller.isRunning("waiting"));
 
+		//a skip does not sit the back off out, the item it asks for is tried right away
+		probed.clear();
+		assertTrue(controller.playItem("waiting", 1).isSuccess());
+		Awaitility.await("the skipped to item is checked at once, and the pass goes on from there")
+				.during(Duration.ofSeconds(1))
+				.atMost(15, TimeUnit.SECONDS)
+				.until(() -> List.of("/gone-b", "/gone-a").equals(probed));
+
 		probed.clear();
 		fixture.appSettings.setStreamFetcherRetryDelayMs(1);
 		fixture.appSettings.setStreamFetcherMaxRetryAttempts(1);
@@ -430,6 +438,29 @@ class PlaylistControllerTest {
 		databaseDown[0] = false;
 		assertStaysAt("blip", 1);
 		assertEquals(0, blip.getCurrentPlayIndex());
+
+		//the same blip on the way to the very first item
+		databaseDown[0] = true;
+		Broadcast neverStarted = playlist("never-started", "rtsp://a");
+		assertTrue(controller.startPlaylist(neverStarted).isSuccess(), "accepting the start does not read the database");
+		awaitFinished("never-started");
+		databaseDown[0] = false;
+		assertTrue(itemsOf("never-started").isEmpty());
+
+		//a skip waits for the current item to stop, and the list is cut short under it meanwhile
+		Broadcast shrunk = playlist("shrunk", "rtsp://a", "rtsp://b", "rtsp://c");
+		shrunk.setCurrentPlayIndex(1);
+		assertTrue(controller.startPlaylist(shrunk).isSuccess());
+		awaitItems("shrunk", 1);
+
+		assertTrue(controller.playItem("shrunk", 2).isSuccess());
+		settle(context);
+		shrunk.setPlayListItemList(List.of(new PlayListItem("rtsp://a", AntMediaApplicationAdapter.VOD)));
+		itemsOf("shrunk").forEach(ScriptedFetcher::releaseAll);
+
+		awaitFinished("shrunk");
+		assertEquals(1, itemsOf("shrunk").size(), "the item it asked for is gone, nothing else may start in its place");
+		assertEquals(0, shrunk.getCurrentPlayIndex(), "a list that ran out under it rewinds, like any other end of the list");
 
 		//an item that cannot even be started ends the playlist rather than leaving it with nothing on air
 		onItemMade = fetcher -> fetcher.failOnStart = true;
