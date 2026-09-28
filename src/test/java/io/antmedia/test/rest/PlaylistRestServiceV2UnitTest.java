@@ -3,6 +3,7 @@ package io.antmedia.test.rest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.Mockito.doReturn;
@@ -638,8 +639,28 @@ public class PlaylistRestServiceV2UnitTest {
 		//is the controller's own business, PlaylistControllerTest covers it against a real playlist
 		Mockito.verify(playlistController, Mockito.times(1)).startPlaylist(Mockito.any());
 
-		
-		
+
+
+	}
+
+	@Test
+	public void testPlayNextItem() {
+		PlaylistController playlistController = mock(PlaylistController.class);
+		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getStreamFetcherManager()).thenReturn(fetcherManager);
+
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		doReturn(app).when(restServiceSpy).getApplication();
+
+		Result playing = new Result(true, "playlistId", "Playing item:2");
+		when(playlistController.playItem("playlistId", 2)).thenReturn(playing);
+		assertSame(playing, restServiceSpy.playNextItem("playlistId", 2));
+
+		//no index means the item after the one playing, which the controller spells -1
+		restServiceSpy.playNextItem("playlistId", null);
+		Mockito.verify(playlistController).playItem("playlistId", -1);
 	}
 	
 

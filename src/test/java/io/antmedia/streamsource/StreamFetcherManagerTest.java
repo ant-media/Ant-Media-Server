@@ -2,6 +2,7 @@ package io.antmedia.streamsource;
 
 import static io.antmedia.streamsource.StreamSourceFixture.NO_RETRY_IN_THIS_TEST_MS;
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
+import static io.antmedia.streamsource.StreamSourceFixture.peek;
 import static io.antmedia.streamsource.StreamSourceFixture.settle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -10,17 +11,28 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Method;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -29,8 +41,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
+import org.red5.server.api.IContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.ClusterNode;
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
@@ -49,9 +66,21 @@ class StreamFetcherManagerTest {
 
 	private static final long LONG_AGO = 60000;
 
+	/** The node that left the cluster in the adoption tests. */
+	private static final String DEPARTED = "192.168.1.9";
+
 	private StreamSourceFixture fixture;
 	private ScriptedManager manager;
 	private Context context;
+
+	private final IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
+	private final IClusterStore clusterStore = mock(IClusterStore.class);
+
+	/** Origins that answer the http reachability check, any other origin is gone. */
+	private final Set<String> answering = ConcurrentHashMap.newKeySet();
+
+	/** Runs while the reachability check of that origin is in flight. */
+	private final Map<String, Runnable> whileAsking = new ConcurrentHashMap<>();
 
 	@BeforeEach
 	void before() {
@@ -179,6 +208,24 @@ class StreamFetcherManagerTest {
 	}
 
 	@Test
+	void aForcedReconnectEndsTheBroadcastThatWasOnAirAndClaimsTheSourceAgain() {
+		manager.prepare = fetcher -> fetcher.script(FakeWorker.publishing(), FakeWorker.holding());
+		manager.startStreaming(fixture.row("reconnect", "fake://reconnect"));
+		ScriptedFetcher fetcher = manager.fetchers.get(0);
+		awaitState(fetcher, State.STREAMING);
+
+		fetcher.restart();
+		awaitState(fetcher, State.STOPPING);
+		fetcher.workers.get(0).release();
+		awaitState(fetcher, State.CONNECTING);
+
+		//straight from STOPPING to CONNECTING, no RECONNECT_WAIT in between to end it on
+		verify(fixture.app, times(1)).closeBroadcast(eq("reconnect"), any(), any());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, fixture.rows.get("reconnect").getStatus());
+		assertSame(fetcher, manager.getStreamFetcher("reconnect"), "reconnected in place, same fetcher and registration");
+	}
+
+	@Test
 	void onTickIsThePerSourceMaintenance() {
 		fixture.appSettings.setRestartStreamFetcherPeriod(1);
 		manager.testSetStreamCheckerInterval(1000);
@@ -217,6 +264,11 @@ class StreamFetcherManagerTest {
 		manager.onTick(streaming);
 		verify(streaming).restart();
 		verify(streaming, never()).stopStream();
+
+		//the period is measured per source, one that only just came up is left to run
+		StreamFetcher justUp = tickFetcher("restarts", State.STREAMING, 0);
+		manager.onTick(justUp);
+		verify(justUp, never()).restart();
 
 		//a source that is not up yet has nothing to reconnect
 		StreamFetcher connecting = tickFetcher("restarts", State.CONNECTING, LONG_AGO);
@@ -409,6 +461,128 @@ class StreamFetcherManagerTest {
 		assertTrue(result.getMessage().contains("Failed to stop the playlist"));
 	}
 
+	@Test
+	void aBlockingStopFromAnInterruptedCallerGivesUpAtOnce() {
+		manager.startStreaming(fixture.row("interrupted-source", "fake://interrupted-source"));
+		awaitState(manager.fetchers.get(0), State.CONNECTING);
+
+		Thread.currentThread().interrupt();
+		Result source = manager.stopStreaming("interrupted-source", true);
+		assertTrue(Thread.interrupted(), "the interrupt belongs to the caller, it must still be set");
+		assertFalse(source.isSuccess(), "the stop was asked for but nobody waited to see it land");
+		assertTrue(source.getMessage().contains("Failed to stop the stream with Blocking"));
+
+		//an item that holds, so the playlist cannot be over before anybody waits for it
+		manager.prepare = fetcher -> fetcher.script(FakeWorker.holding());
+		assertTrue(manager.getPlaylistController().startPlaylist(playlistRow("interrupted-playlist")).isSuccess());
+		Awaitility.await("the playlist item is registered")
+				.atMost(15, TimeUnit.SECONDS)
+				.until(() -> manager.getStreamFetcher("interrupted-playlist") != null);
+
+		Thread.currentThread().interrupt();
+		Result playlist = manager.stopStreaming("interrupted-playlist", true);
+		assertTrue(Thread.interrupted());
+		assertFalse(playlist.isSuccess());
+		assertTrue(playlist.getMessage().contains("Failed to stop the playlist with Blocking"));
+	}
+
+	/**
+	 * Cluster fallback: when a node leaves, the lowest live node takes over the sources it was
+	 * pulling. Only rows whose owner is really gone qualify, and only once per departure.
+	 */
+	@Test
+	void theSourcesOfANodeThatLeftAreAdoptedByTheLowestLiveNode() {
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		ScriptedManager cluster = clusterManager();
+
+		orphan("camera", AntMediaApplicationAdapter.IP_CAMERA, DEPARTED);
+		orphan("source", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED);
+		orphan("peers", AntMediaApplicationAdapter.STREAM_SOURCE, "127.0.0.5");
+		orphan("never-claimed", AntMediaApplicationAdapter.STREAM_SOURCE, "");
+		orphan("on-demand", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED).setAutoStartStopEnabled(true);
+		orphan("stopped", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED).setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+
+		//gone from the node list, but it still answers http, so it is still fetching
+		orphan("still-answers", AntMediaApplicationAdapter.STREAM_SOURCE, "192.168.1.8");
+		answering.add("192.168.1.8");
+
+		//the http check takes up to a second, and the owner can come back or the row can go meanwhile
+		Broadcast reclaimed = orphan("reclaimed", AntMediaApplicationAdapter.STREAM_SOURCE, "192.168.1.7");
+		whileAsking.put("192.168.1.7", () -> reclaimed.setUpdateTime(System.currentTimeMillis()));
+		orphan("deleted", AntMediaApplicationAdapter.STREAM_SOURCE, "192.168.1.6");
+		whileAsking.put("192.168.1.6", () -> fixture.rows.remove("deleted"));
+
+		//a node row with no address or no heartbeat must not count as alive, it would decide who adopts
+		clusterNodes(alive("127.0.0.1"), alive("127.0.0.5"), alive(""), dead(DEPARTED));
+
+		try (MockedStatic<AntMediaApplicationAdapter> statics = originsAnswerFromTheTest()) {
+			checkForOrphans(cluster);
+			assertEquals(Set.of("camera", "source"), cluster.getStreamFetcherList().keySet());
+
+			//nobody left since the last check, so a row that turns up now is not even looked at
+			orphan("late", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED);
+			checkForOrphans(cluster);
+			assertFalse(cluster.getStreamFetcherList().containsKey("late"));
+
+			//a peer leaves, so what it owned is free now too
+			clusterNodes(alive("127.0.0.1"));
+			checkForOrphans(cluster);
+			assertEquals(Set.of("camera", "source", "peers", "late"), cluster.getStreamFetcherList().keySet());
+		}
+
+		cluster.shutdown();
+		assertEquals(-1L, peek(cluster, "orphanCheckTimerId"), "the check dies with the application");
+	}
+
+	@Test
+	void noNodeAdoptsUnlessItCanTellItIsTheOneToDoIt() {
+		assertEquals(-1L, peek(manager, "orphanCheckTimerId"), "a single server has nobody to adopt from");
+
+		ScriptedManager cluster = clusterManager();
+		orphan("orphan", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED);
+		orphan("peers", AntMediaApplicationAdapter.STREAM_SOURCE, "127.0.0.5");
+
+		try (MockedStatic<AntMediaApplicationAdapter> statics = originsAnswerFromTheTest()) {
+			//the setting that resumes sources at boot is also what lets a node take over another's
+			clusterNodes(alive("127.0.0.1"));
+			checkForOrphans(cluster);
+			assertTrue(cluster.getStreamFetcherList().isEmpty());
+			fixture.appSettings.setStartStreamFetcherAutomatically(true);
+
+			//a lower address is alive, it is that node's job and every node agrees on that
+			clusterNodes(alive("127.0.0.1"), alive("10.0.0.1"), alive("127.0.0.5"));
+			checkForOrphans(cluster);
+			assertTrue(cluster.getStreamFetcherList().isEmpty());
+
+			//10.0.0.1 left, so this node is the lowest now. The peer is still up and keeps its own source
+			clusterNodes(alive("127.0.0.1"), alive("127.0.0.5"));
+			checkForOrphans(cluster);
+			assertEquals(Set.of("orphan"), cluster.getStreamFetcherList().keySet());
+
+			//this node drops out of its own list, and the peer leaves while it is out
+			clusterNodes(alive("192.168.1.2"));
+			checkForOrphans(cluster);
+
+			//no cluster store, an empty answer, a store that is down. None of it may leave the guard taken
+			when(clusterNotifier.getClusterStore()).thenReturn(null);
+			checkForOrphans(cluster);
+			when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
+			doReturn(null).when(clusterStore).getClusterNodes(anyInt(), anyInt());
+			checkForOrphans(cluster);
+			doThrow(new IllegalStateException("cluster store is down")).when(clusterStore).getClusterNodes(anyInt(), anyInt());
+			checkForOrphans(cluster);
+			assertEquals(Set.of("orphan"), cluster.getStreamFetcherList().keySet());
+
+			//back in the list. Had it taken the list it was missing from as the last one seen, it would never
+			//notice the peer is gone
+			clusterNodes(alive("127.0.0.1"), alive("192.168.1.2"));
+			checkForOrphans(cluster);
+			assertEquals(Set.of("orphan", "peers"), cluster.getStreamFetcherList().keySet());
+		}
+
+		cluster.shutdown();
+	}
+
 	/** onTick only reads these three off a fetcher, so a mock says exactly what the test means. */
 	private StreamFetcher tickFetcher(String streamId, State state, long inStateForMs) {
 		StreamFetcher fetcher = mock(StreamFetcher.class);
@@ -423,5 +597,79 @@ class StreamFetcherManagerTest {
 		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
 		playlist.setPlayListItemList(List.of(new PlayListItem("fake://item", AntMediaApplicationAdapter.VOD)));
 		return playlist;
+	}
+
+	/** A manager in cluster mode. Its own 5s check is cancelled, the test runs every check by hand. */
+	private ScriptedManager clusterManager() {
+		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
+		IContext red5Context = fixture.scope.getContext();
+		when(red5Context.hasBean(IClusterNotifier.BEAN_NAME)).thenReturn(true);
+		when(red5Context.getBean(IClusterNotifier.BEAN_NAME)).thenReturn(clusterNotifier);
+
+		when(fixture.dataStore.getBroadcastList(anyInt(), anyInt(), anyString(), isNull(), isNull(), isNull())).thenAnswer(call -> {
+			int offset = call.getArgument(0);
+			int size = call.getArgument(1);
+			String type = call.getArgument(2);
+			return fixture.rows.values().stream()
+					.filter(row -> type.equals(row.getType()))
+					.sorted(Comparator.comparing(Broadcast::getStreamId))
+					.skip(offset)
+					.limit(size)
+					.toList();
+		});
+
+		ScriptedManager cluster = fixture.newManager();
+		//an adopted source fails its first attempt at once and then waits out a retry that never comes
+		cluster.prepare = fetcher -> fetcher.workerSupplier = FakeWorker::new;
+
+		assertTrue(fixture.vertx.cancelTimer((long) peek(cluster, "orphanCheckTimerId")), "cluster mode checks for orphans on a timer");
+		return cluster;
+	}
+
+	private void checkForOrphans(StreamFetcherManager cluster) {
+		try {
+			Method check = StreamFetcherManager.class.getDeclaredMethod("processOrphanedSources");
+			check.setAccessible(true);
+			check.invoke(cluster);
+		}
+		catch (Exception e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	/** Answers the http reachability check for an origin, which really costs up to a second per row. */
+	private MockedStatic<AntMediaApplicationAdapter> originsAnswerFromTheTest() {
+		MockedStatic<AntMediaApplicationAdapter> statics = mockStatic(AntMediaApplicationAdapter.class, CALLS_REAL_METHODS);
+		statics.when(() -> AntMediaApplicationAdapter.isInstanceAlive(anyString(), anyString(), anyInt(), anyString())).thenAnswer(call -> {
+			String origin = call.getArgument(0);
+			whileAsking.getOrDefault(origin, () -> { }).run();
+			return answering.contains(origin);
+		});
+		return statics;
+	}
+
+	private void clusterNodes(ClusterNode... nodes) {
+		doReturn(List.of(nodes)).when(clusterStore).getClusterNodes(anyInt(), anyInt());
+	}
+
+	private static ClusterNode alive(String ip) {
+		return new ClusterNode(ip, "node-" + ip);
+	}
+
+	/** Still listed, but it stopped sending its heartbeat. */
+	private static ClusterNode dead(String ip) {
+		ClusterNode node = alive(ip);
+		node.setLastUpdateTime(0);
+		return node;
+	}
+
+	/** A source whose owner stopped refreshing it, so its status has decayed to terminated_unexpectedly. */
+	private Broadcast orphan(String streamId, String type, String origin) {
+		Broadcast row = fixture.row(streamId, "fake://" + streamId);
+		row.setType(type);
+		row.setOriginAdress(origin);
+		row.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		row.setUpdateTime(System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 1000);
+		return row;
 	}
 }
