@@ -262,7 +262,7 @@ public class StreamFetcherV2Test {
 	 * MuxAdaptor and set its endpoints up, so it covers the whole chain in one signal.
 	 */
 	@Test
-	public void testSetupEndpointStreamFetcher() {
+	public void testSetupEndpointStreamFetcher() throws Exception {
 		RestServiceV2Test restService = new RestServiceV2Test();
 		String publishedStreamId = RandomStringUtils.randomAlphanumeric(8);
 		String hlsUrl = "http://127.0.0.1:5080/LiveApp/streams/" + publishedStreamId + ".m3u8";
@@ -323,10 +323,6 @@ public class StreamFetcherV2Test {
 				Broadcast stopped = restService.getBroadcast(activeTargetId);
 				return stopped == null || !AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(stopped.getStatus());
 			});
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
 		}
 		finally {
 			//run even if an assertion above failed - otherwise a failure here leaves a live fetcher
@@ -418,7 +414,7 @@ public class StreamFetcherV2Test {
 	}
 
 	@Test
-	public void testSeekTimeRefusedWhenSourceNotRunning() {
+	public void testSeekTimeRefusedWhenSourceNotRunning() throws Exception {
 		RestServiceV2Test restService = new RestServiceV2Test();
 		String streamId = null;
 		try {
@@ -429,10 +425,6 @@ public class StreamFetcherV2Test {
 			Result result = RestServiceV2Test.callSeekTime(streamId, 5000);
 			assertFalse(result.isSuccess());
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
 		finally {
 			if (streamId != null) {
 				RestServiceV2Test.callDeleteBroadcast(streamId);
@@ -441,7 +433,7 @@ public class StreamFetcherV2Test {
 	}
 
 	@Test
-	public void testSeekTimeOnRunningVodSource() {
+	public void testSeekTimeOnRunningVodSource() throws Exception {
 		RestServiceV2Test restService = new RestServiceV2Test();
 		Broadcast vodSource = null;
 		try {
@@ -459,10 +451,6 @@ public class StreamFetcherV2Test {
 
 			result = RestServiceV2Test.callSeekTime(streamId, 5000);
 			assertTrue(result.isSuccess());
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
 		}
 		finally {
 			//run even if an assertion above failed - otherwise a failure here leaves a live VoD fetcher
@@ -501,10 +489,6 @@ public class StreamFetcherV2Test {
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
 					RestServiceV2Test.callGetCameraError(finalStreamId).isSuccess());
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
 		finally {
 			//run even if an assertion above failed - otherwise a failure here leaves a live fetcher
 			//running for the rest of the class's shared Spring context (@DirtiesContext is AFTER_CLASS)
@@ -517,7 +501,7 @@ public class StreamFetcherV2Test {
 	}
 
 	@Test
-	public void testDeleteWhileStreamSourceActivelyBroadcasting() {
+	public void testDeleteWhileStreamSourceActivelyBroadcasting() throws Exception {
 		int port = freeSrtPort();
 		Process publisher = startSrtPublisher(port);
 		RestServiceV2Test restService = new RestServiceV2Test();
@@ -551,10 +535,6 @@ public class StreamFetcherV2Test {
 			Broadcast created = RestServiceV2Test.createBroadcast(recreated);
 			assertEquals(streamId, created.getStreamId());
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
 		finally {
 			//covers the original too if the delete under test failed, and it may still be pulling
 			restService.stopStreaming(streamId);
@@ -564,7 +544,7 @@ public class StreamFetcherV2Test {
 	}
 
 	@Test
-	public void testCreateListBulkForStreamSourceAndPlaylist() {
+	public void testCreateListBulkForStreamSourceAndPlaylist() throws Exception {
 		String prefix = "bulk_" + RandomStringUtils.randomAlphanumeric(6) + "_";
 		try {
 			Broadcast streamSource1 = new Broadcast();
@@ -595,10 +575,6 @@ public class StreamFetcherV2Test {
 			assertEquals(AntMediaApplicationAdapter.STREAM_SOURCE, RestServiceV2Test.callGetBroadcast(prefix + "source2").getType());
 			assertEquals(AntMediaApplicationAdapter.PLAY_LIST, RestServiceV2Test.callGetBroadcast(prefix + "playlist").getType());
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
 		finally {
 			RestServiceV2Test.callDeleteBroadcast(prefix + "source1");
 			RestServiceV2Test.callDeleteBroadcast(prefix + "source2");
@@ -607,7 +583,7 @@ public class StreamFetcherV2Test {
 	}
 
 	@Test
-	public void testStreamSourceSelfHealsAfterTransientDrop() {
+	public void testStreamSourceSelfHealsAfterTransientDrop() throws Exception {
 		int port = freeSrtPort();
 		Process publisher = startSrtPublisher(port);
 		RestServiceV2Test restService = new RestServiceV2Test();
@@ -645,10 +621,6 @@ public class StreamFetcherV2Test {
 
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(activeStreamId).getStatus()));
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
 		}
 		finally {
 			//run even if an assertion above failed - otherwise a failure here leaves a live fetcher
@@ -727,7 +699,7 @@ public class StreamFetcherV2Test {
 	 * reader after reader, so the racing calls stay the only variable.
 	 */
 	@Test
-	public void testConcurrentStartStopRequestsLeaveSystemInConsistentState() {
+	public void testConcurrentStartStopRequestsLeaveSystemInConsistentState() throws Exception {
 		ExecutorService executor = Executors.newFixedThreadPool(2);
 		RestServiceV2Test restService = new RestServiceV2Test();
 		String publishedStreamId = RandomStringUtils.randomAlphanumeric(8);
@@ -786,10 +758,6 @@ public class StreamFetcherV2Test {
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS).until(() ->
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(streamId).getStatus()));
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
 		finally {
 			//run even if an assertion above failed - otherwise a failure here leaves a live broadcast (and
 			//possibly a fetcher still racing) for the rest of the class's shared Spring context
@@ -810,7 +778,7 @@ public class StreamFetcherV2Test {
 	 * several real sources across one tick period to cover the window in a single sweep. Don't weaken it.
 	 */
 	@Test
-	public void testStuckSourceUnderRestartRaceViaRestOnly() {
+	public void testStuckSourceUnderRestartRaceViaRestOnly() throws Exception {
 		int streamCount = 6;
 		int basePort = freeSrtPort();
 		List<String> streamIds = new ArrayList<>();
@@ -902,10 +870,6 @@ public class StreamFetcherV2Test {
 			}
 
 			assertTrue(stuck.isEmpty(), "client-visible stuck sources (feed is back, REST refuses to restart): " + stuck);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
 		}
 		finally {
 			//restore first: this lives on the server and is written through to red5-web.properties, so

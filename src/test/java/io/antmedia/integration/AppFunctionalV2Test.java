@@ -1,6 +1,7 @@
 package io.antmedia.integration;
 
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -306,7 +307,7 @@ public class AppFunctionalV2Test {
 	}
 
 	@Test
-	public void testPlayListSkipToIndex() {
+	public void testPlayListSkipToIndex() throws Exception {
 		String streamId = null;
 		try {
 			Broadcast broadcast = RestServiceV2Test.createBroadcast("skip to index playlist", AntMediaApplicationAdapter.PLAY_LIST, null, null);
@@ -328,17 +329,13 @@ public class AppFunctionalV2Test {
 
 			awaitPlaylistItemStarted(streamId, 2);
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
 		finally {
 			stopAndDeletePlaylist(streamId);
 		}
 	}
 
 	@Test
-	public void testPlaylistFinishesAtEndWhenLoopDisabled() {
+	public void testPlaylistFinishesAtEndWhenLoopDisabled() throws Exception {
 		String streamId = null;
 		try {
 			Broadcast broadcast = new Broadcast();
@@ -369,17 +366,13 @@ public class AppFunctionalV2Test {
 
 			assertEquals(0, RestServiceV2Test.getBroadcast(streamId).getCurrentPlayIndex());
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
 		finally {
 			stopAndDeletePlaylist(streamId);
 		}
 	}
 
 	@Test
-	public void testPlaylistWrapsToStartWhenLoopEnabled() {
+	public void testPlaylistWrapsToStartWhenLoopEnabled() throws Exception {
 		String streamId = null;
 		try {
 			Broadcast broadcast = new Broadcast();
@@ -412,10 +405,6 @@ public class AppFunctionalV2Test {
 			Awaitility.await().during(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(() ->
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING
 							.equals(RestServiceV2Test.getBroadcast(activeStreamId).getPlayListStatus()));
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
 		}
 		finally {
 			stopAndDeletePlaylist(streamId);
@@ -609,7 +598,7 @@ public class AppFunctionalV2Test {
 	public void testAdaptiveMasterFileBug() 
 	{
 
-		try {
+		assertDoesNotThrow(() -> {
 			//check if enterprise edition
 			ConsoleAppRestServiceTest.resetCookieStore();
 			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
@@ -679,11 +668,7 @@ public class AppFunctionalV2Test {
 
 			rtmpSendingProcess.destroy();
 			rtmpSendingProcess.waitFor();
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		});
 	}
 
 	@Test
