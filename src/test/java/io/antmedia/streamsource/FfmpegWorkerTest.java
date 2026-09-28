@@ -60,6 +60,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.MockedStatic;
+import org.red5.server.api.scope.IScope;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -294,7 +295,7 @@ class FfmpegWorkerTest extends UnitTestBase<FfmpegWorker> {
 
 	@Test
 	void anAttemptThatThrowsStillTakesItsAdaptorDown() throws Exception {
-		when(adaptor.init(any(), any(), anyBoolean())).thenThrow(new IllegalStateException("broken muxer"));
+		when(adaptor.init(any(IScope.class), any(), anyBoolean())).thenThrow(new IllegalStateException("broken muxer"));
 		FfmpegWorker worker = worker(SHORT_FLV, AntMediaApplicationAdapter.STREAM_SOURCE, 0);
 
 		assertThat(run(worker)).isEqualTo(Reason.READ_ERROR);
