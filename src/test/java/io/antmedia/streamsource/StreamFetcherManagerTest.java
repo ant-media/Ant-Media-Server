@@ -324,7 +324,7 @@ class StreamFetcherManagerTest {
 	}
 
 	@Test
-	void isStreamRunningLooksPastThisNode() throws Exception {
+	void isStreamRunningLooksPastThisNode() {
 		Broadcast free = fixture.row("free", "fake://free");
 		assertFalse(manager.isStreamRunning(free));
 
@@ -405,7 +405,7 @@ class StreamFetcherManagerTest {
 	}
 
 	@Test
-	void stopStreamingHandlesEveryKindOfId() throws Exception {
+	void stopStreamingHandlesEveryKindOfId() {
 		assertEquals("Stream id is not defined", manager.stopStreaming("   ", false).getMessage());
 
 		Result unknown = manager.stopStreaming("nobody", false);

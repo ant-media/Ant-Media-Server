@@ -2089,7 +2089,7 @@ public class BroadcastRestServiceV2UnitTest {
 		//without this the adapter builds a real StreamFetcherManager, whose context needs a vertx
 		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
 		PlaylistController playlistController = mock(PlaylistController.class);
-		Mockito.when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
 		adaptor.setStreamFetcherManager(fetcherManager);
 
 		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
@@ -2172,7 +2172,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals("Camera is not found with streamId: any_stream", cameraErrorV2.getMessage());
 
 		//a playlist between two items has no fetcher registered, so it gets its own answer
-		Mockito.when(playlistController.isRunning("any_stream")).thenReturn(true);
+		when(playlistController.isRunning("any_stream")).thenReturn(true);
 		cameraErrorV2 = streamSourceRest.getCameraErrorV2("any_stream");
 		assertFalse(cameraErrorV2.isSuccess());
 		assertTrue(cameraErrorV2.getMessage().contains("Playlist item is preparing"));
@@ -3007,8 +3007,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(adaptor).when(broadcastRestService).getApplication();
 		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
-		PlaylistController playlistController = Mockito.mock(PlaylistController.class);
-		Mockito.when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
+		PlaylistController playlistController = mock(PlaylistController.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
 		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(fetcherManager);
 
 		Result updateSeekTime = broadcastRestService.updateSeekTime("", 1000);
@@ -3020,7 +3020,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue(updateSeekTime.getMessage().contains("Not active stream source"));
 
 		//a playlist between two items has no fetcher registered, so it gets its own answer
-		Mockito.when(playlistController.isRunning("streamId")).thenReturn(true);
+		when(playlistController.isRunning("streamId")).thenReturn(true);
 		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
 		assertFalse(updateSeekTime.isSuccess());
 		assertTrue(updateSeekTime.getMessage().contains("Playlist item is preparing"));

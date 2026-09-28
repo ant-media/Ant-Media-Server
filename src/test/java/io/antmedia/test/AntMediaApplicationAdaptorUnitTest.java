@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1370,8 +1369,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(streamFetcher2.stopStream()).thenReturn(CompletableFuture.completedFuture(null));
 
 
-		Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream.getStreamId(), stream.getStreamUrl(), stream.getType(), stream.getSeekTimeInMs());
-		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2.getStreamId(), stream2.getStreamUrl(), stream2.getType(), stream2.getSeekTimeInMs());
+		doReturn(streamFetcher).when(fetcherManager).make(stream.getStreamId(), stream.getStreamUrl(), stream.getType(), stream.getSeekTimeInMs());
+		doReturn(streamFetcher2).when(fetcherManager).make(stream2.getStreamId(), stream2.getStreamUrl(), stream2.getType(), stream2.getSeekTimeInMs());
 
 
 		Map<String, StreamFetcher> sfQueue = new ConcurrentHashMap<>();
@@ -2723,15 +2722,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setDataStore(new InMemoryDataStore("testdb"));
 		adapter.getDataStore().save(broadcast);
 		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
-		PlaylistController playlistController = Mockito.mock(PlaylistController.class);
-		Mockito.when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
+		PlaylistController playlistController = mock(PlaylistController.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
 		adapter.setStreamFetcherManager(fetcherManager);
 
 		adapter.schedulePlayList(now, broadcast);
 		assertFalse(adapter.getPlayListSchedulerTimer().isEmpty());
 
 		//it can take up 8 secs to start because of randomness about 5 seconds and 3 seconds 
-		Mockito.verify(playlistController, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
+		verify(playlistController, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
 
 		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 
@@ -2744,7 +2743,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 
 		//it should be still 1 because we cancel the timer 
-		Mockito.verify(playlistController, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
+		verify(playlistController, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
 
 		//rescheduling replaces the timer, the one it replaced must not fire as well
 		long rescheduledAt = System.currentTimeMillis();
@@ -2758,7 +2757,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertEquals(1, adapter.getPlayListSchedulerTimer().size());
 		assertNotEquals(firstTimerId, secondTimerId);
-		Mockito.verify(playlistController, Mockito.timeout(9000).times(2)).startPlaylist(broadcast);
+		verify(playlistController, Mockito.timeout(9000).times(2)).startPlaylist(broadcast);
 
 		adapter.cancelPlaylistSchedule("anyId");
 
@@ -2785,7 +2784,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		retyped.setType(AntMediaApplicationAdapter.LIVE_STREAM);
 
 		await().atMost(10, TimeUnit.SECONDS).until(() -> adapter.getPlayListSchedulerTimer().isEmpty());
-		Mockito.verify(playlistController, Mockito.after(500).times(2)).startPlaylist(Mockito.any());
+		verify(playlistController, Mockito.after(500).times(2)).startPlaylist(Mockito.any());
 	}
 
 	@Test

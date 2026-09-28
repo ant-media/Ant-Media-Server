@@ -8,6 +8,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -539,8 +543,8 @@ public class PlaylistRestServiceV2UnitTest {
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, playlist.getStatus());
 
 		//a playlist id goes to the controller, never to the plain stream source stop
-		Mockito.verify(playlistController, Mockito.times(3)).stopPlaylist("testPlaylistId");
-		Mockito.verify(fetcherManager, Mockito.never()).stopStreaming(Mockito.anyString(), Mockito.anyBoolean());
+		verify(playlistController, times(3)).stopPlaylist("testPlaylistId");
+		verify(fetcherManager, never()).stopStreaming(Mockito.anyString(), Mockito.anyBoolean());
 
 	}
 
@@ -618,8 +622,8 @@ public class PlaylistRestServiceV2UnitTest {
 		result = restServiceReal.startStreamSourceV2(playlist.getStreamId());
 		assertEquals(false, result.isSuccess());
 		assertEquals("refused by the controller", result.getMessage());
-		Mockito.verify(playlistController).startPlaylist(playlist);
-		Mockito.verify(fetcherManager, Mockito.never()).startStreaming(Mockito.any());
+		verify(playlistController).startPlaylist(playlist);
+		verify(fetcherManager, never()).startStreaming(Mockito.any());
 
 
 		// Playlist ID is null scenario
@@ -637,7 +641,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		//neither of the two above ever reached the controller. What an out of range stored index does
 		//is the controller's own business, PlaylistControllerTest covers it against a real playlist
-		Mockito.verify(playlistController, Mockito.times(1)).startPlaylist(Mockito.any());
+		verify(playlistController, times(1)).startPlaylist(Mockito.any());
 
 
 
@@ -648,11 +652,11 @@ public class PlaylistRestServiceV2UnitTest {
 		PlaylistController playlistController = mock(PlaylistController.class);
 		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
 		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
-		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
-		when(app.getStreamFetcherManager()).thenReturn(fetcherManager);
+		AntMediaApplicationAdapter theApp = mock(AntMediaApplicationAdapter.class);
+		when(theApp.getStreamFetcherManager()).thenReturn(fetcherManager);
 
-		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
-		doReturn(app).when(restServiceSpy).getApplication();
+		BroadcastRestService restServiceSpy = spy(restServiceReal);
+		doReturn(theApp).when(restServiceSpy).getApplication();
 
 		Result playing = new Result(true, "playlistId", "Playing item:2");
 		when(playlistController.playItem("playlistId", 2)).thenReturn(playing);
@@ -660,7 +664,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		//no index means the item after the one playing, which the controller spells -1
 		restServiceSpy.playNextItem("playlistId", null);
-		Mockito.verify(playlistController).playItem("playlistId", -1);
+		verify(playlistController).playItem("playlistId", -1);
 	}
 	
 
