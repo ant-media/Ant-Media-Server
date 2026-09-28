@@ -184,8 +184,8 @@ public class TokenFilterManager extends AbstractFilter   {
 		int endIndex;
 		int startIndex = requestURI.indexOf('/');
 
-		if(requestURI.contains("streams")) {
-			requestURI = requestURI.split("streams")[1];
+		if (requestURI.contains("/streams/")) {
+			requestURI = requestURI.substring(requestURI.indexOf("/streams/") + "/streams".length());
 			if (requestURI.startsWith("/drm/")) {
 				requestURI = requestURI.substring(5);
 				return requestURI.substring(0, requestURI.indexOf("/"));

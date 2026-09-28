@@ -129,6 +129,8 @@ public class CommonRestService {
 
 	public static final String NODE_GROUP = "nodeGroup";
 
+	public static final String PROMETHEUS_ENABLED = ServerSettings.SETTINGS_PROMETHEUS_ENABLED;
+
 	Gson gson = new Gson();
 
     @VisibleForTesting
@@ -763,7 +765,23 @@ public class CommonRestService {
 	}
 
 
-	public String getGPUInfo() 
+	public String getSystemResourcesHistory() {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getSystemResourcesHistory()) : "{}";
+	}
+
+	public String getAppMetricsHistory(String appName) {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getAppMetricsHistory(appName)) : "{}";
+	}
+
+	public String getNetworkStatus() {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getNetworkStatus()) : "{}";
+	}
+
+
+	public String getGPUInfo()
 	{
 		return gson.toJson(StatsCollector.getGPUInfoJSObject());
 	}
@@ -1133,6 +1151,9 @@ public class CommonRestService {
 		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
 		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
 
+		store.put(PROMETHEUS_ENABLED, String.valueOf(serverSettings.isPrometheusEnabled()));
+		getServerSettingsInternal().setPrometheusEnabled(serverSettings.isPrometheusEnabled());
+
 		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
 
 		if(LOG_LEVEL_ALL.equals(serverSettings.getLogLevel()) || LOG_LEVEL_TRACE.equals(serverSettings.getLogLevel()) 
@@ -1361,9 +1382,9 @@ public class CommonRestService {
 		//default log 
 		String logLocation = SERVER_LOG_LOCATION;
 
-		if (logType.equals(LOG_TYPE_ERROR)) {
+		if (LOG_TYPE_ERROR.equals(logType)) {
 			logLocation = ERROR_LOG_LOCATION;
-		} 
+		}
 
 		JsonObject jsonObject = new JsonObject();
 		String logContent = "";

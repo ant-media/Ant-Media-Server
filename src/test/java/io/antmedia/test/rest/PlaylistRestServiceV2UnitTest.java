@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -258,7 +259,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
-		when(restServiceSpy.getApplication()).thenReturn(adptr);
+		doReturn(adptr).when(restServiceSpy).getApplication();
 
 		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any())).thenReturn(result);
 
@@ -516,7 +517,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 
 
-		when(restServiceSpy.getApplication()).thenReturn(mock(AntMediaApplicationAdapter.class));
+		doReturn(mock(AntMediaApplicationAdapter.class)).when(restServiceSpy).getApplication();
 		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any())).thenReturn(result);
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);	
 		//it's created because it's not started
