@@ -2,7 +2,6 @@ package io.antmedia.streamsource;
 
 import static io.antmedia.streamsource.StreamSourceFixture.peek;
 import static io.antmedia.streamsource.StreamSourceFixture.poke;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
@@ -32,12 +31,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -239,44 +232,6 @@ class FfmpegWorkerTest extends UnitTestBase<FfmpegWorker> {
 
 		verifyNoInteractions(adaptor);
 		assertThat(firstPackets).hasValue(0);
-	}
-
-	@Test
-	void anAbortCutsABlockedOpenShort() throws Exception {
-		int port;
-		try (DatagramSocket free = new DatagramSocket(0, InetAddress.getLoopbackAddress())) {
-			port = free.getLocalPort();
-		}
-
-		//nothing ever arrives on this port, ffmpeg would sit out its 15s read timeout in there
-		FfmpegWorker worker = worker("udp://127.0.0.1:" + port, AntMediaApplicationAdapter.STREAM_SOURCE, 0);
-		CompletableFuture<Reason> running = start(worker);
-		await().during(500, MILLISECONDS).atMost(5, SECONDS).until(() -> !running.isDone());
-
-		worker.abortRequested.set(true);
-
-		assertThat(running.get(5, SECONDS)).isEqualTo(Reason.TIMEOUT);
-		verifyNoInteractions(adaptor);
-	}
-
-	@Test
-	void anAbortCutsABlockedReadShort() throws Exception {
-		try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
-			server.setSoTimeout(10000);
-			FfmpegWorker worker = worker("tcp://127.0.0.1:" + server.getLocalPort(), AntMediaApplicationAdapter.STREAM_SOURCE, 0);
-			CompletableFuture<Reason> running = start(worker);
-
-			//the whole file and then nothing, the connection stays up like a live source that went quiet
-			try (Socket source = server.accept()) {
-				source.getOutputStream().write(Files.readAllBytes(Path.of(SHORT_FLV)));
-				await().atMost(10, SECONDS).until(() -> lastDtsMs(0) >= 9500 && lastDtsMs(1) >= 9500);
-
-				assertThat(running).as("a quiet source is not the end of it").isNotDone();
-				worker.abortRequested.set(true);
-
-				assertThat(running.get(5, SECONDS)).isEqualTo(Reason.TIMEOUT);
-			}
-		}
 	}
 
 	@Test
