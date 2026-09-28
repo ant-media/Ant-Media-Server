@@ -955,6 +955,67 @@ public class RestServiceV2Test {
 	}
 	
 	
+	public static Result callSeekTime(String streamId, long seekTimeMs) throws Exception {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId + "/seek-time/" + seekTimeMs;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		HttpUriRequest put = RequestBuilder.put().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+		HttpResponse response = client.execute(put);
+
+		StringBuffer result = readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		return new Gson().fromJson(result.toString(), Result.class);
+	}
+
+	public static Result callGetCameraError(String streamId) throws Exception {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId + "/ip-camera-error";
+
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		HttpUriRequest get = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+		CloseableHttpResponse response = client.execute(get);
+
+		StringBuffer result = readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		return new Gson().fromJson(result.toString(), Result.class);
+	}
+
+	public static List<Result> callCreateBroadcastList(List<Broadcast> broadcasts, String onDuplicate) throws Exception {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create-list" + (onDuplicate != null ? "?onDuplicate=" + onDuplicate : "");
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcasts))).build();
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		Type listType = new TypeToken<List<Result>>() {
+		}.getType();
+		return gson.fromJson(result.toString(), listType);
+	}
+
+	public static Result callPlayNextItem(String playlistId, Integer index) throws Exception {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/playlists/" + playlistId + "/next"
+				+ (index != null ? "?index=" + index : "");
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		return new Gson().fromJson(result.toString(), Result.class);
+	}
+
 	public static boolean callStartBroadast(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/start";
 
