@@ -451,6 +451,10 @@ public class TokenFilterTest {
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX +".m3u8"));
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX +".m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_subtitles_6.m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_subtitles_6_60.vtt"));
+		assertEquals("stream_subtitles_name", TokenFilterManager.getStreamId(
+				"/liveapp/streams/subfolder/stream_subtitles_name_subtitles_12_345.vtt"));
 		
 		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test" +".m3u8"));
 		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_underline_test" +".m3u8"));
