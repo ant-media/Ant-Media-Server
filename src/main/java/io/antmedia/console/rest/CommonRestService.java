@@ -129,6 +129,8 @@ public class CommonRestService {
 
 	public static final String NODE_GROUP = "nodeGroup";
 
+	public static final String PROMETHEUS_ENABLED = ServerSettings.SETTINGS_PROMETHEUS_ENABLED;
+
 	Gson gson = new Gson();
 
 	private AbstractConsoleDataStore dataStore;
@@ -1142,6 +1144,9 @@ public class CommonRestService {
 
 		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
 		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
+
+		store.put(PROMETHEUS_ENABLED, String.valueOf(serverSettings.isPrometheusEnabled()));
+		getServerSettingsInternal().setPrometheusEnabled(serverSettings.isPrometheusEnabled());
 
 		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
 
