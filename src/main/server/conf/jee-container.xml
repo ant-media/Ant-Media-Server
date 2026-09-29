@@ -78,6 +78,11 @@
 						</map>
 					</property>
 				</bean>
+				<bean name="prometheusConnector" class="org.red5.server.tomcat.TomcatConnector">
+					<property name="protocol"
+						value="org.apache.coyote.http11.Http11Nio2Protocol" />
+					<property name="address" value="${http.host}:${prometheus.port:9090}" />
+				</bean>
 				<!-- https start
 				<bean name="httpsConnector" class="org.red5.server.tomcat.TomcatConnector"> 
 						<property name="secure" value="true" /> 
