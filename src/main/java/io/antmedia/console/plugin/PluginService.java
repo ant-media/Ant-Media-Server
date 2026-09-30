@@ -30,8 +30,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import io.antmedia.filter.JWTFilter;
-import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.plugin.PluginDeployer;
 import io.antmedia.plugin.PluginPaths;
 import io.antmedia.plugin.api.PluginId;
@@ -42,15 +40,12 @@ import io.antmedia.settings.ServerSettings;
 
 /**
  * Owns plugin install, upgrade and removal for the console. The REST layer only maps to HTTP
- * and {@link io.antmedia.console.AdminApplication} only forwards cluster callbacks, so plugin
- * ids are validated and plugin files are located here and nowhere else.
+ * and plugin ids are validated and plugin files are located here and nowhere else.
  */
 @Component
 public class PluginService {
 
 	private static final Logger logger = LoggerFactory.getLogger(PluginService.class);
-
-	private static final int JWT_TOKEN_TIMEOUT_MS = 60000;
 
 	private static final RequestConfig REQUEST_CONFIG = RequestConfig.custom()
 			.setConnectTimeout(5000)
@@ -121,22 +116,7 @@ public class PluginService {
 		if (isBundled(pluginId)) {
 			return new Result(false, "A plugin with id '" + pluginId + "' is already bundled with the server");
 		}
-		return downloadAndDeploy(pluginId, downloadUrl, null, expectedSha256);
-	}
-
-	/**
-	 * Installs a plugin whose ZIP lives on another cluster node. The registry host restriction
-	 * does not apply here: the URI comes from a peer over the cluster channel, not from a user,
-	 * and the request is JWT-signed with the cluster key.
-	 */
-	public synchronized Result installFromClusterPeer(String pluginId, String zipUri, String clusterSecret) {
-		Result idCheck = validateId(pluginId);
-		if (!idCheck.isSuccess()) {
-			return idCheck;
-		}
-		String jwtToken = JWTFilter.generateJwtToken(clusterSecret,
-				System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "pluginname", pluginId);
-		return downloadAndDeploy(pluginId, zipUri, jwtToken, null);
+		return downloadAndDeploy(pluginId, downloadUrl, expectedSha256);
 	}
 
 	/** Removes a plugin: unloads it, runs its uninstall script and deletes its files. */
@@ -181,15 +161,6 @@ public class PluginService {
 		return records;
 	}
 
-	/** The ZIP a cluster peer should download, or {@code null} when there isn't one. */
-	public File resolveZipForDownload(String pluginId) {
-		if (!PluginId.isValid(pluginId)) {
-			return null;
-		}
-		File zipFile = PluginPaths.resolve(getPluginsDir(), pluginId, ".zip");
-		return zipFile.exists() ? zipFile : null;
-	}
-
 	public File getPluginsDir() {
 		String amsHome = System.getProperty("red5.root", "/usr/local/antmedia");
 		File dir = new File(amsHome, "plugins");
@@ -199,10 +170,10 @@ public class PluginService {
 		return dir;
 	}
 
-	private Result downloadAndDeploy(String pluginId, String zipUri, String jwtToken, String expectedSha256) {
+	private Result downloadAndDeploy(String pluginId, String zipUri, String expectedSha256) {
 		File zipFile;
 		try {
-			zipFile = downloadPluginZip(pluginId, zipUri, jwtToken);
+			zipFile = downloadPluginZip(pluginId, zipUri);
 		} catch (IOException e) {
 			logger.error("Error downloading plugin {} from {}", PluginPaths.forLog(pluginId),
 					PluginPaths.forLog(zipUri), e);
@@ -330,13 +301,9 @@ public class PluginService {
 		return saved;
 	}
 
-	/** {@code jwtToken} is set only for cluster peer downloads, which are JWT-gated. */
-	File downloadPluginZip(String pluginId, String zipUri, String jwtToken) throws IOException {
+	File downloadPluginZip(String pluginId, String zipUri) throws IOException {
 		HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(zipUri).build();
 		get.setConfig(REQUEST_CONFIG);
-		if (jwtToken != null) {
-			get.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken);
-		}
 
 		HttpResponse response = httpClient.execute(get);
 		int status = response.getStatusLine().getStatusCode();

@@ -1,8 +1,5 @@
 package io.antmedia.console.rest;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -24,8 +21,6 @@ import io.antmedia.AppSettings;
 import io.antmedia.console.plugin.PluginService;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
-import io.antmedia.filter.JWTFilter;
-import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
@@ -39,7 +34,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -706,40 +700,6 @@ public class RestServiceV2 extends CommonRestService {
 			@PathParam("pluginId") String pluginId) {
 		logger.info("Plugin uninstall request received for {}", sanitize(pluginId));
 		return pluginService.uninstall(pluginId);
-	}
-
-	@Operation(summary = "Stream a plugin ZIP for cluster-to-cluster download (JWT-authenticated)",
-			responses = {@ApiResponse(responseCode = "200", description = "Plugin ZIP returned"),
-					@ApiResponse(responseCode = "403", description = "Invalid or missing JWT"),
-					@ApiResponse(responseCode = "404", description = "Plugin not found")})
-	@GET
-	@Path("/plugins/{pluginId}/download")
-	public Response downloadPlugin(
-			@Parameter(description = "Plugin id", required = true)
-			@PathParam("pluginId") String pluginId,
-			@Parameter(description = "Cluster authorization JWT", required = true)
-			@HeaderParam(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION) String authToken) {
-
-		String secret = getApplication().getClusterCommunicationKey();
-		if (secret == null || authToken == null || !JWTFilter.isJWTTokenValid(secret, authToken)) {
-			return Response.status(Status.FORBIDDEN).build();
-		}
-
-		File zipFile = pluginService.resolveZipForDownload(pluginId);
-		if (zipFile == null) {
-			return Response.status(Status.NOT_FOUND).build();
-		}
-
-		try {
-			return Response.ok(new FileInputStream(zipFile))
-					.header("Content-Disposition", "attachment; filename=\"" + pluginId + ".zip\"")
-					.header("Content-Length", zipFile.length())
-					.type("application/zip")
-					.build();
-		} catch (FileNotFoundException e) {
-			logger.error("Plugin ZIP disappeared before it could be streamed: {}", zipFile.getAbsolutePath());
-			return Response.status(Status.NOT_FOUND).build();
-		}
 	}
 
 	/** Strips CR/LF so a caller-supplied id cannot forge log lines. */

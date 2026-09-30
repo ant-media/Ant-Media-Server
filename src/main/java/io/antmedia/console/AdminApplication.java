@@ -126,16 +126,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
 			});
-
-			// Plugin install/uninstall propagation across cluster nodes.
-			clusterNotifier.registerDeployPluginListener((pluginId, zipURI, secretKey) -> {
-				log.info("Deploying plugin {} from cluster peer {}", pluginId, zipURI);
-				return pluginService.installFromClusterPeer(pluginId, zipURI, secretKey).isSuccess();
-			});
-			clusterNotifier.registerUndeployPluginListener(pluginId -> {
-				log.info("Undeploying plugin with id {}", pluginId);
-				return pluginService.uninstall(pluginId).isSuccess();
-			});
 		}
 
 		return super.appStart(app);
@@ -752,26 +742,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public PluginService getPluginService() {
 		return pluginService;
-	}
-
-	@Nullable
-	public String getClusterCommunicationKey() {
-		for (String name : getApplications()) {
-			if (APP_NAME.equals(name)) continue;
-			IScope appScope = getRootScope().getScope(name);
-			if (appScope == null) continue;
-			try {
-				AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) appScope.getContext()
-						.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-				if (adapter != null && adapter.getAppSettings() != null) {
-					String key = adapter.getAppSettings().getClusterCommunicationKey();
-					if (key != null && !key.isEmpty()) return key;
-				}
-			} catch (Exception e) {
-				log.debug("Could not read cluster key from app {}: {}", name, e.getMessage());
-			}
-		}
-		return null;
 	}
 
 }

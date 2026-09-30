@@ -44,7 +44,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.datastore.db.types.User;
-import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.plugin.api.PluginState;
 import io.antmedia.rest.model.Result;
@@ -192,27 +191,6 @@ public class PluginServiceIntegrationTests {
 		Result result = uninstall("no-such-plugin");
 
 		assertFalse(result.isSuccess());
-	}
-
-	/** The cluster download endpoint must not serve plugin files without a valid JWT. */
-	@Test
-	public void testDownloadRequiresJwt() throws Exception {
-		assertTrue(installFromUrl(PLUGIN_ID, PLUGIN_ZIP_URL).isSuccess());
-
-		try (CloseableHttpClient client = client()) {
-			HttpResponse noToken = client.execute(
-					new HttpGet(ROOT_SERVICE_URL + "/plugins/" + PLUGIN_ID + "/download"));
-			assertEquals(403, noToken.getStatusLine().getStatusCode());
-			EntityUtils.consumeQuietly(noToken.getEntity());
-
-			HttpGet badToken = new HttpGet(ROOT_SERVICE_URL + "/plugins/" + PLUGIN_ID + "/download");
-			badToken.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, "not-a-jwt");
-			HttpResponse rejected = client.execute(badToken);
-			assertEquals(403, rejected.getStatusLine().getStatusCode());
-			EntityUtils.consumeQuietly(rejected.getEntity());
-		}
-
-		assertTrue(uninstall(PLUGIN_ID).isSuccess());
 	}
 
 	// --- REST helpers ---

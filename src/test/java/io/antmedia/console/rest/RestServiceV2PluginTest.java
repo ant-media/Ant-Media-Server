@@ -1,29 +1,22 @@
 package io.antmedia.console.rest;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import io.antmedia.console.AdminApplication;
 import io.antmedia.console.plugin.PluginService;
-import io.antmedia.filter.JWTFilter;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.rest.model.Result;
-import jakarta.ws.rs.core.Response;
 
 /**
  * The plugin endpoints must be nothing but a mapping to HTTP — every decision belongs to
@@ -32,21 +25,15 @@ import jakarta.ws.rs.core.Response;
  */
 public class RestServiceV2PluginTest {
 
-	/** Long enough for HS256, which rejects short keys outright. */
-	private static final String CLUSTER_SECRET = "cluster-communication-key-for-unit-tests-0123456789";
-
 	private RestServiceV2 rest;
 	private PluginService pluginService;
-	private AdminApplication adminApp;
 
 	@Before
 	public void setUp() {
 		pluginService = mock(PluginService.class);
-		adminApp = mock(AdminApplication.class);
 
 		rest = new RestServiceV2();
 		rest.setPluginService(pluginService);
-		rest.setApplication(adminApp);
 	}
 
 	@Test
@@ -100,73 +87,5 @@ public class RestServiceV2PluginTest {
 		rest.installPluginFromUrl(null);
 
 		verify(pluginService).installFromUrl(isNull(), isNull(), isNull());
-	}
-
-	// --- cluster download endpoint ---
-
-	@Test
-	public void testDownloadPlugin_forbiddenWhenNoClusterSecret() {
-		when(adminApp.getClusterCommunicationKey()).thenReturn(null);
-
-		assertEquals(Response.Status.FORBIDDEN.getStatusCode(),
-				rest.downloadPlugin("clip-creator", "any-token").getStatus());
-	}
-
-	@Test
-	public void testDownloadPlugin_forbiddenWhenTokenMissing() {
-		when(adminApp.getClusterCommunicationKey()).thenReturn(CLUSTER_SECRET);
-
-		assertEquals(Response.Status.FORBIDDEN.getStatusCode(),
-				rest.downloadPlugin("clip-creator", null).getStatus());
-	}
-
-	@Test
-	public void testDownloadPlugin_forbiddenWhenTokenInvalid() {
-		when(adminApp.getClusterCommunicationKey()).thenReturn(CLUSTER_SECRET);
-
-		assertEquals(Response.Status.FORBIDDEN.getStatusCode(),
-				rest.downloadPlugin("clip-creator", "not-a-jwt").getStatus());
-	}
-
-	@Test
-	public void testDownloadPlugin_notFoundWhenNoZip() {
-		when(adminApp.getClusterCommunicationKey()).thenReturn(CLUSTER_SECRET);
-		when(pluginService.resolveZipForDownload("clip-creator")).thenReturn(null);
-
-		assertEquals(Response.Status.NOT_FOUND.getStatusCode(),
-				rest.downloadPlugin("clip-creator", validToken()).getStatus());
-	}
-
-	/** The ZIP existed when it was resolved but is gone by the time it is streamed. */
-	@Test
-	public void testDownloadPlugin_notFoundWhenZipDisappears() {
-		when(adminApp.getClusterCommunicationKey()).thenReturn(CLUSTER_SECRET);
-		when(pluginService.resolveZipForDownload("clip-creator"))
-				.thenReturn(new File("/tmp/definitely-not-here-" + System.nanoTime() + ".zip"));
-
-		assertEquals(Response.Status.NOT_FOUND.getStatusCode(),
-				rest.downloadPlugin("clip-creator", validToken()).getStatus());
-	}
-
-	@Test
-	public void testDownloadPlugin_streamsTheZip() throws Exception {
-		File zip = Files.createTempFile("ams-plugin-download", ".zip").toFile();
-		Files.write(zip.toPath(), new byte[]{1, 2, 3});
-
-		when(adminApp.getClusterCommunicationKey()).thenReturn(CLUSTER_SECRET);
-		when(pluginService.resolveZipForDownload("clip-creator")).thenReturn(zip);
-
-		Response response = rest.downloadPlugin("clip-creator", validToken());
-
-		assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-		assertEquals(3L, Long.parseLong(response.getHeaderString("Content-Length")));
-		assertTrue(response.getHeaderString("Content-Disposition").contains("clip-creator.zip"));
-
-		Files.deleteIfExists(zip.toPath());
-	}
-
-	private static String validToken() {
-		return JWTFilter.generateJwtToken(CLUSTER_SECRET,
-				System.currentTimeMillis() + 60000, "pluginname", "clip-creator");
 	}
 }

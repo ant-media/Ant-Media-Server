@@ -3,7 +3,6 @@ package io.antmedia.console.plugin;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,12 +32,10 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.plugin.PluginRegistry;
 
-import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.plugin.PluginDeployer;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.plugin.api.PluginState;
@@ -209,18 +206,6 @@ public class PluginServiceTest {
         verify(pluginDeployer, never()).loadPluginFromZip(any(), any(), anyString());
     }
 
-    @Test
-    public void testInstallFromUrl_noJwtHeader() throws Exception {
-        CloseableHttpClient client = clientReturning(200, new byte[]{1});
-        pluginService.setHttpClient(client);
-        when(pluginDeployer.loadPluginFromZip(any(), any(), anyString())).thenReturn(new Result(true, ""));
-
-        pluginService.installFromUrl("clip-creator", "http://example.com/p.zip", null);
-
-        assertNull(capturedRequest(client).getFirstHeader(
-                TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION));
-    }
-
     // --- registry host restriction ---
 
     @Test
@@ -313,40 +298,22 @@ public class PluginServiceTest {
         return hex.toString();
     }
 
-    // --- install from cluster peer ---
-
     @Test
-    public void testInstallFromClusterPeer_sendsJwtHeader() throws Exception {
-        CloseableHttpClient client = clientReturning(200, new byte[]{1});
-        pluginService.setHttpClient(client);
-        when(pluginDeployer.loadPluginFromZip(any(), any(), anyString())).thenReturn(new Result(true, ""));
-
-        Result result = pluginService.installFromClusterPeer("clip-creator",
-                "http://peer:5080/rest/v2/plugins/clip-creator/download", "cluster-secret");
-
-        assertTrue(result.isSuccess());
-        Header token = capturedRequest(client)
-                .getFirstHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
-        assertNotNull(token);
-        assertFalse(token.getValue().isEmpty());
-    }
-
-    @Test
-    public void testInstallFromClusterPeer_downloadFails() throws Exception {
+    public void testInstallFromUrl_downloadFails() throws Exception {
         pluginService.setHttpClient(clientThrowing());
 
-        Result result = pluginService.installFromClusterPeer("clip-creator", "http://peer/p.zip", "secret");
+        Result result = pluginService.installFromUrl("clip-creator", "http://example.com/p.zip", null);
 
         assertFalse(result.isSuccess());
         assertTrue(result.getMessage().contains("Could not download"));
     }
 
-    /** A zero-length body means the peer has no such ZIP, even though it answered 200. */
+    /** A zero-length body means there is no such ZIP, even though the server answered 200. */
     @Test
-    public void testInstallFromClusterPeer_emptyBodyRejected() throws Exception {
+    public void testInstallFromUrl_emptyBodyRejected() throws Exception {
         pluginService.setHttpClient(clientReturning(200, new byte[0], "0"));
 
-        Result result = pluginService.installFromClusterPeer("clip-creator", "http://peer/p.zip", "secret");
+        Result result = pluginService.installFromUrl("clip-creator", "http://example.com/p.zip", null);
 
         assertFalse(result.isSuccess());
         verify(pluginDeployer, never()).loadPluginFromZip(any(), any(), anyString());
@@ -438,16 +405,6 @@ public class PluginServiceTest {
     // --- misc ---
 
     @Test
-    public void testResolveZipForDownload() throws Exception {
-        assertNull(pluginService.resolveZipForDownload("../bad"));
-        assertNull(pluginService.resolveZipForDownload("clip-creator"));
-
-        File zip = new File(pluginsDir, "clip-creator.zip");
-        assertTrue(zip.createNewFile());
-        assertEquals(zip, pluginService.resolveZipForDownload("clip-creator"));
-    }
-
-    @Test
     public void testGetPluginsDir_createsIfMissing() {
         assertTrue(pluginsDir.exists());
         assertTrue(pluginsDir.isDirectory());
@@ -499,11 +456,5 @@ public class PluginServiceTest {
         CloseableHttpClient client = mock(CloseableHttpClient.class);
         when(client.execute(any(HttpRequestBase.class))).thenThrow(new IOException("connection refused"));
         return client;
-    }
-
-    private static HttpRequestBase capturedRequest(CloseableHttpClient client) throws IOException {
-        ArgumentCaptor<HttpRequestBase> captor = ArgumentCaptor.forClass(HttpRequestBase.class);
-        verify(client).execute(captor.capture());
-        return captor.getValue();
     }
 }
