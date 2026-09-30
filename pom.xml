@@ -112,7 +112,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                         <configuration>
                             <url>${native.webrtc.x64.url}</url>
                             <outputFileName>libjingle-peerconnection-${native.webrtc.version}-linux-x64.tar.gz</outputFileName>
-                            <sha256>f02849edc7433c27ab42e2289ef8319af54952aaad99ed7e8e778e5be79cbde3</sha256>
+                            <sha256>97a8ca51b1759fdfe4676185ee40d59f9f3b60fbca4c6ecf585a263be10c9cd8</sha256>
                         </configuration>
                     </execution>
                     <execution>
@@ -122,7 +122,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                         <configuration>
                             <url>${native.webrtc.arm64.url}</url>
                             <outputFileName>libjingle-peerconnection-${native.webrtc.version}-linux-arm64.tar.gz</outputFileName>
-                            <sha256>04254ad546ac739fd2fe894293752c706bf1da84250636a8f50847fe88ff5a34</sha256>
+                            <sha256>19a0b6da9aedadbca4b448985df25a769f3e7e5ba302b250574888100a5cf28f</sha256>
                         </configuration>
                     </execution>
                 </executions>
@@ -705,8 +705,8 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <id>native-webrtc-authenticated</id>
             <activation><property><name>env.GH_TOKEN</name></property></activation>
             <properties>
-                <native.webrtc.x64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/600456056</native.webrtc.x64.url>
-                <native.webrtc.arm64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/600456059</native.webrtc.arm64.url>
+                <native.webrtc.x64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/601144912</native.webrtc.x64.url>
+                <native.webrtc.arm64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/601144928</native.webrtc.arm64.url>
             </properties>
             <build>
                 <plugins>
