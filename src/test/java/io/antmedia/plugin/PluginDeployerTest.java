@@ -301,12 +301,12 @@ public class PluginDeployerTest {
     }
 
     @Test
-    public void testLoadPluginFromZip_noPluginJar_fails() throws Exception {
+    public void testLoadPluginFromZip_noJar_failsWithReason() throws Exception {
         File zip = SpringTestPluginJarBuilder.buildZipNoPluginJar();
         File pluginsDir = createTempPluginsDir();
         Result result = deployer.loadPluginFromZip(zip, pluginsDir, null);
         assertFalse(result.isSuccess());
-        assertTrue(result.getMessage().contains("plugin.jar not found"));
+        assertEquals("No JAR file found in plugin ZIP", result.getMessage());
         deleteDir(pluginsDir);
     }
 
@@ -1056,7 +1056,7 @@ public class PluginDeployerTest {
         }
 
         Result result = deployer.loadPluginFromZip(notAZip, pluginsDir, null);
-        // Should fail — either "plugin.jar not found" or "Failed to extract"
+        // Should fail because extraction fails or the extracted content has no JAR.
         assertFalse(result.isSuccess());
         deleteDir(pluginsDir);
     }

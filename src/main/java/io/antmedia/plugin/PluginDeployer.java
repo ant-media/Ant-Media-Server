@@ -98,10 +98,11 @@ public class PluginDeployer {
                 return new Result(false, "Failed to extract ZIP file");
             }
 
-            File pluginJar = new File(extractDir, "plugin.jar");
-            if (!pluginJar.exists()) {
-                return new Result(false, "plugin.jar not found in ZIP");
+            PluginJarResolution pluginJarResolution = resolvePluginJar(extractDir);
+            if (pluginJarResolution.failureReason() != null) {
+                return new Result(false, pluginJarResolution.failureReason());
             }
+            File pluginJar = pluginJarResolution.pluginJar();
 
             Result validationResult = validateManifest(pluginJar);
             if (!validationResult.isSuccess()) {
@@ -597,7 +598,7 @@ public class PluginDeployer {
     Result validateManifest(File jarFile) {
         Attributes attrs = readManifestAttributes(jarFile);
         if (attrs == null) {
-            return new Result(false, "Cannot read MANIFEST.MF from plugin.jar");
+            return new Result(false, "Cannot read MANIFEST.MF from plugin JAR");
         }
         if (attrs.getValue(MANIFEST_PLUGIN_NAME) == null || attrs.getValue(MANIFEST_PLUGIN_NAME).isEmpty()) {
             return new Result(false, "Missing " + MANIFEST_PLUGIN_NAME + " in MANIFEST.MF");
@@ -622,6 +623,56 @@ public class PluginDeployer {
             }
         }
         return new Result(true);
+    }
+
+    /**
+     * Resolves the plugin artifact without imposing a filename on plugin authors. A ZIP with a
+     * single JAR is unambiguous. If it also contains dependency JARs, the plugin JAR is identified
+     * by the AMS manifest attributes.
+     */
+    PluginJarResolution resolvePluginJar(File extractDir) throws IOException {
+        List<File> jars;
+        try (var paths = Files.walk(extractDir.toPath())) {
+            jars = paths.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".jar"))
+                    .map(java.nio.file.Path::toFile)
+                    .toList();
+        }
+
+        if (jars.isEmpty()) {
+            return PluginJarResolution.failure("No JAR file found in plugin ZIP");
+        }
+        if (jars.size() == 1) {
+            return PluginJarResolution.success(jars.get(0));
+        }
+
+        List<File> pluginJars = jars.stream()
+                .filter(PluginDeployer::hasPluginManifest)
+                .toList();
+        if (pluginJars.size() == 1) {
+            return PluginJarResolution.success(pluginJars.get(0));
+        }
+        return PluginJarResolution.failure("Could not identify a unique plugin JAR in ZIP; found "
+                + jars.size() + " JAR files and " + pluginJars.size() + " plugin manifests");
+    }
+
+    private static boolean hasPluginManifest(File jarFile) {
+        Attributes attrs = readManifestAttributes(jarFile);
+        return attrs != null && (attrs.getValue(MANIFEST_PLUGIN_ID) != null
+                || attrs.getValue(MANIFEST_PLUGIN_NAME) != null
+                || attrs.getValue(MANIFEST_PLUGIN_VERSION) != null
+                || attrs.getValue(MANIFEST_PLUGIN_AUTHOR) != null);
+    }
+
+    record PluginJarResolution(File pluginJar, String failureReason) {
+
+        static PluginJarResolution success(File pluginJar) {
+            return new PluginJarResolution(pluginJar, null);
+        }
+
+        static PluginJarResolution failure(String reason) {
+            return new PluginJarResolution(null, reason);
+        }
     }
 
     PluginRecord buildPluginRecord(Attributes attrs) {
