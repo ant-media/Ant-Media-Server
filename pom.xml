@@ -700,10 +700,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         </dependency>
     </dependencies>
     <profiles>
-        <!-- Private release access. GH_TOKEN must have contents:read on native-webrtc-build. -->
+        <!-- Private release access. GITHUB_TOKEN must have contents:read on native-webrtc-build. -->
         <profile>
             <id>native-webrtc-authenticated</id>
-            <activation><property><name>env.GH_TOKEN</name></property></activation>
+            <activation><property><name>env.GITHUB_TOKEN</name></property></activation>
             <properties>
                 <native.webrtc.x64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/601144912</native.webrtc.x64.url>
                 <native.webrtc.arm64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/601144928</native.webrtc.arm64.url>
@@ -716,7 +716,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                         <configuration>
                             <headers>
                                 <Accept>application/octet-stream</Accept>
-                                <Authorization>Bearer ${env.GH_TOKEN}</Authorization>
+                                <Authorization>Bearer ${env.GITHUB_TOKEN}</Authorization>
                             </headers>
                         </configuration>
                     </plugin>
