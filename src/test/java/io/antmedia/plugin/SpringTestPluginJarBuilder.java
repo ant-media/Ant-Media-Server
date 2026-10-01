@@ -34,7 +34,7 @@ public class SpringTestPluginJarBuilder {
     public static File buildComponentJar(String jarName) throws Exception {
         File jar = tempFile(jarName + ".jar");
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar))) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
         }
         return jar;
@@ -47,7 +47,7 @@ public class SpringTestPluginJarBuilder {
     public static File buildComponentWithRestJar(String jarName) throws Exception {
         File jar = tempFile(jarName + ".jar");
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar))) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
             addClass(out, MinimalSpringRestComponent.class, addedDirs);
         }
@@ -63,7 +63,7 @@ public class SpringTestPluginJarBuilder {
         File jar = tempFile(jarName + ".jar");
         Manifest manifest = pluginManifest(pluginName, version, author, requiresVersion, false);
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), manifest)) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos, manifest)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
         }
         return jar;
@@ -85,7 +85,7 @@ public class SpringTestPluginJarBuilder {
         File jar = tempFile(pluginName + ".jar");
         Manifest manifest = pluginManifest(pluginName, "1.0.0", "Test Author", null, false);
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), manifest)) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos, manifest)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
             addClass(out, MinimalSpringRestComponent.class, addedDirs);
         }
@@ -99,7 +99,7 @@ public class SpringTestPluginJarBuilder {
         File jar = tempFile(pluginName + ".jar");
         Manifest manifest = pluginManifest(pluginName, "1.0.0", "Test Author", null, true);
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), manifest)) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos, manifest)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
         }
         return jar;
@@ -111,7 +111,7 @@ public class SpringTestPluginJarBuilder {
         Manifest manifest = pluginManifest(pluginName, "1.0.0", "Test Author", null, false);
         manifest.getMainAttributes().putValue("AMS-Plugin-Id", pluginId);
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), manifest)) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos, manifest)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
         }
         return jar;
@@ -120,7 +120,7 @@ public class SpringTestPluginJarBuilder {
     /** Builds a JAR with no {@code @Component} classes — just empty + valid manifest. */
     public static File buildEmptyJar(String jarName) throws Exception {
         File jar = tempFile(jarName + ".jar");
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar))) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos)) {
             // no class entries
         }
         return jar;
@@ -134,7 +134,7 @@ public class SpringTestPluginJarBuilder {
         m.getMainAttributes().putValue("AMS-Plugin-Version", "1.0.0");
         m.getMainAttributes().putValue("AMS-Plugin-Author", "Test");
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), m)) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos, m)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
         }
         return jar;
@@ -148,7 +148,7 @@ public class SpringTestPluginJarBuilder {
         m.getMainAttributes().putValue("AMS-Plugin-Name", "Test Plugin");
         m.getMainAttributes().putValue("AMS-Plugin-Author", "Test");
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), m)) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos, m)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
         }
         return jar;
@@ -162,7 +162,7 @@ public class SpringTestPluginJarBuilder {
         m.getMainAttributes().putValue("AMS-Plugin-Name", "Test Plugin");
         m.getMainAttributes().putValue("AMS-Plugin-Version", "1.0.0");
         Set<String> addedDirs = new HashSet<>();
-        try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar), m)) {
+        try (FileOutputStream fos = new FileOutputStream(jar); JarOutputStream out = new JarOutputStream(fos, m)) {
             addClass(out, MinimalSpringComponent.class, addedDirs);
         }
         return jar;
@@ -171,7 +171,7 @@ public class SpringTestPluginJarBuilder {
     /** Wraps a JAR in a ZIP with the JAR as {@code plugin.jar} at the root. */
     public static File wrapJarAsZip(File jarFile, String zipName) throws Exception {
         File zip = tempFile(zipName + ".zip");
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zip))) {
+        try (FileOutputStream fos = new FileOutputStream(zip); ZipOutputStream zos = new ZipOutputStream(fos)) {
             zos.putNextEntry(new ZipEntry("plugin.jar"));
             try (FileInputStream fis = new FileInputStream(jarFile)) {
                 byte[] buf = new byte[4096];
@@ -188,7 +188,7 @@ public class SpringTestPluginJarBuilder {
     /** Builds a ZIP with no {@code plugin.jar} inside. */
     public static File buildZipNoPluginJar() throws Exception {
         File zip = tempFile("no-plugin-jar.zip");
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zip))) {
+        try (FileOutputStream fos = new FileOutputStream(zip); ZipOutputStream zos = new ZipOutputStream(fos)) {
             zos.putNextEntry(new ZipEntry("readme.txt"));
             zos.write("no plugin.jar here".getBytes());
             zos.closeEntry();

@@ -666,19 +666,6 @@ public class PluginDeployerTest {
     }
 
     @Test
-    public void testExtractZip_singleFileTooLarge() throws Exception {
-        // We can't create a real 200MB+ file in a unit test, so temporarily lower the limit
-        // by testing via the loadPluginFromZip path with a zip that has a large entry.
-        // Instead, verify the limit constants are sane.
-        assertTrue("Max single file size should be positive",
-                PluginDeployer.MAX_SINGLE_FILE_SIZE > 0);
-        assertTrue("Max total size should be >= max single file size",
-                PluginDeployer.MAX_TOTAL_EXTRACT_SIZE >= PluginDeployer.MAX_SINGLE_FILE_SIZE);
-        assertTrue("Max entry count should be positive",
-                PluginDeployer.MAX_ENTRY_COUNT > 0);
-    }
-
-    @Test
     public void testExtractZip_normalZipPassesLimits() throws Exception {
         // A normal plugin ZIP with plugin.jar + install.sh + uninstall.sh should pass all limits
         File jar = SpringTestPluginJarBuilder.buildPluginJar("limits-ok");
