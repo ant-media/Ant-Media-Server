@@ -1676,6 +1676,14 @@ public class AppSettings implements Serializable {
 	private int srtReceiveLatencyInMs = 150;
 
 	/**
+	 * Passphrase that incoming SRT streams must be encrypted with. It must be 10 to 80 characters,
+	 * libsrt rejects anything else. Empty means SRT ingest is not encrypted.
+	 * check for details: https://github.com/Haivision/srt/blob/master/docs/API/API-socket-options.md#SRTO_PASSPHRASE
+	 */
+	@Value("${srtPassphrase:}")
+	private String srtPassphrase = "";
+
+	/**
 	 * The size of encoding queue to keep the frames waiting for encoding in Stream Adaptor
 	 * default: 150 (5 seconds frame for 30 fps stream)
 	 */
