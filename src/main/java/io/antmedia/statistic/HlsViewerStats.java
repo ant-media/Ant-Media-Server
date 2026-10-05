@@ -19,7 +19,6 @@ public class HlsViewerStats extends ViewerStats implements IStreamStats, Applica
 	
 	public static final String BEAN_NAME = "hls.viewerstats";
 	
-	private Object lock = new Object();
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {
@@ -27,7 +26,7 @@ public class HlsViewerStats extends ViewerStats implements IStreamStats, Applica
 		
 		setType(ViewerStats.HLS_TYPE);
 		
-		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
 
 		serverSettings = (ServerSettings)applicationContext.getBean(ServerSettings.BEAN_NAME);
 		
@@ -39,9 +38,7 @@ public class HlsViewerStats extends ViewerStats implements IStreamStats, Applica
 		
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
-			synchronized (lock) {
-				updateViewerCountProcess(HLS_TYPE);
-			}
+			updateViewerCountProcess(HLS_TYPE);
 		});	
 	}
 
