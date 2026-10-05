@@ -18,6 +18,14 @@
 -->
 <!-- The contents of this file will be loaded for each web application -->
 <Context>
+    <!--
+        For local UI development from a different site/origin, Chrome requires
+        cross-site session cookies to be sent as SameSite=None; Secure.
+        Enable this together with a secure session cookie configuration in the
+        target webapp when testing that setup.
+
+        <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor" sameSiteCookies="none" />
+    -->
     <!-- 
         Scanner https://tomcat.apache.org/tomcat-8.0-doc/config/jar-scanner.html 
         Filter https://tomcat.apache.org/tomcat-8.0-doc/config/jar-scan-filter.html
@@ -32,4 +40,8 @@
     <!-- Default set of monitored resources -->
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
     <WatchedResource>META-INF/context.xml</WatchedResource>
+
+    <CookieProcessor
+            className="org.apache.tomcat.util.http.Rfc6265CookieProcessor"
+            sameSiteCookies="none" />
 </Context>
