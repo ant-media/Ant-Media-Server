@@ -928,6 +928,13 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
+                    <groupId>org.bytedeco</groupId>
+                    <artifactId>ndi</artifactId>
+                    <version>${javacpp.ndi.version}</version>
+                    <classifier>linux-arm64</classifier>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
                     <groupId>com.google.cloud</groupId>
                     <artifactId>google-cloud-storage</artifactId>
                     <version>2.37.0</version>
@@ -1025,6 +1032,27 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                                             <type>so</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/native-linux-x86_64</outputDirectory>
+                                            <destFileName>libndi.so.6</destFileName>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-ndi-runtime-arm64</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.bytedeco</groupId>
+                                            <artifactId>ndi-runtime</artifactId>
+                                            <version>${javacpp.ndi.version}</version>
+                                            <classifier>linux-arm64</classifier>
+                                            <type>so</type>
+                                            <overWrite>true</overWrite>
+                                            <outputDirectory>${project.build.directory}/native-linux-aarch64</outputDirectory>
                                             <destFileName>libndi.so.6</destFileName>
                                         </artifactItem>
                                     </artifactItems>
