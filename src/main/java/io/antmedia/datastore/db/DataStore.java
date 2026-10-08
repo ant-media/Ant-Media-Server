@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
@@ -209,6 +210,22 @@ public abstract class DataStore {
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 
 	public abstract List<Broadcast> getExternalStreamsList();
+
+	/** Stream sources and IP cameras nobody fetches, of one origin address, or of every one when owner is null. */
+	public abstract List<Broadcast> getStaleStreamSources(@Nullable String owner);
+
+	/**
+	 * Applies the update only if the row is still a stale stream source of expectedOwner, and returns whether it
+	 * did. Atomic across the nodes sharing this database, so of two nodes claiming one row only one wins.
+	 */
+	public abstract boolean claimStaleStreamSource(String streamId, @Nullable String expectedOwner, BroadcastUpdate update);
+
+	/** Reads terminated_unexpectedly, raw or decayed. On demand sources are left to their viewers. */
+	public static boolean isStaleStreamSource(Broadcast broadcast) {
+		return (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) || AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()))
+				&& !broadcast.isAutoStartStopEnabled()
+				&& IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus());
+	}
 
 	/**
 	 * Closes the database

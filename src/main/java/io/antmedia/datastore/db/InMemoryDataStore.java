@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -251,6 +252,27 @@ public class InMemoryDataStore extends DataStore {
 			}
 		}
 		return streamsList;
+	}
+
+	@Override
+	public synchronized List<Broadcast> getStaleStreamSources(String owner) {
+		List<Broadcast> streamsList = new ArrayList<>();
+		for (Broadcast broadcast : broadcastMap.values()) {
+			if (isStaleStreamSource(broadcast) && (owner == null || owner.equals(broadcast.getOriginAdress()))) {
+				streamsList.add(broadcast);
+			}
+		}
+		return streamsList;
+	}
+
+	@Override
+	public synchronized boolean claimStaleStreamSource(String streamId, String expectedOwner, BroadcastUpdate update) {
+		Broadcast broadcast = broadcastMap.get(streamId);
+		if (broadcast == null || !isStaleStreamSource(broadcast) || !Objects.equals(expectedOwner, broadcast.getOriginAdress())) {
+			return false;
+		}
+		updateStreamInfo(broadcast, update);
+		return true;
 	}
 
 	@Override
