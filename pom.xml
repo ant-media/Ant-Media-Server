@@ -62,6 +62,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
     </repositories>
    
     <properties>
+        <!-- Pinned release archives; checksums below must change with the version. -->
+        <native.webrtc.version>1.0.0</native.webrtc.version>
+        <native.webrtc.x64.url>https://github.com/ant-media/native-webrtc-build/releases/download/v${native.webrtc.version}/libjingle-peerconnection-${native.webrtc.version}-linux-x64.tar.gz</native.webrtc.x64.url>
+        <native.webrtc.arm64.url>https://github.com/ant-media/native-webrtc-build/releases/download/v${native.webrtc.version}/libjingle-peerconnection-${native.webrtc.version}-linux-arm64.tar.gz</native.webrtc.arm64.url>
         <skipTests>false</skipTests>
         <maven.compiler.release>17</maven.compiler.release>
         <maven.compiler.testRelease>17</maven.compiler.testRelease>
@@ -91,6 +95,38 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <finalName>${finalName}</finalName>
 
         <plugins>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.13.0</version>
+                <configuration>
+                    <outputDirectory>${project.build.directory}/native-webrtc</outputDirectory>
+                    <unpack>true</unpack>
+                    <alwaysVerifyChecksum>true</alwaysVerifyChecksum>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>native-webrtc-linux-x64</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>wget</goal></goals>
+                        <configuration>
+                            <url>${native.webrtc.x64.url}</url>
+                            <outputFileName>libjingle-peerconnection-${native.webrtc.version}-linux-x64.tar.gz</outputFileName>
+                            <sha256>97a8ca51b1759fdfe4676185ee40d59f9f3b60fbca4c6ecf585a263be10c9cd8</sha256>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>native-webrtc-linux-arm64</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>wget</goal></goals>
+                        <configuration>
+                            <url>${native.webrtc.arm64.url}</url>
+                            <outputFileName>libjingle-peerconnection-${native.webrtc.version}-linux-arm64.tar.gz</outputFileName>
+                            <sha256>19a0b6da9aedadbca4b448985df25a769f3e7e5ba302b250574888100a5cf28f</sha256>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -221,7 +257,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
-                    <argLine>@{argLine} -Xmx3000M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
+                    <argLine>@{argLine} -Xmx3000M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.build.directory}/native-webrtc/libjingle-peerconnection-${native.webrtc.version}-linux-x64</argLine>
                 	<skipAfterFailureCount>10</skipAfterFailureCount>
                     <useFile>false</useFile>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -672,6 +708,29 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         </dependency>
     </dependencies>
     <profiles>
+        <!-- Private release access. GITHUB_TOKEN must have contents:read on native-webrtc-build. -->
+        <profile>
+            <id>native-webrtc-authenticated</id>
+            <activation><property><name>env.GITHUB_TOKEN</name></property></activation>
+            <properties>
+                <native.webrtc.x64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/601144912</native.webrtc.x64.url>
+                <native.webrtc.arm64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/601144928</native.webrtc.arm64.url>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <configuration>
+                            <headers>
+                                <Accept>application/octet-stream</Accept>
+                                <Authorization>Bearer ${env.GITHUB_TOKEN}</Authorization>
+                            </headers>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>assemble</id>
             <dependencies>
