@@ -24,8 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -142,6 +148,8 @@ public class DBStoresUnitTest {
 		testUnexpectedVodOffset(dataStore);
 
 		testBugGetExternalStreamsList(dataStore);
+		testStaleStreamSources(dataStore);
+		testClaimStaleStreamSource(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -238,6 +246,8 @@ public class DBStoresUnitTest {
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
 		testBugGetExternalStreamsList(dataStore);
+		testStaleStreamSources(dataStore);
+		testClaimStaleStreamSource(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -323,6 +333,11 @@ public class DBStoresUnitTest {
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
 		testBugGetExternalStreamsList(dataStore);
+		testStaleStreamSources(dataStore);
+		testClaimStaleStreamSource(dataStore);
+		DataStore otherNode = new MongoStore(mongoUri(), "testdb");
+		testClaimStaleStreamSourceAcrossNodes(dataStore, otherNode);
+		otherNode.close(false);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -398,6 +413,11 @@ public class DBStoresUnitTest {
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
 		testBugGetExternalStreamsList(dataStore);
+		testStaleStreamSources(dataStore);
+		testClaimStaleStreamSource(dataStore);
+		DataStore otherNode = new RedisStore(redisUri(), "testdb");
+		testClaimStaleStreamSourceAcrossNodes(dataStore, otherNode);
+		otherNode.close(false);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -761,6 +781,130 @@ public class DBStoresUnitTest {
 
 		//check that there are two streams and values are same as added above
 
+	}
+
+	public void testStaleStreamSources(DataStore dataStore) {
+		clear(dataStore);
+
+		long stale = System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 1000;
+		long fresh = System.currentTimeMillis();
+
+		String terminated = dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, fresh, "10.0.0.1"));
+		String decayedCamera = dataStore.save(streamSource(AntMediaApplicationAdapter.IP_CAMERA, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, stale, "10.0.0.2"));
+		String decayedPreparing = dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, stale, "10.0.0.1"));
+		String unowned = dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, stale, null));
+
+		//someone fetches these, the user stopped one, one never started, and the rest are not pulled sources
+		dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, fresh, "10.0.0.1"));
+		dataStore.save(streamSource(AntMediaApplicationAdapter.IP_CAMERA, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, fresh, "10.0.0.1"));
+		dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, stale, "10.0.0.1"));
+		dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, stale, "10.0.0.1"));
+		dataStore.save(streamSource(AntMediaApplicationAdapter.LIVE_STREAM, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, stale, "10.0.0.1"));
+		dataStore.save(streamSource(AntMediaApplicationAdapter.PLAY_LIST, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, stale, "10.0.0.1"));
+
+		Broadcast onDemand = streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, stale, "10.0.0.1");
+		onDemand.setAutoStartStopEnabled(true);
+		dataStore.save(onDemand);
+
+		assertEquals(Set.of(terminated, decayedCamera, decayedPreparing, unowned),
+				dataStore.getStaleStreamSources(null).stream().map(Broadcast::getStreamId).collect(Collectors.toSet()));
+		assertEquals(Set.of(terminated, decayedPreparing),
+				dataStore.getStaleStreamSources("10.0.0.1").stream().map(Broadcast::getStreamId).collect(Collectors.toSet()));
+		assertTrue(dataStore.getStaleStreamSources("10.0.0.9").isEmpty());
+	}
+
+	public void testClaimStaleStreamSource(DataStore dataStore) {
+		clear(dataStore);
+
+		long stale = System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 1000;
+		String streamId = dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, stale, "10.0.0.1"));
+
+		BroadcastUpdate assign = new BroadcastUpdate();
+		assign.setOriginAdress("10.0.0.2");
+		assign.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY);
+		assign.setUpdateTime(System.currentTimeMillis());
+
+		assertFalse(dataStore.claimStaleStreamSource(streamId, "10.0.0.2", assign), "it is not the owner of the row");
+		//also leaves the row in a read cache, where a store has one, from before the claim below
+		assertEquals("10.0.0.1", dataStore.get(streamId).getOriginAdress());
+
+		assertTrue(dataStore.claimStaleStreamSource(streamId, "10.0.0.1", assign));
+		Broadcast assigned = dataStore.get(streamId);
+		assertEquals("10.0.0.2", assigned.getOriginAdress());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, assigned.getStatus());
+		assertFalse(dataStore.claimStaleStreamSource(streamId, "10.0.0.1", assign), "a second claim on the same read loses");
+
+		//still stale, so its new owner takes it, and after that nobody can
+		BroadcastUpdate take = new BroadcastUpdate();
+		take.setOriginAdress("10.0.0.2");
+		take.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		take.setUpdateTime(System.currentTimeMillis());
+
+		assertTrue(dataStore.claimStaleStreamSource(streamId, "10.0.0.2", take));
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, dataStore.get(streamId).getStatus());
+		assertFalse(dataStore.claimStaleStreamSource(streamId, "10.0.0.2", take));
+		assertTrue(dataStore.getStaleStreamSources(null).isEmpty());
+
+		String unowned = dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, stale, null));
+		assertTrue(dataStore.claimStaleStreamSource(unowned, null, take), "no owner is claimed by expecting none");
+		assertEquals("10.0.0.2", dataStore.get(unowned).getOriginAdress());
+
+		//finished is a user stop, nothing may take it over
+		String stopped = dataStore.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, stale, "10.0.0.1"));
+		assertFalse(dataStore.claimStaleStreamSource(stopped, "10.0.0.1", take));
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, dataStore.get(stopped).getStatus());
+
+		assertFalse(dataStore.claimStaleStreamSource("no-such-stream", null, take));
+	}
+
+	/** Two stores on one database stand for two cluster nodes. Of the two claims on each row exactly one wins. */
+	public void testClaimStaleStreamSourceAcrossNodes(DataStore node1, DataStore node2) throws Exception {
+		clear(node1);
+
+		List<String> streamIds = new ArrayList<>();
+		for (int i = 0; i < 20; i++) {
+			streamIds.add(node1.save(streamSource(AntMediaApplicationAdapter.STREAM_SOURCE, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY, System.currentTimeMillis(), "10.0.0.9")));
+		}
+
+		//a thread per claim, all let go at once, so the two claims on a row really run into each other
+		ExecutorService pool = Executors.newFixedThreadPool(streamIds.size() * 2);
+		CountDownLatch go = new CountDownLatch(1);
+		AtomicInteger wins = new AtomicInteger();
+		List<Future<?>> claims = new ArrayList<>();
+		for (String streamId : streamIds) {
+			for (DataStore node : List.of(node1, node2)) {
+				BroadcastUpdate take = new BroadcastUpdate();
+				take.setOriginAdress(node == node1 ? "10.0.0.1" : "10.0.0.2");
+				take.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				take.setUpdateTime(System.currentTimeMillis());
+
+				claims.add(pool.submit(() -> {
+					go.await();
+					if (node.claimStaleStreamSource(streamId, "10.0.0.9", take)) {
+						wins.incrementAndGet();
+					}
+					return null;
+				}));
+			}
+		}
+
+		go.countDown();
+		for (Future<?> claim : claims) {
+			claim.get(30, TimeUnit.SECONDS);
+		}
+		pool.shutdown();
+
+		//the first claim on a row always wins, so one win per row means the second never did
+		assertEquals(streamIds.size(), wins.get());
+	}
+
+	private static Broadcast streamSource(String type, String status, long updateTime, String owner) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(type);
+		broadcast.setStatus(status);
+		broadcast.setUpdateTime(updateTime);
+		broadcast.setOriginAdress(owner);
+		return broadcast;
 	}
 
 	public void testSaveStreamInDirectory(DataStore datastore) {

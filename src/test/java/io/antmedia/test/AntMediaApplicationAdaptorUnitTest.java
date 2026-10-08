@@ -288,6 +288,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("localhost", "localhost", 4545, "");
 		assertTrue(instanceAlive);
 
+		//an address no request can be built for is not reachable, it must not throw out of a scan of every row
+		assertFalse(AntMediaApplicationAdapter.isEndpointReachable("http://not a host/app"));
+		assertFalse(AntMediaApplicationAdapter.isInstanceAlive("fe80::1", "10.0.0.1", 5080, "app"));
 	}
 
 	@Test

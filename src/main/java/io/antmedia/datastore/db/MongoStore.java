@@ -643,6 +643,58 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public List<Broadcast> getStaleStreamSources(String owner) {
+		long startTime = System.nanoTime();
+		List<Broadcast> streamList = new ArrayList<>();
+		synchronized(broadcastLock) {
+			try {
+				Query<Broadcast> query = datastore.find(Broadcast.class).filter(staleStreamSourceFilter());
+				if (owner != null) {
+					query.filter(Filters.eq(ORIGIN_ADDRESS, owner));
+				}
+				streamList = query.iterator().toList();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		recordQueryDuration(startTime, "getStaleStreamSources");
+		return streamList;
+	}
+
+	@Override
+	public boolean claimStaleStreamSource(String streamId, String expectedOwner, BroadcastUpdate update) {
+		long startTime = System.nanoTime();
+		boolean result = false;
+		synchronized(broadcastLock) {
+			try {
+				result = datastore.find(Broadcast.class)
+						.filter(Filters.eq(STREAM_ID, streamId), Filters.eq(ORIGIN_ADDRESS, expectedOwner), staleStreamSourceFilter())
+						.update(toUpdateOperators(update))
+						.execute()
+						.getModifiedCount() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			//won or lost, the cached copy no longer matches the database
+			getBroadcastCache().evictIfPresent(getBroadcastCacheKey(streamId));
+		}
+		recordQueryDuration(startTime, "claimStaleStreamSource");
+		return result;
+	}
+
+	/** The database side of {@link DataStore#isStaleStreamSource}, decay included. */
+	private Filter staleStreamSourceFilter() {
+		return Filters.and(
+				Filters.in("type", List.of(AntMediaApplicationAdapter.IP_CAMERA, AntMediaApplicationAdapter.STREAM_SOURCE)),
+				Filters.ne("autoStartStopEnabled", true),
+				Filters.or(
+						Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY),
+						Filters.and(
+								Filters.in(STATUS, List.of(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)),
+								Filters.lte(UPDATE_TIME_FIELD, System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS))));
+	}
+
+	@Override
 	public void close(boolean deleteDB) {
 		long startTime = System.nanoTime();
 
@@ -945,157 +997,8 @@ public class MongoStore extends DataStore {
 				if(cachedBroadcast != null) {
 					updateStreamInfo(cachedBroadcast, broadcast);
 				}
-				
-				List<UpdateOperator> updates = new ArrayList<>();
 
-				if (broadcast.getName() != null) {
-					updates.add(set("name",  broadcast.getName()));
-				}
-
-				if (broadcast.getDescription() != null) {
-					updates.add(set("description", broadcast.getDescription()));
-				}
-
-				if (broadcast.getUsername() != null) {
-					updates.add(set("username", broadcast.getUsername()));
-				}
-
-				if (broadcast.getPassword() != null) {
-					updates.add(set("password", broadcast.getPassword()));
-				}
-
-				if (broadcast.getIpAddr() != null) {
-					updates.add(set("ipAddr", broadcast.getIpAddr()));
-				}
-
-				if (broadcast.getStreamUrl() != null) {
-					updates.add(set("streamUrl", broadcast.getStreamUrl()));
-				}
-
-				if (broadcast.getLatitude() != null) {
-					updates.add(set("latitude", broadcast.getLatitude()));
-				}
-
-				if (broadcast.getLongitude() != null) {
-					updates.add(set("longitude", broadcast.getLongitude()));
-				}
-
-				if (broadcast.getAltitude() != null) {
-					updates.add(set("altitude", broadcast.getAltitude()));
-				}
-
-				if (broadcast.getMainTrackStreamId() != null) {
-					updates.add(set("mainTrackStreamId", broadcast.getMainTrackStreamId()));
-				}
-
-				if (broadcast.getPlayListItemList() != null) {
-					updates.add(set("playListItemList", broadcast.getPlayListItemList()));
-				}
-
-				if (broadcast.getPlayListStatus() != null) {
-					updates.add(set("playListStatus", broadcast.getPlayListStatus()));
-				}
-
-				if (broadcast.getEndPointList() != null) {
-					updates.add(set("endPointList", broadcast.getEndPointList()));
-				}
-
-				if (broadcast.getSubFolder() != null) {
-					updates.add(set("subFolder", broadcast.getSubFolder()));
-				}
-
-				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
-					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
-				}
-
-				if (broadcast.getSpeed() != null) {
-					updates.add(set("speed", broadcast.getSpeed()));
-				}
-
-				if(broadcast.getEncoderSettingsList() != null){
-					updates.add(set("encoderSettingsList",broadcast.getEncoderSettingsList()));
-				}
-
-				if (broadcast.getPlannedStartDate() != null) {
-					updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
-				}
-
-				if (broadcast.getSeekTimeInMs() != null) {
-					updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
-				}
-
-				if (broadcast.getReceivedBytes() != null) {
-					updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
-				}
-
-				if (broadcast.getBitrate() != null) {
-					updates.add(set("bitrate", broadcast.getBitrate()));
-				}
-
-				if (broadcast.getUserAgent() != null) {
-					updates.add(set("userAgent", broadcast.getUserAgent()));
-				}
-
-				if (broadcast.getWebRTCViewerLimit() != null) {
-					updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
-				}
-				
-				if (broadcast.getWebRTCViewerCount() != null) {
-					updates.add(set(WEBRTC_VIEWER_COUNT, broadcast.getWebRTCViewerCount()));
-				}
-
-				if (broadcast.getHlsViewerLimit() != null) {
-					updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
-				}
-
-				if (broadcast.getDashViewerLimit() != null) {
-					updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
-				}
-
-				if (broadcast.getMetaData() != null) {
-					updates.add(set(META_DATA, broadcast.getMetaData()));
-				}
-
-				if (broadcast.getUpdateTime() != null && broadcast.getUpdateTime() > 0) {
-					updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
-				}
-
-				if (broadcast.getSubtracksLimit() != null) {
-					updates.add(set("subtracksLimit", broadcast.getSubtracksLimit()));
-				}
-
-				if (broadcast.getCurrentPlayIndex() != null) {
-					updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
-				}
-
-				if (broadcast.getPlaylistLoopEnabled() != null) {
-					updates.add(set("playlistLoopEnabled", broadcast.getPlaylistLoopEnabled()));
-				}
-
-				if (broadcast.getAutoStartStopEnabled() != null) {
-					updates.add(set("autoStartStopEnabled", broadcast.getAutoStartStopEnabled()));
-				}
-
-				if (broadcast.getPendingPacketSize() != null) {
-					updates.add(set("pendingPacketSize", broadcast.getPendingPacketSize()));
-				}
-
-				if (broadcast.getPlannedEndDate() != null) {
-					updates.add(set("plannedEndDate", broadcast.getPlannedEndDate()));
-				}
-
-				if (broadcast.getRole() != null) {
-					updates.add(set(ROLE, broadcast.getRole()));
-				}
-
-				if (broadcast.getQuality() != null) {
-					updates.add(set("quality", broadcast.getQuality()));
-				}
-
-
-				prepareFields(broadcast, updates, cachedBroadcast);
-
-				UpdateResult updateResult = query.update(updates).execute();
+				UpdateResult updateResult = query.update(toUpdateOperators(broadcast)).execute();
 
 				result = updateResult.getModifiedCount() == 1;
 
@@ -1107,7 +1010,158 @@ public class MongoStore extends DataStore {
 		return result;
 	}
 
-	private void prepareFields(BroadcastUpdate broadcast, List<UpdateOperator> updates, Broadcast cachedBroadcast) {
+	private List<UpdateOperator> toUpdateOperators(BroadcastUpdate broadcast) {
+		List<UpdateOperator> updates = new ArrayList<>();
+
+		if (broadcast.getName() != null) {
+			updates.add(set("name",  broadcast.getName()));
+		}
+
+		if (broadcast.getDescription() != null) {
+			updates.add(set("description", broadcast.getDescription()));
+		}
+
+		if (broadcast.getUsername() != null) {
+			updates.add(set("username", broadcast.getUsername()));
+		}
+
+		if (broadcast.getPassword() != null) {
+			updates.add(set("password", broadcast.getPassword()));
+		}
+
+		if (broadcast.getIpAddr() != null) {
+			updates.add(set("ipAddr", broadcast.getIpAddr()));
+		}
+
+		if (broadcast.getStreamUrl() != null) {
+			updates.add(set("streamUrl", broadcast.getStreamUrl()));
+		}
+
+		if (broadcast.getLatitude() != null) {
+			updates.add(set("latitude", broadcast.getLatitude()));
+		}
+
+		if (broadcast.getLongitude() != null) {
+			updates.add(set("longitude", broadcast.getLongitude()));
+		}
+
+		if (broadcast.getAltitude() != null) {
+			updates.add(set("altitude", broadcast.getAltitude()));
+		}
+
+		if (broadcast.getMainTrackStreamId() != null) {
+			updates.add(set("mainTrackStreamId", broadcast.getMainTrackStreamId()));
+		}
+
+		if (broadcast.getPlayListItemList() != null) {
+			updates.add(set("playListItemList", broadcast.getPlayListItemList()));
+		}
+
+		if (broadcast.getPlayListStatus() != null) {
+			updates.add(set("playListStatus", broadcast.getPlayListStatus()));
+		}
+
+		if (broadcast.getEndPointList() != null) {
+			updates.add(set("endPointList", broadcast.getEndPointList()));
+		}
+
+		if (broadcast.getSubFolder() != null) {
+			updates.add(set("subFolder", broadcast.getSubFolder()));
+		}
+
+		if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
+			updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
+		}
+
+		if (broadcast.getSpeed() != null) {
+			updates.add(set("speed", broadcast.getSpeed()));
+		}
+
+		if(broadcast.getEncoderSettingsList() != null){
+			updates.add(set("encoderSettingsList",broadcast.getEncoderSettingsList()));
+		}
+
+		if (broadcast.getPlannedStartDate() != null) {
+			updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
+		}
+
+		if (broadcast.getSeekTimeInMs() != null) {
+			updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
+		}
+
+		if (broadcast.getReceivedBytes() != null) {
+			updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
+		}
+
+		if (broadcast.getBitrate() != null) {
+			updates.add(set("bitrate", broadcast.getBitrate()));
+		}
+
+		if (broadcast.getUserAgent() != null) {
+			updates.add(set("userAgent", broadcast.getUserAgent()));
+		}
+
+		if (broadcast.getWebRTCViewerLimit() != null) {
+			updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
+		}
+
+		if (broadcast.getWebRTCViewerCount() != null) {
+			updates.add(set(WEBRTC_VIEWER_COUNT, broadcast.getWebRTCViewerCount()));
+		}
+
+		if (broadcast.getHlsViewerLimit() != null) {
+			updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
+		}
+
+		if (broadcast.getDashViewerLimit() != null) {
+			updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
+		}
+
+		if (broadcast.getMetaData() != null) {
+			updates.add(set(META_DATA, broadcast.getMetaData()));
+		}
+
+		if (broadcast.getUpdateTime() != null && broadcast.getUpdateTime() > 0) {
+			updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
+		}
+
+		if (broadcast.getSubtracksLimit() != null) {
+			updates.add(set("subtracksLimit", broadcast.getSubtracksLimit()));
+		}
+
+		if (broadcast.getCurrentPlayIndex() != null) {
+			updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
+		}
+
+		if (broadcast.getPlaylistLoopEnabled() != null) {
+			updates.add(set("playlistLoopEnabled", broadcast.getPlaylistLoopEnabled()));
+		}
+
+		if (broadcast.getAutoStartStopEnabled() != null) {
+			updates.add(set("autoStartStopEnabled", broadcast.getAutoStartStopEnabled()));
+		}
+
+		if (broadcast.getPendingPacketSize() != null) {
+			updates.add(set("pendingPacketSize", broadcast.getPendingPacketSize()));
+		}
+
+		if (broadcast.getPlannedEndDate() != null) {
+			updates.add(set("plannedEndDate", broadcast.getPlannedEndDate()));
+		}
+
+		if (broadcast.getRole() != null) {
+			updates.add(set(ROLE, broadcast.getRole()));
+		}
+
+		if (broadcast.getQuality() != null) {
+			updates.add(set("quality", broadcast.getQuality()));
+		}
+
+		prepareFields(broadcast, updates);
+		return updates;
+	}
+
+	private void prepareFields(BroadcastUpdate broadcast, List<UpdateOperator> updates) {
 
 		if ( broadcast.getDuration() != null) {
 			updates.add(set(DURATION, broadcast.getDuration()));

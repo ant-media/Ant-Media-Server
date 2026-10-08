@@ -26,7 +26,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Entity(value = "broadcast")
 @Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), 
 	@Index(fields = @Field("streamId"), options = @IndexOptions(unique = true, name="streamId_unique_index")), 
-	@Index(fields = @Field("status")) })
+	@Index(fields = @Field("status")),
+	@Index(fields = @Field("originAdress")) })
 public class Broadcast {
 
 	@JsonIgnore

@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,6 +103,7 @@ class StreamSourceFixture implements AutoCloseable {
 			BroadcastUpdate update = new BroadcastUpdate();
 			update.setStatus(call.getArgument(1));
 			update.setUpdateTime(System.currentTimeMillis());
+			update.setOriginAdress(serverSettings.getHostAddress());
 			return update;
 		});
 
@@ -117,9 +119,21 @@ class StreamSourceFixture implements AutoCloseable {
 		when(dataStore.get(anyString())).thenAnswer(call -> rows.get((String) call.getArgument(0)));
 		when(dataStore.getExternalStreamsList()).thenAnswer(call -> new ArrayList<>(rows.values()));
 		when(dataStore.updateBroadcastFields(anyString(), any())).thenAnswer(call -> apply(call.getArgument(0), call.getArgument(1)));
+
+		when(dataStore.getStaleStreamSources(any())).thenAnswer(call -> {
+			String owner = call.getArgument(0);
+			return rows.values().stream().filter(row -> DataStore.isStaleStreamSource(row) && (owner == null || owner.equals(row.getOriginAdress()))).toList();
+		});
+		when(dataStore.claimStaleStreamSource(anyString(), any(), any())).thenAnswer(call -> claim(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
 	}
 
-	/** Only the fields the state machine and the playlist controller write, enough to assert on. */
+	/** Atomic like the real ones, so two nodes in one test can race for a row. */
+	private synchronized boolean claim(String streamId, String expectedOwner, BroadcastUpdate update) {
+		Broadcast row = rows.get(streamId);
+		return row != null && DataStore.isStaleStreamSource(row) && Objects.equals(expectedOwner, row.getOriginAdress()) && apply(streamId, update);
+	}
+
+	/** Only the fields the state machine, the playlist controller and the cluster coordinator write, enough to assert on. */
 	private boolean apply(String streamId, BroadcastUpdate update) {
 		Broadcast row = rows.get(streamId);
 		if (row == null || update == null) {
@@ -128,6 +142,9 @@ class StreamSourceFixture implements AutoCloseable {
 
 		if (update.getStatus() != null) {
 			row.setStatus(update.getStatus());
+		}
+		if (update.getOriginAdress() != null) {
+			row.setOriginAdress(update.getOriginAdress());
 		}
 		if (update.getPlayListStatus() != null) {
 			row.setPlayListStatus(update.getPlayListStatus());
