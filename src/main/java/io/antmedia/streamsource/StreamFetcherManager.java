@@ -1,19 +1,14 @@
 package io.antmedia.streamsource;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
@@ -27,9 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
-import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
@@ -57,14 +50,6 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	private static final Logger logger = LoggerFactory.getLogger(StreamFetcherManager.class);
 
 	private static final String ALREADY_ACTIVE_MESSAGE = "Stream is already active. It's already streaming or trying to connect";
-
-	/** How often a cluster node looks for sources whose owner has left the cluster. */
-	private static final long ORPHAN_CHECK_PERIOD_MS = 5000;
-
-	/** A cluster is a handful of nodes. This is only here so the query can never grow unbounded. */
-	private static final int MAX_CLUSTER_NODES = 1000;
-
-	private static final int BROADCAST_PAGE_SIZE = 50;
 
 	/** Non terminal StreamFetchers by stream id. An entry here means this node owns that source. */
 	@Setter
@@ -100,14 +85,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	private volatile boolean serverShuttingDown;
 
 	/** Null unless this server runs in cluster mode. */
-	private final IClusterNotifier clusterNotifier;
-
-	private long orphanCheckTimerId = -1;
-	private final AtomicBoolean orphanCheckRunning = new AtomicBoolean();
-
-	/** Addresses of the nodes that were alive on the previous check, null until the first one runs.
-	 * This exists for optimization reasons. */
-	private final AtomicReference<Set<String>> lastSeenHosts = new AtomicReference<>();
+	private final StreamSourceClusterCoordinator clusterCoordinator;
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore, IScope scope) {
 		this.vertx = vertx;
@@ -117,9 +95,6 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 		this.serverSettings = (ServerSettings) scope.getContext().getBean(ServerSettings.BEAN_NAME);
 		this.licenseService = (ILicenceService) scope.getContext().getBean(ILicenceService.BEAN_NAME);
-		this.clusterNotifier = scope.getContext().hasBean(IClusterNotifier.BEAN_NAME)
-				? (IClusterNotifier) scope.getContext().getBean(IClusterNotifier.BEAN_NAME)
-				: null;
 
 		this.pool = Executors.newCachedThreadPool(runnable -> {
 			Thread thread = new Thread(runnable, "stream-fetcher-" + scope.getName() + "-" + poolThreadCount.incrementAndGet());
@@ -131,10 +106,9 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 		AMSShutdownManager.getInstance().subscribe(this::shuttingDown);
 
-		if (clusterNotifier != null) {
-			orphanCheckTimerId = vertx.setPeriodic(ORPHAN_CHECK_PERIOD_MS,
-					l -> vertx.executeBlocking(() -> { processOrphanedSources(); return null; }, false));
-		}
+		this.clusterCoordinator = scope.getContext().hasBean(IClusterNotifier.BEAN_NAME)
+				? new StreamSourceClusterCoordinator(this, vertx, context, scope)
+				: null;
 	}
 
 	public void shuttingDown() {
@@ -425,97 +399,6 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		}
 	}
 
-	/**
-	 * Handle the stream sources of a node that was in the cluster on an earlier check and is not in it now.
-	 */
-	private void processOrphanedSources() {
-		if (serverShuttingDown || !appSettings.isStartStreamFetcherAutomatically() || !orphanCheckRunning.compareAndSet(false, true)) {
-			return;
-		}
-
-		try {
-			IClusterStore clusterStore = clusterNotifier.getClusterStore();
-			List<ClusterNode> nodes = clusterStore != null ? clusterStore.getClusterNodes(0, MAX_CLUSTER_NODES) : null;
-			if (nodes == null) {
-				return;
-			}
-
-			String host = serverSettings.getHostAddress();
-			Set<String> aliveHosts = new HashSet<>();
-			for (ClusterNode node : nodes) {
-				if (ClusterNode.ALIVE.equals(node.getStatus()) && StringUtils.isNotBlank(node.getIp())) {
-					aliveHosts.add(node.getIp());
-				}
-			}
-
-			if (!aliveHosts.contains(host)) {
-				logger.warn("This node:{} is not in the cluster node list, skipping the orphaned source check", host);
-				return;
-			}
-
-			//the scan is expensive, so it only runs when the cluster lost a node, plus once on the first check
-			//because a node that starts up cannot know which nodes were there before it
-			Set<String> previousHosts = lastSeenHosts.getAndSet(aliveHosts);
-			boolean nodeLeft = previousHosts == null || !aliveHosts.containsAll(previousHosts);
-
-			//every node computes the same lowest address, so exactly one of them ever gets past this
-			if (!nodeLeft || !host.equals(Collections.min(aliveHosts))) {
-				return;
-			}
-
-			logger.info("Looking for stream sources whose owner is not in the cluster, app:{}, live nodes:{}", scope.getName(), aliveHosts);
-
-			adoptOrphanedSources(host, aliveHosts);
-		}
-		catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		finally {
-			orphanCheckRunning.set(false);
-		}
-	}
-
-	private void adoptOrphanedSources(String host, Set<String> aliveHosts) {
-		for (String type : new String[] { AntMediaApplicationAdapter.IP_CAMERA, AntMediaApplicationAdapter.STREAM_SOURCE }) {
-			int offset = 0;
-			List<Broadcast> page;
-
-			while ((page = datastore.getBroadcastList(offset, BROADCAST_PAGE_SIZE, type, null, null, null)) != null && !page.isEmpty()) {
-				for (Broadcast broadcast : page) {
-					adoptIfOrphaned(broadcast, host, aliveHosts);
-				}
-
-				offset += BROADCAST_PAGE_SIZE;
-			}
-		}
-	}
-
-	private void adoptIfOrphaned(Broadcast broadcast, String host, Set<String> aliveHosts) {
-		String origin = broadcast.getOriginAdress();
-
-		//getStatus decays a stale broadcasting or preparing row. A stopped source reads finished and a retrying
-		//one is kept fresh by its owner, so only a source whose owner is gone gets past here
-		if (StringUtils.isBlank(origin) || aliveHosts.contains(origin) || broadcast.isAutoStartStopEnabled()
-				|| !IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(broadcast.getStatus())) {
-			return;
-		}
-
-		//the node list can lag and a clock can be off, but a node that still answers http is still fetching
-		if (AntMediaApplicationAdapter.isInstanceAlive(origin, host, serverSettings.getDefaultHttpPort(), scope.getName())) {
-			return;
-		}
-
-		//that answer costs up to a second each, so decide on a fresh row: the owner may have come back and taken it
-		Broadcast current = datastore.get(broadcast.getStreamId());
-		if (current == null || !IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY.equals(current.getStatus())) {
-			return;
-		}
-
-		Result result = startStreaming(current, false);
-		logger.info("Adopted streamId:{} of the departed node:{}, success:{} message:{}",
-				current.getStreamId(), origin, result.isSuccess(), result.getMessage());
-	}
-
 	/** Stops every source and waits for the database to say finished before the application goes down. */
 	public void shutdown() {
 		logger.info("Stopping all stream fetchers for app:{}", scope.getName());
@@ -523,9 +406,8 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		//refuse late starts, the pool is gone at the end of this method and a StreamFetcher would retry forever
 		serverShuttingDown = true;
 
-		if (orphanCheckTimerId != -1) {
-			vertx.cancelTimer(orphanCheckTimerId);
-			orphanCheckTimerId = -1;
+		if (clusterCoordinator != null) {
+			clusterCoordinator.shutdown();
 		}
 
 		//a playlist has to be marked finished as a whole, not just have its current item stopped
@@ -554,7 +436,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		this.streamCheckerIntervalMs = streamCheckerInterval;
 	}
 
-	private AntMediaApplicationAdapter getApplication() {
+	AntMediaApplicationAdapter getApplication() {
 		if (appInstance == null) {
 			appInstance = (AntMediaApplicationAdapter) scope.getContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		}

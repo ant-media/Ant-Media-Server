@@ -203,6 +203,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/** Spread of the random delay added to a scheduled playlist start, so they don't all fire at once. */
 	private static final int PLAYLIST_SCHEDULE_JITTER_MS = 5000;
 
+	/** Shared by every reachability check, a client per check costs a selector thread each. */
+	private static final HttpClient REACHABILITY_CLIENT = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(1)).build();
+
 	public static final String BEAN_NAME = "web.handler";
 
 	public static final int BROADCAST_STATS_RESET = 0;
@@ -842,41 +845,45 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public static boolean isInstanceAlive(String originAdress, String hostAddress, int httpPort, String appName) {
+		return isInstanceAliveAsync(originAdress, hostAddress, httpPort, appName).join();
+	}
+
+	public static CompletableFuture<Boolean> isInstanceAliveAsync(String originAdress, String hostAddress, int httpPort, String appName) {
 		if (StringUtils.isBlank(originAdress) || Strings.CS.equals(originAdress, hostAddress)) {
-			return true;
+			return CompletableFuture.completedFuture(true);
 		}
 
-		String url = "http://" + originAdress + ":" + httpPort + "/" + appName;
-
-		boolean result = isEndpointReachable(url);
-		if (!result) {
-			logger.warn("Instance with origin address {} is not reachable through its app:{}", originAdress, appName);
-		}
-		return result;
+		return isEndpointReachableAsync("http://" + originAdress + ":" + httpPort + "/" + appName);
 	}
 
 	public static boolean isEndpointReachable(String endpoint) {
-		HttpClient client = HttpClient.newHttpClient();
-		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create(endpoint))
-				.method("HEAD", HttpRequest.BodyPublishers.noBody()) // HEAD request
-				.timeout(java.time.Duration.ofSeconds(1))
-				.build();
+		return isEndpointReachableAsync(endpoint).join();
+	}
 
-
+	/**
+	 * Any HTTP answer means reachable. A connection failure, the 1s timeout or an address that is not a valid
+	 * URI means not, and never an exception: the cluster coordinator checks every row's origin with this.
+	 */
+	public static CompletableFuture<Boolean> isEndpointReachableAsync(String endpoint) {
 		try {
-			HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
-		} catch (InterruptedException e) {
-			logger.error("InterruptedException Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-			return false;
-		} catch (Exception e) {
-			logger.error("Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
-			return false;
+			HttpRequest request = HttpRequest.newBuilder()
+					.uri(URI.create(endpoint))
+					.method("HEAD", HttpRequest.BodyPublishers.noBody())
+					.timeout(java.time.Duration.ofSeconds(1))
+					.build();
+
+			return REACHABILITY_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding())
+					.handle((response, e) -> {
+						if (e != null) {
+							logger.warn("Endpoint is not reachable: {}, {}", endpoint, e.getMessage());
+						}
+						return e == null;
+					});
 		}
-		return true;
-
-
+		catch (Exception e) {
+			logger.warn("Endpoint is not reachable: {}, {}", endpoint, e.getMessage());
+			return CompletableFuture.completedFuture(false);
+		}
 	}
 
 	/**
