@@ -86,13 +86,12 @@ import com.google.common.primitives.Longs;
       * This method generates a TOTP value for the given
       * set of parameters.
       *
-      * @param key: the shared secret, HEX encoded
-      * @param time: a value that reflects a time
-      * @param returnDigits: number of digits to return
-      * @param crypto: the crypto function to use (HmacSHA1 | HmacSHA256 | HmacSHA512)
+      * @param secretBytes the shared secret
+      * @param timeConstant a value that reflects a time
+      * @param codeDigits number of digits to return
+      * @param crypto the crypto function to use (HmacSHA1 | HmacSHA256 | HmacSHA512)
       *
-      * @return: a numeric String in base 10 that includes
-      *              {@link truncationDigits} digits
+      * @return a numeric String in base 10
       */
 
      public static String generateTOTPWithTimeConstant(byte[] secretBytes,

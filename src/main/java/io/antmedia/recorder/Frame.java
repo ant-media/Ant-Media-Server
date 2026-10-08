@@ -28,9 +28,9 @@ import org.bytedeco.javacpp.indexer.UShortIndexer;
 
 /**
  * A class to manage the data of audio and video frames. It it used by
- * {@link CanvasFrame}, {@link FrameGrabber}, {@link FrameRecorder}, and their
+	 * CanvasFrame, FrameGrabber, FrameRecorder, and their
  * subclasses. We can also make the link with other APIs, such as Android,
- * Java 2D, FFmpeg, and OpenCV, via a {@link FrameConverter}.
+	 * Java 2D, FFmpeg, and OpenCV, via a FrameConverter.
  *
  * @author Samuel Audet
  */
@@ -198,7 +198,7 @@ public class Frame implements AutoCloseable, Indexable {
      *  Expect a heap overflow exception when using this method without cleaning up.
      *
      * @return A deep copy of this frame.
-     * @see {@link #cloneBufferArray}
+     * @see #cloneBufferArray
      *
      * @author Extension proposed by Dragos Dutu
      * */

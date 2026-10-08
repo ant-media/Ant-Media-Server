@@ -6,10 +6,10 @@ import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -26,8 +26,11 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class HlsManifestModifierFilterTest {
 
@@ -36,14 +39,14 @@ public class HlsManifestModifierFilterTest {
 	protected static Logger logger = LoggerFactory.getLogger(HlsManifestModifierFilterTest.class);
 
 
-	@Before
+	@BeforeEach
 	public void before() {
 		hlsManifestModifierFilter = spy(new HlsManifestModifierFilter());
 		AppSettings appSettings = new AppSettings();
 		doReturn(appSettings).when(hlsManifestModifierFilter).getAppSettings();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		hlsManifestModifierFilter = null;
 	}

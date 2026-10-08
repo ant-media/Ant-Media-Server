@@ -19,7 +19,7 @@ import java.util.Map;
 public enum StreamAction {
 
     CONNECT("connect"), DISCONNECT("disconnect"), CREATE_STREAM("createStream"), DELETE_STREAM("deleteStream"), CLOSE_STREAM("closeStream"), INIT_STREAM("initStream"), RELEASE_STREAM("releaseStream"), PUBLISH("publish"), PAUSE("pause"), PAUSE_RAW("pauseRaw"), SEEK("seek"), PLAY("play"), PLAY2("play2"), STOP("stop"), RECEIVE_VIDEO("receiveVideo"), RECEIVE_AUDIO("receiveAudio"), GET_STREAM_LENGTH(
-            "getStreamLength"), CUSTOM("");
+            "getStreamLength"), CUSTOM(""), FC_PUBLISH("FCPublish"), FC_UNPUBLISH("FCUnPublish"), FC_SUBSCRIBE("FCSubscribe");
 
     // presize to fit all enums in
     private final static Map<String, StreamAction> map = new HashMap<>(StreamAction.values().length);

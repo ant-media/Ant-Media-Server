@@ -1,8 +1,10 @@
 package io.antmedia.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,17 +12,18 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.red5.server.Shutdown;
 
+@Tag("fast")
 public class ShutdownTest {
 	
 	
 	private static final String tokenFile = "shutdown.token";
 	
 	
-	@After
+	@AfterEach
 	public void after() {
 		try {
 			Files.deleteIfExists(new File(tokenFile).toPath());

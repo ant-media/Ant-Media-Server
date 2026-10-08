@@ -24,8 +24,12 @@ public class ClusterNode implements Serializable {
 	private long lastUpdateTime;
 	private String memory;
 	private String cpu;
-	
+
 	private int dbQueryAveargeTimeMs;
+
+	// Admin-defined note set from the management panel. Stored independently of the heartbeat
+	// fields (memory/cpu/lastUpdateTime) so periodic node updates never overwrite it.
+	private String note;
 	
 	@NotSaved
 	private String status;
@@ -103,5 +107,13 @@ public class ClusterNode implements Serializable {
 	 */
 	public void setDbQueryAveargeTimeMs(int dbQueryAveargeTimeMs) {
 		this.dbQueryAveargeTimeMs = dbQueryAveargeTimeMs;
+	}
+
+	public String getNote() {
+		return note;
+	}
+
+	public void setNote(String note) {
+		this.note = note;
 	}
 }

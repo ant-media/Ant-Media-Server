@@ -1,12 +1,14 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-
+import org.junit.jupiter.api.Tag;
 import io.antmedia.rest.model.BasicStreamInfo;
-import io.antmedia.webrtc.VideoCodec;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import io.antmedia.webrtc.VideoCodec;
+import org.junit.jupiter.api.Test;
+
+@Tag("fast")
 public class BasicStreamInfoTest {
 
 	@Test

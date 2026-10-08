@@ -32,18 +32,18 @@ public interface IMessageInput {
     /**
      * Pull message from this input endpoint. Return w/o waiting.
      * 
-     * @return The pulled message or <tt>null</tt> if message is not available.
+     * @return The pulled message or {@code null} if message is not available.
      * @throws IOException
      *             on error
      */
     IMessage pullMessage() throws IOException;
 
     /**
-     * Pull message from this input endpoint. Wait <tt>wait</tt> milliseconds if message is not available.
+     * Pull message from this input endpoint. Wait {@code wait} milliseconds if message is not available.
      * 
      * @param wait
      *            milliseconds to wait when message is not available.
-     * @return The pulled message or <tt>null</tt> if message is not available.
+     * @return The pulled message or {@code null} if message is not available.
      */
     IMessage pullMessage(long wait);
 
@@ -54,7 +54,7 @@ public interface IMessageInput {
      *            Consumer
      * @param paramMap
      *            Parameters map
-     * @return <tt>true</tt> when successfully subscribed, <tt>false</tt> otherwise.
+     * @return {@code true} when successfully subscribed, {@code false} otherwise.
      */
     boolean subscribe(IConsumer consumer, Map<String, Object> paramMap);
 
@@ -63,7 +63,7 @@ public interface IMessageInput {
      * 
      * @param consumer
      *            Consumer to disconnect
-     * @return <tt>true</tt> when successfully unsubscribed, <tt>false</tt> otherwise.
+     * @return {@code true} when successfully unsubscribed, {@code false} otherwise.
      */
     boolean unsubscribe(IConsumer consumer);
 

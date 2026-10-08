@@ -184,8 +184,8 @@ public class TokenFilterManager extends AbstractFilter   {
 		int endIndex;
 		int startIndex = requestURI.indexOf('/');
 
-		if(requestURI.contains("streams")) {
-			requestURI = requestURI.split("streams")[1];
+		if (requestURI.contains("/streams/")) {
+			requestURI = requestURI.substring(requestURI.indexOf("/streams/") + "/streams".length());
 			if (requestURI.startsWith("/drm/")) {
 				requestURI = requestURI.substring(5);
 				return requestURI.substring(0, requestURI.indexOf("/"));
@@ -353,7 +353,7 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		//if default mp4 file requested such as: 541211332342978513714151.mp4, 541211332342978513714151_23.mp4
 		String underScoreRegex = "(.*)_[0-9]+(.*)";
-		endIndex = requestURI.lastIndexOf(".mp4");
+		endIndex = Math.max(requestURI.lastIndexOf(".mp4"), requestURI.lastIndexOf(".mp3"));
 		if (endIndex == -1) 
 		{
 			//if default webm file requested such as: 541211332342978513714151.webm

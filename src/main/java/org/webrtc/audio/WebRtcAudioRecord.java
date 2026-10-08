@@ -295,7 +295,7 @@ public class WebRtcAudioRecord {
 	}
 
 	/**
-	 * Prefer a specific {@link AudioDeviceInfo} device for recording. Calling after recording starts
+	 * Prefer a specific AudioDeviceInfo device for recording. Calling after recording starts
 	 * is valid but may cause a temporary interruption if the audio routing changes.
 	 */
 	//@RequiresApi(Build.VERSION_CODES.M)

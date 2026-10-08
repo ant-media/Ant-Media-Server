@@ -1,29 +1,29 @@
 package io.antmedia.test.eRTMP;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.ByteBuffer;
 
 import org.apache.mina.core.buffer.IoBuffer;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.red5.codec.AVCVideo;
 import org.red5.codec.HEVCVideo;
 import org.red5.server.net.rtmp.event.VideoData;
 
 
+@Tag("fast")
 public class HEVCVideoTest  {
 
 	private HEVCVideo hevcVideo;
 
-	@Before
+	@BeforeEach
 	public void setUp() {
 		hevcVideo = new HEVCVideo();
 		// Any additional setup needed
@@ -107,7 +107,7 @@ public class HEVCVideoTest  {
 		assertTrue(result);
 		
 		IoBuffer actualConfiguration = hevcVideo.getDecoderConfiguration();
-        assertNotNull("DecoderConfiguration should not be null", actualConfiguration);
+        assertNotNull(actualConfiguration, "DecoderConfiguration should not be null");
 		assertNull(hevcVideo.getKeyframe());
 
 		

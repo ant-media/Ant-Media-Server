@@ -36,12 +36,12 @@ import io.antmedia.muxer.parser.Parser;
 	bit(1) temporalIdNested;
 	unsigned int(2) lengthSizeMinusOne; 
 	unsigned int(8) numOfArrays;
-	for (j=0; j < numOfArrays; j) {
+		for (j=0; j &lt; numOfArrays; j++) {
 		bit(1) array_completeness;
 		unsigned int(1) reserved = 0;
 		unsigned int(6) NAL_unit_type;
 		unsigned int(16) numNalus;
-		for (i=0; i< numNalus; i) {
+			for (i=0; i &lt; numNalus; i++) {
 			unsigned int(16) nalUnitLength;
 			bit(8*nalUnitLength) nalUnit;
 		}

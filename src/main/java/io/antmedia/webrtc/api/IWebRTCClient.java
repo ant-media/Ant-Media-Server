@@ -20,15 +20,18 @@ public interface IWebRTCClient {
 	 * Send video packet to connected client
 	 * @param videoPacket
 	 * @param isKeyFrame
+	 * @param timestamp
+	 * @param frameRotation
 	 * @param naluIndices 
-	 * @param trackIndex 
+	 * @param trackId
 	 */
 	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation, List<NaluIndex> naluIndices, String trackId);
 	
 	/**
 	 * Send audio packet to connected client
 	 * @param audioPacket
-	 * @param audioLevel 
+	 * @param timestamp
+	 * @param trackId
 	 */
 	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp, String trackId);
 	

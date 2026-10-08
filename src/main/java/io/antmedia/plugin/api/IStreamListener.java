@@ -35,7 +35,7 @@ public interface IStreamListener {
 
 	/**
 	 * AMS inform the plugins when a participant leaves from the conference room
-	 * @param rroomId is the id of the conference room
+	 * @param roomId is the id of the conference room
 	 * @param streamId is the id of new stream
 	 */
 	public void leftTheRoom(String roomId, String streamId);

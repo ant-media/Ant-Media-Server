@@ -112,7 +112,7 @@ public class VideoFrame implements RefCounted {
   /**
    * Constructs a new VideoFrame backed by the given {@code buffer}.
    *
-   * @note Ownership of the buffer object is tranferred to the new VideoFrame.
+   * Note: Ownership of the buffer object is transferred to the new VideoFrame.
    */
   @CalledByNative
   public VideoFrame(Buffer buffer, int rotation, long timestampNs) {

@@ -1,13 +1,14 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.IOException;
-
+import org.junit.jupiter.api.Test;
 import jakarta.servlet.ServletException;
 
-import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import io.antmedia.filter.IPFilterDashboard;
 import io.antmedia.settings.ServerSettings;
 
+@Tag("fast")
 public class IPFilterDashboardTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(IPFilterDashboardTest.class);

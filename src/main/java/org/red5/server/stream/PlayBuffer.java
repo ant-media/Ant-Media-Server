@@ -99,7 +99,7 @@ public class PlayBuffer {
      * 
      * @param message
      *            RTMP message
-     * @return <tt>true</tt> indicates success and <tt>false</tt> indicates buffer is full.
+     * @return {@code true} indicates success and {@code false} indicates buffer is full.
      */
     public boolean putMessage(RTMPMessage message) {
         IRTMPEvent body = message.getBody();
@@ -118,7 +118,7 @@ public class PlayBuffer {
     /**
      * Take a message from this buffer. The message count decreases.
      * 
-     * @return <tt>null</tt> if buffer is empty.
+     * @return {@code null} if buffer is empty.
      */
     public RTMPMessage takeMessage() {
         RTMPMessage message = messageQueue.poll();
@@ -135,7 +135,7 @@ public class PlayBuffer {
     /**
      * Peek a message but not take it from the buffer. The message count doesn't change.
      * 
-     * @return <tt>null</tt> if buffer is empty.
+     * @return {@code null} if buffer is empty.
      */
     public RTMPMessage peekMessage() {
         return messageQueue.peek();

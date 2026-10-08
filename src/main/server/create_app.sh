@@ -149,10 +149,23 @@ elif [[ $DB_HOST =~ ^redis.*$ ]]; then
 fi
 
 
+# Escape characters that are special in the replacement part of a sed 's' command.
+# In the replacement, '&' expands to the whole match and '\' starts an escape, so a
+# DB URI like "...?replicaSet=x&authSource=y" would be corrupted. We also escape the
+# delimiter used on each line ('/' or '#') in case a value (e.g. a password) contains it.
+escape_sed_replacement() {
+  # $1: value to escape, $2: delimiter character used in the sed command
+  printf '%s' "$1" | sed -e 's/[\\&'"$2"']/\\&/g'
+}
+
+DB_HOST_ESC=$(escape_sed_replacement "$DB_HOST" '#')
+DB_USER_ESC=$(escape_sed_replacement "$DB_USER" '/')
+DB_PASS_ESC=$(escape_sed_replacement "$DB_PASS" '/')
+
 sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $RED5_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$DB_HOST'#' $RED5_PROPERTIES_FILE  
-sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$DB_USER'/' $RED5_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$DB_PASS'/' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY "s#db.host=.*#db.host=$DB_HOST_ESC#" $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY "s/db.user=.*/db.user=$DB_USER_ESC/" $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY "s/db.password=.*/db.password=$DB_PASS_ESC/" $RED5_PROPERTIES_FILE
     
 
 if [[ "$IS_CLUSTER" == "true" ]]; then

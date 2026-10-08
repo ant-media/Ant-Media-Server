@@ -15,7 +15,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.webrtc.Logging.Severity;
-import org.webrtc.PeerConnection;
 import org.webrtc.audio.AudioDeviceModule;
 import org.webrtc.audio.JavaAudioDeviceModule;
 
@@ -24,11 +23,9 @@ import org.webrtc.audio.JavaAudioDeviceModule;
  * the PeerConnection API for clients.
  */
 public class PeerConnectionFactory {
-  public static final String TRIAL_ENABLED = "Enabled";
   @Deprecated public static final String VIDEO_FRAME_EMIT_TRIAL = "VideoFrameEmit";
 
   private static final String TAG = "PeerConnectionFactory";
-  private static final String VIDEO_CAPTURER_THREAD_NAME = "VideoCapturerThread";
 
   /** Helper class holding both Java and C++ thread info. */
   private static class ThreadInfo {

@@ -23,18 +23,28 @@ public class SslConfigurator {
 	{
 		logger.info("SSL configuration with configuration type {} has started.", this.type);
 
+		String[] args = getCommandArgs();
+		if (args == null) {
+			return null;
+		}
+
+		return "sudo /bin/bash enable_ssl.sh " + String.join(" ", args);
+	}
+
+	public String[] getCommandArgs()
+	{
 		String installDirectory = Paths.get("").toAbsolutePath().toString();
 
 		switch (type)
 		{
 			case CUSTOM_DOMAIN:
-				return "sudo /bin/bash enable_ssl.sh -d " + domain + " -i " + installDirectory;
+				return new String[] {"-d", domain, "-i", installDirectory};
 
 			case ANTMEDIA_SUBDOMAIN:
-				return "sudo /bin/bash enable_ssl.sh -i " + installDirectory;
+				return new String[] {"-i", installDirectory};
 				
 			case CUSTOM_CERTIFICATE:
-				return "sudo /bin/bash enable_ssl.sh -f " + fullChainFile.getAbsolutePath() + " -p " + privateKeyFile.getAbsolutePath() + " -c " + chainFile.getAbsolutePath() + " -d " + domain + " -i " + installDirectory;
+				return new String[] {"-f", fullChainFile.getAbsolutePath(), "-p", privateKeyFile.getAbsolutePath(), "-c", chainFile.getAbsolutePath(), "-d", domain, "-i", installDirectory};
 
 			default:
 				logger.warn("No SSL configuration type. SSL configuration failed.");

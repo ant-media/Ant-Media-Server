@@ -1,16 +1,19 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertFalse;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import org.junit.Test;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.rest.ClusterNotificationService;
 import io.antmedia.rest.model.Result;
+import org.junit.jupiter.api.Test;
 
+@Tag("fast")
 public class ClusterNotificationServiceTest {
 
     @Test

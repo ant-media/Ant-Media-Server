@@ -350,7 +350,6 @@ public class WebSocketCommunityHandler {
 	 * 
 	 * @param streamIdNameMap this is the map that keys are stream ids and values are stream names
 	 * @param roomId is the id of the room
-	 * @param subscriberId 
 	 */
 	public void sendRoomInformation(Map<String,String> streamIdNameMap , String roomId) 
 	{
