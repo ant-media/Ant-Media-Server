@@ -164,6 +164,8 @@ public class FrontEndTest {
 		logger.info("Closing the driver");
 		if(this.driver != null)
 			this.driver.quit();
+
+		CameraEmulator.stopIfStarted();
 	}
 
 	public static ChromeOptions getChromeOptions() {
@@ -309,10 +311,6 @@ public class FrontEndTest {
 			
 			return localBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 		});
-		
-		
-		CameraEmulator.stop();
-		
 	}
 
 	@Test

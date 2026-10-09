@@ -79,6 +79,12 @@ public class RestServiceV2Test {
 
 	private static final String ROOT_SERVICE_URL = "http://localhost:5080/LiveApp/rest";
 	private static final String SERVER_ADDR = "127.0.0.1";
+
+	/** Shared by every call. Cookies are off so each call stays independent, like a fresh client per call was. */
+	private static final CloseableHttpClient HTTP_CLIENT = HttpClients.custom()
+			.setRedirectStrategy(new LaxRedirectStrategy())
+			.disableCookieManagement()
+			.build();
 	private static Process tmpExec;
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceV2Test.class);
 	public AntMediaApplicationAdapter app = null;
@@ -168,7 +174,6 @@ public class RestServiceV2Test {
 	
 	public static Broadcast createBroadcast(Broadcast broadcast) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 		Gson gson = new Gson();
 		try {
@@ -177,7 +182,7 @@ public class RestServiceV2Test {
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
-			HttpResponse response = client.execute(post);
+			HttpResponse response = HTTP_CLIENT.execute(post);
 
 			StringBuffer result = readResponse(response);
 
@@ -200,13 +205,12 @@ public class RestServiceV2Test {
 
 	public Result startStreaming(String streamId) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId + "/start";
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.build();
 		try {
-			HttpResponse response = client.execute(post);
+			HttpResponse response = HTTP_CLIENT.execute(post);
 
 			StringBuffer result = readResponse(response);
 
@@ -228,13 +232,12 @@ public class RestServiceV2Test {
 	
 	public Result stopStreaming(String streamId) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId + "/stop";
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.build();
 		try {
-			HttpResponse response = client.execute(post);
+			HttpResponse response = HTTP_CLIENT.execute(post);
 
 			StringBuffer result = readResponse(response);
 
@@ -291,14 +294,13 @@ public class RestServiceV2Test {
 		
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
 		
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		try {
 			Gson gson = new Gson();
 			HttpUriRequest post = RequestBuilder.put().setUri(url + "?socialNetworks=" + socialNetworks)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
-			HttpResponse response = client.execute(post);
+			HttpResponse response = HTTP_CLIENT.execute(post);
 
 			StringBuffer result = readResponse(response);
 
@@ -327,7 +329,6 @@ public class RestServiceV2Test {
 
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Broadcast broadcast = null; 
 
 		try {
@@ -337,7 +338,7 @@ public class RestServiceV2Test {
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
-			HttpResponse response = client.execute(post);
+			HttpResponse response = HTTP_CLIENT.execute(post);
 
 			StringBuffer result = readResponse(response);
 
@@ -360,14 +361,13 @@ public class RestServiceV2Test {
 			/// get broadcast
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+"any_id_not_exits" + (int)(Math.random()*9999);
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -391,7 +391,6 @@ public class RestServiceV2Test {
 			/// get broadcast
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+streamId;
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
 
 
@@ -400,7 +399,7 @@ public class RestServiceV2Test {
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -429,7 +428,6 @@ public class RestServiceV2Test {
 			/// get broadcast
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/";
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
@@ -437,7 +435,7 @@ public class RestServiceV2Test {
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -454,7 +452,6 @@ public class RestServiceV2Test {
 
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		Broadcast broadcast = new Broadcast();
 		broadcast.setExpireDurationMS(expireTimeMS);
@@ -463,7 +460,7 @@ public class RestServiceV2Test {
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -489,12 +486,11 @@ public class RestServiceV2Test {
 		
 		url += recordType != null ? "?recordType="+recordType : "";
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 
 		HttpUriRequest post = RequestBuilder.put().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -513,14 +509,13 @@ public class RestServiceV2Test {
 
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("testBroadcast");
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -544,13 +539,12 @@ public class RestServiceV2Test {
 
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create?autoStart="+autoStart;
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -570,7 +564,6 @@ public class RestServiceV2Test {
 	public static Result callUploadVod(File file, String metadata) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/v2/vods/create?name=" + file.getName();
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 		HttpPost post = new HttpPost(url);
 		MultipartEntityBuilder builder = MultipartEntityBuilder.create();         
@@ -586,7 +579,7 @@ public class RestServiceV2Test {
 
 		HttpEntity entity = builder.build();
 		post.setEntity(entity);
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -605,14 +598,13 @@ public class RestServiceV2Test {
 	public  int callTotalVoDNumber() throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/v2/vods/count";
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
 		HttpUriRequest get = RequestBuilder.get().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				// .setEntity(new StringEntity(gson.toJson(broadcast)))
 				.build();
-		CloseableHttpResponse response = client.execute(get);
+		CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 		StringBuffer result = readResponse(response);
 
@@ -631,13 +623,12 @@ public class RestServiceV2Test {
 
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+broadcast.getStreamId();
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
 		HttpUriRequest post = RequestBuilder.put().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -665,13 +656,12 @@ public class RestServiceV2Test {
 			//then get version from rest service
 			String url = ROOT_SERVICE_URL + "/v2/version";
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -697,14 +687,13 @@ public class RestServiceV2Test {
 
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/active-live-stream-count";
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -726,14 +715,13 @@ public class RestServiceV2Test {
 
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/broadcast-statistics";
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -756,14 +744,13 @@ public class RestServiceV2Test {
 
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/total-broadcast-statistics";
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -787,14 +774,13 @@ public class RestServiceV2Test {
 
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/list/0/50";
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -822,14 +808,13 @@ public class RestServiceV2Test {
 
 			String url = ROOT_SERVICE_URL + "/v2/vods/list/"+offset+"/" + size;
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -853,14 +838,13 @@ public class RestServiceV2Test {
 
 			String url = ROOT_SERVICE_URL + "/v2/vods/"+id;
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
-			CloseableHttpResponse response = client.execute(get);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 			StringBuffer result = readResponse(response);
 
@@ -882,14 +866,13 @@ public class RestServiceV2Test {
 	public static Broadcast callGetBroadcast(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId;
 
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 		HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				// .setEntity(new StringEntity(gson.toJson(broadcast)))
 				.build();
 
-		CloseableHttpResponse response = client.execute(get);
+		CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 		StringBuffer result = readResponse(response);
 
@@ -935,13 +918,12 @@ public class RestServiceV2Test {
 	public static boolean callStopBroadcastService(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/stop";
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -958,9 +940,8 @@ public class RestServiceV2Test {
 	public static Result callSeekTime(String streamId, long seekTimeMs) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId + "/seek-time/" + seekTimeMs;
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		HttpUriRequest put = RequestBuilder.put().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-		HttpResponse response = client.execute(put);
+		HttpResponse response = HTTP_CLIENT.execute(put);
 
 		StringBuffer result = readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
@@ -972,9 +953,8 @@ public class RestServiceV2Test {
 	public static Result callGetCameraError(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId + "/ip-camera-error";
 
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		HttpUriRequest get = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-		CloseableHttpResponse response = client.execute(get);
+		CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 		StringBuffer result = readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
@@ -986,11 +966,10 @@ public class RestServiceV2Test {
 	public static List<Result> callCreateBroadcastList(List<Broadcast> broadcasts, String onDuplicate) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create-list" + (onDuplicate != null ? "?onDuplicate=" + onDuplicate : "");
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcasts))).build();
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
@@ -1005,9 +984,8 @@ public class RestServiceV2Test {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/playlists/" + playlistId + "/next"
 				+ (index != null ? "?index=" + index : "");
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
@@ -1019,13 +997,12 @@ public class RestServiceV2Test {
 	public static boolean callStartBroadast(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/start";
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
-		HttpResponse response = client.execute(post);
+		HttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -1203,7 +1180,6 @@ public class RestServiceV2Test {
 
 	public String makePOSTRequest(String url, String entity) {
 		try {
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			RequestBuilder builder = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE,
 					"application/json");
@@ -1213,7 +1189,7 @@ public class RestServiceV2Test {
 			}
 
 			HttpUriRequest post = builder.build();
-			CloseableHttpResponse response = client.execute(post);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(post);
 
 			StringBuffer result = readResponse(response);
 
@@ -1233,12 +1209,11 @@ public class RestServiceV2Test {
 			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest post = RequestBuilder.delete().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
-			CloseableHttpResponse response = client.execute(post);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(post);
 
 			StringBuffer result = readResponse(response);
 
@@ -1261,12 +1236,11 @@ public class RestServiceV2Test {
 			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/v2/vods/" + id;
 
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 			HttpUriRequest post = RequestBuilder.delete().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
-			CloseableHttpResponse response = client.execute(post);
+			CloseableHttpResponse response = HTTP_CLIENT.execute(post);
 
 			StringBuffer result = readResponse(response);
 
@@ -1361,11 +1335,10 @@ public class RestServiceV2Test {
 	{
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?endpointServiceId=" + endpointServiceId;
 		
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		
 		HttpUriRequest request = RequestBuilder.delete().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 	
-		CloseableHttpResponse response = client.execute(request);
+		CloseableHttpResponse response = HTTP_CLIENT.execute(request);
 		
 		StringBuffer result = readResponse(response);
 		
@@ -1384,13 +1357,12 @@ public class RestServiceV2Test {
 	{		
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint";
 		
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(endpoint))).build();
 
-		CloseableHttpResponse response = client.execute(post);
+		CloseableHttpResponse response = HTTP_CLIENT.execute(post);
 
 		StringBuffer result = readResponse(response);
 
@@ -2042,11 +2014,10 @@ public class RestServiceV2Test {
 	public Result callIsEnterpriseEdition() throws Exception {
 
 		String url = "http://localhost:5080/LiveApp/rest/v2/version";
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
 		HttpUriRequest get = RequestBuilder.get().setUri(url).build();
-		CloseableHttpResponse response = client.execute(get);
+		CloseableHttpResponse response = HTTP_CLIENT.execute(get);
 
 		StringBuffer result = readResponse(response);
 

@@ -139,6 +139,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@AfterEach
 	public void after() {
 		restServiceReal = null;
+		CameraEmulator.stopIfStarted();
 	}
 
 	private String redisUri() {
@@ -2262,11 +2263,6 @@ public class BroadcastRestServiceV2UnitTest {
 			Result result = streamSourceRest.startStreamSource(streamSource.getStreamId());
 			assertFalse(result.isSuccess());
 		}
-
-
-
-		//stop camera emulator
-		CameraEmulator.stop();
 	}
 
 	@Test
@@ -2345,12 +2341,6 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//message should be connection error code (-1) because IP is set
 		assertEquals(-1, result.getErrorId());
-
-
-		//stop camera emulator
-		CameraEmulator.stop();
-
-
 	}
 
 	@Test
@@ -2375,11 +2365,6 @@ public class BroadcastRestServiceV2UnitTest {
 		//assertEquals(1, result.length);
 		//*****************************************************************************
 		//*****************************************************************************
-
-
-		//stop camera emulator
-		CameraEmulator.stop();
-
 	}
 
 	@Test

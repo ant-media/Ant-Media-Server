@@ -180,6 +180,7 @@ public class ConsoleAppRestServiceTest{
 
 	@AfterEach
 	public void teardown() {
+		CameraEmulator.stopIfStarted();
 	}
 
 	@Rule
@@ -2545,8 +2546,6 @@ public class ConsoleAppRestServiceTest{
 			appSettings.setEncoderSettings(encoderSettings);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-
-			CameraEmulator.stop();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -2592,9 +2591,6 @@ public class ConsoleAppRestServiceTest{
 		
 		Result result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
 		assertTrue(result.isSuccess());
-		
-		CameraEmulator.stop();
-		
 	}
 
   @Test
@@ -2658,9 +2654,6 @@ public class ConsoleAppRestServiceTest{
 			appSettings.setRestartStreamFetcherPeriod(0);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-
-			CameraEmulator.stop();
-
 		}
 		catch (Exception e) {
 			e.printStackTrace();

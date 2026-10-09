@@ -1968,7 +1968,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return manager;
 	}
 
-	public synchronized void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
+	public void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
 		this.streamFetcherManager.set(streamFetcherManager);
 	}
 

@@ -18,6 +18,8 @@ public class CameraEmulator {
 	/** runme.sh returns before the emulator accepts connections, and it has no readiness signal. */
 	private static final long READY_WAIT_MS = 5000;
 
+	private static volatile boolean started;
+
 	private CameraEmulator() {
 		//static only
 	}
@@ -27,6 +29,7 @@ public class CameraEmulator {
 
 		try {
 			new ProcessBuilder("/usr/local/onvif/runme.sh").start();
+			started = true;
 			Awaitility.await().dontCatchUncaughtExceptions().pollDelay(READY_WAIT_MS, TimeUnit.MILLISECONDS).until(() -> true);
 		}
 		catch (IOException e) {
@@ -42,10 +45,21 @@ public class CameraEmulator {
 		try {
 			new ProcessBuilder(stopOnvif).start();
 			new ProcessBuilder(stopRtsp).start();
+			started = false;
 			Awaitility.await().dontCatchUncaughtExceptions().pollDelay(2, TimeUnit.SECONDS).until(() -> true);
 		}
 		catch (IOException e) {
 			logger.error("Cannot stop the camera emulator", e);
+		}
+	}
+
+	/**
+	 * For the teardown of every test, so a failed test can't leave the emulator running for the next
+	 * one. Free when the test didn't start it or already stopped it.
+	 */
+	public static void stopIfStarted() {
+		if (started) {
+			stop();
 		}
 	}
 }

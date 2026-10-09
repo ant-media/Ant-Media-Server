@@ -130,6 +130,7 @@ public class StreamSchedularUnitTest {
 		//reset to default
 		Application.enableSourceHealthUpdate = false;
 
+		CameraEmulator.stopIfStarted();
 	}
 
 	@Test
@@ -694,9 +695,6 @@ public class StreamSchedularUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		CameraEmulator.stop();
-
-
 	}
 
 }
