@@ -91,21 +91,27 @@ public class PlaylistController {
 			return new Result(false, streamId, "There are no items to play in the playlist: " + streamId);
 		}
 
-		//isStreamRunning also covers the other nodes of a cluster, putIfAbsent is what makes the local
-		//half atomic: whoever creates the session owns the playlist until it ends
-		if (manager.isStreamRunning(playlist) || sessions.putIfAbsent(streamId, new PlaylistSession()) != null) {
+		//covers this node's fetchers and sessions, and an origin on another node of the cluster
+		boolean isAlreadyRunning = manager.isStreamRunning(playlist);
+		if (!isAlreadyRunning) {
+			//two starts can both pass the check above, the claim is what settles it. putIfAbsent is atomic,
+			//so exactly one of them creates the session and the loser is refused with the map untouched
+			isAlreadyRunning = sessions.putIfAbsent(streamId, new PlaylistSession()) != null;
+		}
+
+		if (isAlreadyRunning) {
 			logger.warn("Playlist is already running for stream: {}", streamId);
-			return new Result(false, streamId, "Playlist is already running for stream:" + streamId);
+			return new Result(false, streamId, "Playlist is already running for stream: " + streamId);
 		}
 
-		int startIndex = playlist.getCurrentPlayIndex();
-		if (startIndex < 0 || startIndex >= items.size()) {
+		int currentIndex = playlist.getCurrentPlayIndex();
+		boolean indexInRange = currentIndex >= 0 && currentIndex < items.size();
+		if (!indexInRange) {
 			logger.warn("Resetting current play index to 0 because it is out of range for playlist: {}", streamId);
-			startIndex = 0;
 		}
 
-		int index = startIndex;
-		context.runOnContext(v -> playIndex(streamId, index));
+		int startIndex = indexInRange ? currentIndex : 0;
+		context.runOnContext(v -> playIndex(streamId, startIndex));
 
 		return new Result(true, streamId, "Playlist started");
 	}

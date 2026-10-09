@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -131,6 +132,40 @@ class PlaylistControllerTest {
 			awaitItems("wild" + stored, 1);
 			assertEquals(0, wild.getCurrentPlayIndex());
 		}
+	}
+
+	@Test
+	void concurrentStartsLetExactlyOneWin() throws InterruptedException {
+		Broadcast racy = playlist("racy", "rtsp://a", "rtsp://b");
+
+		int racers = 8;
+		CountDownLatch gate = new CountDownLatch(1);
+		Queue<Result> results = new ConcurrentLinkedQueue<>();
+		List<Thread> threads = new ArrayList<>();
+		for (int i = 0; i < racers; i++) {
+			Thread thread = new Thread(() -> {
+				try {
+					gate.await();
+					results.add(controller.startPlaylist(racy));
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			});
+			thread.start();
+			threads.add(thread);
+		}
+
+		gate.countDown();
+		for (Thread thread : threads) {
+			thread.join(TimeUnit.SECONDS.toMillis(10));
+		}
+
+		assertEquals(racers, results.size());
+		assertEquals(1, results.stream().filter(Result::isSuccess).count(), "one start owns the playlist, the rest are refused");
+
+		awaitItems("racy", 1);
+		assertEquals(1, itemsOf("racy").size(), "the losers must not start an item of their own");
 	}
 
 	@Test
