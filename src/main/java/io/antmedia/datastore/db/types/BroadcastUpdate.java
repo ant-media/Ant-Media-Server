@@ -140,6 +140,8 @@ public class BroadcastUpdate {
 
     private String subFolder = null;
 
+    private String srtPassphrase = null;
+
     private Integer currentPlayIndex = null;
 
     private String metaData = null;
@@ -563,6 +565,14 @@ public class BroadcastUpdate {
 
 	public void setSubFolder(String subFolder) {
 		this.subFolder = subFolder;
+	}
+
+	public String getSrtPassphrase() {
+		return srtPassphrase;
+	}
+
+	public void setSrtPassphrase(String srtPassphrase) {
+		this.srtPassphrase = srtPassphrase;
 	}
 
 	public Integer getCurrentPlayIndex() {
