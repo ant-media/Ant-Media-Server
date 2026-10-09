@@ -1959,13 +1959,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return onvifCamera;
 	}
 
-	public synchronized StreamFetcherManager getStreamFetcherManager() {
+	public StreamFetcherManager getStreamFetcherManager() {
 		StreamFetcherManager manager = streamFetcherManager.get();
-		if (manager == null) {
-			manager = new StreamFetcherManager(vertx, getDataStore(), getScope());
-			streamFetcherManager.set(manager);
+		if (manager != null) {
+			return manager;
 		}
-		return manager;
+
+		//the constructor starts a thread pool and subscribes to shutdown, so only one may ever be created
+		synchronized (streamFetcherManager) {
+			manager = streamFetcherManager.get();
+			if (manager == null) {
+				manager = new StreamFetcherManager(vertx, getDataStore(), getScope());
+				streamFetcherManager.set(manager);
+			}
+			return manager;
+		}
 	}
 
 	public void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
