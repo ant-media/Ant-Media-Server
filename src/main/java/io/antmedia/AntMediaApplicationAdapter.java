@@ -2920,7 +2920,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	public CompletableFuture<Result> startWhepHttpSignaling(PlayParameters playParameters, String sdp, String sessionId){
 		//for enterprise
-		return null;
+		return CompletableFuture.completedFuture(new Result(false, "WHEP HTTP signaling is available in the Enterprise Edition"));
 	}
 	
 	/**
