@@ -406,7 +406,7 @@ class StreamFetcherManagerTest {
 
 	@Test
 	void stopStreamingHandlesEveryKindOfId() {
-		assertEquals("Stream id is not defined", manager.stopStreaming("   ", false).getMessage());
+		assertEquals("Undefined stream id", manager.stopStreaming("   ", false).getMessage());
 
 		Result unknown = manager.stopStreaming("nobody", false);
 		assertFalse(unknown.isSuccess());

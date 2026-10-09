@@ -363,8 +363,8 @@ class PlaylistControllerTest {
 
 	@Test
 	void everyWayAPlaylistEndsEarly() {
-		assertEquals("Stream id is not defined", controller.stopPlaylist("  ").getMessage());
-		assertEquals("Stream id is not defined", controller.stopPlaylist(null).getMessage());
+		assertEquals("Undefined stream id", controller.stopPlaylist("  ").getMessage());
+		assertEquals("Undefined stream id", controller.stopPlaylist(null).getMessage());
 
 		Result unknown = controller.stopPlaylist("nobody");
 		assertFalse(unknown.isSuccess());
@@ -380,7 +380,7 @@ class PlaylistControllerTest {
 
 		Result byHand = controller.stopPlaylist("stopped");
 		assertTrue(byHand.isSuccess());
-		assertEquals("Playlist is stopped", byHand.getMessage());
+		assertEquals("Playlist stopped", byHand.getMessage());
 
 		//the session goes first, so the item reaching STOPPED can no longer start the next one
 		awaitFinished("stopped");

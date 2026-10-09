@@ -37,7 +37,7 @@ public class PlaylistController {
 
 	private static final String NOT_RUNNING_MESSAGE = "Playlist is not running for stream:";
 
-	/** Before passing URL to ffmpeg, reachability is check. This is request timeout  */
+	/** Timeout for the reachability check of an http item, done before its url is passed to ffmpeg. */
 	private static final int URL_CHECK_TIMEOUT_MS = 2500;
 
 	/** One entry per playing playlist. Its presence is what "this playlist is running" means. */
@@ -60,10 +60,14 @@ public class PlaylistController {
 		/** Index an explicit skip asked for, waiting for the current item to stop. */
 		Integer pendingIndex;
 
-		/** Items that ended without playing anything since the last one that did. */
-		int failuresInPass;
+		/**
+		 * How many items in a row failed, either the url check failed or the item ended without
+		 * publishing anything. Reset when an item plays. Once it reaches the item count, the whole
+		 * list was tried and nothing played, which counts as one failed pass.
+		 */
+		int consecutiveFailedItems;
 
-		/** Full passes over the list that played nothing at all. */
+		/** How many full passes over the list played nothing at all, bounded by streamFetcherMaxRetryAttempts. */
 		int failedPasses;
 
 		/** True while an item is being started, which includes waiting for its url check. */
@@ -83,39 +87,39 @@ public class PlaylistController {
 
 		List<PlayListItem> items = playlist.getPlayListItemList();
 		if (items == null || items.isEmpty()) {
-			logger.warn("There is no item to play in playlist:{}", streamId);
-			return new Result(false, streamId, "There is no item to play in the playlist:" + streamId);
+			logger.warn("There are no items to play in playlist: {}", streamId);
+			return new Result(false, streamId, "There are no items to play in the playlist: " + streamId);
 		}
 
 		//isStreamRunning also covers the other nodes of a cluster, putIfAbsent is what makes the local
 		//half atomic: whoever creates the session owns the playlist until it ends
 		if (manager.isStreamRunning(playlist) || sessions.putIfAbsent(streamId, new PlaylistSession()) != null) {
-			logger.warn("Playlist is already running for stream:{}", streamId);
+			logger.warn("Playlist is already running for stream: {}", streamId);
 			return new Result(false, streamId, "Playlist is already running for stream:" + streamId);
 		}
 
 		int startIndex = playlist.getCurrentPlayIndex();
 		if (startIndex < 0 || startIndex >= items.size()) {
-			logger.warn("Resetting current play index to 0 because it is out of range for playlist:{}", streamId);
+			logger.warn("Resetting current play index to 0 because it is out of range for playlist: {}", streamId);
 			startIndex = 0;
 		}
 
 		int index = startIndex;
 		context.runOnContext(v -> playIndex(streamId, index));
 
-		return new Result(true, streamId, "Playlist is started");
+		return new Result(true, streamId, "Playlist started");
 	}
 
 	/** Stops the item that is playing and marks the playlist finished, keeping its current index. */
 	public Result stopPlaylist(String streamId) {
 		if (StringUtils.isBlank(streamId)) {
-			return new Result(false, "Stream id is not defined");
+			return new Result(false, "Undefined stream id");
 		}
 
 		boolean running = isRunning(streamId);
 		stopPlaylistAsync(streamId);
 
-		return new Result(running, streamId, running ? "Playlist is stopped" : NOT_RUNNING_MESSAGE + streamId);
+		return new Result(running, streamId, running ? "Playlist stopped" : NOT_RUNNING_MESSAGE + streamId);
 	}
 
 	/**
@@ -123,7 +127,7 @@ public class PlaylistController {
 	 * @return completes once the item that was playing reached its terminal state
 	 */
 	CompletableFuture<Void> stopPlaylistAsync(String streamId) {
-		logger.info("Stopping playlist for stream:{}", streamId);
+		logger.info("Stopping playlist for stream: {}", streamId);
 
 		CompletableFuture<Void> stopped = new CompletableFuture<>();
 		context.runOnContext(v -> endPlaylist(streamId, false).whenComplete((result, error) -> stopped.complete(null)));
@@ -133,12 +137,12 @@ public class PlaylistController {
 
 	/**
 	 * Plays the item at index, or the one after the current item when index is negative.
-	 * Asking for the next item while the last one of non-looping playlist plays, will finish playlist!
+	 * Asking for the next item while the last item of a non-looping playlist plays finishes the playlist.
 	 */
 	public Result playItem(String streamId, int index) {
 		Broadcast playlist = manager.getDatastore().get(streamId);
 		if (playlist == null) {
-			return new Result(false, streamId, "There is no playlist found. Please check Stream id again");
+			return new Result(false, streamId, "No playlist found. Please check the stream id");
 		}
 
 		if (!AntMediaApplicationAdapter.PLAY_LIST.equals(playlist.getType())) {
@@ -147,7 +151,7 @@ public class PlaylistController {
 
 		List<PlayListItem> items = playlist.getPlayListItemList();
 		if (items == null || items.isEmpty()) {
-			return new Result(false, streamId, "There is no item to play in the playlist:" + streamId);
+			return new Result(false, streamId, "There are no items to play in the playlist: " + streamId);
 		}
 
 		if (!isRunning(streamId)) {
@@ -188,9 +192,9 @@ public class PlaylistController {
 	}
 
 	/**
-	 * Callback when playlist item reached it's end (terminal state).
+	 * Called when a playlist item reaches its end (terminal state).
 	 * <p>
-	 * Called form shared context in {@link StreamFetcherManager}
+	 * Called from the shared context in {@link StreamFetcherManager}
 	 *
 	 * Ids this controller does not own are ignored.
 	 */
@@ -206,7 +210,7 @@ public class PlaylistController {
 		}
 		catch (Exception e) {
 			//a DB blip here would strand the playlist: nothing playing, nothing left to restart it
-			logger.error("Playlist:{} could not pick its next item so it is finished. {}", streamId, ExceptionUtils.getStackTrace(e));
+			logger.error("Playlist: {} could not pick its next item so it is finished. {}", streamId, ExceptionUtils.getStackTrace(e));
 			endPlaylist(streamId, false);
 		}
 	}
@@ -214,7 +218,7 @@ public class PlaylistController {
 	private void advance(String streamId, PlaylistSession session, boolean itemPlayed) {
 		if (manager.isServerShuttingDown()) {
 			//the flag can be set before shutdown() gets here, so finish properly instead of just dropping the session
-			logger.info("Playlist will not play the next item because the server is shutting down, streamId:{}", streamId);
+			logger.info("Playlist will not play the next item because the server is shutting down, streamId: {}", streamId);
 			endPlaylist(streamId, false);
 			return;
 		}
@@ -224,11 +228,11 @@ public class PlaylistController {
 
 		if (itemPlayed || pending != null) {
 			//somebody asked for this item explicitly, so whatever the previous one did is history
-			session.failuresInPass = 0;
+			session.consecutiveFailedItems = 0;
 			session.failedPasses = 0;
 		}
 		else {
-			session.failuresInPass++;
+			session.consecutiveFailedItems++;
 		}
 
 		if (pending != null) {
@@ -246,26 +250,26 @@ public class PlaylistController {
 	private void playNext(String streamId, PlaylistSession session) {
 		Broadcast playlist = manager.getDatastore().get(streamId);
 		if (playlist == null) {
-			logger.info("Playlist is deleted so the next item is not played, streamId:{}", streamId);
+			logger.info("Playlist is deleted so the next item is not played, streamId: {}", streamId);
 			sessions.remove(streamId);
 			return;
 		}
 
 		List<PlayListItem> items = playlist.getPlayListItemList();
 		if (items == null || items.isEmpty()) {
-			logger.info("Playlist has no items left to play so it is finished, streamId:{}", streamId);
+			logger.info("Playlist has no items left to play so it is finished, streamId: {}", streamId);
 			endPlaylist(streamId, true);
 			return;
 		}
 
 		int next = nextIndex(playlist);
 		if (next < 0) {
-			logger.info("Playlist reached the end of its items and looping is disabled, streamId:{}", streamId);
+			logger.info("Playlist reached the end of its items and looping is disabled, streamId: {}", streamId);
 			endPlaylist(streamId, true);
 			return;
 		}
 
-		if (session.failuresInPass < items.size()) {
+		if (session.consecutiveFailedItems < items.size()) {
 			playIndex(streamId, next);
 		}
 		else {
@@ -278,18 +282,18 @@ public class PlaylistController {
 	 * otherwise spin the event loop, and lets an operator bound the retries.
 	 */
 	private void retryAfterFailedPass(String streamId, PlaylistSession session) {
-		session.failuresInPass = 0;
+		session.consecutiveFailedItems = 0;
 		session.failedPasses++;
 
 		int maxPasses = appSettings.getStreamFetcherMaxRetryAttempts();
 		if (maxPasses >= 0 && session.failedPasses > maxPasses) {
-			logger.error("Giving up on playlist:{}, no item could be played in {} passes over the list", streamId, session.failedPasses);
+			logger.error("Giving up on playlist: {}, no item could be played in {} passes over the list", streamId, session.failedPasses);
 			endPlaylist(streamId, true);
 			return;
 		}
 
 		long delayMs = Math.max(1, appSettings.getStreamFetcherRetryDelayMs());
-		logger.warn("No item of playlist:{} could be played in the last pass, trying again in {}ms", streamId, delayMs);
+		logger.warn("No item of playlist: {} could be played in the last pass, trying again in {}ms", streamId, delayMs);
 
 		//nothing is on air during the wait, so say it is still trying rather than still playing
 		writePlaylistStatus(streamId, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, null);
@@ -313,7 +317,7 @@ public class PlaylistController {
 		if (session.starting || manager.getStreamFetcher(streamId) != null) {
 			//a skip can beat a pending retry to it. Two items under one id is the thing we must never
 			//do, so refuse instead of untangling how they got here
-			logger.warn("Not starting item:{} of playlist:{} because one is already starting or playing", index, streamId);
+			logger.warn("Not starting item: {} of playlist: {} because one is already starting or playing", index, streamId);
 			return;
 		}
 
@@ -322,7 +326,7 @@ public class PlaylistController {
 			List<PlayListItem> items = playlist != null ? playlist.getPlayListItemList() : null;
 
 			if (items == null || index < 0 || index >= items.size()) {
-				logger.warn("Playlist item:{} does not exist anymore so the playlist is finished, streamId:{}", index, streamId);
+				logger.warn("Playlist item: {} does not exist anymore so the playlist is finished, streamId: {}", index, streamId);
 				endPlaylist(streamId, true);
 				return;
 			}
@@ -337,7 +341,7 @@ public class PlaylistController {
 					.onComplete(ar -> onUrlChecked(streamId, session, index, item, Boolean.TRUE.equals(ar.result())));
 		}
 		catch (Exception e) {
-			logger.error("Playlist:{} could not start item:{} so it is finished. {}", streamId, index, ExceptionUtils.getStackTrace(e));
+			logger.error("Playlist: {} could not start item: {} so it is finished. {}", streamId, index, ExceptionUtils.getStackTrace(e));
 			endPlaylist(streamId, false);
 		}
 	}
@@ -364,7 +368,7 @@ public class PlaylistController {
 				return true;
 			}
 
-			logger.warn("Playlist item url {} responded:{}", url, responseCode);
+			logger.warn("Playlist item url {} responded: {}", url, responseCode);
 			return false;
 		}
 		catch (Exception e) {
@@ -384,14 +388,14 @@ public class PlaylistController {
 		session.starting = false;
 
 		if (sessions.get(streamId) != session) {
-			logger.info("Playlist was stopped while item:{} was being checked, streamId:{}", index, streamId);
+			logger.info("Playlist was stopped while item: {} was being checked, streamId: {}", index, streamId);
 			return;
 		}
 
 		Integer pending = session.pendingIndex;
 		if (pending != null) {
 			session.pendingIndex = null;
-			logger.info("Item:{} was skipped while its url was being checked, playing item:{} instead, streamId:{}", index, pending, streamId);
+			logger.info("Item: {} was skipped while its url was being checked, playing item: {} instead, streamId: {}", index, pending, streamId);
 			playIndex(streamId, pending);
 			return;
 		}
@@ -401,12 +405,12 @@ public class PlaylistController {
 				startItem(streamId, index, item);
 			}
 			else {
-				session.failuresInPass++;
+				session.consecutiveFailedItems++;
 				playNext(streamId, session);
 			}
 		}
 		catch (Exception e) {
-			logger.error("Playlist:{} could not move on from item:{} so it is finished. {}", streamId, index, ExceptionUtils.getStackTrace(e));
+			logger.error("Playlist: {} could not move on from item: {} so it is finished. {}", streamId, index, ExceptionUtils.getStackTrace(e));
 			endPlaylist(streamId, false);
 		}
 	}
@@ -416,7 +420,7 @@ public class PlaylistController {
 
 		Result result = manager.startPlaylistItem(streamId, item);
 		if (!result.isSuccess()) {
-			logger.error("Playlist item:{} could not be started so the playlist is finished, streamId:{} reason:{}", index, streamId, result.getMessage());
+			logger.error("Playlist item: {} could not be started so the playlist is finished, streamId: {} reason: {}", index, streamId, result.getMessage());
 			endPlaylist(streamId, true);
 		}
 	}
@@ -461,7 +465,7 @@ public class PlaylistController {
 	private void skipTo(String streamId, int index) {
 		PlaylistSession session = sessions.get(streamId);
 		if (session == null) {
-			logger.info("Playlist is not running so item:{} is not played, streamId:{}", index, streamId);
+			logger.info("Playlist is not running so item: {} is not played, streamId: {}", index, streamId);
 			return;
 		}
 

@@ -373,18 +373,18 @@ class FfmpegWorkerTest extends UnitTestBase<FfmpegWorker> {
 			sent[1] = 200;
 
 			//looked at no more than once every 2s
-			poke(worker, "lastSycnCheckTime", System.currentTimeMillis());
-			invoke(worker, "checkAndFixSynch", new Class<?>[0]);
+			poke(worker, "lastSyncCheckTime", System.currentTimeMillis());
+			invoke(worker, "checkAndFixSync", new Class<?>[0]);
 			assertThat(sent).containsExactly(0L, 200L);
 
-			poke(worker, "lastSycnCheckTime", 1L);
-			invoke(worker, "checkAndFixSynch", new Class<?>[0]);
+			poke(worker, "lastSyncCheckTime", 1L);
+			invoke(worker, "checkAndFixSync", new Class<?>[0]);
 			assertThat(sent).as("the stream that fell behind is moved up to the one ahead").containsExactly(200L, 200L);
 
 			//under 150ms is ordinary interleaving and is left alone
 			sent[0] = 100;
-			poke(worker, "lastSycnCheckTime", 1L);
-			invoke(worker, "checkAndFixSynch", new Class<?>[0]);
+			poke(worker, "lastSyncCheckTime", 1L);
+			invoke(worker, "checkAndFixSync", new Class<?>[0]);
 			assertThat(sent).containsExactly(100L, 200L);
 		}
 		finally {

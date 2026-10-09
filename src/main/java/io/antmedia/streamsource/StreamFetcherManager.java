@@ -231,7 +231,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		result.setDataId(streamId);
 
 		if (StringUtils.isBlank(streamId)) {
-			result.setMessage("Stream id is not defined");
+			result.setMessage("Undefined stream id");
 			return result;
 		}
 

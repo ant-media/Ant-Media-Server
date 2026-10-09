@@ -105,7 +105,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 	private long[] lastSentDTS;
 	private long[] lastReceivedDTS;
 	private boolean streamPublished;
-	private long lastSycnCheckTime;
+	private long lastSyncCheckTime;
 
 	private final AtomicBoolean seekRequested = new AtomicBoolean(false);
 	private volatile long seekTimeMs;
@@ -148,7 +148,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		try {
 			inputFormatContext = avformat_alloc_context();
 			if (inputFormatContext == null) {
-				logger.warn("Cannot allocate the input context for streamId:{}", streamId);
+				logger.warn("Cannot allocate the input context for streamId: {}", streamId);
 				error.set(new Result(false, "Cannot allocate the input context"));
 				return reason;
 			}
@@ -202,7 +202,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			}
 			else {
 				String readError = Muxer.getErrorDefinition(result);
-				logger.warn("Cannot read the next packet for url:{} and error is {}", streamUrl, readError);
+				logger.warn("Cannot read the next packet for url: {} and error is {}", streamUrl, readError);
 				if (abortRequested.get()) {
 					return Reason.TIMEOUT;
 				}
@@ -221,13 +221,13 @@ public class FfmpegWorker extends StreamFetcherWorker {
 	}
 
 	private boolean prepareInputContext(Broadcast broadcast) throws Exception {
-		logger.info("Preparing the stream fetcher for {} and streamId:{}", streamUrl, streamId);
+		logger.info("Preparing the stream fetcher for {} and streamId: {}", streamUrl, streamId);
 
 		//HTTP sources are files or segment lists, so ffmpeg hands us a whole segment at once instead of
 		//pacing it. Only VoD is paced against the wall clock here, everything else needs the buffer
 		if (bufferTime <= 0 && !AntMediaApplicationAdapter.VOD.equals(streamType)
 				&& StringUtils.startsWithAny(streamUrl, "http://", "https://")) {
-			logger.warn("Source {} is pulled over HTTP and streamFetcherBufferTime is not set for streamId:{}."
+			logger.warn("Source {} is pulled over HTTP and streamFetcherBufferTime is not set for streamId: {}."
 					+ " Packets will arrive in bursts and playback will not be smooth."
 					+ " Set streamFetcherBufferTime to 1000 or more in the application settings", streamUrl, streamId);
 		}
@@ -242,7 +242,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		if (abortRequested.get()) {
 			//the open finished after a stop or an abandon. Registering a MuxAdaptor now would replace the
 			//one a newer worker already owns, and its own cleanup would then tear that live one down
-			logger.info("Source opened after the abort was requested, dropping this attempt for streamId:{}", streamId);
+			logger.info("Source opened after the abort was requested, dropping this attempt for streamId: {}", streamId);
 			return false;
 		}
 
@@ -296,7 +296,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
 
 			int timeoutMicroSeconds = appSettings.getRtspTimeoutDurationMs() * 1000;
-			logger.info("Setting rtsp transport type to {} for stream source: {} and timeout:{}us", transportType, streamUrl, timeoutMicroSeconds);
+			logger.info("Setting rtsp transport type to {} for stream source: {} and timeout: {}us", transportType, streamUrl, timeoutMicroSeconds);
 
 			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
 			av_dict_set(optionsDictionary, "timeout", String.valueOf(timeoutMicroSeconds), 0);
@@ -324,7 +324,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 		if (ret < 0) {
 			result.setMessage(Muxer.getErrorDefinition(ret));
-			logger.warn("cannot open stream: {} with error:: {} and streamId:{}", streamUrl, result.getMessage(), streamId);
+			logger.warn("Cannot open stream: {} with error: {} and streamId: {}", streamUrl, result.getMessage(), streamId);
 			return result;
 		}
 
@@ -333,7 +333,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
 			result.setMessage("Could not find stream information");
-			logger.warn("{} for streamId:{}", result.getMessage(), streamId);
+			logger.warn("{} for streamId: {}", result.getMessage(), streamId);
 			return result;
 		}
 
@@ -356,7 +356,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			URI.create(streamUrl);
 		}
 		catch (IllegalArgumentException | NullPointerException e) {
-			logger.warn("cannot parse URL parameters incorrect URL format");
+			logger.warn("Error parsing URL: {}", e.getMessage());
 			return;
 		}
 
@@ -410,12 +410,12 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 		//try seeking if seekTime is less than duration or duration value is undefined
 		if (seekTimeInStreamTimebase >= inputFormatContext.streams(0).duration() && inputFormatContext.streams(0).duration() >= 0) {
-			logger.warn("Cannot seek because seektime:{} is bigger than the duration:{} for streamId:{} streamUrl:{}", seekTimeInStreamTimebase,
+			logger.warn("Cannot seek because seektime: {} is bigger than the duration: {} for streamId: {} streamUrl: {}", seekTimeInStreamTimebase,
 					inputFormatContext.streams(0).duration(), streamId, streamUrl);
 			return 0;
 		}
 
-		logger.info("Seeking in time for streamId:{} to {} ms", streamId, seekTimeMs);
+		logger.info("Seeking in time for streamId: {} to {} ms", streamId, seekTimeMs);
 
 		int ret = av_seek_frame(inputFormatContext, 0, seekTimeInStreamTimebase, flags);
 		if (ret >= 0) {
@@ -423,7 +423,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			firstPacketTime = 0;
 		}
 		else if (logger.isErrorEnabled()) {
-			logger.error("Error in seeking for streamId:{} and seekTimeInMs:{} url:{}. Error is {}", streamId, seekTimeMs, streamUrl, Muxer.getErrorDefinition(ret));
+			logger.error("Error in seeking for streamId: {} and seekTimeInMs: {} url: {}. Error is {}", streamId, seekTimeMs, streamUrl, Muxer.getErrorDefinition(ret));
 		}
 
 		return ret;
@@ -495,7 +495,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 			long elapsedTime = System.currentTimeMillis() - latestTime;
 			if (elapsedTime > 1000) {
-				logger.warn("Elapsed time is: {} to send the packet for streamId:{}", elapsedTime, streamId);
+				logger.warn("Elapsed time is: {} to send the packet for streamId: {}", elapsedTime, streamId);
 			}
 		}
 	}
@@ -510,12 +510,12 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 		if (lastSentDTS[packetIndex] >= pkt.dts()) {
 			if (pkt.dts() > lastReceivedDTS[packetIndex]) {
-				//the source restarted or seeked, carry the offset over and re-check the audio/video synch
+				//the source restarted or seeked, carry the offset over and re-check the audio/video sync
 				pktDts = lastSentDTS[packetIndex] + pkt.dts() - lastReceivedDTS[packetIndex];
-				checkAndFixSynch();
+				checkAndFixSync();
 			}
 			else {
-				logger.info("Last dts:{} is bigger than incoming dts: {} for stream index:{} and streamId:{}-"
+				logger.info("Last dts: {} is bigger than incoming dts: {} for stream index: {} and streamId: {}-"
 						+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
 						lastSentDTS[packetIndex], pkt.dts(), packetIndex, streamId);
 				pktDts = lastSentDTS[packetIndex] + 1;
@@ -534,16 +534,16 @@ public class FfmpegWorker extends StreamFetcherWorker {
 	}
 
 	/** Pulls audio and video back together when their sent timestamps have drifted apart. */
-	private void checkAndFixSynch() {
+	private void checkAndFixSync() {
 		long now = System.currentTimeMillis();
-		if (lastSycnCheckTime == 0) {
-			lastSycnCheckTime = now;
+		if (lastSyncCheckTime == 0) {
+			lastSyncCheckTime = now;
 		}
 
-		if (lastSentDTS.length < 2 || now - lastSycnCheckTime <= 2000) {
+		if (lastSentDTS.length < 2 || now - lastSyncCheckTime <= 2000) {
 			return;
 		}
-		lastSycnCheckTime = now;
+		lastSyncCheckTime = now;
 
 		List<Long> lastSentDTSInMsList = new ArrayList<>();
 		for (int i = 0; i < lastSentDTS.length; i++) {
@@ -560,13 +560,13 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			maxValueInMilliseconds = maxValueInMilliseconds == -1 ? value : Math.max(maxValueInMilliseconds, value);
 		}
 
-		//the assumption is that we receive synched audio and video, so a gap this big is accumulated drift
+		//the assumption is that we receive synced audio and video, so a gap this big is accumulated drift
 		long asyncThreshold = 150;
 		if (Math.abs(maxValueInMilliseconds - minValueInMilliseconds) <= asyncThreshold) {
 			return;
 		}
 
-		logger.warn("Audio/Video sync is more than {}ms for stream:{} and trying to synch the packets", asyncThreshold, streamId);
+		logger.warn("Audio/Video sync is more than {}ms for stream: {} and trying to sync the packets", asyncThreshold, streamId);
 		for (int i = 0; i < lastSentDTS.length; i++) {
 			if (isAudioOrVideo(i)) {
 				lastSentDTS[i] = av_rescale_q(maxValueInMilliseconds, MuxAdaptor.TIME_BASE_FOR_MS, getStreamTimebase(i));
@@ -692,7 +692,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			MuxAdaptor adaptor = muxAdaptor.get();
 			boolean abandoned = abandonedAtMs != 0 && getInstance().getMuxAdaptor(streamId) != adaptor;
 			if (abandoned) {
-				logger.error("Abandoned stream fetcher worker returned {}ms after it was given up on, for url:{} streamId:{}."
+				logger.error("Abandoned stream fetcher worker returned {}ms after it was given up on, for url: {} streamId: {}."
 						+ " Its buffered packets and trailer are dropped because a newer attempt owns the stream",
 						System.currentTimeMillis() - abandonedAtMs, streamUrl, streamId);
 			}
@@ -710,7 +710,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			}
 
 			if (!abandoned && adaptor != null) {
-				logger.info("Writing trailer in MuxAdaptor for streamId:{}", streamId);
+				logger.info("Writing trailer in MuxAdaptor for streamId: {}", streamId);
 				adaptor.writeTrailer();
 			}
 

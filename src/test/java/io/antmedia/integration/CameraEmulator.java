@@ -4,12 +4,16 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The ONVIF camera simulator the RTSP tests pull from. It serves ONVIF on 127.0.0.1:8080 and RTSP on
  * 127.0.0.1:6554. Installed at /usr/local/onvif on the CI runner, so anything using this only runs there.
  */
 public class CameraEmulator {
+
+	private static final Logger logger = LoggerFactory.getLogger(CameraEmulator.class);
 
 	/** runme.sh returns before the emulator accepts connections, and it has no readiness signal. */
 	private static final long READY_WAIT_MS = 5000;
@@ -26,7 +30,7 @@ public class CameraEmulator {
 			Awaitility.await().dontCatchUncaughtExceptions().pollDelay(READY_WAIT_MS, TimeUnit.MILLISECONDS).until(() -> true);
 		}
 		catch (IOException e) {
-			e.printStackTrace();
+			logger.error("Cannot start the camera emulator", e);
 		}
 	}
 
@@ -41,7 +45,7 @@ public class CameraEmulator {
 			Awaitility.await().dontCatchUncaughtExceptions().pollDelay(2, TimeUnit.SECONDS).until(() -> true);
 		}
 		catch (IOException e) {
-			e.printStackTrace();
+			logger.error("Cannot stop the camera emulator", e);
 		}
 	}
 }

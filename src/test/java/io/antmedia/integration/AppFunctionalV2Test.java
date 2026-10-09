@@ -1279,7 +1279,6 @@ public class AppFunctionalV2Test {
 		try {
 			startedProcess = Runtime.getRuntime().exec(command);
 		} catch (IOException e) {
-			e.printStackTrace();
 			throw new IllegalStateException("cannot execute: " + command, e);
 		}
 
@@ -1290,7 +1289,7 @@ public class AppFunctionalV2Test {
 				int length = 0;
 
 				while ((length = errorStream.read(data, 0, data.length)) > 0) {
-					System.out.println(new String(data, 0, length));
+					logger.info(new String(data, 0, length));
 				}
 			} catch (IOException e) {
 				//closed when the process is destroyed
