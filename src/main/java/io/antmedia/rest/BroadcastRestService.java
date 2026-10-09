@@ -534,7 +534,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		List<Endpoint> endpoints = broadcast.getEndPointList();
-		if (endpoints == null || endpoints.stream().noneMatch(o -> o.getEndpointUrl().equals(endpoint.getEndpointUrl())))
+		if (endpoints == null || endpoints.stream().noneMatch(o -> endpoint.getEndpointUrl().equals(o.getEndpointUrl())))
 		{
 			endpointUrl = endpoint.getEndpointUrl();
 
