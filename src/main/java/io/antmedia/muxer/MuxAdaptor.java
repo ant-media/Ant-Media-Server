@@ -13,6 +13,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
 import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
 import static org.bytedeco.ffmpeg.global.avutil.av_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
@@ -37,6 +38,7 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.javacpp.BytePointer;
@@ -97,6 +99,7 @@ import io.vertx.core.Vertx;
 
 
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
+	private static final int INITIAL_RTMP_PACKET_BUFFER_CAPACITY = 64 * 1024;
 
 
 	public static final int STAT_UPDATE_PERIOD_MS = 10000;
@@ -115,7 +118,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 	private int videoStreamIndex;
-	protected int audioStreamIndex;
 	private int dataStreamIndex;
 
 
@@ -291,8 +293,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected AVFormatContext streamSourceInputFormatContext;
 	private AVCodecParameters videoCodecParameters;
 	protected AVCodecParameters audioCodecParameters;
+	protected Map<Integer, AVCodecParameters> audioCodecParametersMap = new ConcurrentHashMap<>();
+	protected Map<Integer, AVRational> audioTimeBaseMap = new ConcurrentHashMap<>();
+	protected List<Integer> audioStreamIndexList = Collections.synchronizedList(new ArrayList<>());
 	private BytePointer audioExtraDataPointer;
 	private BytePointer videoExtraDataPointer;
+	private BytePointer reusableRtmpAudioPacketPointer;
+	private ByteBuffer reusableRtmpAudioPacketBuffer;
+	private BytePointer reusableRtmpVideoPacketPointer;
+	private ByteBuffer reusableRtmpVideoPacketBuffer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
 
@@ -696,8 +705,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (videoDataConf != null && videoCodecParameters == null) {
 
 			Parser parser = null;
-			if (videoCodecId == AV_CODEC_ID_H264) 
-			{
+			switch (videoCodecId) {
+			case AV_CODEC_ID_H264:
 				/*
 						unsigned int(8) configurationVersion = 1;
 						unsigned int(8) AVCProfileIndication;
@@ -736,13 +745,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				//convert above structure to sps and pps annexb
 				parser = new SPSParser(getAnnexbExtradata(videoDataConf), 5);
-			}
-			else if (videoCodecId == AV_CODEC_ID_H265) {
-
+				break;
+			case AV_CODEC_ID_H265:
 				parser = new HEVCDecoderConfigurationParser(videoDataConf, 0);
-
-			}
-			else {
+				break;
+			default:
 				throw new IllegalArgumentException("Unsupported codec id for video:" + videoCodecId);
 			}
 
@@ -788,7 +795,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		AVCodecParameters parameters = getAudioCodecParameters();
 		if (parameters != null) {
 			addStream2Muxers(parameters, getTimeBaseForMs(), streamIndex);
-			audioStreamIndex = streamIndex;
+			setAudioStreamIndex(streamIndex);
 		}
 		else {
 			logger.info("There is no audio in the stream or not received AAC Sequence header for stream:{} muting the audio", streamId);
@@ -828,6 +835,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean prepareFromInputFormatContext(AVFormatContext inputFormatContext) throws Exception {
 
 		this.streamSourceInputFormatContext = inputFormatContext;
+		audioStreamIndexList.clear();
+		audioCodecParametersMap.clear();
+		audioTimeBaseMap.clear();
+		audioCodecParameters = null;
 		// Dump information about file onto standard error
 
 		int streamIndex = 0;
@@ -843,7 +854,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				width = codecpar.width();
 				height = codecpar.height();
 
-				addStream2Muxers(codecpar, stream.time_base(), i);
+				addStream2Muxers(codecpar, stream.time_base(), i, Optional.empty());
 				videoStreamIndex = streamIndex;
 				videoCodecParameters = codecpar;
 				streamIndex++;
@@ -852,16 +863,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			else if (codecpar.codec_type() == AVMEDIA_TYPE_AUDIO) 
 			{
 				logger.info("Audio format sample rate:{} bitrate:{} for stream: {} source index:{} target index:{}",codecpar.sample_rate(), codecpar.bit_rate(), streamId, i, streamIndex);
-				audioTimeBase = inputFormatContext.streams(i).time_base();
-				addStream2Muxers(codecpar, stream.time_base(), i);
-				audioStreamIndex = streamIndex;
-				audioCodecParameters = codecpar;
+				AVRational streamTimeBase = inputFormatContext.streams(i).time_base();
+				audioStreamIndexList.add(i);
+				audioCodecParametersMap.put(i, codecpar);
+				audioTimeBaseMap.put(i, streamTimeBase);
+				if (audioCodecParameters == null) {
+					audioCodecParameters = codecpar;
+					audioTimeBase = streamTimeBase;
+				}
+				addStream2Muxers(codecpar, stream.time_base(), i, getLanguage(stream));
 				streamIndex++;
 			}
 			else if (codecpar.codec_type() == AVMEDIA_TYPE_DATA)
 			{
 				logger.info("Data stream detected (e.g., SCTE-35) codec Id: {} for stream: {} source index:{} target index:{}", codecpar.codec_id(), streamId, i, streamIndex);
-				addStream2Muxers(codecpar, stream.time_base(), i);
+				addStream2Muxers(codecpar, stream.time_base(), i, Optional.empty());
 				dataStreamIndex = streamIndex;
 				streamIndex++;
 			}
@@ -943,6 +959,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void addStream2Muxers(AVCodecParameters codecParameters, AVRational rat, int streamIndex) 
 	{
+		addStream2Muxers(codecParameters, rat, streamIndex, Optional.empty());
+	}
+
+	public void addStream2Muxers(AVCodecParameters codecParameters, AVRational rat, int streamIndex, Optional<String> language) 
+	{
 		synchronized (muxerList) {
 
 			Iterator<Muxer> iterator = muxerList.iterator();
@@ -950,7 +971,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			{
 				Muxer muxer = iterator.next();
 
-				if (!muxer.addStream(codecParameters, rat, streamIndex)) 
+				if (!muxer.addStream(codecParameters, rat, streamIndex, language)) 
 				{
 
 					logger.warn("addStream returns false {} for stream: {} for {} stream", muxer.getFormat(), streamId, getStreamType(codecParameters.codec_type()));
@@ -958,6 +979,18 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 
+	}
+
+	public Optional<String> getLanguage(AVStream stream) {
+		if (stream == null || stream.metadata() == null) {
+			return Optional.empty();
+		}
+		AVDictionaryEntry languageEntry = av_dict_get(stream.metadata(), "language", null, 0);
+		if (languageEntry == null || languageEntry.value() == null) {
+			return Optional.empty();
+		}
+		String language = languageEntry.value().getString();
+		return StringUtils.isBlank(language) ? Optional.empty() : Optional.of(language.trim());
 	}
 
 	public void prepareMuxerIO() 
@@ -1176,9 +1209,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			pts = dts + compositionTimeOffset;
 			//we get 5 less bytes because first 5 bytes is related to the video tag. It's not part of the generic packet
-			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-offset);
+			ByteBuffer byteBuffer = getReusableRtmpVideoPacketBuffer(bodySize-offset);
 			byteBuffer.put(packet.getData().buf().position(offset));
-
+			byteBuffer.position(0);
 
 			videoBufferReceived(dts, isKeyFrame, pts, byteBuffer);
 
@@ -1197,9 +1230,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 			int bodySize = packet.getData().limit();
 			//we get 2 less bytes because first 2 bytes is related to the audio tag. It's not part of the generic packet
-			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-2);
+			ByteBuffer byteBuffer = getReusableRtmpAudioPacketBuffer(bodySize-2);
 			byteBuffer.put(packet.getData().buf().position(2));
-
+			byteBuffer.position(0);
 			logger.trace("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{} streamId:{}", dts, packet.getTimestamp(), streamId);
 
 			audioBufferReceived(dts, byteBuffer);
@@ -1249,11 +1282,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void audioBufferReceived(long dts, ByteBuffer byteBuffer) {
 		synchronized (muxerList) 
 		{
-			packetFeeder.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
+			int primaryAudioStreamIndex = getAudioStreamIndex();
+			packetFeeder.writeAudioBuffer(byteBuffer, primaryAudioStreamIndex, dts);
 
 			for (Muxer muxer : muxerList) 
 			{
-				muxer.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
+				muxer.writeAudioBuffer(byteBuffer, primaryAudioStreamIndex, dts);
 			}
 		}
 	}
@@ -1860,6 +1894,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		writeTrailer();
+		releaseReusableRtmpPacketBuffer();
+		if (packetFeeder != null) {
+			packetFeeder.close();
+		}
 
 		if (videoExtraDataPointer != null) {
 			av_free(videoExtraDataPointer.position(0));
@@ -1877,6 +1915,58 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		getStreamHandler().muxAdaptorRemoved(this);
 
 		isRecording.set(false);
+	}
+
+	ByteBuffer getReusableRtmpAudioPacketBuffer(int requiredCapacity) {
+		if (reusableRtmpAudioPacketBuffer == null || reusableRtmpAudioPacketBuffer.capacity() < requiredCapacity) {
+			reusableRtmpAudioPacketPointer = releaseReusableRtmpPacketBuffer(reusableRtmpAudioPacketPointer);
+			reusableRtmpAudioPacketPointer = allocateReusableRtmpPacketPointer(requiredCapacity);
+			reusableRtmpAudioPacketBuffer = reusableRtmpAudioPacketPointer.asByteBuffer();
+		}
+		return prepareReusableRtmpPacketBuffer(reusableRtmpAudioPacketBuffer, requiredCapacity);
+	}
+
+	ByteBuffer getReusableRtmpVideoPacketBuffer(int requiredCapacity) {
+		if (reusableRtmpVideoPacketBuffer == null || reusableRtmpVideoPacketBuffer.capacity() < requiredCapacity) {
+			reusableRtmpVideoPacketPointer = releaseReusableRtmpPacketBuffer(reusableRtmpVideoPacketPointer);
+			reusableRtmpVideoPacketPointer = allocateReusableRtmpPacketPointer(requiredCapacity);
+			reusableRtmpVideoPacketBuffer = reusableRtmpVideoPacketPointer.asByteBuffer();
+		}
+		return prepareReusableRtmpPacketBuffer(reusableRtmpVideoPacketBuffer, requiredCapacity);
+	}
+
+	private BytePointer allocateReusableRtmpPacketPointer(int requiredCapacity) {
+		if (requiredCapacity < 0) {
+			throw new IllegalArgumentException("requiredCapacity cannot be negative");
+		}
+		int newCapacity = INITIAL_RTMP_PACKET_BUFFER_CAPACITY;
+		while (newCapacity < requiredCapacity && newCapacity <= Integer.MAX_VALUE / 2) {
+			newCapacity *= 2;
+		}
+		if (newCapacity < requiredCapacity) {
+			newCapacity = requiredCapacity;
+		}
+		return new BytePointer(newCapacity);
+	}
+
+	private ByteBuffer prepareReusableRtmpPacketBuffer(ByteBuffer packetBuffer, int requiredCapacity) {
+		packetBuffer.clear();
+		packetBuffer.limit(requiredCapacity);
+		return packetBuffer;
+	}
+
+	void releaseReusableRtmpPacketBuffer() {
+		reusableRtmpAudioPacketBuffer = null;
+		reusableRtmpVideoPacketBuffer = null;
+		reusableRtmpAudioPacketPointer = releaseReusableRtmpPacketBuffer(reusableRtmpAudioPacketPointer);
+		reusableRtmpVideoPacketPointer = releaseReusableRtmpPacketBuffer(reusableRtmpVideoPacketPointer);
+	}
+
+	private BytePointer releaseReusableRtmpPacketBuffer(BytePointer packetPointer) {
+		if (packetPointer != null) {
+			packetPointer.close();
+		}
+		return null;
 	}
 
 
@@ -2323,18 +2413,24 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		RecordMuxer muxer = null;
-		if(recordType == RecordType.MP4) {
+		if (recordType == null) {
+			logger.error("Unrecognized record type: null");
+			return null;
+		}
+
+		switch (recordType) {
+		case MP4:
 			Mp4Muxer mp4Muxer = createMp4Muxer();
 			muxer = mp4Muxer;
 			if (baseFileName != null && !baseFileName.isEmpty()) {
 				muxer.setInitialResourceNameOverride(baseFileName);
 			}
 			addMuxer(muxer, resolutionHeight);
-		}
-		else if(recordType == RecordType.WEBM) {
+			break;
+		case WEBM:
 			//WebM record is not supported for incoming RTMP streams
-		}
-		else {
+			break;
+		default:
 			logger.error("Unrecognized record type: {}", recordType);
 		}
 
@@ -2374,7 +2470,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			AVCodecParameters audioParameters = getAudioCodecParameters();
 			if (audioParameters != null) {
 				logger.info("Add audio stream to muxer:{} for streamId:{}", muxer.getClass().getSimpleName(), streamId);
-				if (muxer.addStream(audioParameters, getTimeBaseForMs(), audioStreamIndex)) {
+				if (muxer.addStream(audioParameters, getTimeBaseForMs(), getAudioStreamIndex())) {
 					streamAdded = true;
 				}
 			}
@@ -2834,12 +2930,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 	public int getAudioStreamIndex() {
-		return audioStreamIndex;
+		synchronized (audioStreamIndexList) {
+			return audioStreamIndexList.isEmpty() ? 0 : audioStreamIndexList.get(0);
+		}
+	}
+	
+	public List<Integer> getAudioStreamIndexList() {
+		synchronized (audioStreamIndexList) {
+			return new ArrayList<>(audioStreamIndexList);
+		}
+	}
+	
+	public Map<Integer, AVCodecParameters> getAudioCodecParametersMap() {
+		return new HashMap<>(audioCodecParametersMap);
+	}
+	
+	public Map<Integer, AVRational> getAudioTimeBaseMap() {
+		return new HashMap<>(audioTimeBaseMap);
 	}
 
 
 	public void setAudioStreamIndex(int audioStreamIndex) {
-		this.audioStreamIndex = audioStreamIndex;
+		synchronized (audioStreamIndexList) {
+			audioStreamIndexList.remove(Integer.valueOf(audioStreamIndex));
+			audioStreamIndexList.add(0, audioStreamIndex);
+		}
 	}
 	
 	public int getDataStreamIndex() {

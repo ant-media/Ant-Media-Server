@@ -38,13 +38,17 @@ import org.red5.server.Launcher;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.SpringBeanAutowiringSupport;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.common.annotations.VisibleForTesting;
 
 import ch.qos.logback.classic.Level;
 import io.antmedia.AntMediaApplicationAdapter;
@@ -69,6 +73,7 @@ import io.antmedia.security.SslConfigurator;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
+import jakarta.annotation.PostConstruct;
 import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
@@ -124,6 +129,8 @@ public class CommonRestService {
 
 	public static final String NODE_GROUP = "nodeGroup";
 
+	public static final String PROMETHEUS_ENABLED = ServerSettings.SETTINGS_PROMETHEUS_ENABLED;
+
 	Gson gson = new Gson();
 
 	private AbstractConsoleDataStore dataStore;
@@ -136,8 +143,6 @@ public class CommonRestService {
 
 	private static final String LICENSE_STATUS = "license";
 
-	protected ApplicationContext applicationContext;
-
 	@Context
 	private ServletContext servletContext;
 
@@ -147,9 +152,11 @@ public class CommonRestService {
 	private ConsoleDataStoreFactory dataStoreFactory;
 	private ServerSettings serverSettings;
 
-	private ILicenceService licenceService;
+	private Optional<ILicenceService> licenceService = Optional.empty();
 
 	private IStatsCollector statsCollector;
+
+	private AdminApplication application;
 
 	private static final int BLOCKED_LOGIN_TIMEOUT_SECS = 300 ; // in seconds
 
@@ -167,6 +174,13 @@ public class CommonRestService {
 
 	public int getAllowedLoginAttempts() {
 		return ALLOWED_LOGIN_ATTEMPTS;
+	}
+
+	@PostConstruct
+	public void initializeSpringDependencies() {
+		if (dataStoreFactory == null && servletContext != null) {
+			SpringBeanAutowiringSupport.processInjectionBasedOnServletContext(this, servletContext);
+		}
 	}
 
 
@@ -721,18 +735,18 @@ public class CommonRestService {
 
 	public String getSystemResourcesInfo() {
 
-		AdminApplication application = getApplication();
-		IScope rootScope = application.getRootScope();
+		AdminApplication app = getApplication();
+		IScope rootScope = app.getRootScope();
 
 		//add live stream size
 		int totalLiveStreams = 0;
 		Queue<IScope> scopes = new LinkedList<>();
-		List<String> appNames = application.getApplications();
+		List<String> appNames = app.getApplications();
 		for (String name : appNames) 
 		{
 			IScope scope = rootScope.getScope(name);
 			scopes.add(scope);
-			totalLiveStreams += application.getAppLiveStreamCount(scope);
+			totalLiveStreams += app.getAppLiveStreamCount(scope);
 		}
 
 		JsonObject jsonObject = StatsCollector.getSystemResourcesInfo(scopes);
@@ -745,7 +759,23 @@ public class CommonRestService {
 	}
 
 
-	public String getGPUInfo() 
+	public String getSystemResourcesHistory() {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getSystemResourcesHistory()) : "{}";
+	}
+
+	public String getAppMetricsHistory(String appName) {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getAppMetricsHistory(appName)) : "{}";
+	}
+
+	public String getNetworkStatus() {
+		IStatsCollector statsCollector = getStatsCollector();
+		return statsCollector != null ? gson.toJson(statsCollector.getNetworkStatus()) : "{}";
+	}
+
+
+	public String getGPUInfo()
 	{
 		return gson.toJson(StatsCollector.getGPUInfoJSObject());
 	}
@@ -856,10 +886,10 @@ public class CommonRestService {
 	public AntMediaApplicationAdapter getAppAdaptor(String appName) {
 
 		AntMediaApplicationAdapter appAdaptor = null;
-		AdminApplication application = getApplication();
-		if (application != null) 
+		AdminApplication app = getApplication();
+		if (app != null)
 		{
-			ApplicationContext context = application.getApplicationContext(appName);
+			ApplicationContext context = app.getApplicationContext(appName);
 			if (context != null) 
 			{
 				appAdaptor = (AntMediaApplicationAdapter) context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
@@ -1115,6 +1145,9 @@ public class CommonRestService {
 		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
 		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
 
+		store.put(PROMETHEUS_ENABLED, String.valueOf(serverSettings.isPrometheusEnabled()));
+		getServerSettingsInternal().setPrometheusEnabled(serverSettings.isPrometheusEnabled());
+
 		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
 
 		if(LOG_LEVEL_ALL.equals(serverSettings.getLogLevel()) || LOG_LEVEL_TRACE.equals(serverSettings.getLogLevel()) 
@@ -1152,15 +1185,13 @@ public class CommonRestService {
 	}
 
 
-	public IStatsCollector getStatsCollector () {
-		if(statsCollector == null) 
-		{
-			WebApplicationContext ctxt =getContext();
-			if (ctxt != null) {
-				statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
-			}
-		}
+	public IStatsCollector getStatsCollector() {
 		return statsCollector;
+	}
+
+	@Autowired
+	public void setStatsCollector(IStatsCollector statsCollector) {
+		this.statsCollector = Objects.requireNonNull(statsCollector, "Stats collector is not initialized");
 	}
 
 	public ServerSettings getServerSettings() 
@@ -1170,16 +1201,18 @@ public class CommonRestService {
 
 	public Licence getLicenceStatus(@QueryParam("key") String key) 
 	{
-		if(key == null) {
+		ILicenceService service = getLicenceServiceInstance();
+		if(key == null || service == null) {
 			return null;
 		}
-		return getLicenceServiceInstance().checkLicence(key);
+		return service.checkLicence(key);
 	}
 
 
 	public Licence getLicenceStatus() 
 	{
-		return getLicenceServiceInstance().getLastLicenseStatus();
+		ILicenceService service = getLicenceServiceInstance();
+		return service != null ? service.getLastLicenseStatus() : null;
 	}
 
 	/**
@@ -1199,14 +1232,12 @@ public class CommonRestService {
 		return new Result(false, "No application adaptor with this name " + appname);
 	}
 
+	@VisibleForTesting
 	public void setDataStore(AbstractConsoleDataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 
 	public AbstractConsoleDataStore getDataStore() {
-		if (dataStore == null) {
-			dataStore = getDataStoreFactory().getDataStore();
-		}
 		return dataStore;
 	}
 
@@ -1215,52 +1246,43 @@ public class CommonRestService {
 	}
 
 	public ServerSettings getServerSettingsInternal() {
-
-		if(serverSettings == null) 
-		{
-			WebApplicationContext ctxt = getContext();
-			if (ctxt != null) {
-				serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
-			}
-		}
 		return serverSettings;
+	}
+
+	@Autowired
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = Objects.requireNonNull(serverSettings, "Server settings are not initialized");
 	}
 
 
 
-	public ILicenceService getLicenceServiceInstance () {
-		if(licenceService == null) {
+	public ILicenceService getLicenceServiceInstance() {
+		return licenceService.orElse(null);
+	}
 
-			WebApplicationContext ctxt = getContext();
-			if (ctxt != null) {
-				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BEAN_NAME);
-			}
-		}
-		return licenceService;
+	@Autowired
+	public void setLicenceService(Optional<ILicenceService> licenceService) {
+		this.licenceService = Objects.requireNonNull(licenceService);
 	}
 
 
 	public AdminApplication getApplication() {
-		WebApplicationContext ctxt = getContext();
-		if (ctxt != null) {
-			return (AdminApplication)ctxt.getBean("web.handler");
-		}
-		return null;
+		return application;
+	}
+
+	@Autowired
+	public void setApplication(@Qualifier("web.handler") AdminApplication application) {
+		this.application = Objects.requireNonNull(application, "Admin application is not initialized");
 	}
 
 	public ConsoleDataStoreFactory getDataStoreFactory() {
-		if(dataStoreFactory == null)
-		{
-			WebApplicationContext ctxt = getContext();
-			if (ctxt != null) {
-				dataStoreFactory = (ConsoleDataStoreFactory) ctxt.getBean("dataStoreFactory");
-			}
-		}
 		return dataStoreFactory;
 	}
 
+	@Autowired
 	public void setDataStoreFactory(ConsoleDataStoreFactory dataStoreFactory) {
-		this.dataStoreFactory = dataStoreFactory;
+		this.dataStoreFactory = Objects.requireNonNull(dataStoreFactory, "Console data store factory is not initialized");
+		this.dataStore = Objects.requireNonNull(dataStoreFactory.getDataStore(), "Console data store is not initialized");
 	}
 
 
@@ -1331,9 +1353,9 @@ public class CommonRestService {
 		//default log 
 		String logLocation = SERVER_LOG_LOCATION;
 
-		if (logType.equals(LOG_TYPE_ERROR)) {
+		if (LOG_TYPE_ERROR.equals(logType)) {
 			logLocation = ERROR_LOG_LOCATION;
-		} 
+		}
 
 		JsonObject jsonObject = new JsonObject();
 		String logContent = "";
