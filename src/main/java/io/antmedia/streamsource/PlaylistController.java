@@ -3,9 +3,9 @@ package io.antmedia.streamsource;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -41,7 +41,7 @@ public class PlaylistController {
 	private static final int URL_CHECK_TIMEOUT_MS = 2500;
 
 	/** One entry per playing playlist. Its presence is what "this playlist is running" means. */
-	private final Map<String, PlaylistSession> sessions = new ConcurrentHashMap<>();
+	private final ConcurrentMap<String, PlaylistSession> sessions = new ConcurrentHashMap<>();
 
 	private final StreamFetcherManager manager;
 	private final Vertx vertx;
@@ -184,14 +184,17 @@ public class PlaylistController {
 
 	/**
 	 * Marks every playing playlist finished before the application goes down.
-	 * @return completes once the sessions are gone, so the caller can stop the fetchers behind them
+	 * @return completes once the sessions are gone and the items they were playing have stopped
 	 */
 	CompletableFuture<Void> shutdown() {
 		CompletableFuture<Void> ended = new CompletableFuture<>();
 
 		context.runOnContext(v -> {
-			sessions.keySet().forEach(streamId -> endPlaylist(streamId, false));
-			ended.complete(null);
+			CompletableFuture<?>[] stopping = List.copyOf(sessions.keySet()).stream()
+					.map(streamId -> endPlaylist(streamId, false))
+					.toArray(CompletableFuture[]::new);
+
+			CompletableFuture.allOf(stopping).whenComplete((result, error) -> ended.complete(null));
 		});
 
 		return ended;

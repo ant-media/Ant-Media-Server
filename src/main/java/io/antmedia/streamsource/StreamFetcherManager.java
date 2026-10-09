@@ -528,10 +528,10 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 			orphanCheckTimerId = -1;
 		}
 
-		//a playlist has to be marked finished as a whole, not just have its current item stopped
-		awaitStopped(playlistController.shutdown(), scope.getName());
-
+		//a playlist has to be marked finished as a whole, not just have its current item stopped. Its task
+		//is queued on the shared context ahead of the stops below, so no item gets to advance the playlist
 		List<CompletableFuture<Void>> stopping = new ArrayList<>();
+		stopping.add(playlistController.shutdown());
 		for (StreamFetcher fetcher : streamFetcherList.values()) {
 			stopping.add(fetcher.stopStream());
 		}
