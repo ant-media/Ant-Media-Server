@@ -18,6 +18,7 @@ permissions:
       
 env:
   RUNNER: ubuntu-22.04      
+  GITHUB_TOKEN: ${{ secrets.NATIVE_WEBRTC_TOKEN }}
       
 jobs:  
   run-unit-tests:
