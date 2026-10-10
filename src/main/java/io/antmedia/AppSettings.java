@@ -159,6 +159,15 @@ public class AppSettings implements Serializable {
 	@Value("${mp4MuxingEnabled:false}")
 	private boolean mp4MuxingEnabled;
 
+	/**
+	 * Optional directory whose contents are exposed under the application's
+	 * {@code /streams} URL path. When it has its default value, the application
+	 * streams directory is used. An absolute path is mounted
+	 * read-only with priority over the application streams directory.
+	 */
+	@Value("${vodFolder:streams}")
+	private String vodFolder = "streams";
+
 
 	/**
 	 * Enable/Disable WebM recording
