@@ -85,7 +85,7 @@ public class RTMPClusterStreamFetcher {
 				String errorStr = Muxer.getErrorDefinition(ret);
 				result.setMessage(errorStr);
 
-				logger.error("cannot open stream: {} with error:: {}",  rtmpUrlWithToken, result.getMessage());
+				logger.error("Cannot open stream: {} with error: {}", rtmpUrlWithToken, result.getMessage());
 				av_dict_free(optionsDictionary);
 				optionsDictionary.close();
 				return result;
