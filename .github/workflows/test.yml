@@ -379,8 +379,8 @@ jobs:
           else
             echo "No hs_err_pid*.log file found"
           fi
-          sudo service mongod status
-          sudo service redis-server status           
+          sudo service mongod status || true
+          sudo service redis-server status || true           
           
   run-integration-tests:
     name: Run integration tests
