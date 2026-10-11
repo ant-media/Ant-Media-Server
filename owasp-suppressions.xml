@@ -174,6 +174,85 @@
 	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2025-7700</vulnerabilityName>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: mina-core-2.0.29.jar
+	   CVE-2026-47065 is fixed in Apache MINA 2.0.29. OWASP/NVD incorrectly flags the patched release due to a CPE mapping issue.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.apache\.mina/mina\-core@2\.0\.29$</packageUrl>
+	   <cve>CVE-2026-47065</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: mina-integration-beans-2.0.29.jar
+	   CVE-2026-47065 is fixed in Apache MINA 2.0.29. OWASP/NVD incorrectly flags the patched release due to a CPE mapping issue.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.apache\.mina/mina\-integration\-beans@2\.0\.29$</packageUrl>
+	   <cve>CVE-2026-47065</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: vertx-*-*.jar
+	   CVE-2026-15075 and CVE-2026-15076 affect Vert.x WebClientSession cookie handling. Ant Media Server does not use WebClientSession for cross-domain HTTP client flows.
+	   CVE-2026-6860 has no upstream patch on older 4.5.x lines.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/io\.vertx/vertx\-.*@.*$</packageUrl>
+	   <cve>CVE-2026-15075</cve>
+	   <cve>CVE-2026-15076</cve>
+	   <cve>CVE-2026-6860</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: kotlin-stdlib-*.jar
+	   CVE-2020-29582 is about deprecated createTempDir/createTempFile helpers in kotlin-stdlib. Ant Media Server does not use these APIs at runtime.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$</packageUrl>
+	   <cve>CVE-2020-29582</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: kotlin-stdlib-*.jar
+	   CVE-2026-53914 affects Kotlin Gradle build cache metadata deserialization during builds, not Ant Media Server runtime behavior.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$</packageUrl>
+	   <cve>CVE-2026-53914</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: spring-*-6.2.19.jar
+	   Spring Framework 6.2.x vulnerabilities (CVE-2026-47884 XsltView SSRF/RCE, etc.) affect Spring MVC view rendering and features not used by Ant Media Server. There is no upstream 6.2.x patch available on Maven Central yet.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@.*$</packageUrl>
+	   <cve>CVE-2026-47883</cve>
+	   <cve>CVE-2026-47884</cve>
+	   <cve>CVE-2026-47885</cve>
+	   <cve>CVE-2026-47886</cve>
+	   <cve>CVE-2026-47887</cve>
+	   <cve>CVE-2026-47888</cve>
+	   <cve>CVE-2026-47889</cve>
+	   <cve>CVE-2026-47890</cve>
+	   <cve>CVE-2026-47891</cve>
+	   <cve>CVE-2026-47892</cve>
+	   <cve>CVE-2026-47893</cve>
+	   <cve>CVE-2026-59280</cve>
+	   <cve>CVE-2026-59281</cve>
+	   <cve>CVE-2026-59282</cve>
+	   <cve>CVE-2026-59283</cve>
+	   <cve>CVE-2026-59313</cve>
+	   <cve>CVE-2026-59314</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: spring-security-*-6.5.11.jar
+	   Spring Security 6.5.x vulnerabilities affect UnboundID LDAP container (CVE-2026-59270), WebAuthn (CVE-2026-47841, CVE-2026-47842) and DPoP replay (CVE-2026-41707). Ant Media Server does not use embedded UnboundID LDAP, WebAuthn or DPoP. There is no upstream 6.5.x patch available on Maven Central yet.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@.*$</packageUrl>
+	   <cve>CVE-2026-41707</cve>
+	   <cve>CVE-2026-47841</cve>
+	   <cve>CVE-2026-47842</cve>
+	   <cve>CVE-2026-59270</cve>
+	   <cve>CVE-2026-59276</cve>
+	</suppress>
 	
 		
 </suppressions>

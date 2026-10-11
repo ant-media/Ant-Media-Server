@@ -1,13 +1,19 @@
-name: Update OWASP Dependency DB
+name: Update OWASP Dependency DB 
 
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 2 * * *'
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   update-owasp-db:
     runs-on: ubuntu-22.04
+    # Prevent multi-hour NVD hangs from consuming runners indefinitely.
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -30,21 +36,60 @@ jobs:
           restore-keys: |
             owasp-dependency-check-db-${{ runner.os }}-
 
+      - name: Require NVD API key
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -z "$NVD_API_KEY" ]; then
+            echo "::error::NVD_API_KEY secret is missing; aborting update to avoid long rate-limited hangs."
+            exit 1
+          fi
+
       - name: Update OWASP Dependency DB
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn org.owasp:dependency-check-maven:update-only \
-            -DnvdApiKey=$NVD_API_KEY \
+            -DnvdApiKeyEnvironmentVariable=NVD_API_KEY \
+            -DnvdValidForHours=20 \
             -DdataDirectory=$HOME/.dependency-check-data
 
-      - name: Verify cache
+      - name: Verify OWASP DB before publishing
         run: |
-          ls -lah $HOME/.dependency-check-data
-          du -sh $HOME/.dependency-check-data
+          DATA_DIR="$HOME/.dependency-check-data"
+          if [ ! -d "$DATA_DIR" ] || [ -z "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+            echo "::error::OWASP data directory is empty after update; refusing to publish."
+            exit 1
+          fi
+          ls -lah "$DATA_DIR"
+          SIZE_KB=$(du -sk "$DATA_DIR" | cut -f1)
+          echo "OWASP DB size: ${SIZE_KB} KB"
+          # Compressed cache is ~113MB; refuse obviously incomplete DBs.
+          if [ "$SIZE_KB" -lt 51200 ]; then
+            echo "::error::OWASP DB looks too small (${SIZE_KB} KB); refusing to publish."
+            exit 1
+          fi
+          du -sh "$DATA_DIR"
 
       - name: Save OWASP Dependency DB Cache
+        if: success()
         uses: actions/cache/save@v4
         with:
           path: ~/.dependency-check-data
           key: owasp-dependency-check-db-${{ runner.os }}-${{ steps.date.outputs.date }}
+
+      # Survives a failed later nightly update: PR checks download the newest successful run.
+      - name: Package last-known-good OWASP DB
+        if: success()
+        run: |
+          tar -czf /tmp/owasp-db-latest.tar.gz -C "$HOME" .dependency-check-data
+          ls -lh /tmp/owasp-db-latest.tar.gz
+
+      - name: Upload last-known-good OWASP DB artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-db-latest
+          path: /tmp/owasp-db-latest.tar.gz
+          retention-days: 30
+          if-no-files-found: error
