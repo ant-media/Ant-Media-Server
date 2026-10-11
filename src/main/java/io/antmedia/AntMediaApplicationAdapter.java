@@ -91,7 +91,9 @@ import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.webrtc.PlayParameters;
 import io.antmedia.muxer.RtmpProvider;
+import io.antmedia.ndi.NdiSourceProvider;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
@@ -755,6 +757,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
+			getStatsCollector().removeStreamHistory(scope.getName(), streamId);
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
 
@@ -1774,14 +1777,36 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
 			result = getStreamFetcherManager().startPlaylist(broadcast);
 		}
+		else if (broadcast.getType().equals(IAntMediaStreamHandler.PUBLISH_TYPE_NDI)) {
+			result = startNdiSource(broadcast);
+		}
 		// Handle unsupported broadcast types
 		else {
 			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}",
 					broadcast.getType(), broadcast.getStreamId());
-			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist");
+			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist, NDI");
 		}
 
 		return result;
+	}
+
+	protected Result startNdiSource(Broadcast broadcast) {
+		if (StringUtils.isBlank(broadcast.getStreamUrl())) {
+			return new Result(false, "NDI source name is not defined.");
+		}
+
+		NdiSourceProvider ndiSourceProvider = getScope().getContext().getApplicationContext()
+				.getBeanProvider(NdiSourceProvider.class).getIfAvailable();
+		if (ndiSourceProvider == null) {
+			return new Result(false, "NDI support is not available.");
+		}
+
+		boolean started = ndiSourceProvider.startNdiSource(broadcast.getStreamUrl(), broadcast.getStreamId(), getScope());
+		if (!started) {
+			return new Result(false, broadcast.getStreamId(), "NDI source is not available or is already running.");
+		}
+
+		return new Result(true, broadcast.getStreamId(), "");
 	}
 
 	public void forwardStartStreaming(Broadcast broadcast) {
@@ -2018,6 +2043,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				viewerCountEvent.setWebRTCViewerCount(broadcastLocal.getWebRTCViewerCount());
 
 				LoggerUtils.logAnalyticsFromServer(viewerCountEvent);
+
+				int totalViewers = broadcastLocal.getWebRTCViewerCount() + broadcastLocal.getHlsViewerCount() + broadcastLocal.getDashViewerCount();
+				getStatsCollector().addStreamSample(getScope().getName(), streamId, stats, totalViewers, currentTimeMillis);
 
 				logger.debug("update source quality for stream:{} width:{} height:{} bitrate:{} input queue size:{} encoding queue size:{} packetsLost:{} packetLostRatio:{} jitter:{} rtt:{}",
 
@@ -2880,6 +2908,28 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public Result stopWhipBroadcast(String streamId, String sessionId){
+		return new Result(false);
+	}
+
+	/**
+	 * Start WebRTC playback through HTTP signaling (WHEP)
+	 * @param playParameters Parameters for the play operation
+	 * @param sdp SDP offer from the client
+	 * @param sessionId Unique session ID
+	 * @return Result with SDP answer
+	 */
+	public CompletableFuture<Result> startWhepHttpSignaling(PlayParameters playParameters, String sdp, String sessionId){
+		//for enterprise
+		return CompletableFuture.completedFuture(new Result(false, "WHEP HTTP signaling is available in the Enterprise Edition"));
+	}
+	
+	/**
+	 * Stop WebRTC playback through HTTP signaling (WHEP)
+	 * @param streamId Stream ID to stop playing
+	 * @param sessionId Session ID for the playback to stop
+	 * @return Result indicating success or failure
+	 */
+	public Result stopWhepPlay(String streamId, String sessionId){
 		return new Result(false);
 	}
 

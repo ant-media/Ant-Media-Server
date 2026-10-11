@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -37,11 +38,16 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
+import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
@@ -92,6 +98,21 @@ public class StreamFetcherUnitTest {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
 	}
+
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName() );
+			e.printStackTrace();
+		}
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		}
+	};
 
 	@BeforeAll
 	public static void beforeClass() {
@@ -235,7 +256,31 @@ public class StreamFetcherUnitTest {
 		workerAfter.run();
 		Mockito.verify(workerAfter, Mockito.never()).prepareInputContext(Mockito.any());
 	}
-	
+
+	@Test
+	public void testStreamFinishedCalledAfterBroadcastClosed() {
+		//when a source never published (streamPublished=false) and a reconnect/playlist listener is
+		//attached, streamFinished() used to fire before closeBroadcast(), so the late closeBroadcast()
+		//clobbered the stream the listener had just restarted. It must run after the broadcast is closed.
+		Vertx mockedVertx = Mockito.mock(Vertx.class);
+		AntMediaApplicationAdapter appAdapter = Mockito.mock(AntMediaApplicationAdapter.class);
+
+		StreamFetcher fetcher = Mockito.spy(new StreamFetcher("url", "streamId", AntMediaApplicationAdapter.STREAM_SOURCE, appScope, mockedVertx, 0));
+		Mockito.doReturn(appAdapter).when(fetcher).getInstance();
+
+		StreamFetcher.IStreamFetcherListener listener = Mockito.mock(StreamFetcher.IStreamFetcherListener.class);
+		fetcher.setStreamFetcherListener(listener);
+
+		//streamPublished defaults to false; muxAdaptor/inputFormatContext/bufferQueue are null and pkt is
+		//null, so every native branch in close() is skipped
+		WorkerThread worker = fetcher.new WorkerThread();
+		worker.close(null);
+
+		InOrder inOrder = Mockito.inOrder(appAdapter, listener);
+		inOrder.verify(appAdapter).closeBroadcast(Mockito.eq("streamId"), Mockito.any(), Mockito.any());
+		inOrder.verify(listener).streamFinished(Mockito.any());
+	}
+
 	boolean inTheThread = false;
 	@Test
 	public void testPlayListSynch() throws Exception {
@@ -1163,9 +1208,11 @@ public class StreamFetcherUnitTest {
         String regex = streamId + "_\\d{13}_init.mp4";
 		System.out.println("regex:"+regex);
 
+		Pattern REGEX = Pattern.compile(regex);
+
 		for (int i = 0; i < filesInStreams.length; i++) {
 			System.out.println("files:"+filesInStreams[i]);
-			initFileFound |= filesInStreams[i].matches(regex);
+			initFileFound |= REGEX.matcher(filesInStreams[i]).matches();
 		}
 		assertTrue(initFileFound);
 		

@@ -2,7 +2,6 @@ package io.antmedia.test.settings;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -201,6 +200,21 @@ public class ServerSettingsTest {
 	}
 	
 	@Test
+	public void testPluginRegistryUrl() {
+		ServerSettings settings = new ServerSettings();
+		String defaultUrl = settings.getPluginRegistryUrl();
+		assertNotNull(defaultUrl);
+		assertFalse(defaultUrl.isEmpty());
+		assertTrue(defaultUrl.startsWith("https://"));
+
+		settings.setPluginRegistryUrl("https://plugins.antmedia.io/catalog.json");
+		assertEquals("https://plugins.antmedia.io/catalog.json", settings.getPluginRegistryUrl());
+
+		settings.setPluginRegistryUrl(null);
+		assertNull(settings.getPluginRegistryUrl());
+	}
+
+	@Test
 	public void testGetLocalHostAddressReturnsNoneLoopbackAddress() throws Exception {
 		Field localHostAddressField = ServerSettings.class.getDeclaredField("localHostAddress");
 		localHostAddressField.setAccessible(true);
@@ -283,6 +297,23 @@ public class ServerSettingsTest {
 
 			assertNull(ServerSettings.getPrivateAddress());
 		}
+	}
+
+	@Test
+	public void testMetricsHistorySettings() {
+		ServerSettings settings = new ServerSettings();
+
+		settings.setMetricsHistorySamplePeriodMs(7000);
+		settings.setMetricsHistorySize(120);
+		settings.setAppMetricsHistorySamplePeriodMs(45000);
+		settings.setAppMetricsHistorySize(2000);
+		settings.setStreamMetricsHistorySize(500);
+
+		assertEquals(7000, settings.getMetricsHistorySamplePeriodMs());
+		assertEquals(120, settings.getMetricsHistorySize());
+		assertEquals(45000, settings.getAppMetricsHistorySamplePeriodMs());
+		assertEquals(2000, settings.getAppMetricsHistorySize());
+		assertEquals(500, settings.getStreamMetricsHistorySize());
 	}
 
 	private NetworkInterface mockNetworkInterface(boolean up, boolean loopback, InetAddress... addresses) throws Exception {

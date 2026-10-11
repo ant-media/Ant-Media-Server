@@ -142,6 +142,7 @@
    		<!--    * The default number of event loop threads to be used  = 2 * number of cores on the machine -->
     </bean>
     
+
     <bean id="webRTCVertx" class="io.vertx.core.Vertx" factory-method="vertx">
     	<constructor-arg>
     		<bean class="io.vertx.core.VertxOptions">
@@ -162,5 +163,10 @@
 
        <property name="memoryLimit" value="${server.memory_limit_percentage:75}" />
    	</bean>
+
+    <!-- Plugin hot-load engine. AdminApplication wires this in via @Autowired and uses it
+         for the ZIP install flow + bean registration into per-app Spring contexts. -->
+    <bean id="pluginDeployer" class="io.antmedia.plugin.PluginDeployer" />
+
 
 </beans>

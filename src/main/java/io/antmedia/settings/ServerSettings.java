@@ -71,6 +71,16 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	private static final String SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE = "server.cpu_measurement_window_size";
 
+	private static final String SETTINGS_METRICS_HISTORY_SAMPLE_PERIOD_MS = "server.metrics_history_sample_period_ms";
+
+	private static final String SETTINGS_METRICS_HISTORY_SIZE = "server.metrics_history_size";
+
+	private static final String SETTINGS_APP_METRICS_HISTORY_SAMPLE_PERIOD_MS = "server.app_metrics_history_sample_period_ms";
+
+	private static final String SETTINGS_APP_METRICS_HISTORY_SIZE = "server.app_metrics_history_size";
+
+	private static final String SETTINGS_STREAM_METRICS_HISTORY_SIZE = "server.stream_metrics_history_size";
+
 	private static final String SETTINGS_SERVER_DEFAULT_HTTP_PORT = "http.port";
 
 	private static final String SETTINGS_ORIGIN_PORT = "server.origin_port";
@@ -95,6 +105,10 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	/** jwt server filter control*/
 	public static final String SETTINGS_JWT_SERVER_CONTROL_ENABLED = "server.jwtServerControlEnabled";
+
+	public static final String SETTINGS_PROMETHEUS_ENABLED = "prometheus.enabled";
+
+	public static final String SETTINGS_PROMETHEUS_PORT = "prometheus.port";
 
 	public static final String SETTINGS_JWKS_URL = "server.jwksURL";
 
@@ -207,6 +221,40 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	private int cpuMeasurementWindowSize;
 
 	/**
+	 * Sampling period for the in-memory resource usage history exposed by /system-resources/history
+	 */
+	@Value( "${"+SETTINGS_METRICS_HISTORY_SAMPLE_PERIOD_MS+":5000}" )
+	private int metricsHistorySamplePeriodMs;
+
+	/**
+	 * Number of resource samples retained in the history ring
+	 */
+	@Value( "${"+SETTINGS_METRICS_HISTORY_SIZE+":60}" )
+	private int metricsHistorySize;
+
+	/**
+	 * Sampling period for the in-memory per-app metric history exposed by /applications/{name}/metrics-history.
+	 * Default 15s; with the default size this keeps ~12h of history. In-memory only (lost on restart).
+	 */
+	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SAMPLE_PERIOD_MS+":15000}" )
+	private int appMetricsHistorySamplePeriodMs;
+
+	/**
+	 * Number of samples retained per app in the metric history ring (2880 * 15s = 12h)
+	 */
+	@Value( "${"+SETTINGS_APP_METRICS_HISTORY_SIZE+":2880}" )
+	private int appMetricsHistorySize;
+
+	/**
+	 * Number of samples retained per stream in the metric history ring exposed by
+	 * /broadcasts/{id}/metrics-history. Push-fed at the ~10s quality-update cadence, so 720 ~= 2h.
+	 * In-memory only (lost on restart); 0 or less disables collection. Memory grows with live stream
+	 * count - roughly 24 MB for 500 concurrent streams at this size.
+	 */
+	@Value( "${"+SETTINGS_STREAM_METRICS_HISTORY_SIZE+":720}" )
+	private int streamMetricsHistorySize;
+
+	/**
 	 * Server default HTTP port
 	 * It's 5080 by default
 	 */
@@ -218,6 +266,12 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	 */
 	@Value( "${"+SETTINGS_JWT_SERVER_CONTROL_ENABLED+":false}" )
 	private boolean jwtServerControlEnabled;
+
+	@Value("${"+SETTINGS_PROMETHEUS_ENABLED+":true}")
+	private boolean prometheusEnabled = true;
+
+	@Value("${"+SETTINGS_PROMETHEUS_PORT+":9090}")
+	private int prometheusPort = 9090;
 
 	/**
 	 * Server JWT secret key
@@ -286,6 +340,15 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	@Value( "${"+LOCAL_LICENCE_SERVER_IP+":#{null}}" )
 	private String localLicenceServerIps;
 
+	private String pluginRegistryUrl = "https://antmedia-plugins.s3.eu-west-2.amazonaws.com/catalog.json";
+
+	public String getPluginRegistryUrl() {
+		return pluginRegistryUrl;
+	}
+
+	public void setPluginRegistryUrl(String pluginRegistryUrl) {
+		this.pluginRegistryUrl = pluginRegistryUrl;
+	}
 
 	public String getJwksURL() {
 		return jwksURL;
@@ -645,6 +708,46 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		this.cpuMeasurementWindowSize = cpuMeasurementWindowSize;
 	}
 
+	public int getMetricsHistorySamplePeriodMs() {
+		return metricsHistorySamplePeriodMs;
+	}
+
+	public void setMetricsHistorySamplePeriodMs(int metricsHistorySamplePeriodMs) {
+		this.metricsHistorySamplePeriodMs = metricsHistorySamplePeriodMs;
+	}
+
+	public int getMetricsHistorySize() {
+		return metricsHistorySize;
+	}
+
+	public void setMetricsHistorySize(int metricsHistorySize) {
+		this.metricsHistorySize = metricsHistorySize;
+	}
+
+	public int getAppMetricsHistorySamplePeriodMs() {
+		return appMetricsHistorySamplePeriodMs;
+	}
+
+	public void setAppMetricsHistorySamplePeriodMs(int appMetricsHistorySamplePeriodMs) {
+		this.appMetricsHistorySamplePeriodMs = appMetricsHistorySamplePeriodMs;
+	}
+
+	public int getAppMetricsHistorySize() {
+		return appMetricsHistorySize;
+	}
+
+	public void setAppMetricsHistorySize(int appMetricsHistorySize) {
+		this.appMetricsHistorySize = appMetricsHistorySize;
+	}
+
+	public int getStreamMetricsHistorySize() {
+		return streamMetricsHistorySize;
+	}
+
+	public void setStreamMetricsHistorySize(int streamMetricsHistorySize) {
+		this.streamMetricsHistorySize = streamMetricsHistorySize;
+	}
+
 	public int getDefaultHttpPort() {
 		return defaultHttpPort;
 	}
@@ -694,6 +797,22 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	public void setJwtServerControlEnabled(boolean jwtServerControlEnabled) {
 		this.jwtServerControlEnabled = jwtServerControlEnabled;
+	}
+
+	public boolean isPrometheusEnabled() {
+		return prometheusEnabled;
+	}
+
+	public void setPrometheusEnabled(boolean prometheusEnabled) {
+		this.prometheusEnabled = prometheusEnabled;
+	}
+
+	public int getPrometheusPort() {
+		return prometheusPort;
+	}
+
+	public void setPrometheusPort(int prometheusPort) {
+		this.prometheusPort = prometheusPort;
 	}
 
 	public boolean isSslEnabled() {
