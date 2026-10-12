@@ -295,6 +295,8 @@ class FfmpegWorkerTest extends UnitTestBase<FfmpegWorker> {
 				{ "rtsp://127.0.0.1:6554/test.flv", "rtsp://127.0.0.1:6554/test.flv", null },
 				{ "rtsp://127.0.0.1:6554/live?allowed_media_types=video%2Baudio", "rtsp://127.0.0.1:6554/live", "video+audio" },
 				{ "rtsp://127.0.0.1:6554/live?nodelay&allowed_media_types=&b=2", "rtsp://127.0.0.1:6554/live?nodelay&b=2", null },
+				//the last non-empty one wins, an empty one after it changes nothing
+				{ "rtsp://127.0.0.1:6554/live?allowed_media_types=video&allowed_media_types=", "rtsp://127.0.0.1:6554/live", "video" },
 				//what stays keeps its order, and the rest of the url is never rebuilt, so escapes and a raw @ survive
 				{ "rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1&allowed_media_types=video",
 						"rtsp://test:asdf%2499@127.0.0.1:554/cam/realmonitor?channel=2&subtype=1", "video" },

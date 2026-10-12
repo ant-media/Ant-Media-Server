@@ -23,7 +23,6 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -44,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.UrlQueryUtils;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
@@ -365,30 +365,18 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			return;
 		}
 
-		StringJoiner newQuery = new StringJoiner("&");
+		String query = streamUrl.substring(questionMarkIndex + 1);
 
-		for (String param : streamUrl.substring(questionMarkIndex + 1).split("&")) {
-			String[] keyValue = param.split("=", 2);
-			String key = keyValue[0];
-			String value = keyValue.length > 1 ? keyValue[1] : "";
-
-			if (RTSP_ALLOWED_MEDIA_TYPES.equals(key)) {
-				try {
-					if (!value.isEmpty()) {
-						av_dict_set(optionsDictionary, RTSP_ALLOWED_MEDIA_TYPES, URLDecoder.decode(value, StandardCharsets.UTF_8.name()), 0);
-					}
-				}
-				catch (Exception e) {
-					logger.warn("Cannot decode value for key: {} value: {}", key, value);
-				}
-				continue;
+		//URI.create above already rejected malformed escapes, so decoding cannot throw
+		for (String value : UrlQueryUtils.getParamValues(query, RTSP_ALLOWED_MEDIA_TYPES)) {
+			if (!value.isEmpty()) {
+				av_dict_set(optionsDictionary, RTSP_ALLOWED_MEDIA_TYPES, URLDecoder.decode(value, StandardCharsets.UTF_8), 0);
 			}
-
-			newQuery.add(param);
 		}
 
+		String newQuery = UrlQueryUtils.removeParam(query, RTSP_ALLOWED_MEDIA_TYPES);
 		String baseUrl = streamUrl.substring(0, questionMarkIndex);
-		streamUrl = newQuery.length() > 0 ? baseUrl + "?" + newQuery : baseUrl;
+		streamUrl = newQuery.isEmpty() ? baseUrl : baseUrl + "?" + newQuery;
 	}
 
 	private void initDTSArrays(int nbStreams) {

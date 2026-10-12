@@ -436,11 +436,13 @@ public class StreamFetcherV2Test {
 	public void testSeekTimeOnRunningVodSource() throws Exception {
 		RestServiceV2Test restService = new RestServiceV2Test();
 		Broadcast vodSource = null;
+		RestServiceV2Test.TestVod testVod = null;
 		try {
 			//playlists register their active item's StreamFetcher under the playlist's own streamId
 			//(see PlaylistController), so seek-time on a running playlist item goes through this exact
 			//same getStreamFetcher(id)+seekTime() path - no separate playlist-specific test needed here.
-			vodSource = restService.createBroadcast("seek vod test", AntMediaApplicationAdapter.VOD, BIG_BUNNY_MP4_URL, null);
+			testVod = RestServiceV2Test.uploadTestVod();
+			vodSource = restService.createBroadcast("seek vod test", AntMediaApplicationAdapter.VOD, testVod.url(), null);
 			final String streamId = vodSource.getStreamId();
 
 			Result result = restService.startStreaming(streamId);
@@ -458,6 +460,9 @@ public class StreamFetcherV2Test {
 			if (vodSource != null) {
 				restService.stopStreaming(vodSource.getStreamId());
 				RestServiceV2Test.callDeleteBroadcast(vodSource.getStreamId());
+			}
+			if (testVod != null) {
+				RestServiceV2Test.deleteVoD(testVod.vodId());
 			}
 		}
 	}

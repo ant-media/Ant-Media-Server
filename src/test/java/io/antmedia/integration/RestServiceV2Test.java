@@ -599,6 +599,16 @@ public class RestServiceV2Test {
 
 	}
 
+	public record TestVod(String vodId, String url) {}
+
+	/** Uploads a 30s clip, so tests play a file the server under test serves itself. */
+	public static TestVod uploadTestVod() throws Exception {
+		Result result = callUploadVod(new File("src/test/resources/sample_MP4_480.mp4"));
+		assertTrue(result.isSuccess());
+		String vodId = result.getMessage();
+		return new TestVod(vodId, "http://localhost:5080/LiveApp/streams/" + vodId + ".mp4");
+	}
+
 	public  int callTotalVoDNumber() throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/v2/vods/count";
