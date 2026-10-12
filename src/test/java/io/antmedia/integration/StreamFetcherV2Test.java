@@ -57,8 +57,6 @@ public class StreamFetcherV2Test {
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
 
-	public static final String BIG_BUNNY_MP4_URL = "https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_750kbps_720p_60.0fps_h264.mp4";
-
 	private static final Random RANDOM = new Random();
 
 	private static int OS_TYPE;
@@ -184,33 +182,31 @@ public class StreamFetcherV2Test {
 	}
 
 	@Test
-	public void testVoDFetchAndRTMPPush() {
-		//create a stream fetcher broadcast with VoD type by pointing to the following url 
-		//BIG_BUNNY_MP4_URL
+	public void testVoDFetchAndRTMPPush() throws Exception {
 		RestServiceV2Test restService = new RestServiceV2Test();
-		String name = "test";
-		String streamUrl = BIG_BUNNY_MP4_URL;
-		//"rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov"; 
-		String type = AntMediaApplicationAdapter.VOD; //AntMediaApplicationAdapter.STREAM_SOURCE;
-		Broadcast streamSource = restService.createBroadcast("test", type, streamUrl, null);
-
-		assertNotNull(streamSource);
-
-		//start streaming
-		Result result = restService.startStreaming(streamSource.getStreamId());
-		assertTrue(result.isSuccess());
-
-		//check that m3u8 file is created and working
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return MuxingTest.testFile("http://" + AppFunctionalV2Test.SERVER_ADDR + ":5080/LiveApp/streams/" + streamSource.getStreamId() + ".m3u8");
-		});
-
-		//add rtmp endpoint 
-		Endpoint endpoint = new Endpoint();
-		String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
-		endpoint.setEndpointUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId);
-		try 
+		//a 30s clip the server serves itself. The 10s remote clip used before could end, after a slow
+		//download, before the endpoint's hls was checked
+		RestServiceV2Test.TestVod testVod = RestServiceV2Test.uploadTestVod();
+		try
 		{
+			Broadcast streamSource = restService.createBroadcast("test", AntMediaApplicationAdapter.VOD, testVod.url(), null);
+
+			assertNotNull(streamSource);
+
+			//start streaming
+			Result result = restService.startStreaming(streamSource.getStreamId());
+			assertTrue(result.isSuccess());
+
+			//check that m3u8 file is created and working
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + AppFunctionalV2Test.SERVER_ADDR + ":5080/LiveApp/streams/" + streamSource.getStreamId() + ".m3u8");
+			});
+
+			//add rtmp endpoint
+			Endpoint endpoint = new Endpoint();
+			String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
+			endpoint.setEndpointUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId);
+
 			result = RestServiceV2Test.addEndpoint(streamSource.getStreamId(), endpoint);
 			assertTrue(result.isSuccess());
 			String endpointId = result.getDataId();
@@ -250,8 +246,9 @@ public class StreamFetcherV2Test {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
-
+		finally {
+			RestServiceV2Test.deleteVoD(testVod.vodId());
+		}
 	}
 
 
