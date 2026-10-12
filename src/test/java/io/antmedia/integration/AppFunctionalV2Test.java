@@ -455,10 +455,11 @@ public class AppFunctionalV2Test {
 			assertEquals(0, RestServiceV2Test.getBroadcast(streamId).getCurrentPlayIndex());
 			assertEquals(3, RestServiceV2Test.getBroadcast(streamId).getPlayListItemList().size());
 
-			//advance: the next item must come from the freshly PUT-ed list, not the one playback started with
-			RestServiceV2Test.callPlayNextItem(streamId, null);
+			//index 2 only exists in the freshly PUT-ed list, so starting it proves that list is used. Index 1 is a
+			//streamSource item, those are not paced over http, so it would end before a poll could see it
+			assertTrue(RestServiceV2Test.callPlayNextItem(streamId, 2).isSuccess());
 
-			awaitPlaylistItemStarted(streamId, 1);
+			awaitPlaylistItemStarted(streamId, 2);
 
 			Broadcast finalState = RestServiceV2Test.getBroadcast(streamId);
 			assertEquals(3, finalState.getPlayListItemList().size());
