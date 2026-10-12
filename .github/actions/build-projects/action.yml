@@ -11,14 +11,6 @@ runs:
   using: "composite"
   steps:
 
-    - name: Prepare SonarCloud PR context
-      if: env.SONAR_TOKEN != ''
-      shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
-        SONAR_CONTEXT_SCRIPT: ${{ github.action_path }}/../../scripts/prepare-sonar-analysis.sh
-      run: bash "$SONAR_CONTEXT_SCRIPT"
-
     - name: Clone and build Ant Media Server Parent project
       shell: bash
       run: |

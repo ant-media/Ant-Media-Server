@@ -3,12 +3,14 @@ name: Ant Media Server Community Edition Test
 on:
   push:
     branches:
-      - '**'
+      - master
     tags:
       - 'ams-v*'
 
+  pull_request:
+    types: [opened, synchronize, reopened]
+
   workflow_dispatch:
-      
 
 permissions:
   contents: read
