@@ -53,7 +53,6 @@ import org.red5.server.messaging.IMessageComponent;
 public class RtmpProvider extends Muxer implements IProvider {
 
 
-    public static int ABR_SAMPLE_RATE = 44100;
     private IBroadcastScope broadcastScope;
     private final AVRational videoTb;
     private final AVRational audioTb;

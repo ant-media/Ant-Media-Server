@@ -22,7 +22,10 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -97,6 +100,9 @@ public class FfmpegWorker extends StreamFetcherWorker {
 	private final AVIOInterruptCB interruptCallback = new AVIOInterruptCB().callback(abortCallback);
 
 	private String streamUrl;
+	private List<Integer> selectedVideoStreams;
+	private List<Integer> selectedAudioStreams;
+	private final Map<Integer, Integer> excludedStreamTypes = new HashMap<>();
 	private AntMediaApplicationAdapter appInstance;
 
 	private AVFormatContext inputFormatContext;
@@ -156,7 +162,15 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 			pkt = av_packet_alloc();
 
-			if (prepareInputContext(broadcast)) {
+			boolean prepared;
+			try {
+				prepared = prepareInputContext(broadcast);
+			}
+			finally {
+				//Muxers must only see the selection, but ffmpeg needs the original codec types to demux.
+				restoreExcludedStreamTypes();
+			}
+			if (prepared) {
 				reason = readUntilEnd(pkt);
 			}
 			else if (abortRequested.get()) {
@@ -246,11 +260,16 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			return false;
 		}
 
+		initOnlySelectedStreams(inputFormatContext);
+
 		boolean audioExist = false;
 		boolean videoExist = false;
+		AVRational videoTimeBase = null;
+		AVRational audioTimeBase = null;
 		for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
 			if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
 				audioExist = true;
+				audioTimeBase = inputFormatContext.streams(i).time_base();
 				if (avcodec.avcodec_find_decoder(inputFormatContext.streams(i).codecpar().codec_id()) == null) {
 					logger.error("avcodec_find_decoder() error: Unsupported audio format or codec not found");
 					audioExist = false;
@@ -258,6 +277,7 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			}
 			else if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
 				videoExist = true;
+				videoTimeBase = inputFormatContext.streams(i).time_base();
 				if (avcodec.avcodec_find_decoder(inputFormatContext.streams(i).codecpar().codec_id()) == null) {
 					logger.error("avcodec_find_decoder() error: Unsupported video format or codec not found");
 					videoExist = false;
@@ -276,6 +296,8 @@ public class FfmpegWorker extends StreamFetcherWorker {
 		muxAdaptor.set(adaptor);
 
 		MuxAdaptor.setUpEndPoints(adaptor, broadcast, vertx);
+		adaptor.setVideoTimeBase(videoTimeBase);
+		adaptor.setAudioTimeBase(audioTimeBase);
 		adaptor.init(scope, streamId, false);
 
 		logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
@@ -301,8 +323,6 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
 			av_dict_set(optionsDictionary, "timeout", String.valueOf(timeoutMicroSeconds), 0);
 
-			// RTSP url parameter format rtsp://ip:port/id?key=value&key=value
-			parseRtspUrlParams(optionsDictionary);
 		}
 		else if (streamUrl.startsWith("udp://") || streamUrl.startsWith("tcp://")
 				|| streamUrl.startsWith("http://") || streamUrl.startsWith("https://")) {
@@ -312,6 +332,8 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			av_dict_set(optionsDictionary, "rw_timeout", timeoutStr, 0);
 			av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 		}
+
+		parseUrlParam(optionsDictionary);
 
 		//analyze duration is a generic parameter
 		av_dict_set(optionsDictionary, "analyzeduration", String.valueOf(appSettings.getMaxAnalyzeDurationMS() * 1000), 0);
@@ -348,10 +370,13 @@ public class FfmpegWorker extends StreamFetcherWorker {
 	}
 
 	/**
-	 * Pulls the {@value #RTSP_ALLOWED_MEDIA_TYPES} parameter out of the url into an ffmpeg option and
-	 * leaves the rest of the query untouched.
+	 * Extracts ffmpeg options and audio/video selection from the source URL, preserving other parameters.
 	 */
 	public void parseRtspUrlParams(AVDictionary optionsDictionary) {
+		parseUrlParam(optionsDictionary);
+	}
+
+	public void parseUrlParam(AVDictionary optionsDictionary) {
 		try {
 			URI.create(streamUrl);
 		}
@@ -374,9 +399,61 @@ public class FfmpegWorker extends StreamFetcherWorker {
 			}
 		}
 
+		try {
+			for (String value : UrlQueryUtils.getParamValues(query, "v")) {
+				selectedVideoStreams = parseStreamSelection(value);
+			}
+			for (String value : UrlQueryUtils.getParamValues(query, "a")) {
+				selectedAudioStreams = parseStreamSelection(value);
+			}
+		}
+		catch (NumberFormatException e) {
+			logger.warn("Cannot parse stream selection for streamId: {}", streamId);
+			return;
+		}
+
 		String newQuery = UrlQueryUtils.removeParam(query, RTSP_ALLOWED_MEDIA_TYPES);
+		newQuery = UrlQueryUtils.removeParam(newQuery, "v");
+		newQuery = UrlQueryUtils.removeParam(newQuery, "a");
 		String baseUrl = streamUrl.substring(0, questionMarkIndex);
 		streamUrl = newQuery.isEmpty() ? baseUrl : baseUrl + "?" + newQuery;
+	}
+
+	private static List<Integer> parseStreamSelection(String value) {
+		return Arrays.stream(URLDecoder.decode(value, StandardCharsets.UTF_8).split(","))
+				.map(String::trim)
+				.filter(part -> !part.isEmpty())
+				.map(Integer::parseInt)
+				.toList();
+	}
+
+	void initOnlySelectedStreams(AVFormatContext input) {
+		excludedStreamTypes.clear();
+		int videoOrder = 0;
+		int audioOrder = 0;
+		for (int i = 0; i < input.nb_streams(); i++) {
+			var params = input.streams(i).codecpar();
+			if (params.codec_type() == AVMEDIA_TYPE_VIDEO) {
+				if (selectedVideoStreams != null && !selectedVideoStreams.contains(videoOrder)) {
+					excludedStreamTypes.put(i, params.codec_type());
+					params.codec_type(-1);
+				}
+				videoOrder++;
+			}
+			else if (params.codec_type() == AVMEDIA_TYPE_AUDIO) {
+				if (selectedAudioStreams != null && !selectedAudioStreams.contains(audioOrder)) {
+					excludedStreamTypes.put(i, params.codec_type());
+					params.codec_type(-1);
+				}
+				audioOrder++;
+			}
+		}
+	}
+
+	private void restoreExcludedStreamTypes() {
+		if (inputFormatContext != null) {
+			excludedStreamTypes.forEach((index, type) -> inputFormatContext.streams(index).codecpar().codec_type(type));
+		}
 	}
 
 	private void initDTSArrays(int nbStreams) {
@@ -493,7 +570,19 @@ public class FfmpegWorker extends StreamFetcherWorker {
 	 * corrupt packet or a restarted/seeked source, and the two are told apart by the received dts.
 	 */
 	private void writePacket(AVStream stream, AVPacket pkt) {
+		if (excludedStreamTypes.containsKey(pkt.stream_index())
+				|| (stream.codecpar() != null && stream.codecpar().codec_type() == -1)) {
+			return;
+		}
 		int packetIndex = pkt.stream_index();
+		if (packetIndex >= lastSentDTS.length) {
+			//Some sources discover additional streams after the initial stream info probe.
+			int oldSize = lastSentDTS.length;
+			lastSentDTS = Arrays.copyOf(lastSentDTS, packetIndex + 1);
+			lastReceivedDTS = Arrays.copyOf(lastReceivedDTS, packetIndex + 1);
+			Arrays.fill(lastSentDTS, oldSize, lastSentDTS.length, -1);
+			Arrays.fill(lastReceivedDTS, oldSize, lastReceivedDTS.length, -1);
+		}
 		long pktDts = pkt.dts();
 
 		if (lastSentDTS[packetIndex] >= pkt.dts()) {
@@ -564,7 +653,8 @@ public class FfmpegWorker extends StreamFetcherWorker {
 
 	private boolean isAudioOrVideo(int streamIndex) {
 		int codecType = inputFormatContext.streams(streamIndex).codecpar().codec_type();
-		return codecType == AVMEDIA_TYPE_VIDEO || codecType == AVMEDIA_TYPE_AUDIO;
+		return !excludedStreamTypes.containsKey(streamIndex)
+				&& (codecType == AVMEDIA_TYPE_VIDEO || codecType == AVMEDIA_TYPE_AUDIO);
 	}
 
 	private AVRational getStreamTimebase(int streamIndex) {
