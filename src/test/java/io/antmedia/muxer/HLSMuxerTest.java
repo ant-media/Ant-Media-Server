@@ -54,7 +54,7 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 		doReturn(9000000L).when(hlsMuxer).getAverageBitrate();
 
 		//the video plus audio bitrate of the 360p rendition. The average is ignored.
-		assertThat(hlsMuxer.getStableBandwidth()).isEqualTo(expectedBandwidth(800000 + 64000));
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(expectedBandwidth(800000 + 64000));
 	}
 
 	@Test
@@ -63,13 +63,13 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 				new EncoderSettings(360, 800000, 64000, true)));
 
 		doReturn(1000000L).when(hlsMuxer).getAverageBitrate();
-		assertThat(hlsMuxer.getStableBandwidth()).isEqualTo(expectedBandwidth(1000000));
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(expectedBandwidth(1000000));
 
 		doReturn(100000L).when(hlsMuxer).getAverageBitrate();
-		assertThat(hlsMuxer.getStableBandwidth()).isEqualTo(expectedBandwidth(1000000));
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(expectedBandwidth(1000000));
 
 		doReturn(3000000L).when(hlsMuxer).getAverageBitrate();
-		assertThat(hlsMuxer.getStableBandwidth()).isEqualTo(expectedBandwidth(3000000));
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(expectedBandwidth(3000000));
 	}
 
 	@Test
@@ -77,7 +77,7 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 		HLSMuxer hlsMuxer = muxerWithSettings(0, Collections.emptyList());
 
 		doReturn(0L).when(hlsMuxer).getAverageBitrate();
-		assertThat(hlsMuxer.getStableBandwidth()).isEqualTo(HLSMuxer.BANDWIDTH_STEP);
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(HLSMuxer.BANDWIDTH_STEP);
 	}
 
 	private static long expectedBandwidth(long bitrate) {

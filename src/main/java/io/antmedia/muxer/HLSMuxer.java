@@ -108,7 +108,7 @@ public class HLSMuxer extends Muxer  {
 	
 	private boolean variantStreamMappingEnabled;
 
-	private long stableBandwidth;
+	private long stableBandwidthBps;
 	
 
 
@@ -846,10 +846,10 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	/**
-	 * Gets stable bandwidth for generation of _adaptive master file, since that's what spec requires.
+	 * Gets stable bandwidth in bits per second for generation of _adaptive master file, since that's what spec requires.
 	 * Tries to get it from ABR settings, if ABR is not set then calculates it from the average.
 	 */
-	public long getStableBandwidth() {
+	public long getStableBandwidthBps() {
 		long bitrate = 0;
 		List<EncoderSettings> encoderSettings = getAppSettings().getEncoderSettings();
 		if (encoderSettings != null) {
@@ -868,10 +868,10 @@ public class HLSMuxer extends Muxer  {
 		//round up to a coarse step so small changes don't move it, and never go back down
 		long capped = bitrate + (bitrate * BANDWIDTH_HEADROOM_PERCENT / 100);
 		capped = (capped / BANDWIDTH_STEP + 1) * BANDWIDTH_STEP;
-		if (capped > stableBandwidth) {
-			stableBandwidth = capped;
+		if (capped > stableBandwidthBps) {
+			stableBandwidthBps = capped;
 		}
-		return stableBandwidth;
+		return stableBandwidthBps;
 	}
 
 	public String getHlsListSize() {
