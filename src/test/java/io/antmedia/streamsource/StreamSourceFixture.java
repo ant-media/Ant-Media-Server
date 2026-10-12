@@ -214,7 +214,7 @@ class StreamSourceFixture implements AutoCloseable {
 	}
 
 	/**
-	 * tick() is private and its timer only fires every 10s. This and {@link #peek}/{@link #poke} reach
+	 * tick() is private and its timer only fires every 5s. This and {@link #peek}/{@link #poke} reach
 	 * in so the tick rules can be asserted in milliseconds instead of half a minute.
 	 */
 	static void tick(StreamFetcher fetcher) {

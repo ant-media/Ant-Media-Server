@@ -41,8 +41,11 @@ public class StreamFetcher {
 	/** An attempt that does not return within this window after an abort is given up on. */
 	static final long STOPPING_TIMEOUT_MS = 10000;
 
-	/** How often the two timeouts above are checked.   */
-	private static final long TICK_PERIOD_MS = MuxAdaptor.STAT_UPDATE_PERIOD_MS;
+	/**
+	 * How often the two timeouts above are checked and the owner's onTick runs. The tick starts before
+	 * the source connects, so auto stop lands on the first tick past start time + checker interval.
+	 */
+	private static final long TICK_PERIOD_MS = MuxAdaptor.STAT_UPDATE_PERIOD_MS / 2;
 
 	public enum State {
 		IDLE, CONNECTING, STREAMING, RECONNECT_WAIT, STOPPING, STOPPED
