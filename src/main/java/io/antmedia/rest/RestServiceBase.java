@@ -1940,14 +1940,6 @@ public abstract class RestServiceBase {
 		return muxAdaptor != null && muxAdaptor.isAlreadyRecording(recordType, resolutionHeight);
 	}
 
-	public Result importVoDs(String directory) {
-		return getApplication().importVoDFolder(directory);
-	}
-
-	public Result unlinksVoD(String directory) {
-		return getApplication().unlinksVoD(directory);
-	}
-
 	public static String replaceCharsForSecurity(String value) {
 		return value.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_");
 	}
