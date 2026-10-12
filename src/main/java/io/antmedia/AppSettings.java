@@ -1,6 +1,7 @@
 package io.antmedia;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.entity.ContentType;
 import org.bson.types.ObjectId;
@@ -143,6 +145,9 @@ public class AppSettings implements Serializable {
 	public static final String PREVIEW_FORMAT_PNG = "png";
 	public static final String PREVIEW_FORMAT_JPG = "jpg";
 	public static final String PREVIEW_FORMAT_WEBP = "webp";
+
+	public static final int SRT_PASSPHRASE_MIN_LENGTH = 10;
+	public static final int SRT_PASSPHRASE_MAX_LENGTH = 80;
 
 
 	/**
@@ -1676,6 +1681,14 @@ public class AppSettings implements Serializable {
 	private int srtReceiveLatencyInMs = 150;
 
 	/**
+	 * Passphrase that incoming SRT streams must be encrypted with. It must be 10 to 80 characters,
+	 * libsrt rejects anything else. Empty means SRT ingest is not encrypted.
+	 * check for details: https://github.com/Haivision/srt/blob/master/docs/API/API-socket-options.md#SRTO_PASSPHRASE
+	 */
+	@Value("${srtPassphrase:}")
+	private String srtPassphrase = "";
+
+	/**
 	 * The size of encoding queue to keep the frames waiting for encoding in Stream Adaptor
 	 * default: 150 (5 seconds frame for 30 fps stream)
 	 */
@@ -1714,6 +1727,16 @@ public class AppSettings implements Serializable {
 		customSettings.put(key, value);
 	}
 
+	/**
+	 * Blank means no encryption. libsrt counts the passphrase in bytes, so check the UTF-8 length
+	 */
+	public static boolean isSrtPassphraseValid(String passphrase) {
+		if (StringUtils.isBlank(passphrase)) {
+			return true;
+		}
+		int length = passphrase.getBytes(StandardCharsets.UTF_8).length;
+		return length >= SRT_PASSPHRASE_MIN_LENGTH && length <= SRT_PASSPHRASE_MAX_LENGTH;
+	}
 
 	public static String encodersList2Str(List<EncoderSettings> encoderSettingsList)
 	{

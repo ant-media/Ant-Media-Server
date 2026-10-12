@@ -7,6 +7,8 @@ import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast.HLSParameters;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * This is like a clone of Broadcast object. Just some differences, all default values are null in this object
@@ -139,6 +141,10 @@ public class BroadcastUpdate {
     private Integer dashViewerLimit = null;
 
     private String subFolder = null;
+
+    @Getter
+    @Setter
+    private String srtPassphraseOverride = null;
 
     private Integer currentPlayIndex = null;
 
