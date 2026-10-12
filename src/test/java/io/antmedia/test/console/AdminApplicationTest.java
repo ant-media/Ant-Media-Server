@@ -13,9 +13,9 @@ import org.apache.catalina.Host;
 import org.apache.catalina.connector.Connector;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.coyote.UpgradeProtocol;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.LoaderBase;
@@ -38,8 +38,13 @@ import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
 
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -53,12 +58,12 @@ public class AdminApplicationTest {
 
 	static Vertx vertx;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		vertx = Vertx.vertx();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		vertx.close();
 	}

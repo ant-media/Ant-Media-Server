@@ -382,7 +382,13 @@ public class StreamFetcher {
 					return;
 				}
 
-				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, null, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				BroadcastUpdate prepareUpdate = getInstance().getFreshBroadcastUpdateForStatus(IAntMediaStreamHandler.PUBLISH_TYPE_PULL, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				// Preserve the original startTime on retries so auto-stop timeout is based on first attempt, not last retry
+				// Safe to perseve, since when broadcast starts, thie 'startPublish' will be called reseting this to actual 'StartTime'
+				if (broadcast.getStartTime() > 0) {
+					prepareUpdate.setStartTime(broadcast.getStartTime());
+				}
+				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, prepareUpdate, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
 
@@ -762,8 +768,6 @@ public class StreamFetcher {
 				{
 					stopRequestReceived = true;
 					restartStream = false;
-					logger.info("Calling streamFinished listener for streamId:{} and it will not restart the stream automatically because callback is getting the responsbility", streamId);
-                    streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
 				if(!stopRequestReceived && restartStream) {
@@ -791,6 +795,12 @@ public class StreamFetcher {
 					if (!closeCalled) {
 						getInstance().closeBroadcast(streamId, null, null);
 					}
+				}
+
+				if(streamFetcherListener != null)
+				{
+					logger.info("Stream source {} finished. Not auto-restarting it here; its completion handler will decide the next step (reconnect or next playlist item)", streamId);
+					streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
 				logger.debug("Leaving thread for {}", streamUrl);

@@ -5,11 +5,10 @@ import java.beans.PropertyEditorSupport;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.base.Strings;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.CustomEditorConfigurer;
 import org.springframework.context.annotation.Bean;
 
@@ -27,17 +26,19 @@ public class AppConfig {
 	
 	public static class JSONObjectEditor extends PropertyEditorSupport {
 		
-		Logger logger = LoggerFactory.getLogger(JSONObjectEditor.class);
-		
 	    @Override
 	    public void setAsText(String text) {
-	        JSONParser parser = new JSONParser();
-	        try {
-	            JSONObject jsonObject = (JSONObject) parser.parse(text);
-	            setValue(jsonObject);
-	        } catch (ParseException e) {
-	            throw new IllegalArgumentException("Could not parse JSON string", e);
-	        }
+            if(Strings.isNullOrEmpty(text)) {
+                setValue(new HashMap<String, Object>());
+            } else {
+                JSONParser parser = new JSONParser();
+                try {
+                    JSONObject jsonObject = (JSONObject) parser.parse(text);
+                    setValue(jsonObject);
+                } catch (ParseException e) {
+                    throw new IllegalArgumentException("Could not parse JSON string: " + text, e);
+                }
+            }
 	    }
 	}
 	

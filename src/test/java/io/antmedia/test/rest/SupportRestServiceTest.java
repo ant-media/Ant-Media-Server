@@ -1,21 +1,25 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import io.antmedia.console.rest.SupportRestService;
 
+@Tag("fast")
 public class SupportRestServiceTest {
 
 	
-	@After 
+	@AfterEach 
 	public void after() {
 		File f = new File(SupportRestService.LOG_FILE);
 		try { 

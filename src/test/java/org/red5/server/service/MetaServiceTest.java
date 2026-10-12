@@ -18,9 +18,12 @@
 
 package org.red5.server.service;
 
+
+import org.junit.jupiter.api.Tag;
 import java.io.File;
 import java.io.IOException;
-
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.red5.cache.impl.NoCacheImpl;
 import org.red5.io.flv.IFLV;
 import org.red5.io.flv.meta.ICueType;
@@ -30,18 +33,16 @@ import org.red5.io.flv.meta.MetaData;
 import org.red5.io.flv.meta.MetaService;
 import org.red5.server.service.flv.impl.FLVService;
 
-import junit.framework.TestCase;
-
-public class MetaServiceTest extends TestCase {
+@Tag("fast")
+public class MetaServiceTest {
 
     private FLVService service;
 
     private MetaService metaService;
 
-    /** {@inheritDoc} */
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+	/** {@inheritDoc} */
+	@BeforeEach
+	public void setUp() throws Exception {
 
         // Create a FLV Service
         service = new FLVService();
@@ -50,13 +51,14 @@ public class MetaServiceTest extends TestCase {
         metaService = new MetaService();
     }
 
-    /**
-     * Test writing meta data
-     * 
-     * @throws IOException
+	/**
+	 * Test writing meta data
+	 * 
+	 * @throws IOException
      *             if io exception
-     */
-    public void testWrite() throws IOException {
+	 */
+	@Test
+	public void testWrite() throws IOException {
         String path = "target/test-classes/fixtures/test.flv";
         File f = new File(path);
         System.out.println("Path: " + f.getAbsolutePath());

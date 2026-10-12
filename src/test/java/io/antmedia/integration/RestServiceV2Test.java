@@ -1,12 +1,12 @@
 package io.antmedia.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -43,9 +43,9 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -118,7 +118,7 @@ public class RestServiceV2Test {
 		};
 	};
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
@@ -510,13 +510,17 @@ public class RestServiceV2Test {
 	}
 
 	public static Broadcast callCreateRegularBroadcast() throws Exception {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("testBroadcast");
+		return callCreateBroadcast(broadcast);
+	}
+
+	public static Broadcast callCreateBroadcast(Broadcast broadcast) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
-		Broadcast broadcast = new Broadcast();
-		broadcast.setName("testBroadcast");
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
@@ -1403,7 +1407,7 @@ public class RestServiceV2Test {
 
 	@Test
 	public void testAddEndpointV2() {
-		assertTrue("This test is moved to #testAddEndpointCrossCheckV2", true);
+		assertTrue(true, "This test is moved to #testAddEndpointCrossCheckV2");
 	}
 
 	@Test

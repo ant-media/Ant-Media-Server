@@ -2,12 +2,13 @@ package io.antmedia.test;
 
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -67,10 +68,10 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -163,7 +164,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		};
 	};
 
-	@Before
+	@BeforeEach
 	public void before() {
 		adapter = new AntMediaApplicationAdapter();
 		adapter.setVertx(vertx);
@@ -193,7 +194,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		adapter = null;
 
@@ -755,7 +756,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 					ArgumentMatchers.eq("http://any_url"),
 					ArgumentMatchers.eq(jsonPayload),
 					ArgumentMatchers.eq(appSettings.getWebhookRetryCount() - 1), 
-					isNull(String.class)
+					isNull()
 					);
 
 			Mockito.when(statusLine.getStatusCode()).thenReturn(200);
@@ -790,6 +791,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	public void testStartStopPublishWithSubscriberId() throws Exception {
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
 		spyAdaptor.setDataStore(new InMemoryDataStore("testStartStopPublishWithSubscriberId"));
+		spyAdaptor.setStatsCollector(Mockito.mock(IStatsCollector.class));
 		spyAdaptor.setServerSettings(new ServerSettings());
 		AppSettings appSettings = new AppSettings();
 		spyAdaptor.setAppSettings(appSettings);
@@ -851,6 +853,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdaptor.setDataStoreFactory(dsf);
 		spyAdaptor.setDataStore(dataStore);
+		spyAdaptor.setStatsCollector(Mockito.mock(IStatsCollector.class));
 
 		dataStore.save(broadcast);
 
@@ -1575,6 +1578,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.setScope(scope);
 		adapter.setVertx(vertx);
+		adapter.setStatsCollector(mock(IStatsCollector.class));
 
 		adapter.closeBroadcast(broadcast.getStreamId(), null, null);
 
@@ -1617,6 +1621,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.setScope(scope);
 		adapter.setVertx(vertxLocal);
+		adapter.setStatsCollector(mock(IStatsCollector.class));
 
 		adapter.closeBroadcast(broadcast.getStreamId(), "subscriberId", null);
 
@@ -1875,7 +1880,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(context.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		when(licenseService.isLicenceSuspended()).thenReturn(false);
 
 		when(appContext.getBean(StatsCollector.BEAN_NAME)).thenReturn(statsCollector);
@@ -1949,7 +1954,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(context.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		when(licenseService.isLicenceSuspended()).thenReturn(false);
 
 		when(appContext.getBean(StatsCollector.BEAN_NAME)).thenReturn(statsCollector);
@@ -2031,9 +2036,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(result4.isSuccess());
 
 		// Verify the async callback executed
-		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
-			verify(streamFetcherManager, times(1)).startStreaming(broadcast4);
-		});
+		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+			verify(streamFetcherManager, times(1)).startStreaming(broadcast4));
 
 		// Test Case 5: Non-cluster mode streaming
 		when(spyAdapter.isClusterMode()).thenReturn(false);
@@ -2670,7 +2674,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Get the subtrackPoller using the getter and verify it's the same as the mock
 		ISubtrackPoller retrievedSubtrackPoller = adapter.getSubtrackPoller();
-		assertEquals("The retrieved subtrackPoller should match the mock instance.", mockSubtrackPoller, retrievedSubtrackPoller);
+		assertEquals(mockSubtrackPoller, retrievedSubtrackPoller, "The retrieved subtrackPoller should match the mock instance.");
 	}
 
 	@Test
@@ -2758,6 +2762,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			AppSettings appSettings = new AppSettings();
 			spyAdapter.setAppSettings(appSettings);
+			spyAdapter.setStatsCollector(mock(IStatsCollector.class));
 
 			doNothing().when(spyAdapter).sendPOST(anyString(), any(), anyInt(), any());
 
@@ -2997,6 +3002,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStore db = mock(DataStore.class);
 		when(db.get(broadcast.getStreamId())).thenReturn(broadcast);
 		spyAdapter.setDataStore(db);
+		spyAdapter.setStatsCollector(mock(IStatsCollector.class));
 
 		spyAdapter.closeBroadcast(broadcast.getStreamId(), null, null);
 
@@ -3047,6 +3053,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStore db = mock(DataStore.class);
 		when(db.get(broadcast.getStreamId())).thenReturn(broadcast);
 		spyAdapter.setDataStore(db);
+		spyAdapter.setStatsCollector(mock(IStatsCollector.class));
 
 
 		spyAdapter.closeBroadcast(broadcast.getStreamId(), null, null);
@@ -3507,6 +3514,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
 		spyAdaptor.setDataStore(new InMemoryDataStore("testStartStopPublishWithSubscriberId"));
+		spyAdaptor.setStatsCollector(Mockito.mock(IStatsCollector.class));
 		spyAdaptor.setServerSettings(new ServerSettings());
 		AppSettings appSettings = new AppSettings();
 		spyAdaptor.setAppSettings(appSettings);

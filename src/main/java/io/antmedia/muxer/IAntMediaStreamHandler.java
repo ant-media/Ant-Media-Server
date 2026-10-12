@@ -18,25 +18,26 @@ import io.antmedia.webrtc.datachannel.IDataChannelRouter;
 
 public interface IAntMediaStreamHandler {
 	
-	public static final String VERTX_BEAN_NAME = "vertxCore";
+	String VERTX_BEAN_NAME = "vertxCore";
 	
-	public static final String BROADCAST_STATUS_CREATED = "created";
-	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
-	public static final String BROADCAST_STATUS_FINISHED = "finished";
-	public static final String BROADCAST_STATUS_PREPARING = "preparing";
-	public static final String BROADCAST_STATUS_ERROR = "error";
-	public static final String BROADCAST_STATUS_FAILED = "failed";
-	public static final String BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY = "terminated_unexpectedly";
+	String BROADCAST_STATUS_CREATED = "created";
+	String BROADCAST_STATUS_BROADCASTING = "broadcasting";
+	String BROADCAST_STATUS_FINISHED = "finished";
+	String BROADCAST_STATUS_PREPARING = "preparing";
+	String BROADCAST_STATUS_ERROR = "error";
+	String BROADCAST_STATUS_FAILED = "failed";
+	String BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY = "terminated_unexpectedly";
 	
-	public static final String PUBLISH_TYPE_PULL = "Pull";
-	public static final String PUBLISH_TYPE_RTMP = "RTMP";
-	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
-	public static final String PUBLISH_TYPE_SRT = "SRT";
+	String PUBLISH_TYPE_PULL = "Pull";
+	String PUBLISH_TYPE_RTMP = "RTMP";
+	String PUBLISH_TYPE_WEBRTC = "WebRTC";
+	String PUBLISH_TYPE_SRT = "SRT";
+	String PUBLISH_TYPE_NDI = "NDI";
+
+	String DEFAULT_USER_ROLE = "default";
 	
-	public static final String DEFAULT_USER_ROLE = "default";
 	
-	
-	public static final String WEBAPPS_PATH = "webapps/";
+	String WEBAPPS_PATH = "webapps/";
 	
 	/**
 	 * Called by some muxer like MP4Muxer
@@ -52,7 +53,7 @@ public interface IAntMediaStreamHandler {
 	 * @param previewFilePath path of the preview file
 	 * 
 	 */
-	public void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration , int resolution, String previewFilePath, String vodId);
+	void muxingFinished(Broadcast broadcast, String streamId, File file, long startTime, long duration , int resolution, String previewFilePath, String vodId);
 	
 	
 	/**
@@ -65,7 +66,7 @@ public interface IAntMediaStreamHandler {
 	 * @param stats The current publishing statistics for the stream.
 	 * @param currentTimeMillis The current timestamp in milliseconds.
 	 */
-	public default void setQualityParameters(String streamId, PublishStatsEvent stats, long currentTimeMillis) {
+	default void setQualityParameters(String streamId, PublishStatsEvent stats, long currentTimeMillis) {
 		
 	}
 
@@ -74,14 +75,14 @@ public interface IAntMediaStreamHandler {
      *
      * @param muxAdaptor
      */
-    public void muxAdaptorAdded(MuxAdaptor muxAdaptor);
+    void muxAdaptorAdded(MuxAdaptor muxAdaptor);
 
     /***
      * Removes a MuxAdaptor when a muxAdaptor is closingResources
      *
      * @param muxAdaptor
      */
-    public void muxAdaptorRemoved(MuxAdaptor muxAdaptor);
+    void muxAdaptorRemoved(MuxAdaptor muxAdaptor);
 
     /***
      * Checks a Stream parameters is valid.
@@ -92,13 +93,13 @@ public interface IAntMediaStreamHandler {
      * @param bitrate
      * @param streamId
      */
-	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId);
+	boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId);
 	
 	/**
 	 * 
 	 * @return true if server is shutting down
 	 */
-	public boolean isServerShuttingDown();	
+	boolean isServerShuttingDown();
 	
 	/**
 	 * Notify the handler that stream is started to publish
@@ -108,7 +109,7 @@ public interface IAntMediaStreamHandler {
 	 * @param publishType
 	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
 	 */
-	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> publishParameters);
+	void startPublish(String streamId, long absoluteStartTimeMs, String publishType, String subscriberId, Map<String, String> publishParameters);
 
 	
 	/**
@@ -117,7 +118,7 @@ public interface IAntMediaStreamHandler {
 	 * @param streamId
 	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
 	 */
-	public void stopPublish(String streamId, String subscriberId);
+	void stopPublish(String streamId, String subscriberId);
 	
 	
 	/**
@@ -127,7 +128,7 @@ public interface IAntMediaStreamHandler {
 	 * @param subscriberId: It's the id of the subscriber. It can be null if it's not available.
 	 * @param publishParameters: It's the parameters of the publish. It can be null if it's not available.
 	 */
-	public void stopPublish(String streamId, String subscriberId, Map<String, String> publishParameters);	
+	void stopPublish(String streamId, String subscriberId, Map<String, String> publishParameters);
 	/**
 	 * Update broadcast status to BROADCASTING
 	 * 
@@ -138,7 +139,7 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @return broadcast object from database
 	 */
-	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast);
+	Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast);
 	
 	/**
 	 * Add a stream listener to get notified when a new stream is started or finished. 
@@ -147,14 +148,14 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @param listener
 	 */
-	public void addStreamListener(IStreamListener listener);
+	void addStreamListener(IStreamListener listener);
 	
 	/**
 	 * Remove a stream listener from the Stream Handler to stop getting notified
 	 * 
 	 * @param listener
 	 */
-	public void removeStreamListener(IStreamListener listener) ;
+	void removeStreamListener(IStreamListener listener) ;
 	
 	/**
 	 * Add listener to get raw audio or video frames from the internal of Ant Media Server. 
@@ -165,7 +166,7 @@ public interface IAntMediaStreamHandler {
 	 * @param streamId
 	 * @param listener
 	 */
-	public void addFrameListener(String streamId, IFrameListener listener);
+	void addFrameListener(String streamId, IFrameListener listener);
 	
 	/**
 	 * Remove frame listener from the Stream Handler  to stop getting notified
@@ -173,7 +174,7 @@ public interface IAntMediaStreamHandler {
 	 * @param streamId
 	 * @param listener
 	 */
-	public void removeFrameListener(String streamId, IFrameListener listener);
+	void removeFrameListener(String streamId, IFrameListener listener);
 	
 	/**
 	 * Add listener to get audio and video packets from the internal of Ant Media Server. 
@@ -183,7 +184,7 @@ public interface IAntMediaStreamHandler {
 	 * @param listener
 	 * @return
 	 */
-	public boolean addPacketListener(String streamId, IPacketListener listener);
+	boolean addPacketListener(String streamId, IPacketListener listener);
 	
 	/**
 	 * Remove listener from the Stream Handler to stop getting notified
@@ -192,7 +193,7 @@ public interface IAntMediaStreamHandler {
 	 * @param listener
 	 * @return
 	 */
-	public boolean removePacketListener(String streamId, IPacketListener listener);
+	boolean removePacketListener(String streamId, IPacketListener listener);
 	
 	/**
 	 * Create another broadcast. It's useful to create another manipulated version of the original broadcast
@@ -201,7 +202,7 @@ public interface IAntMediaStreamHandler {
 	 * @param streamId
 	 * @return
 	 */
-	public IFrameListener createCustomBroadcast(String streamId);
+	IFrameListener createCustomBroadcast(String streamId);
 	
 	
 	/**
@@ -213,14 +214,14 @@ public interface IAntMediaStreamHandler {
 	 * @param bitrate
 	 * @return
 	 */
-	public IFrameListener createCustomBroadcast(String streamId, int height, int bitrate);
+	IFrameListener createCustomBroadcast(String streamId, int height, int bitrate);
 	
 	/**
 	 * Stop the custom broadcast that is being created. Stop encoders and make database operations.
 	 * 
 	 * @param streamId
 	 */
-	public void stopCustomBroadcast(String streamId);
+	void stopCustomBroadcast(String streamId);
 	
 	/**
 	 * Get the MuxAdaptor of the stream. MuxAdaptor is the base class that is responsible for ingesting and distributing the stream
@@ -228,13 +229,13 @@ public interface IAntMediaStreamHandler {
 	 * @param streamId
 	 * @return
 	 */
-	public MuxAdaptor getMuxAdaptor(String streamId);
+	MuxAdaptor getMuxAdaptor(String streamId);
 	
 	/**	
 	 * Get the AppSettings of the application
 	 * @return AppSettings
 	 */
-	public AppSettings getAppSettings();
+	AppSettings getAppSettings();
 
 
 	/**
@@ -242,13 +243,13 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @return DataStore
 	 */
-	public DataStore getDataStore();
+	DataStore getDataStore();
 
 	/**
 	 * Get the scope
 	 * @return
 	 */
-	public IScope getScope();
+	IScope getScope();
 
 
 	/**
@@ -264,18 +265,18 @@ public interface IAntMediaStreamHandler {
      * @param dropPacketCountInIngestion
      * @param speed
 	 */
-	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
+	void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
 			int inputQueueSize, int encodingQueueSize, int dropFrameCountInEncoding, int dropPacketCountInIngestion, double speed);
 	
 	/**
 	 * Add listener that is notified when the settings are updated
 	 * @param listener
 	 */
-	public void addSettingsUpdateListener(IAppSettingsUpdateListener listener);
+	void addSettingsUpdateListener(IAppSettingsUpdateListener listener);
 	
 	/**
 	 * Get data channel router for data channel delivery
 	 * @return
 	 */
-	public IDataChannelRouter getDataChannelRouter();
+	IDataChannelRouter getDataChannelRouter();
 }

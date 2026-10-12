@@ -1,7 +1,5 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
 import java.util.HashSet;
 
@@ -11,23 +9,25 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.filters.CorsFilter;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import io.antmedia.filter.CorsHeaderFilter;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class CorsHeaderFilterTest {
 	
 	private CorsHeaderFilter corsFilter;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		corsFilter = new CorsHeaderFilter();
 	}
 	
-	@After
+	@AfterEach
 	public void after() {
 		corsFilter = null;
 	}

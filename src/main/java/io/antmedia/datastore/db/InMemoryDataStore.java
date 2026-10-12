@@ -944,8 +944,17 @@ public class InMemoryDataStore extends DataStore {
 			}
 			totalWebRTCViewerCount = total;
 			totalWebRTCViewerCountLastUpdateTime = now;
-		}  
+		}
 		return totalWebRTCViewerCount;
+	}
+
+	@Override
+	public int getTotalViewersCount() {
+		int total = 0;
+		for (Broadcast broadcast : broadcastMap.values()) {
+			total += totalViewers(broadcast);
+		}
+		return total;
 	}
 
 	@Override

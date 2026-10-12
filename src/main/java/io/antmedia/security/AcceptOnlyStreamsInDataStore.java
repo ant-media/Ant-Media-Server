@@ -94,7 +94,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	}
 
 	public ILicenceService getLicenceService(IScope scope) {
-		return (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+		return (ILicenceService)scope.getContext().getBean(ILicenceService.BEAN_NAME);
 	}
 	
 	public AntMediaApplicationAdapter getAppAdaptor(IScope scope) {

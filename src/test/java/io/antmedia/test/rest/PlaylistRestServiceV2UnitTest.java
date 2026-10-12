@@ -1,19 +1,20 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.scope.Scope;
@@ -53,12 +54,12 @@ public class PlaylistRestServiceV2UnitTest {
 	Vertx vertx = io.vertx.core.Vertx.vertx();
 
 
-	@Before
+	@BeforeEach
 	public void before() {
 		restServiceReal = new BroadcastRestService();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		restServiceReal = null;
 	}
@@ -258,7 +259,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
-		when(restServiceSpy.getApplication()).thenReturn(adptr);
+		doReturn(adptr).when(restServiceSpy).getApplication();
 
 		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any())).thenReturn(result);
 
@@ -516,7 +517,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 
 
-		when(restServiceSpy.getApplication()).thenReturn(mock(AntMediaApplicationAdapter.class));
+		doReturn(mock(AntMediaApplicationAdapter.class)).when(restServiceSpy).getApplication();
 		when(restServiceSpy.getApplication().stopStreaming(Mockito.any(), Mockito.anyBoolean(), Mockito.any())).thenReturn(result);
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId(), false);	
 		//it's created because it's not started

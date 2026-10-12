@@ -1,21 +1,24 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.File;
 
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.antmedia.AntMediaApplicationAdapter;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -24,7 +27,11 @@ import io.antmedia.filter.StreamAcceptFilter;
 
 @ContextConfiguration(locations = {"../test.xml"})
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
-public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
+@ExtendWith(SpringExtension.class)
+public class AcceptStreamFilterTest {
+
+	@Autowired
+	private ApplicationContext applicationContext;
 	
 	private StreamAcceptFilter acceptStreamFilter;
 	private AppSettings appSettings;
@@ -34,7 +41,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		System.setProperty("red5.root", ".");
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		acceptStreamFilter = new StreamAcceptFilter();
 		
@@ -53,7 +60,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setAddDateTimeToMp4FileName(false);
 	}
 	
-	@After
+	@AfterEach
 	public void after() {
 		acceptStreamFilter = null;
 

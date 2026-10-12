@@ -1,9 +1,12 @@
 package io.antmedia.test.token;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -13,9 +16,9 @@ import java.util.Map;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpSessionEvent;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -32,6 +35,7 @@ import io.antmedia.filter.TokenSessionFilter;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.MockTokenService;
 
+@Tag("fast")
 public class TokenServiceTest {
 	protected static Logger logger = LoggerFactory.getLogger(TokenServiceTest.class);
 
@@ -41,14 +45,14 @@ public class TokenServiceTest {
 	private MockTokenService tokenService;
 	private TokenFilterManager tokenFilter;
 	private TokenSessionFilter tokenSessionFilter;
-	@Before
+	@BeforeEach
 	public void before() {
 		tokenService = new MockTokenService();
 		tokenFilter = new TokenFilterManager();
 		tokenSessionFilter = new TokenSessionFilter();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		tokenService = null;
 		tokenFilter = null;

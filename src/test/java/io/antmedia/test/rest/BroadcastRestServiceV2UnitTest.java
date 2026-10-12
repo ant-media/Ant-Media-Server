@@ -1,12 +1,14 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -30,10 +32,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -48,6 +50,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressEventType;
@@ -90,6 +96,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
@@ -104,6 +111,7 @@ import jakarta.ws.rs.core.Response.Status;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@Testcontainers
 public class BroadcastRestServiceV2UnitTest {
 
 
@@ -117,15 +125,23 @@ public class BroadcastRestServiceV2UnitTest {
 
 	Vertx vertx = io.vertx.core.Vertx.vertx();
 
+	@Container
+	public static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:6-alpine"))
+			.withExposedPorts(6379);
 
-	@Before
+
+	@BeforeEach
 	public void before() {
 		restServiceReal = new BroadcastRestService();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		restServiceReal = null;
+	}
+
+	private String redisUri() {
+		return "redis://" + redis.getHost() + ":" + redis.getFirstMappedPort();
 	}
 
 
@@ -383,17 +399,10 @@ public class BroadcastRestServiceV2UnitTest {
 		ApplicationContext appContext = mock(ApplicationContext.class);
 
 		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(false);
+		restServiceReal.setAppCtx(appContext);
 		Object tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Result);
 		Result result = (Result) tokenReturn;
-		//it should false, because appContext is null
-		assertFalse(result.isSuccess());	 
-
-
-		restServiceReal.setAppCtx(appContext);
-		tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
-		assertTrue(tokenReturn instanceof Result);
-		result = (Result) tokenReturn;
 		//it should be false, because there is no token service in the context
 		assertFalse(result.isSuccess());	
 
@@ -490,17 +499,10 @@ public class BroadcastRestServiceV2UnitTest {
 
 
 		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(false);
+		restServiceReal.setAppCtx(appContext);
 		Object tokenReturn = restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Result);
 		Result result = (Result) tokenReturn;
-		//it should false, because appContext is null
-		assertFalse(result.isSuccess());	 
-
-
-		restServiceReal.setAppCtx(appContext);
-		tokenReturn = restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
-		assertTrue(tokenReturn instanceof Result);
-		result = (Result) tokenReturn;
 		//it should be false, because there is no token service in the context
 		assertFalse(result.isSuccess());	
 
@@ -608,6 +610,134 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 	}
 
+	private static Broadcast streamWithId(String id) throws Exception {
+		Broadcast b = new Broadcast();
+		b.setStreamId(id);
+		return b;
+	}
+
+	private static Result findById(List<Result> results, String id) {
+		return results.stream().filter(r -> id.equals(r.getDataId())).findFirst().orElse(null);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testCreateBroadcastList() throws Exception {
+		restServiceReal.setAppSettings(mock(AppSettings.class));
+
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn("fully.qualified.domain.name");
+		restServiceReal.setServerSettings(serverSettings);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("scope");
+		restServiceReal.setScope(scope);
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
+		ClientBroadcastStream broadcastStream = mock(ClientBroadcastStream.class);
+		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
+		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
+		Mockito.doReturn(broadcastStream).when(appAdaptor).getBroadcastStream(Mockito.any(), Mockito.anyString());
+		restServiceReal.setApplication(appAdaptor);
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+
+		// empty / null list -> 400
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), restServiceReal.createBroadcastList(null, null).getStatus());
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), restServiceReal.createBroadcastList(new ArrayList<>(), null).getStatus());
+
+		// all-new, no onDuplicate -> 200, everything created
+		List<Broadcast> newOnes = new ArrayList<>();
+		newOnes.add(streamWithId("stream-a"));
+		newOnes.add(streamWithId("stream-b"));
+		Response createdResp = restServiceReal.createBroadcastList(newOnes, null);
+		assertEquals(Status.OK.getStatusCode(), createdResp.getStatus());
+		List<Result> createdResults = (List<Result>) createdResp.getEntity();
+		assertEquals(2, createdResults.size());
+		assertTrue(createdResults.stream().allMatch(r -> r.isSuccess() && "created".equals(r.getMessage())));
+		assertNotNull(store.get("stream-a"));
+		assertNotNull(store.get("stream-b"));
+		assertEquals(2, restServiceReal.getBroadcastList(0, 100, null, null, null, null).size());
+
+		// fail mode with an existing id -> 400, nothing created
+		List<Broadcast> withDupe = new ArrayList<>();
+		withDupe.add(streamWithId("stream-a")); // exists
+		withDupe.add(streamWithId("stream-c")); // new
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), restServiceReal.createBroadcastList(withDupe, null).getStatus());
+		assertNull(store.get("stream-c"));
+		assertEquals(2, restServiceReal.getBroadcastList(0, 100, null, null, null, null).size());
+
+		// skip mode -> existing skipped, new created
+		List<Broadcast> skipList = new ArrayList<>();
+		skipList.add(streamWithId("stream-a")); // exists -> skipped
+		skipList.add(streamWithId("stream-c")); // new -> created
+		List<Result> skipResults = (List<Result>) restServiceReal.createBroadcastList(skipList, "skip").getEntity();
+		assertEquals("skipped", findById(skipResults, "stream-a").getMessage());
+		assertEquals("created", findById(skipResults, "stream-c").getMessage());
+		assertEquals(3, restServiceReal.getBroadcastList(0, 100, null, null, null, null).size());
+
+		// overwrite mode -> existing replaced, new created
+		Broadcast renamedA = streamWithId("stream-a");
+		renamedA.setName("renamed");
+		List<Broadcast> overList = new ArrayList<>();
+		overList.add(renamedA);                 // exists -> overridden
+		overList.add(streamWithId("stream-d")); // new -> created
+		List<Result> overResults = (List<Result>) restServiceReal.createBroadcastList(overList, "overwrite").getEntity();
+		assertEquals("overridden", findById(overResults, "stream-a").getMessage());
+		assertEquals("created", findById(overResults, "stream-d").getMessage());
+		assertEquals("renamed", store.get("stream-a").getName());
+		assertEquals(4, restServiceReal.getBroadcastList(0, 100, null, null, null, null).size());
+
+		// invalid id -> failed, a valid item in the same request still processed
+		List<Broadcast> mixed = new ArrayList<>();
+		mixed.add(streamWithId("bad id"));   // space is not a valid stream id char
+		mixed.add(streamWithId("stream-e")); // new -> created
+		List<Result> mixedResults = (List<Result>) restServiceReal.createBroadcastList(mixed, null).getEntity();
+		assertFalse(findById(mixedResults, "bad id").isSuccess());
+		assertEquals("failed", findById(mixedResults, "bad id").getMessage());
+		assertEquals("created", findById(mixedResults, "stream-e").getMessage());
+		assertNull(store.get("bad id"));
+		assertNotNull(store.get("stream-e"));
+
+		// per-item validation matches POST /create: a stream source with a malformed url -> failed
+		Broadcast badSource = streamWithId("bad-source");
+		badSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		badSource.setStreamUrl("not-a-real-url");
+		List<Broadcast> sourceList = new ArrayList<>();
+		sourceList.add(badSource);
+		List<Result> sourceResults = (List<Result>) restServiceReal.createBroadcastList(sourceList, null).getEntity();
+		assertEquals("failed", findById(sourceResults, "bad-source").getMessage());
+		assertNull(store.get("bad-source"));
+	}
+
+	@Test
+	public void testGetStreamMetricsHistoryV2() {
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("scope");
+		restServiceReal.setScope(scope);
+
+		IStatsCollector statsCollector = mock(IStatsCollector.class);
+		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+		doReturn(statsCollector).when(app).getStatsCollector();
+		restServiceReal.setApplication(app);
+
+		StreamMetricsHistory history = new StreamMetricsHistory(new long[]{1000}, new int[]{2}, new double[]{1.0},
+				new int[]{0}, new int[]{0}, new int[]{0}, new double[]{0.0});
+		// scope name and stream id must both reach the collector, or the stub won't match
+		when(statsCollector.getStreamMetricsHistory("scope", "stream1")).thenReturn(history);
+
+		assertSame(history, restServiceReal.getStreamMetricsHistoryV2("stream1"));
+
+		// no stats collector -> empty history instead of an NPE
+		doReturn(null).when(app).getStatsCollector();
+		assertEquals(0, restServiceReal.getStreamMetricsHistoryV2("stream1").getBitrate().length);
+	}
+
 
 	@Test
 	public void testRemoveEndpointV2()
@@ -631,7 +761,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2 = new Broadcast(null, "name2");
 		Broadcast broadcast3 = new Broadcast(null, "name3");
 		Broadcast broadcast4 = new Broadcast(null, "name4");
-		DataStore store = new RedisStore("redis://127.0.0.1:6379", "testdb" + RandomStringUtils.randomNumeric(5));
+		DataStore store = new RedisStore(redisUri(), "testdb" + RandomStringUtils.randomNumeric(5));
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -1521,7 +1651,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
 
-		when(restServiceSpy.getApplication()).thenReturn(application);
+		doReturn(application).when(restServiceSpy).getApplication();
 
 		Response response = restServiceSpy.createBroadcast(new Broadcast(broadcastName), false);
 		Broadcast testBroadcast = (Broadcast) response.getEntity();
@@ -2026,7 +2156,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result=streamSourceRest.addStreamSource(noSpecifiedType);
 		//should be true since it wouldn't return true because there is no ip camera or stream source defined in the declaration.
 		assertFalse(result.isSuccess());
-		assertEquals("Auto start query needs an IP camera or stream source.",result.getMessage() );
+		assertEquals("Auto start query needs an IP camera, stream source, or NDI source.",result.getMessage() );
 
 
 
@@ -2886,7 +3016,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testGetStreamInfo() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
-		DataStore datastore = new RedisStore("redis://127.0.0.1:6379", "test" + RandomStringUtils.randomNumeric(5));
+		DataStore datastore = new RedisStore(redisUri(), "test" + RandomStringUtils.randomNumeric(5));
 
 		broadcastRestService.setDataStore(datastore);
 		StreamInfo streamInfo = new StreamInfo(true, 720, 1080, 300, true, 64, 1000, 1000, VideoCodec.H264);
@@ -3560,7 +3690,7 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		Result result = restServiceReal.addSubscriber(streamId, subscriber1);
-		assertTrue("Should succeed with valid TOTP expiry period", result.isSuccess());
+		assertTrue(result.isSuccess(), "Should succeed with valid TOTP expiry period");
 
 		// Test 2: Custom TOTP expiry period below minimum (should fail)
 		Subscriber subscriber2 = new Subscriber();
@@ -3577,9 +3707,9 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		result = restServiceReal.addSubscriber(streamId, subscriber2);
-		assertFalse("Should fail with TOTP expiry period below minimum", result.isSuccess());
-		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10"));
+		assertFalse(result.isSuccess(), "Should fail with TOTP expiry period below minimum");
+		assertTrue(result.getMessage().contains("must be between 10"), 
+			"Error message should mention minimum value");
 
 		// Test 3: Custom TOTP expiry period above maximum (should fail)
 		Subscriber subscriber3 = new Subscriber();
@@ -3596,7 +3726,7 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		result = restServiceReal.addSubscriber(streamId, subscriber3);
-		assertTrue("Should pass because TOTP expiry period  is integer max", result.isSuccess());
+		assertTrue(result.isSuccess(), "Should pass because TOTP expiry period  is integer max");
 		
 
 		// Test 4: No custom TOTP expiry period (should succeed - uses default)
@@ -3607,7 +3737,7 @@ public class BroadcastRestServiceV2UnitTest {
 		// No custom expiry period set (null) - this is the default
 
 		result = restServiceReal.addSubscriber(streamId, subscriber4);
-		assertTrue("Should succeed without custom TOTP expiry period", result.isSuccess());
+		assertTrue(result.isSuccess(), "Should succeed without custom TOTP expiry period");
 
 		// Test 5: Edge case - exactly at minimum boundary
 		Subscriber subscriber5 = new Subscriber();
@@ -3624,7 +3754,7 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		result = restServiceReal.addSubscriber(streamId, subscriber5);
-		assertTrue("Should succeed with TOTP expiry period at minimum boundary", result.isSuccess());
+		assertTrue(result.isSuccess(), "Should succeed with TOTP expiry period at minimum boundary");
 
 		// Test 6: Edge case - exactly at maximum boundary
 		Subscriber subscriber6 = new Subscriber();
@@ -3641,7 +3771,7 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		result = restServiceReal.addSubscriber(streamId, subscriber6);
-		assertTrue("Should succeed with TOTP expiry period at maximum boundary", result.isSuccess());
+		assertTrue(result.isSuccess(), "Should succeed with TOTP expiry period at maximum boundary");
 
 		// Test 7: Zero value (should fail)
 		Subscriber subscriber7 = new Subscriber();
@@ -3658,9 +3788,9 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		result = restServiceReal.addSubscriber(streamId, subscriber7);
-		assertFalse("Should fail with zero TOTP expiry period", result.isSuccess());
-		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10"));
+		assertFalse(result.isSuccess(), "Should fail with zero TOTP expiry period");
+		assertTrue(result.getMessage().contains("must be between 10"), 
+			"Error message should mention minimum value");
 
 		// Test 8: Negative value (should fail)
 		Subscriber subscriber8 = new Subscriber();
@@ -3677,9 +3807,9 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		result = restServiceReal.addSubscriber(streamId, subscriber8);
-		assertFalse("Should fail with negative TOTP expiry period", result.isSuccess());
-		assertTrue("Error message should mention minimum value", 
-			result.getMessage().contains("must be between 10"));
+		assertFalse(result.isSuccess(), "Should fail with negative TOTP expiry period");
+		assertTrue(result.getMessage().contains("must be between 10"), 
+			"Error message should mention minimum value");
 	}
 
 }

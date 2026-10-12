@@ -1,9 +1,11 @@
 package io.antmedia.test.servlet;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,9 +17,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.catalina.connector.ClientAbortException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
@@ -40,16 +42,17 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+@Tag("fast")
 public class ChunkedTransferServletTest {
 
 
-	@Before
+	@BeforeEach
 	public void before() {
 		File streamsDir = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS);
 		streamsDir.mkdirs();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 
 	}

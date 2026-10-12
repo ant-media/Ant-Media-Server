@@ -1,12 +1,12 @@
 package io.antmedia.integration;
 
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
@@ -42,11 +43,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.message.BasicHeader;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -126,7 +127,7 @@ public class AppFunctionalV2Test {
 		return OS_TYPE;
 	}
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
@@ -135,7 +136,7 @@ public class AppFunctionalV2Test {
 		avformat_network_init();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		restService = new BroadcastRestService();
 
@@ -190,7 +191,7 @@ public class AppFunctionalV2Test {
 	}
 
 
-	@After
+	@AfterEach
 	public void after() {
 		restService = null;
 		try {
@@ -220,7 +221,7 @@ public class AppFunctionalV2Test {
 
 	@Test
 	public void testSetUpEndPointsV2() {
-		assertTrue("This test is moved to RestServiceV2Test#testAddEndpointCrossCheckV2", true);
+		assertTrue(true, "This test is moved to RestServiceV2Test#testAddEndpointCrossCheckV2");
 	}
 
 	@Test
@@ -1069,6 +1070,43 @@ public class AppFunctionalV2Test {
 		}else{
 			//if file, then delete it
 			file.delete();
+		}
+	}
+
+	// stream ids containing '2' or 'F' were parsed as path-segment urls and their params overwrote metaData
+	@Test
+	public void testRTMPPublishDoesNotOverwriteMetaData() throws Exception {
+		String metaData = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
+		String streamId = "metaDataRegression2" + RandomStringUtils.randomAlphabetic(8).toLowerCase();
+		String controlStreamId = "metaDataControl" + RandomStringUtils.randomAlphabetic(8).toLowerCase();
+		List<Process> rtmpProcesses = new ArrayList<>();
+
+		try {
+			for (String id : new String[] { streamId, controlStreamId }) {
+				Broadcast broadcast = new Broadcast();
+				broadcast.setStreamId(id);
+				broadcast.setName("TestStream");
+				broadcast.setMetaData(metaData);
+
+				assertEquals(metaData, RestServiceV2Test.callCreateBroadcast(broadcast).getMetaData());
+				assertEquals(metaData, RestServiceV2Test.callGetBroadcast(id).getMetaData());
+
+				rtmpProcesses.add(execute(ffmpegPath
+						+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/" + id));
+
+				// metaData is written in MuxAdaptor#prepareParameters, before the status goes BROADCASTING
+				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+						.until(() -> IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING
+								.equals(RestServiceV2Test.callGetBroadcast(id).getStatus()));
+
+				assertEquals(metaData, RestServiceV2Test.callGetBroadcast(id).getMetaData(),
+						"metaData was overwritten by the RTMP publish of stream id " + id);
+			}
+		}
+		finally {
+			rtmpProcesses.forEach(Process::destroy);
+			RestServiceV2Test.callDeleteBroadcast(streamId);
+			RestServiceV2Test.callDeleteBroadcast(controlStreamId);
 		}
 	}
 

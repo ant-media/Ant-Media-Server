@@ -46,12 +46,16 @@ import org.springframework.beans.factory.InitializingBean;
  */
 public class WarDeployer implements InitializingBean, DisposableBean {
 
-    private Logger log = LoggerFactory.getLogger(WarDeployer.class);
+    private static final Logger log = LoggerFactory.getLogger(WarDeployer.class);
 
     //that wars are currently being installed
-    private static AtomicBoolean deploying = new AtomicBoolean(false);
+    private static final AtomicBoolean deploying = new AtomicBoolean(false);
 
-    private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "war-deployer");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private ScheduledFuture<DeployJob> future;
 
