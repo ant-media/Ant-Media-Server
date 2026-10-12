@@ -20,6 +20,8 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.EncoderSettings;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
 
 
 @Schema(description="The basic broadcast class")
@@ -344,7 +346,9 @@ public class Broadcast {
 	private String subFolder;
 
 	@Schema(description ="Passphrase this stream must be published with over SRT. It overrides the application level srtPassphrase. Blank falls back to the application setting.")
-	private String srtPassphrase;
+	@Getter
+	@Setter
+	private String srtPassphraseOverride;
 
 	/**
 	 * Current playing index for play lists
@@ -947,14 +951,6 @@ public class Broadcast {
 	public void setSubFolder(String subFolder) { this.subFolder=subFolder; }
 
 	public String getSubFolder() { return subFolder; }
-
-	public String getSrtPassphrase() {
-		return srtPassphrase;
-	}
-
-	public void setSrtPassphrase(String srtPassphrase) {
-		this.srtPassphrase = srtPassphrase;
-	}
 	
 	public String getPublishType() {
 		return publishType;

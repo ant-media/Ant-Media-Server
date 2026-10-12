@@ -2547,6 +2547,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			return result;
 		}
 
+		if (!AppSettings.isSrtPassphraseValid(newSettings.getSrtPassphrase())) {
+			logger.info("Could not save app settings. SRT passphrase must be {} to {} characters.", AppSettings.SRT_PASSPHRASE_MIN_LENGTH, AppSettings.SRT_PASSPHRASE_MAX_LENGTH);
+			return result;
+		}
+
 		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
 		//in properties files
 		newSettings.setEncoderSettings(encoderSettingsList);
