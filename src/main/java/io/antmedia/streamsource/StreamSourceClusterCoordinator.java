@@ -51,7 +51,7 @@ public class StreamSourceClusterCoordinator {
 	/**
 	 * A live owner takes its stale row within a tick, one that has not for this long cannot, so another node gets
 	 * it. Well past the longest a source its owner still holds can go without a refresh: a stall, its activity
-	 * abort and a stop that has to be abandoned add up to about 60s from the last refresh.
+	 * abort and a stop that has to be abandoned add up to about 50s from the last refresh.
 	 */
 	static final long OWNER_START_TIMEOUT_MS = 90000;
 
