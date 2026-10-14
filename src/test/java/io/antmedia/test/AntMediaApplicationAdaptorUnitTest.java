@@ -2639,6 +2639,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStreamId("test123");
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		Endpoint validEndpoint = new Endpoint();
 		validEndpoint.setEndpointUrl("rtmp://localhost/LiveApp/test123");
@@ -2653,6 +2654,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertNotNull(saved);
 		assertEquals(1, saved.getEndPointList().size());
 		assertEquals(validEndpoint.getEndpointUrl(), saved.getEndPointList().get(0).getEndpointUrl());
+		//a new stream source is not wanted running until something starts it, unlike the default of older rows
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, saved.getFetcherDesiredAction());
 
 
 	}

@@ -10,6 +10,12 @@ public interface IClusterNotifier {
 	
 	IClusterStore getClusterStore();
 	
+	/**
+	 * The alive node with the lowest address, string order. Every node works out the same one from the heartbeats,
+	 * so nothing is elected or stored. Null when no node is alive.
+	 */
+	ClusterNode getLeader();
+
 	void registerSettingUpdateListener(String appName, IAppSettingsUpdateListener listener);
 	
 	void registerCreateAppListener(ICreateAppListener createApplistener);

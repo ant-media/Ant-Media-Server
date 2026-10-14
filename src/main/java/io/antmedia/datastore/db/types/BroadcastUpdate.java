@@ -3,6 +3,8 @@ package io.antmedia.datastore.db.types;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast.HLSParameters;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
@@ -165,6 +167,17 @@ public class BroadcastUpdate {
     private Boolean virtual = null;
     
     private Integer maxIdleTime = null;
+
+    //written by the server only, a REST body can never carry them
+    @JsonIgnore
+    @Getter
+    @Setter
+    private String fetcherDesiredAction = null;
+
+    @JsonIgnore
+    @Getter
+    @Setter
+    private Integer fetcherFailures = null;
 
 	public String getStreamId() {
 		return streamId;

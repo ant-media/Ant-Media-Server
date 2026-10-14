@@ -36,16 +36,17 @@ public class ClusterRestServiceV2 {
 	@Context
 	private ServletContext servletContext;
 	
-	public IClusterStore getClusterStore() 
+	/** Null when this server does not run in cluster mode, the cluster bean only exists there. */
+	public IClusterNotifier getClusterNotifier()
 	{
-		IClusterStore clusterStore = null;
 		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-		if (ctxt != null) {
-			IClusterNotifier clusterNotifier = (IClusterNotifier) ctxt.getBean(IClusterNotifier.BEAN_NAME);
-			clusterStore = clusterNotifier.getClusterStore();
-		}
-		
-		return clusterStore;
+		return ctxt != null && ctxt.containsBean(IClusterNotifier.BEAN_NAME) ? (IClusterNotifier) ctxt.getBean(IClusterNotifier.BEAN_NAME) : null;
+	}
+
+	public IClusterStore getClusterStore()
+	{
+		IClusterNotifier clusterNotifier = getClusterNotifier();
+		return clusterNotifier != null ? clusterNotifier.getClusterStore() : null;
 	}
 	
 	@GET
@@ -75,6 +76,16 @@ public class ClusterRestServiceV2 {
 		}
 		return nodeList;
 	}	
+
+	/** See {@link IClusterNotifier#getLeader()}. Empty when not in cluster mode or no node is alive. */
+	@GET
+	@Path("/leader")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ClusterNode getLeader()
+	{
+		IClusterNotifier clusterNotifier = getClusterNotifier();
+		return clusterNotifier != null ? clusterNotifier.getLeader() : null;
+	}
 	
 	@DELETE
 	@Path("/node/{id}")
