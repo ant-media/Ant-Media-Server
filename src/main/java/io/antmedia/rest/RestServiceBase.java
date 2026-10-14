@@ -279,6 +279,8 @@ public abstract class RestServiceBase {
 			fqdn = serverSettings.getHostAddress();
 		}
 		broadcast.setOriginAdress(serverSettings.getHostAddress());
+		//explicit, so only rows saved before the field existed fall back to its default
+		broadcast.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
 		if (absoluteStartTimeMs != 0) {
 			broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 		}

@@ -2630,11 +2630,14 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStreamId("test123");
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		assertNull(dataStore.get(broadcast.getStreamId()));
 		AntMediaApplicationAdapter.saveBroadcast(broadcast, adapter);
 
 		assertNotNull(dataStore.get(broadcast.getStreamId()));
+		//a new stream source is not wanted running until something starts it, unlike the default of older rows
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, dataStore.get(broadcast.getStreamId()).getFetcherDesiredAction());
 
 
 	}

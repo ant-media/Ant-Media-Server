@@ -9,12 +9,16 @@ import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -90,6 +94,8 @@ public class MongoStore extends DataStore {
 	public static final String IMAGE_ID = "imageId";
 	public static final String STATUS = "status";
 	private static final String ORIGIN_ADDRESS = "originAdress";
+	private static final String FETCHER_NODE = "fetcherNode";
+	private static final String FETCHER_DESIRED_ACTION = "fetcherDesiredAction";
 	private static final String START_TIME = "startTime"; 
 	private static final String DURATION = "duration"; 
 	private static final String CREATION_DATE = "creationDate";
@@ -695,6 +701,90 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public boolean compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update) {
+		long startTime = System.nanoTime();
+		boolean result = false;
+		synchronized(broadcastLock) {
+			try {
+				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq(FETCHER_NODE, expectedFetcherNode));
+				if (onlyIfDesiredStart) {
+					query.filter(fetcherDesiredStartFilter());
+				}
+
+				List<UpdateOperator> updates = toUpdateOperators(update);
+				updates.add(newFetcherNode != null ? set(FETCHER_NODE, newFetcherNode) : UpdateOperators.unset(FETCHER_NODE));
+
+				//matched, not modified: a write of the values already there still holds the row
+				result = query.update(updates).execute().getMatchedCount() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			//won or lost, the cached copy no longer matches the database
+			getBroadcastCache().evictIfPresent(getBroadcastCacheKey(streamId));
+		}
+		recordQueryDuration(startTime, "compareAndSetFetcherNode");
+		return result;
+	}
+
+	@Override
+	public List<Broadcast> getHeldStreamFetcherSources(String fetcherNode) {
+		long startTime = System.nanoTime();
+		List<Broadcast> streamList = new ArrayList<>();
+		synchronized(broadcastLock) {
+			try {
+				streamList = datastore.find(Broadcast.class).filter(Filters.eq(FETCHER_NODE, fetcherNode)).iterator().toList();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		recordQueryDuration(startTime, "getHeldStreamFetcherSources");
+		return streamList;
+	}
+
+	@Override
+	public List<Broadcast> getOrphanStreamFetcherSources(Collection<String> aliveNodes) {
+		long startTime = System.nanoTime();
+		List<Broadcast> streamList = new ArrayList<>();
+		synchronized(broadcastLock) {
+			try {
+				//$nin also matches a row with no fetcher node at all
+				streamList = datastore.find(Broadcast.class).filter(fetcherDesiredStartFilter(), Filters.nin(FETCHER_NODE, aliveNodes)).iterator().toList();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		recordQueryDuration(startTime, "getOrphanStreamFetcherSources");
+		return streamList;
+	}
+
+	@Override
+	public Map<String, Long> getHeldStreamFetcherSourceCounts() {
+		long startTime = System.nanoTime();
+		Map<String, Long> counts = new HashMap<>();
+		synchronized(broadcastLock) {
+			try {
+				counts = datastore.find(Broadcast.class).filter(Filters.ne(FETCHER_NODE, null))
+						.iterator(new FindOptions().projection().include(FETCHER_NODE)).toList().stream()
+						.collect(Collectors.groupingBy(Broadcast::getFetcherNode, Collectors.counting()));
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		recordQueryDuration(startTime, "getHeldStreamFetcherSourceCounts");
+		return counts;
+	}
+
+	/** The database side of {@link Broadcast#getFetcherDesiredAction()} being start, its default for older rows included. */
+	private Filter fetcherDesiredStartFilter() {
+		return Filters.or(
+				Filters.eq(FETCHER_DESIRED_ACTION, Broadcast.FETCHER_DESIRED_ACTION_START),
+				Filters.and(
+						Filters.eq(FETCHER_DESIRED_ACTION, null),
+						Filters.in("type", List.of(AntMediaApplicationAdapter.IP_CAMERA, AntMediaApplicationAdapter.STREAM_SOURCE)),
+						Filters.ne("autoStartStopEnabled", true)));
+	}
+
+	@Override
 	public void close(boolean deleteDB) {
 		long startTime = System.nanoTime();
 
@@ -1155,6 +1245,14 @@ public class MongoStore extends DataStore {
 
 		if (broadcast.getQuality() != null) {
 			updates.add(set("quality", broadcast.getQuality()));
+		}
+
+		if (broadcast.getFetcherDesiredAction() != null) {
+			updates.add(set(FETCHER_DESIRED_ACTION, broadcast.getFetcherDesiredAction()));
+		}
+
+		if (broadcast.getFetcherFailures() != null) {
+			updates.add(set("fetcherFailures", broadcast.getFetcherFailures()));
 		}
 
 		prepareFields(broadcast, updates);

@@ -220,6 +220,30 @@ public abstract class DataStore {
 	 */
 	public abstract boolean claimStaleStreamSource(String streamId, @Nullable String expectedOwner, BroadcastUpdate update);
 
+	/**
+	 * The one write that changes which node fetches a stream source. In a single atomic write it sets fetcherNode to
+	 * newFetcherNode and applies update, but only if the row's fetcherNode is still expectedFetcherNode and, when
+	 * onlyIfDesiredStart, its fetcherDesiredAction is still start. Null on either node means no node.
+	 * <ul>
+	 * <li>claim: expected is the value just read (null or a dead node), new is this node</li>
+	 * <li>release: expected is this node, new is null</li>
+	 * <li>a holder's own write: expected and new are both this node, so it is refused once another node took over</li>
+	 * </ul>
+	 * Atomic across every node sharing this database: of two nodes claiming one row, exactly one gets true.
+	 *
+	 * @return false when the row is gone or no longer matches, and then nothing is written
+	 */
+	public abstract boolean compareAndSetFetcherNode(String streamId, @Nullable String expectedFetcherNode, @Nullable String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update);
+
+	/** Stream fetcher sources whose fetcherNode is the given node. */
+	public abstract List<Broadcast> getHeldStreamFetcherSources(String fetcherNode);
+
+	/** Stream fetcher sources whose desired action is start and whose fetcherNode is not one of aliveNodes, or none. */
+	public abstract List<Broadcast> getOrphanStreamFetcherSources(Collection<String> aliveNodes);
+
+	/** How many stream fetcher sources each node holds. A node that holds none is not in the map. */
+	public abstract Map<String, Long> getHeldStreamFetcherSourceCounts();
+
 	/** Reads terminated_unexpectedly, raw or decayed. On demand sources are left to their viewers. */
 	public static boolean isStaleStreamSource(Broadcast broadcast) {
 		return (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) || AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()))
@@ -1086,6 +1110,14 @@ public abstract class DataStore {
 			broadcast.setMaxIdleTime(newBroadcast.getMaxIdleTime());
 		}
 		
+		if (newBroadcast.getFetcherDesiredAction() != null) {
+			broadcast.setFetcherDesiredAction(newBroadcast.getFetcherDesiredAction());
+		}
+
+		if (newBroadcast.getFetcherFailures() != null) {
+			broadcast.setFetcherFailures(newBroadcast.getFetcherFailures());
+		}
+
 		
 	}
 

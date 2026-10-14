@@ -150,6 +150,9 @@ public class DBStoresUnitTest {
 		testBugGetExternalStreamsList(dataStore);
 		testStaleStreamSources(dataStore);
 		testClaimStaleStreamSource(dataStore);
+		testFetcherFields(dataStore);
+		testHeldAndOrphanStreamFetcherSources(dataStore);
+		testCompareAndSetFetcherNode(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -248,6 +251,9 @@ public class DBStoresUnitTest {
 		testBugGetExternalStreamsList(dataStore);
 		testStaleStreamSources(dataStore);
 		testClaimStaleStreamSource(dataStore);
+		testFetcherFields(dataStore);
+		testHeldAndOrphanStreamFetcherSources(dataStore);
+		testCompareAndSetFetcherNode(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -335,8 +341,12 @@ public class DBStoresUnitTest {
 		testBugGetExternalStreamsList(dataStore);
 		testStaleStreamSources(dataStore);
 		testClaimStaleStreamSource(dataStore);
+		testFetcherFields(dataStore);
+		testHeldAndOrphanStreamFetcherSources(dataStore);
+		testCompareAndSetFetcherNode(dataStore);
 		DataStore otherNode = new MongoStore(mongoUri(), "testdb");
 		testClaimStaleStreamSourceAcrossNodes(dataStore, otherNode);
+		testCompareAndSetFetcherNodeAcrossNodes(dataStore, otherNode);
 		otherNode.close(false);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -415,8 +425,12 @@ public class DBStoresUnitTest {
 		testBugGetExternalStreamsList(dataStore);
 		testStaleStreamSources(dataStore);
 		testClaimStaleStreamSource(dataStore);
+		testFetcherFields(dataStore);
+		testHeldAndOrphanStreamFetcherSources(dataStore);
+		testCompareAndSetFetcherNode(dataStore);
 		DataStore otherNode = new RedisStore(redisUri(), "testdb");
 		testClaimStaleStreamSourceAcrossNodes(dataStore, otherNode);
+		testCompareAndSetFetcherNodeAcrossNodes(dataStore, otherNode);
 		otherNode.close(false);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -896,6 +910,151 @@ public class DBStoresUnitTest {
 
 		//the first claim on a row always wins, so one win per row means the second never did
 		assertEquals(streamIds.size(), wins.get());
+	}
+
+	public void testFetcherFields(DataStore dataStore) {
+		clear(dataStore);
+
+		String older = dataStore.save(streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, null, null));
+		Broadcast read = dataStore.get(older);
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, read.getFetcherDesiredAction(), "saved without the field, so its default");
+		assertNull(read.getFetcherNode());
+		assertEquals(0, read.getFetcherFailures());
+
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
+		update.setFetcherFailures(4);
+		assertTrue(dataStore.updateBroadcastFields(older, update));
+		read = dataStore.get(older);
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, read.getFetcherDesiredAction());
+		assertEquals(4, read.getFetcherFailures());
+	}
+
+	public void testHeldAndOrphanStreamFetcherSources(DataStore dataStore) {
+		clear(dataStore);
+
+		String heldBy1 = dataStore.save(streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, "10.0.0.1", null));
+		String stoppedHeldBy1 = dataStore.save(streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, "10.0.0.1", Broadcast.FETCHER_DESIRED_ACTION_STOP));
+		String heldBy2 = dataStore.save(streamFetcherSource(AntMediaApplicationAdapter.IP_CAMERA, "10.0.0.2", Broadcast.FETCHER_DESIRED_ACTION_START));
+		String unheld = dataStore.save(streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, null, null));
+
+		//nobody wants these running: a stopped one, and on demand and live stream rows saved without the field
+		dataStore.save(streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, "10.0.0.2", Broadcast.FETCHER_DESIRED_ACTION_STOP));
+		Broadcast onDemand = streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, null, null);
+		onDemand.setAutoStartStopEnabled(true);
+		dataStore.save(onDemand);
+		dataStore.save(streamFetcherSource(AntMediaApplicationAdapter.LIVE_STREAM, null, null));
+
+		assertEquals(Set.of(heldBy1, stoppedHeldBy1),
+				dataStore.getHeldStreamFetcherSources("10.0.0.1").stream().map(Broadcast::getStreamId).collect(Collectors.toSet()));
+		assertTrue(dataStore.getHeldStreamFetcherSources("10.0.0.9").isEmpty());
+
+		assertEquals(Set.of(heldBy2, unheld),
+				dataStore.getOrphanStreamFetcherSources(List.of("10.0.0.1")).stream().map(Broadcast::getStreamId).collect(Collectors.toSet()));
+		assertEquals(Set.of(heldBy1, heldBy2, unheld),
+				dataStore.getOrphanStreamFetcherSources(List.of()).stream().map(Broadcast::getStreamId).collect(Collectors.toSet()));
+
+		assertEquals(Map.of("10.0.0.1", 2L, "10.0.0.2", 2L), dataStore.getHeldStreamFetcherSourceCounts());
+	}
+
+	public void testCompareAndSetFetcherNode(DataStore dataStore) {
+		clear(dataStore);
+
+		String streamId = dataStore.save(streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, null, null));
+		//also leaves the row in a read cache, where a store has one, from before the claims below
+		assertNull(dataStore.get(streamId).getFetcherNode());
+
+		BroadcastUpdate take = new BroadcastUpdate();
+		take.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		take.setUpdateTime(System.currentTimeMillis());
+		take.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_START);
+		take.setFetcherFailures(0);
+
+		assertFalse(dataStore.compareAndSetFetcherNode(streamId, "10.0.0.2", "10.0.0.1", false, take), "no node holds it");
+		assertTrue(dataStore.compareAndSetFetcherNode(streamId, null, "10.0.0.1", true, take), "the default of an older stream source is start");
+		Broadcast claimed = dataStore.get(streamId);
+		assertEquals("10.0.0.1", claimed.getFetcherNode());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, claimed.getStatus());
+		assertFalse(dataStore.compareAndSetFetcherNode(streamId, null, "10.0.0.2", false, take), "a second claim on the same read loses");
+
+		//the holder writes as itself, also when nothing changes
+		assertTrue(dataStore.compareAndSetFetcherNode(streamId, "10.0.0.1", "10.0.0.1", false, take));
+		assertTrue(dataStore.compareAndSetFetcherNode(streamId, "10.0.0.1", "10.0.0.1", false, new BroadcastUpdate()));
+
+		//a failed attempt is counted and let go, the source is still wanted
+		BroadcastUpdate failed = new BroadcastUpdate();
+		failed.setFetcherFailures(1);
+		assertTrue(dataStore.compareAndSetFetcherNode(streamId, "10.0.0.1", null, false, failed));
+		Broadcast released = dataStore.get(streamId);
+		assertNull(released.getFetcherNode());
+		assertEquals(1, released.getFetcherFailures());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, released.getFetcherDesiredAction());
+		assertFalse(dataStore.compareAndSetFetcherNode(streamId, "10.0.0.1", "10.0.0.1", false, take), "the old holder writes nothing anymore");
+
+		//a user stop wins over a claim that requires start, a user start claims anyway
+		BroadcastUpdate stop = new BroadcastUpdate();
+		stop.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
+		assertTrue(dataStore.updateBroadcastFields(streamId, stop));
+		assertFalse(dataStore.compareAndSetFetcherNode(streamId, null, "10.0.0.2", true, take));
+		assertTrue(dataStore.compareAndSetFetcherNode(streamId, null, "10.0.0.2", false, take));
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, dataStore.get(streamId).getFetcherDesiredAction());
+
+		Broadcast onDemand = streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, null, null);
+		onDemand.setAutoStartStopEnabled(true);
+		String onDemandId = dataStore.save(onDemand);
+		assertFalse(dataStore.compareAndSetFetcherNode(onDemandId, null, "10.0.0.1", true, take), "the default of an older on demand source is stop");
+
+		assertFalse(dataStore.compareAndSetFetcherNode("no-such-stream", null, "10.0.0.1", false, take));
+	}
+
+	/** Two stores on one database stand for two cluster nodes. Of the two claims on each row exactly one wins. */
+	public void testCompareAndSetFetcherNodeAcrossNodes(DataStore node1, DataStore node2) throws Exception {
+		clear(node1);
+
+		List<String> streamIds = new ArrayList<>();
+		for (int i = 0; i < 20; i++) {
+			streamIds.add(node1.save(streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, "10.0.0.9", null)));
+		}
+
+		BroadcastUpdate take = new BroadcastUpdate();
+		take.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+
+		//a thread per claim, all let go at once, so the two claims on a row really run into each other
+		ExecutorService pool = Executors.newFixedThreadPool(streamIds.size() * 2);
+		CountDownLatch go = new CountDownLatch(1);
+		AtomicInteger wins = new AtomicInteger();
+		List<Future<?>> claims = new ArrayList<>();
+		for (String streamId : streamIds) {
+			for (DataStore node : List.of(node1, node2)) {
+				String newFetcherNode = node == node1 ? "10.0.0.1" : "10.0.0.2";
+				claims.add(pool.submit(() -> {
+					go.await();
+					if (node.compareAndSetFetcherNode(streamId, "10.0.0.9", newFetcherNode, true, take)) {
+						wins.incrementAndGet();
+					}
+					return null;
+				}));
+			}
+		}
+
+		go.countDown();
+		for (Future<?> claim : claims) {
+			claim.get(30, TimeUnit.SECONDS);
+		}
+		pool.shutdown();
+
+		assertEquals(streamIds.size(), wins.get());
+		Map<String, Long> counts = node2.getHeldStreamFetcherSourceCounts();
+		assertNull(counts.get("10.0.0.9"));
+		assertEquals(streamIds.size(), counts.values().stream().mapToLong(Long::longValue).sum());
+	}
+
+	private static Broadcast streamFetcherSource(String type, String fetcherNode, String fetcherDesiredAction) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(type);
+		broadcast.setFetcherNode(fetcherNode);
+		broadcast.setFetcherDesiredAction(fetcherDesiredAction);
+		return broadcast;
 	}
 
 	private static Broadcast streamSource(String type, String status, long updateTime, String owner) {
