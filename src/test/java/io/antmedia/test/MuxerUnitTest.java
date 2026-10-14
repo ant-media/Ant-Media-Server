@@ -81,6 +81,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.MockedStatic;
 import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IStreamCodecInfo;
@@ -5457,8 +5458,64 @@ public class MuxerUnitTest {
 
 
 	}
+    @Test
+    public void testGetOutputUrl(){
+        HLSMuxer hlsMuxer = new HLSMuxer(Mockito.mock(Vertx.class), Mockito.mock(StorageClient.class), "streams", 7, null, false);
+        hlsMuxer.getOutputURL();
+    }
+    @Test
+    public void addRtmpMuxerProviderTest(){
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-	@Test
+        Broadcast broadcast = new Broadcast();
+        try {
+            broadcast.setStreamId("stream1");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+        MuxAdaptor muxAdaptor = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, broadcast, false, appScope));
+        doReturn(null).when(muxAdaptor).getBroadcastStream();
+        muxAdaptor.setScope(appScope);
+
+        AppSettings appSettings = new AppSettings();
+        appSettings.setRtmpPlaybackEnabled(true);
+        muxAdaptor.setAppSettings(appSettings);
+
+        try (MockedStatic<MuxAdaptor> mockedStatic = Mockito.mockStatic(MuxAdaptor.class)) {
+
+            //abr enabled
+            mockedStatic.when(() -> MuxAdaptor.isAbrEnabled(any(),any()))
+                    .thenReturn(true);
+
+            muxAdaptor.addRtmpProviderMuxer();
+            verify(muxAdaptor,times(0)).addMuxer(any());
+
+
+            appSettings.setRtmpPlaybackEnabled(false);
+            mockedStatic.when(() -> MuxAdaptor.isAbrEnabled(any(), any()))
+                    .thenReturn(false);
+
+            //abr disabled rtmp disabled
+            muxAdaptor.addRtmpProviderMuxer();
+            verify(muxAdaptor, times(0)).addMuxer(any());
+
+
+            appSettings.setRtmpPlaybackEnabled(true);
+            //abr disabled rtmp enabled
+            muxAdaptor.addRtmpProviderMuxer();
+            verify(muxAdaptor, times(1)).addMuxer(any());
+
+        }
+
+
+    }
+
+    @Test
 	public void testBroadcastHLSParameters() {
 		AppSettings appSettings = new AppSettings();
 		appSettings.setHlsListSize("5");
