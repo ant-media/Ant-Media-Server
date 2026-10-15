@@ -143,6 +143,19 @@ public class OnvifCameraTest {
         assertEquals("http", onvifCamera.protocol);
         assertEquals("rtsp://profile2", onvifCamera.getRTSPStreamURI());
         verify(mediaDevices).getRTSPStreamUri("token2");
+
+        when(mediaDevices.getRTSPStreamUri("token1")).thenReturn("rtsp://profile1");
+        String device = "http://192.168.1.10:8080/onvif/device_service";
+        //a bad value is logged and skipped, so a good one before it still counts
+        String[][] cases = {
+                { device, "rtsp://profile1" },
+                { device + "?profileIndex=x", "rtsp://profile1" },
+                { device + "?profileIndex=1&profileIndex=x", "rtsp://profile2" },
+        };
+        for (String[] testCase : cases) {
+            assertEquals(OnvifCamera.CONNECTION_SUCCESS, onvifCamera.connect(testCase[0], "user", "pass"));
+            assertEquals(testCase[1], onvifCamera.getRTSPStreamURI(), testCase[0]);
+        }
     }
 
     private static class TestableOnvifCamera extends OnvifCamera {

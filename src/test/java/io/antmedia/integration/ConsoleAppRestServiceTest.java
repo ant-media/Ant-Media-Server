@@ -79,7 +79,6 @@ import io.antmedia.rest.model.Version;
 import io.antmedia.security.TOTPGenerator;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.StatsCollector;
-import io.antmedia.test.StreamFetcherUnitTest;
 import net.bytebuddy.utility.RandomString;
 
 @TestMethodOrder(MethodName.class)
@@ -181,6 +180,7 @@ public class ConsoleAppRestServiceTest{
 
 	@AfterEach
 	public void teardown() {
+		CameraEmulator.stopIfStarted();
 	}
 
 	@Rule
@@ -2514,7 +2514,7 @@ public class ConsoleAppRestServiceTest{
 			Result result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
-			StreamFetcherUnitTest.startCameraEmulator();
+			CameraEmulator.start();
 
 			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -2546,8 +2546,6 @@ public class ConsoleAppRestServiceTest{
 			appSettings.setEncoderSettings(encoderSettings);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-
-			StreamFetcherUnitTest.stopCameraEmulator();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -2558,7 +2556,7 @@ public class ConsoleAppRestServiceTest{
 	// bug-fix test: https://github.com/ant-media/Ant-Media-Server/issues/7055
 	@Test
 	public void testUpdateStreamSourceDoesnotRestart() throws Exception {
-		StreamFetcherUnitTest.startCameraEmulator();
+		CameraEmulator.start();
 		
 		String streamUrl= "rtsp://127.0.0.1:6554/test.flv";
 		//String streamUrl = "rtsp://rtspstream:gkrR0oWLi1_PR3hd7NxHi@zephyr.rtsp.stream/pattern";
@@ -2593,14 +2591,11 @@ public class ConsoleAppRestServiceTest{
 		
 		Result result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
 		assertTrue(result.isSuccess());
-		
-		StreamFetcherUnitTest.stopCameraEmulator();
-		
 	}
 
   @Test
   public void testRtspAllowedMediaTypes() throws Exception {
-    StreamFetcherUnitTest.startCameraEmulator();
+    CameraEmulator.start();
 
     Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv?allowed_media_types=audio",
     AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -2632,7 +2627,7 @@ public class ConsoleAppRestServiceTest{
 			Result result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
-			StreamFetcherUnitTest.startCameraEmulator();
+			CameraEmulator.start();
 
 			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -2659,9 +2654,6 @@ public class ConsoleAppRestServiceTest{
 			appSettings.setRestartStreamFetcherPeriod(0);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-
-			StreamFetcherUnitTest.stopCameraEmulator();
-
 		}
 		catch (Exception e) {
 			e.printStackTrace();
