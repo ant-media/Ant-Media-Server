@@ -70,7 +70,6 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PCM_U16BE;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PCM_U16LE;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PNG;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_RAWVIDEO;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_INPUT_BUFFER_MIN_SIZE;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_jni_set_java_vm;
 import static org.bytedeco.ffmpeg.global.avcodec.av_new_packet;
@@ -573,7 +572,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             } else if (video_c.codec_id() == AV_CODEC_ID_H264) {
                 // default to constrained baseline to produce content that plays back on anything,
                 // without any significant tradeoffs for most use cases
-                video_c.profile(AVCodecContext.FF_PROFILE_H264_CONSTRAINED_BASELINE);
+                video_c.profile(avcodec.AV_PROFILE_H264_CONSTRAINED_BASELINE);
             }
 
             // some formats want stream headers to be separate
@@ -759,7 +758,8 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             /* ugly hack for PCM codecs (will be removed ASAP with new PCM
                support to compute the input frame size in samples */
             if (audio_c.frame_size() <= 1) {
-                audio_outbuf_size = AV_INPUT_BUFFER_MIN_SIZE;
+                //FFMPEG REMOVED THIS CONSTANT
+                audio_outbuf_size = 16384;
                 audio_input_frame_size = audio_outbuf_size / audio_c.ch_layout().nb_channels();
                 switch (audio_c.codec_id()) {
                     case AV_CODEC_ID_PCM_S16LE:
@@ -1090,7 +1090,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
                 writeSamples(audio_input_frame_size);
             }
         }
-        return samples != null ? frame.key_frame() != 0 : writeFrame((AVFrame)null);
+        return samples != null ? (frame.flags() & AVFrame.AV_FRAME_FLAG_KEY) != 0 : writeFrame((AVFrame)null);
 
         }
     }
