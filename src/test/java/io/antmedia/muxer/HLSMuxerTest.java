@@ -4,13 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.UnitTestBase;
 import io.lindstrom.m3u8.model.AlternativeRendition;
@@ -53,6 +59,56 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 		assertThat(oldManifest).doesNotExist();
 		assertThat(newManifest).exists();
 		assertThat(sameTimeManifest).exists();
+	}
+
+	@Test
+	void shouldTakeBandwidthOfAbrRenditionFromItsEncoderSettings() {
+		HLSMuxer hlsMuxer = muxerWithSettings(360, Arrays.asList(
+				new EncoderSettings(240, 300000, 32000, true),
+				new EncoderSettings(360, 800000, 64000, true),
+				new EncoderSettings(720, 2000000, 128000, true)));
+		doReturn(9000000L).when(hlsMuxer).getAverageBitrate();
+
+		//the video plus audio bitrate of the 360p rendition. The average is ignored.
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(expectedBandwidth(800000 + 64000));
+	}
+
+	@Test
+	void shouldRaiseButNeverLowerBandwidthWhenThereIsNoMatchingAbrRendition() {
+		HLSMuxer hlsMuxer = muxerWithSettings(0, Collections.singletonList(
+				new EncoderSettings(360, 800000, 64000, true)));
+
+		doReturn(1000000L).when(hlsMuxer).getAverageBitrate();
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(expectedBandwidth(1000000));
+
+		doReturn(100000L).when(hlsMuxer).getAverageBitrate();
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(expectedBandwidth(1000000));
+
+		doReturn(3000000L).when(hlsMuxer).getAverageBitrate();
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(expectedBandwidth(3000000));
+	}
+
+	@Test
+	void shouldNeverReportZeroBandwidth() {
+		HLSMuxer hlsMuxer = muxerWithSettings(0, Collections.emptyList());
+
+		doReturn(0L).when(hlsMuxer).getAverageBitrate();
+		assertThat(hlsMuxer.getStableBandwidthBps()).isEqualTo(HLSMuxer.BANDWIDTH_STEP);
+	}
+
+	private static long expectedBandwidth(long bitrate) {
+		long withHeadroom = bitrate + bitrate * HLSMuxer.BANDWIDTH_HEADROOM_PERCENT / 100;
+		return (withHeadroom / HLSMuxer.BANDWIDTH_STEP + 1) * HLSMuxer.BANDWIDTH_STEP;
+	}
+
+	private HLSMuxer muxerWithSettings(int resolution, List<EncoderSettings> encoderSettings) {
+		AppSettings appSettings = new AppSettings();
+		appSettings.setEncoderSettings(encoderSettings);
+
+		HLSMuxer hlsMuxer = spy(new HLSMuxer(null, mock(StorageClient.class), "streams", 0, null, false));
+		doReturn(appSettings).when(hlsMuxer).getAppSettings();
+		doReturn(resolution).when(hlsMuxer).getResolution();
+		return hlsMuxer;
 	}
 
 	private Path createFileWithModificationTime(String fileName, Instant modificationTime) throws Exception {

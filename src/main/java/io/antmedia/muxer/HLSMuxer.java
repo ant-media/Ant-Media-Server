@@ -49,6 +49,7 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.EncoderSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 import io.lindstrom.m3u8.model.AlternativeRendition;
@@ -72,6 +73,9 @@ public class HLSMuxer extends Muxer  {
 	public static final String HLS_FILES_REGEX_MATCHER = "(\\d{9}\\.(ts|fmp4)|\\d+\\.vtt|\\.m3u8)$";
 	private static final String VARIANT_AUDIO_GROUP = "audio";
 	private static final String SUBTITLE_GROUP = "subs";
+
+	public static final long BANDWIDTH_STEP = 500000;
+	public static final int BANDWIDTH_HEADROOM_PERCENT = 15;
 
 
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
@@ -123,6 +127,9 @@ public class HLSMuxer extends Muxer  {
 	private WebVttMasterPlaylistSynchronizer webVttMasterPlaylistSynchronizer;
 	private long lastMediaPlaylistModified = -1;
 	private long lastMediaPlaylistSize = -1;
+
+	private long stableBandwidthBps;
+
 
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
@@ -1062,6 +1069,35 @@ public class HLSMuxer extends Muxer  {
 			}
 		}
 		return nextAvailableStreamIndex;
+	}
+
+	/**
+	 * Gets stable bandwidth in bits per second for generation of _adaptive master file, since that's what spec requires.
+	 * Tries to get it from ABR settings, if ABR is not set then calculates it from the average.
+	 */
+	public long getStableBandwidthBps() {
+		long bitrate = 0;
+		List<EncoderSettings> encoderSettings = getAppSettings().getEncoderSettings();
+		if (encoderSettings != null) {
+			for (EncoderSettings settings : encoderSettings) {
+				if (settings.getHeight() == getResolution()) {
+					bitrate = (long) settings.getVideoBitrate() + settings.getAudioBitrate();
+					break;
+				}
+			}
+		}
+
+		if (bitrate == 0) {
+			bitrate = getAverageBitrate();
+		}
+
+		//round up to a coarse step so small changes don't move it, and never go back down
+		long capped = bitrate + (bitrate * BANDWIDTH_HEADROOM_PERCENT / 100);
+		capped = (capped / BANDWIDTH_STEP + 1) * BANDWIDTH_STEP;
+		if (capped > stableBandwidthBps) {
+			stableBandwidthBps = capped;
+		}
+		return stableBandwidthBps;
 	}
 
 	public String getHlsListSize() {

@@ -4,13 +4,14 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -130,6 +131,7 @@ import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.streamsource.PlaylistController;
 import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -1363,10 +1365,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
+		when(streamFetcher.stopStream()).thenReturn(CompletableFuture.completedFuture(null));
+		when(streamFetcher2.stopStream()).thenReturn(CompletableFuture.completedFuture(null));
 
 
-		Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, scope, vertx);
-		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2, scope, vertx);
+		doReturn(streamFetcher).when(fetcherManager).make(stream.getStreamId(), stream.getStreamUrl(), stream.getType(), stream.getSeekTimeInMs());
+		doReturn(streamFetcher2).when(fetcherManager).make(stream2.getStreamId(), stream2.getStreamUrl(), stream2.getType(), stream2.getSeekTimeInMs());
 
 
 		Map<String, StreamFetcher> sfQueue = new ConcurrentHashMap<>();
@@ -1413,8 +1417,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(streamFetcher, times(1)).stopStream();
 		verify(streamFetcher2, times(1)).stopStream();
 
-		assertEquals(0, fetcherManager.getStreamFetcherList().size());
-		assertEquals(0, sfQueue.size());
+		//the entries go on each fetcher's STOPPED transition, which a mock never reaches.
+		//shutdownEndsThePlaylistsFirstAndThenEverythingElse asserts the empty registry on real ones
 
 		verify(cbs, times(1)).stop();
 		verify(muxerAdaptor, times(1)).stop(true);
@@ -1443,7 +1447,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.closeStreamFetchers();
 
-		assertEquals(0, streamFetcherList.size());
+		//the manager stops them and waits for the database to say finished before the pool goes,
+		//which is what shutdownEndsThePlaylistsFirstAndThenEverythingElse covers
+		verify(fetcherManager).shutdown();
 	}
 
 	@Test
@@ -1810,6 +1816,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		dataStore.save(broadcast);
 
+		//a stored playlist whose planned start is still ahead is armed at boot as well
+		Broadcast planned = new Broadcast();
+		planned.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		planned.setPlannedStartDate(System.currentTimeMillis() / 1000 + 3600);
+		String plannedId = dataStore.save(planned);
+
 		Result result = new Result(false);
 		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
 		//When createInitializationProcess(scope.getName());
@@ -1826,15 +1838,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		spyAdapter.appStart(scope);
 
-		await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
+		//boot resume is the manager's job now. Which rows it takes is asserted in StreamFetcherManagerTest
+		verify(streamFetcherManager, timeout(5000).times(1)).resumeUnattendedSources();
+		verify(streamFetcherManager, never()).startStreaming(Mockito.any(), Mockito.anyBoolean());
 
-		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
-		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture(), anyBoolean());
-
-		broadcast = dataStore.get(broadcast.getStreamId());
-		assertNotNull(broadcastListCaptor.getValue());
-		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().getStreamId());
-		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().getStatus());
+		await().atMost(5, TimeUnit.SECONDS).until(() -> spyAdapter.getPlayListSchedulerTimer().containsKey(plannedId));
+		spyAdapter.cancelPlaylistSchedule(plannedId);
 	}
 
 	@Test
@@ -1902,6 +1911,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		await().atMost(5, TimeUnit.SECONDS).until(() -> !streamFetcher.isThreadActive());
 
+		//only pulled types start here, a live stream comes in from its publisher
+		Broadcast live = new Broadcast();
+		live.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		Result notPulled = spyAdapter.startStreaming(live);
+		assertFalse(notPulled.isSuccess());
+		assertEquals("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist, NDI", notPulled.getMessage());
+
+		Broadcast ndi = new Broadcast();
+		ndi.setType(IAntMediaStreamHandler.PUBLISH_TYPE_NDI);
+		assertEquals("NDI source name is not defined.", spyAdapter.startStreaming(ndi).getMessage());
 
 
 		when(licenseService.isLicenceSuspended()).thenReturn(true);
@@ -2680,6 +2699,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 	@Test
 	public void testSchedulePlayList() throws Exception {
 
+		//a playlist deleted before its timer is armed, this used to throw inside the timer
+		adapter.schedulePlayList(System.currentTimeMillis(), null);
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
+
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStreamId("streamId");
 		broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
@@ -2699,13 +2722,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setDataStore(new InMemoryDataStore("testdb"));
 		adapter.getDataStore().save(broadcast);
 		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
+		PlaylistController playlistController = mock(PlaylistController.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
 		adapter.setStreamFetcherManager(fetcherManager);
 
 		adapter.schedulePlayList(now, broadcast);
 		assertFalse(adapter.getPlayListSchedulerTimer().isEmpty());
 
 		//it can take up 8 secs to start because of randomness about 5 seconds and 3 seconds 
-		Mockito.verify(fetcherManager, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
+		verify(playlistController, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
 
 		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 
@@ -2718,11 +2743,70 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 
 		//it should be still 1 because we cancel the timer 
-		Mockito.verify(fetcherManager, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
+		verify(playlistController, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
 
+		//rescheduling replaces the timer, the one it replaced must not fire as well
+		long rescheduledAt = System.currentTimeMillis();
+		broadcast.setPlannedStartDate((rescheduledAt + 3000) / 1000);
 
+		adapter.schedulePlayList(rescheduledAt, broadcast);
+		Long firstTimerId = adapter.getPlayListSchedulerTimer().get(broadcast.getStreamId());
+
+		adapter.schedulePlayList(rescheduledAt, broadcast);
+		Long secondTimerId = adapter.getPlayListSchedulerTimer().get(broadcast.getStreamId());
+
+		assertEquals(1, adapter.getPlayListSchedulerTimer().size());
+		assertNotEquals(firstTimerId, secondTimerId);
+		verify(playlistController, Mockito.timeout(9000).times(2)).startPlaylist(broadcast);
 
 		adapter.cancelPlaylistSchedule("anyId");
+
+		//by the time a timer fires, its playlist may be gone or no longer a playlist. Neither may start,
+		//and neither may leave its timer entry behind
+		long startsSoon = (System.currentTimeMillis() + 2000) / 1000;
+		Broadcast deleted = new Broadcast();
+		deleted.setStreamId("deletedPlaylist");
+		deleted.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		deleted.setPlannedStartDate(startsSoon);
+		adapter.getDataStore().save(deleted);
+
+		Broadcast retyped = new Broadcast();
+		retyped.setStreamId("retypedPlaylist");
+		retyped.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		retyped.setPlannedStartDate(startsSoon);
+		adapter.getDataStore().save(retyped);
+
+		adapter.schedulePlayList(System.currentTimeMillis(), deleted);
+		adapter.schedulePlayList(System.currentTimeMillis(), retyped);
+		assertEquals(2, adapter.getPlayListSchedulerTimer().size());
+
+		adapter.getDataStore().delete(deleted.getStreamId());
+		retyped.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+
+		await().atMost(10, TimeUnit.SECONDS).until(() -> adapter.getPlayListSchedulerTimer().isEmpty());
+		verify(playlistController, Mockito.after(500).times(2)).startPlaylist(Mockito.any());
+	}
+
+	@Test
+	public void testMuxAdaptorRemovedIsByIdentity() {
+		MuxAdaptor replaced = mock(MuxAdaptor.class);
+		MuxAdaptor current = mock(MuxAdaptor.class);
+		when(replaced.getStreamId()).thenReturn("stream1");
+		when(current.getStreamId()).thenReturn("stream1");
+
+		adapter.muxAdaptorAdded(current);
+
+		//the late cleanup of an attempt that was replaced must not take the live one with it
+		adapter.muxAdaptorRemoved(replaced);
+		assertSame(current, adapter.getMuxAdaptor("stream1"));
+
+		//never registered at all, so nothing to remove and nothing to throw
+		adapter.muxAdaptorRemoved(null);
+		adapter.muxAdaptorRemoved(mock(MuxAdaptor.class));
+		assertSame(current, adapter.getMuxAdaptor("stream1"));
+
+		adapter.muxAdaptorRemoved(current);
+		assertNull(adapter.getMuxAdaptor("stream1"));
 	}
 
 	@Test
