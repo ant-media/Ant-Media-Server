@@ -101,6 +101,32 @@ public class StreamServiceTest {
 	}
 
 	@Test
+	public void testHasPathSegments() {
+		assertTrue(StreamService.hasPathSegments("stream1/token"));
+		assertTrue(StreamService.hasPathSegments("stream1%2Ftoken"));
+		// '2', 'F' and '%' alone must not be treated as separators
+		assertFalse(StreamService.hasPathSegments("123"));
+		assertFalse(StreamService.hasPathSegments("D0827C68B9CCC702"));
+		assertFalse(StreamService.hasPathSegments("stream%20name"));
+	}
+
+	@Test
+	public void testPlainAndNullNamesSkipPathSegmentParsing() {
+		StreamService streamService = Mockito.spy(new StreamService());
+		IConnection conn = mock(IConnection.class);
+		doReturn(Map.of("path", "LiveApp")).when(conn).getConnectParams();
+		Red5.setConnectionLocal(conn);
+
+		for (String name : new String[] { "123", null }) {
+			streamService.publish(name, "live");
+			streamService.play(name, 0, -1, true);
+		}
+
+		verify(streamService, never()).parsePathSegments(any());
+		Red5.setConnectionLocal(null);
+	}
+
+	@Test
 	public void testPublishUrlSegmentParams() {
 		StreamService streamService = Mockito.spy(new StreamService());
 		String streamId = "testStream";
