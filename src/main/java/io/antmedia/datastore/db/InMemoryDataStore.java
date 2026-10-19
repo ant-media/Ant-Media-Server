@@ -257,27 +257,6 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public synchronized List<Broadcast> getStaleStreamSources(String owner) {
-		List<Broadcast> streamsList = new ArrayList<>();
-		for (Broadcast broadcast : broadcastMap.values()) {
-			if (isStaleStreamSource(broadcast) && (owner == null || owner.equals(broadcast.getOriginAdress()))) {
-				streamsList.add(broadcast);
-			}
-		}
-		return streamsList;
-	}
-
-	@Override
-	public synchronized boolean claimStaleStreamSource(String streamId, String expectedOwner, BroadcastUpdate update) {
-		Broadcast broadcast = broadcastMap.get(streamId);
-		if (broadcast == null || !isStaleStreamSource(broadcast) || !Objects.equals(expectedOwner, broadcast.getOriginAdress())) {
-			return false;
-		}
-		updateStreamInfo(broadcast, update);
-		return true;
-	}
-
-	@Override
 	public synchronized boolean compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update) {
 		Broadcast broadcast = broadcastMap.get(streamId);
 		if (broadcast == null || !Objects.equals(expectedFetcherNode, broadcast.getFetcherNode())

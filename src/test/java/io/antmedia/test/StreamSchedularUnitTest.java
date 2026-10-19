@@ -5,7 +5,9 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -231,18 +233,19 @@ public class StreamSchedularUnitTest {
 		boolean isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
 		assertFalse(isStreamRunning);
 
+		//a live status says nothing about who runs it, the fetcher node does
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast.setUpdateTime(System.currentTimeMillis());
 
 		isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
-		assertTrue(isStreamRunning);
-
-		broadcast.setOriginAdress("not.accessible.antmedia.io");
-		isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
 		assertFalse(isStreamRunning);
 
-		broadcast.setUpdateTime(0);
+		broadcast.setFetcherNode(streamFetcherManager.getHost());
+		isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
+		assertTrue(isStreamRunning);
 
+		//a node that is not alive runs nothing
+		broadcast.setFetcherNode("not.accessible.antmedia.io");
 		isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
 		assertFalse(isStreamRunning);
 
@@ -663,32 +666,19 @@ public class StreamSchedularUnitTest {
 			Result startStreaming2 = fetcherManager.startStreaming(nonExistingBroadcast);
 			assertTrue(startStreaming2.isSuccess());
 
-			startStreaming2 = fetcherManager.startStreaming(nonExistingBroadcast);
-			assertFalse(startStreaming2.isSuccess());
-
-			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
-				return !AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(nonExistingStreamSource).getStatus());
-			});
-
-			StreamFetcher streamFetcher = fetcherManager.getStreamFetcher(nonExistingStreamSource);
-
+			//a failed attempt is counted on the row and the source let go, so the next start may try another node
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-				return !streamFetcher.isThreadActive();
+				return dataStore.get(nonExistingStreamSource).getFetcherFailures() > 0;
 			});
-
+			assertNotEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, dataStore.get(nonExistingStreamSource).getStatus());
 
 			Result stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource, false);
 			assertTrue(stopStreaming2.isSuccess());
-
-			//the registry entry goes on the STOPPED transition, not on the stop call, so the id is
-			//still taken here and a second stop is still accepted
-			assertTrue(fetcherManager.stopStreaming(nonExistingStreamSource, false).isSuccess());
+			assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, dataStore.get(nonExistingStreamSource).getFetcherDesiredAction());
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return fetcherManager.getStreamFetcherList().size() == 0;
 			});
-
-			assertFalse(fetcherManager.stopStreaming(nonExistingStreamSource, false).isSuccess());
 
 		}
 		catch (Exception e) {

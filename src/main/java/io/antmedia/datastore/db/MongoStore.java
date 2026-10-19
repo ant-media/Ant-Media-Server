@@ -649,58 +649,6 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getStaleStreamSources(String owner) {
-		long startTime = System.nanoTime();
-		List<Broadcast> streamList = new ArrayList<>();
-		synchronized(broadcastLock) {
-			try {
-				Query<Broadcast> query = datastore.find(Broadcast.class).filter(staleStreamSourceFilter());
-				if (owner != null) {
-					query.filter(Filters.eq(ORIGIN_ADDRESS, owner));
-				}
-				streamList = query.iterator().toList();
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		recordQueryDuration(startTime, "getStaleStreamSources");
-		return streamList;
-	}
-
-	@Override
-	public boolean claimStaleStreamSource(String streamId, String expectedOwner, BroadcastUpdate update) {
-		long startTime = System.nanoTime();
-		boolean result = false;
-		synchronized(broadcastLock) {
-			try {
-				result = datastore.find(Broadcast.class)
-						.filter(Filters.eq(STREAM_ID, streamId), Filters.eq(ORIGIN_ADDRESS, expectedOwner), staleStreamSourceFilter())
-						.update(toUpdateOperators(update))
-						.execute()
-						.getModifiedCount() == 1;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-			//won or lost, the cached copy no longer matches the database
-			getBroadcastCache().evictIfPresent(getBroadcastCacheKey(streamId));
-		}
-		recordQueryDuration(startTime, "claimStaleStreamSource");
-		return result;
-	}
-
-	/** The database side of {@link DataStore#isStaleStreamSource}, decay included. */
-	private Filter staleStreamSourceFilter() {
-		return Filters.and(
-				Filters.in("type", List.of(AntMediaApplicationAdapter.IP_CAMERA, AntMediaApplicationAdapter.STREAM_SOURCE)),
-				Filters.ne("autoStartStopEnabled", true),
-				Filters.or(
-						Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_TERMINATED_UNEXPECTEDLY),
-						Filters.and(
-								Filters.in(STATUS, List.of(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)),
-								Filters.lte(UPDATE_TIME_FIELD, System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS))));
-	}
-
-	@Override
 	public boolean compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update) {
 		long startTime = System.nanoTime();
 		boolean result = false;

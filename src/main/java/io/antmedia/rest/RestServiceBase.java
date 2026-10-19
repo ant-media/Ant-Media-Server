@@ -278,7 +278,9 @@ public abstract class RestServiceBase {
 		if (fqdn == null || fqdn.length() == 0) {
 			fqdn = serverSettings.getHostAddress();
 		}
-		broadcast.setOriginAdress(serverSettings.getHostAddress());
+		//a pulled source gets its origin once it is on air, from the node that fetches it
+		boolean pulled = AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) || AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType());
+		broadcast.setOriginAdress(pulled ? null : serverSettings.getHostAddress());
 		//explicit, so only rows saved before the field existed fall back to its default
 		broadcast.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
 		if (absoluteStartTimeMs != 0) {

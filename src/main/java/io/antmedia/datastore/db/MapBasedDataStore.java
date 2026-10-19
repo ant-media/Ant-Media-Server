@@ -415,45 +415,6 @@ public abstract class MapBasedDataStore extends DataStore
 	}
 
 	@Override
-	public List<Broadcast> getStaleStreamSources(String owner) {
-		long startTime = System.nanoTime();
-
-		//no store lock: every node runs this every few seconds, it only reads a concurrent map, and whatever it
-		//leads to is a claim, which checks the row again
-		List<Broadcast> streamsList = new ArrayList<>();
-		for (String json : map.values()) {
-			Broadcast broadcast = gson.fromJson(json, Broadcast.class);
-			if (isStaleStreamSource(broadcast) && (owner == null || owner.equals(broadcast.getOriginAdress()))) {
-				streamsList.add(broadcast);
-			}
-		}
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getStaleStreamSources(String owner)");
-		return streamsList;
-	}
-
-	@Override
-	public boolean claimStaleStreamSource(String streamId, String expectedOwner, BroadcastUpdate update) {
-		long startTime = System.nanoTime();
-
-		boolean result = false;
-		synchronized (this) {
-			String json = map.get(streamId);
-			Broadcast broadcast = json != null ? gson.fromJson(json, Broadcast.class) : null;
-			if (broadcast != null && isStaleStreamSource(broadcast) && Objects.equals(expectedOwner, broadcast.getOriginAdress())) {
-				updateStreamInfo(broadcast, update);
-				//synchronized only covers this JVM, the conditional replace is what makes it atomic across nodes on one Redis
-				result = map.replace(streamId, json, gson.toJson(broadcast));
-			}
-		}
-		long elapsedNanos = System.nanoTime() - startTime;
-		addQueryTime(elapsedNanos);
-		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "claimStaleStreamSource(String streamId, String expectedOwner, BroadcastUpdate update)");
-		return result;
-	}
-
-	@Override
 	public boolean compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update) {
 		long startTime = System.nanoTime();
 
