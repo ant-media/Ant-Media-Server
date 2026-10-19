@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -168,10 +169,11 @@ class StreamSourceCoordinatorTest {
 		asRead.setStreamId("orphan");
 		asRead.setFetcherNode(DEAD);
 		asRead.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_START);
-		when(fixture.dataStore.getOrphanStreamFetcherSources(any())).thenAnswer(call -> {
+		//doAnswer, a when(...) here would run the fixture's own answer with a null node list
+		doAnswer(call -> {
 			orphan.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
 			return List.of(asRead);
-		});
+		}).when(fixture.dataStore).getOrphanStreamFetcherSources(any());
 
 		tick(node);
 		assertTrue(node.getStreamFetcherList().isEmpty());

@@ -1936,8 +1936,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		when(appContext.getBean(StatsCollector.BEAN_NAME)).thenReturn(statsCollector);
 		when(statsCollector.enoughResource()).thenReturn(true);
-		//the stream fetcher manager reads the application off the red5 context, the claim checks its resources
+		//the stream fetcher manager and its coordinator read the application and the settings off the red5 context, the claim checks its resources
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 		when(appAdaptor.getStatsCollector()).thenReturn(statsCollector);
 
 
@@ -1972,6 +1973,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
 		assertFalse(startStreaming);
 
+		//its coordinator timer would otherwise keep ticking through every later test
+		spyAdapter.getStreamFetcherManager().shutdown();
 	}
 
 	@Test
