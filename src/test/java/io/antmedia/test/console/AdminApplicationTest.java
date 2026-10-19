@@ -411,6 +411,27 @@ public class AdminApplicationTest {
 
 	}
 
+	@Test
+	public void testViewerCount() {
+		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
+
+		Mockito.doReturn(adaptor).when(adminApplication).getApplicationAdaptor(Mockito.any());
+		InMemoryDataStore dataStore = new InMemoryDataStore("junit");
+		Mockito.when(adaptor.getDataStore()).thenReturn(dataStore);
+		assertEquals(0, adminApplication.getAppViewerCount(null));
+		assertEquals(0, adminApplication.getAppViewerCount(Mockito.mock(IScope.class)));
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast.setWebRTCViewerCount(3);
+		broadcast.setHlsViewerCount(2);
+		broadcast.setDashViewerCount(1);
+		dataStore.save(broadcast);
+
+		assertEquals(6, adminApplication.getAppViewerCount(Mockito.mock(IScope.class)));
+	}
+
 
 	@Test
 	public void testCreateApplicationWitURL() {
