@@ -280,6 +280,12 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public Broadcast getUncached(String id) {
+		getBroadcastCache().evictIfPresent(getBroadcastCacheKey(id));
+		return get(id);
+	}
+
+	@Override
 	public VoD getVoD(String id) {
 		long startTime = System.nanoTime();
 		VoD vod = null;

@@ -95,6 +95,11 @@ public abstract class DataStore {
 	 */
 	public abstract Broadcast get(String id);
 
+	/** {@link #get} past any read cache, for a decision a write of another node may have changed a moment ago. */
+	public Broadcast getUncached(String id) {
+		return get(id);
+	}
+
 	public Broadcast get(Map<String, String> broadcastMap, String streamId, Gson gson) {
 		long startTime = System.nanoTime();
 

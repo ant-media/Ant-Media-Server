@@ -142,7 +142,6 @@ public abstract class RestServiceBase {
 	public static final int HIGH_CPU_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
 	public static final int INVALID_STREAM_NAME_ERROR = -5;
-	public static final int FETCH_REQUEST_REDIRECTED_TO_ORIGIN = -6;
 
 	public static final String HTTP = "http://";
 	public static final String RTSP = "rtsp://";
@@ -279,8 +278,7 @@ public abstract class RestServiceBase {
 			fqdn = serverSettings.getHostAddress();
 		}
 		//a pulled source gets its origin once it is on air, from the node that fetches it
-		boolean pulled = AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) || AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType());
-		broadcast.setOriginAdress(pulled ? null : serverSettings.getHostAddress());
+		broadcast.setOriginAdress(AntMediaApplicationAdapter.isPulledSource(broadcast.getType()) ? null : serverSettings.getHostAddress());
 		//explicit, so only rows saved before the field existed fall back to its default
 		broadcast.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
 		if (absoluteStartTimeMs != 0) {
@@ -507,9 +505,10 @@ public abstract class RestServiceBase {
 
 		boolean isStreamingActive = isStreaming(broadcastInDB);
 
-		//Stop if it's streaming and type is not playlist
+		//Stop if it's streaming and type is not playlist. Also a source let go between two attempts, which runs
+		//nowhere: the stop writes that it is not wanted, else the leader starts it again with the old url
 		if (isStreamingActive && !isPlayList) {
-			checkStopStreaming(broadcastInDB);
+			getApplication().stopStreaming(broadcastInDB, false, null);
 			waitStopStreaming(broadcastInDB);
 		}
 
@@ -570,24 +569,6 @@ public abstract class RestServiceBase {
 		return new Result(result);
 	}
 
-
-	public boolean checkStopStreaming(Broadcast broadcast)
-	{
-		// If broadcast status is broadcasting, this will force stop the streaming.
-
-		if(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
-		{
-			return getApplication().stopStreaming(broadcast, false, null).isSuccess();
-		}
-		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
-			return getApplication().stopStreaming(broadcast, false, null).isSuccess();
-		}
-		else
-		{
-			// If broadcast status is stopped, this will return true.
-			return true;
-		}
-	}
 
 	public boolean waitStopStreaming(Broadcast broadcast) {
 
@@ -1387,6 +1368,11 @@ public abstract class RestServiceBase {
 					String rtspURLWithAuth = getRTSPURLWithAuth(result.getMessage(), broadcast.getUsername(), broadcast.getPassword());
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
+
+					//the node that takes the source starts the url the row has, not the one this call read
+					BroadcastUpdate streamUrl = new BroadcastUpdate();
+					streamUrl.setStreamUrl(rtspURLWithAuth);
+					getDataStore().updateBroadcastFields(id, streamUrl);
 
 					result = getApplication().startStreaming(broadcast);
 				}

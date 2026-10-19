@@ -1,6 +1,5 @@
 package io.antmedia;
 
-import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
 import java.io.File;
@@ -87,7 +86,6 @@ import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
-import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
@@ -884,7 +882,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	/**
 	 * Any HTTP answer means reachable. A connection failure, the 1s timeout or an address that is not a valid
-	 * URI means not, and never an exception: the cluster coordinator checks every row's origin with this.
+	 * URI means not. Never throws.
 	 */
 	public static CompletableFuture<Boolean> isEndpointReachableAsync(String endpoint) {
 		try {
@@ -1748,16 +1746,25 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status));
 	}
 
+	/** A source the stream fetcher pulls, which runs on the node that holds it. Playlists keep their own flow. */
+	public static boolean isPulledSource(String type) {
+		return IP_CAMERA.equals(type) || STREAM_SOURCE.equals(type) || VOD.equals(type);
+	}
+
 	public Result startStreaming(Broadcast broadcast) {
+		String type = broadcast.getType();
+
+		//placed on a node in the cluster, which checks its own resources
+		if (isPulledSource(type)) {
+			return getStreamFetcherManager().startStreaming(broadcast);
+		}
+
 		Result result = new Result(false);
 
-		// Check resource availability first
 		if (!getStatsCollector().enoughResource()) {
 			result.setMessage("Not enough resource on server to start streaming.");
 			return result;
 		}
-
-		String type = broadcast.getType();
 
 		if (PLAY_LIST.equals(type)) {
 			return getStreamFetcherManager().getPlaylistController().startPlaylist(broadcast);
@@ -1767,29 +1774,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			return startNdiSource(broadcast);
 		}
 
-		if (!IP_CAMERA.equals(type) && !STREAM_SOURCE.equals(type) && !VOD.equals(type)) {
-			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", type, broadcast.getStreamId());
-			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist, NDI");
-			return result;
-		}
-
-		//a pulled source belongs to the node in its origin address, anybody else hands the request over
-		String originAddress = broadcast.getOriginAdress();
-		if (isClusterMode() && StringUtils.isNotBlank(originAddress) && !originAddress.equals(getServerSettings().getHostAddress())) {
-
-			forwardStartStreaming(broadcast);
-			result.setSuccess(true);
-			result.setErrorId(FETCH_REQUEST_REDIRECTED_TO_ORIGIN);
-			result.setMessage("Request forwarded to origin server for fetching. Check broadcast status for final confirmation.");
-			return result;
-		}
-
-		result = getStreamFetcherManager().startStreaming(broadcast);
-
-		if (isClusterMode() && StringUtils.isBlank(originAddress)) {
-			result.setMessage("Broadcasts origin address is not set. " + getServerSettings().getHostAddress() + " will fetch the stream.");
-		}
-
+		logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", type, broadcast.getStreamId());
+		result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist, NDI");
 		return result;
 	}
 
@@ -1812,42 +1798,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return new Result(true, broadcast.getStreamId(), "");
 	}
 
-	public void forwardStartStreaming(Broadcast broadcast) {
-		String jwtToken = JWTFilter.generateJwtToken(
-				getAppSettings().getClusterCommunicationKey(),
-				System.currentTimeMillis() + 5000
-				);
-
-		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" +
-				getServerSettings().getDefaultHttpPort() +
-				File.separator + getAppSettings().getAppName() +
-				File.separator + "rest" +
-				File.separator + "v2" +
-				File.separator + "broadcasts" +
-				File.separator + broadcast.getStreamId() +
-				File.separator + "start";
-
-
-		CompletableFuture<Boolean> future = new CompletableFuture<>();
-
-		trySendClusterPostWithDelay(restRouteOfNode, jwtToken, CLUSTER_POST_RETRY_ATTEMPT_COUNT, future, null);
-
-
-		future.thenAccept(success -> {
-			if (success) {
-				logger.info("Cluster POST redirection to {} succeeded", restRouteOfNode);
-			} else {
-				logger.info("Cluster POST redirection to {} failed. Local node {} will fetch the stream. ", restRouteOfNode, getServerSettings().getHostAddress());
-				getStreamFetcherManager().startStreaming(broadcast);
-			}
-		})
-		.exceptionally(ex -> {
-			logger.error("Cluster POST encountered an exception: {}", ExceptionUtils.getStackTrace(ex));
-			getStreamFetcherManager().startStreaming(broadcast);
-			return null;
-		});
-	}
-
 	public Result stopStreaming(Broadcast broadcast, boolean stopSubtracks, String subscriberId)
 	{
 		Result result = new Result(false);
@@ -1855,7 +1805,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		String type = broadcast.getType();
 
-		if (IP_CAMERA.equals(type) || STREAM_SOURCE.equals(type) || VOD.equals(type))
+		if (isPulledSource(type))
 		{
 			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		}

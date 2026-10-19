@@ -59,8 +59,11 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 	private static final String ALREADY_ACTIVE_MESSAGE = "Stream is already active. It's already streaming or trying to connect";
 
-	/** A start waits this long for the shared context to claim and start the source. */
-	private static final long START_TIMEOUT_MS = 10000;
+	/** errorId of a start this node turned down without touching the row, so another node may take it. */
+	public static final int START_REFUSED = -7;
+
+	/** A claim waits this long for the shared context. */
+	private static final long CLAIM_TIMEOUT_MS = 10000;
 
 	/** Non terminal StreamFetchers by stream id. An entry here means this node fetches that source. */
 	@Setter
@@ -117,7 +120,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 		AMSShutdownManager.getInstance().subscribe(this::shuttingDown);
 
-		this.coordinator = new StreamSourceCoordinator(this, vertx, context, scope);
+		this.coordinator = new StreamSourceCoordinator(this, vertx, context, pool, scope);
 	}
 
 	public void shuttingDown() {
@@ -130,54 +133,55 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	}
 
 	/**
-	 * A user start: the REST start and create, and a viewer of an on-demand source. Takes the source for
-	 * this node unless another alive node holds it, writes that it is wanted and resets its failure count.
+	 * A user start: the REST start and create, and a viewer of an on-demand source. Runs on the node that
+	 * holds the source, or on the best node when nobody alive does, and resets its failure count.
 	 */
 	public Result startStreaming(@Nonnull Broadcast broadcast) {
-		String streamId = broadcast.getStreamId();
-		String fetcherNode = broadcast.getFetcherNode();
+		return coordinator.placeAndStart(broadcast.getStreamId(), broadcast.getFetcherNode(), true);
+	}
 
-		if (fetcherNode != null && !fetcherNode.equals(host) && coordinator.aliveNodes().contains(fetcherNode)) {
-			logger.info("Stream is already active on node:{} for streamId:{}", fetcherNode, streamId);
-			return new Result(false, streamId, ALREADY_ACTIVE_MESSAGE);
-		}
-
+	/**
+	 * Claims the source for this node and starts it here, on the shared context, where nothing registers or
+	 * lets go of the same source in between. A refusal comes before the claim and carries
+	 * {@link #START_REFUSED}, so nothing has to be undone and another node may try.
+	 *
+	 * @param expectedFetcherNode the fetcher node the caller read, the claim only wins while the row still says so
+	 * @param userStart claims whatever the desired action is and resets the failure count. Any other start only
+	 * claims while the desired action is still start, so a stop that landed after the read is never undone
+	 */
+	public Result claimAndStart(String streamId, @Nullable String expectedFetcherNode, boolean userStart) {
 		if (Vertx.currentContext() == context) {
-			return claimAndStart(broadcast, fetcherNode, true);
+			return claimAndStartOnContext(streamId, expectedFetcherNode, userStart);
 		}
 
 		try {
-			return CompletableFuture.supplyAsync(() -> claimAndStart(broadcast, fetcherNode, true), task -> context.runOnContext(v -> task.run()))
-					.get(START_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+			return CompletableFuture.supplyAsync(() -> claimAndStartOnContext(streamId, expectedFetcherNode, userStart), task -> context.runOnContext(v -> task.run()))
+					.get(CLAIM_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
 		catch (Exception e) {
-			logger.error("Start did not complete for streamId:{} {}", streamId, ExceptionUtils.getStackTrace(e));
+			logger.error("Claim did not complete for streamId:{} {}", streamId, ExceptionUtils.getStackTrace(e));
 		}
 		return new Result(false, streamId, "Problem occured while fetching the stream");
 	}
 
-	/**
-	 * Claims the source for this node and starts it here. Refusals come first, so a refused start claims
-	 * nothing. Only on the shared context, so nothing registers or lets go of the same source in between.
-	 *
-	 * @param expectedFetcherNode the fetcher node the caller read, the claim only wins while the row still says so
-	 * @param userStart claims whatever the desired action is, writes start and resets the failure count. Any other
-	 * start only claims while the desired action is still start, so a stop that landed after the read is never undone
-	 */
-	Result claimAndStart(Broadcast row, @Nullable String expectedFetcherNode, boolean userStart) {
-		String streamId = row.getStreamId();
-
-		Result refused = refusal(streamId, row.getStreamUrl());
-		if (refused != null) {
-			return refused;
-		}
-
+	private Result claimAndStartOnContext(String streamId, @Nullable String expectedFetcherNode, boolean userStart) {
+		//before the gates: a full node that already runs the source says so, instead of refusing it
 		if (streamFetcherList.containsKey(streamId)) {
 			logger.info("Stream is already active for streamId:{}", streamId);
 			return new Result(false, streamId, ALREADY_ACTIVE_MESSAGE);
+		}
+
+		String refusal = refusal(streamId);
+		if (refusal == null && !getApplication().getStatsCollector().enoughResource()) {
+			refusal = "Not enough resource on server to start streaming.";
+		}
+		if (refusal != null) {
+			Result refused = new Result(false, streamId, refusal);
+			refused.setErrorId(START_REFUSED);
+			return refused;
 		}
 
 		BroadcastUpdate claim = new BroadcastUpdate();
@@ -195,6 +199,13 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		//a holder that died never cleared its stream info, and edges would keep connecting to it
 		datastore.clearStreamInfoList(streamId);
 
+		//read after the claim, which dropped any cached copy, so an update made on another node a moment ago is in it
+		Broadcast row = datastore.get(streamId);
+		if (row == null) {
+			logger.info("Not starting streamId:{}, it was deleted while it was claimed", streamId);
+			return new Result(false, streamId, "No matching stream source:" + streamId);
+		}
+
 		Result result = startFetcher(streamId, row.getStreamUrl(), row.getType(), row.getSeekTimeInMs(), false);
 		if (!result.isSuccess()) {
 			releaseFailedAttempt(streamId, new BroadcastUpdate());
@@ -208,20 +219,20 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	 * A playlist has no fetcher node, so its item's writes are not checked against one.
 	 */
 	Result startPlaylistItem(String playlistId, PlayListItem item) {
-		Result refused = refusal(playlistId, item.getStreamUrl());
-		return refused != null ? refused : startFetcher(playlistId, item.getStreamUrl(), item.getType(), item.getSeekTimeInMs(), true);
+		String refusal = refusal(playlistId);
+		return refusal != null ? new Result(false, playlistId, refusal) : startFetcher(playlistId, item.getStreamUrl(), item.getType(), item.getSeekTimeInMs(), true);
 	}
 
 	/** Why this node cannot start a fetcher right now, null when it can. */
-	private Result refusal(String streamId, String streamUrl) {
+	private String refusal(String streamId) {
 		if (licenseService.isLicenceSuspended()) {
-			logger.error("License is suspended, not fetching the stream source:{}", streamUrl);
-			return new Result(false, streamId, "License is suspended");
+			logger.error("License is suspended, not fetching streamId:{}", streamId);
+			return "License is suspended";
 		}
 
 		if (serverShuttingDown) {
 			logger.info("Not fetching the stream source because it is shutting down, streamId:{}", streamId);
-			return new Result(false, streamId, "Server is shutting down");
+			return "Server is shutting down";
 		}
 
 		return null;
@@ -294,11 +305,13 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		//after the intent: a claim that won just before and registers after this read is stopped by its first tick
 		StreamFetcher fetcher = streamFetcherList.get(streamId);
 		if (fetcher == null) {
-			if (row != null) {
-				releaseUnfetched(row);
+			if (row == null) {
+				result.setMessage("No matching stream source:" + streamId);
+				return result;
 			}
-			result.setSuccess(row != null);
-			result.setMessage(row != null ? "Stream stopped" : "No matching stream source:" + streamId);
+			releaseUnfetched(row);
+			result.setSuccess(true);
+			result.setMessage("Stream stopped");
 			return result;
 		}
 
@@ -318,7 +331,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	/** Lets go of a stopped source nothing here runs. An alive holder other than this node does it itself on its next tick. */
 	private void releaseUnfetched(Broadcast row) {
 		String fetcherNode = row.getFetcherNode();
-		if (fetcherNode != null && !fetcherNode.equals(host) && coordinator.aliveNodes().contains(fetcherNode)) {
+		if (!host.equals(fetcherNode) && coordinator.aliveNodes().containsKey(fetcherNode)) {
 			return;
 		}
 
@@ -553,8 +566,7 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		}
 
 		if (!AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
-			String fetcherNode = broadcast.getFetcherNode();
-			return fetcherNode != null && coordinator.aliveNodes().contains(fetcherNode);
+			return coordinator.aliveNodes().containsKey(broadcast.getFetcherNode());
 		}
 
 		if (!AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())) {

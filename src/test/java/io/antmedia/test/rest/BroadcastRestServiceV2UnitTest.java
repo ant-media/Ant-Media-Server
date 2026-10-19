@@ -2217,7 +2217,8 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam, false, null);
-		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
+		DataStore dataStore = spy(new InMemoryDataStore("startStopStreamSource"));
+		Mockito.doReturn(dataStore).when(streamSourceRest).getDataStore();
 
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
 		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
@@ -2246,6 +2247,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//start again via rest service
 		assertTrue(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
+		//stored, because the node that takes the source starts the url of the row, not the one this call found
+		verify(dataStore).updateBroadcastFields(eq(newCam.getStreamId()), argThat(update -> "rtsp://admin:admin@127.0.0.1:6554/test.flv".equals(update.getStreamUrl())));
 		assertTrue(streamSourceRest.stopStreamingV2(newCam.getStreamId(), false).isSuccess());
 
 
@@ -2459,25 +2462,6 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
-	public void testcheckStopStreaming() 
-	{
-		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
-		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
-		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(mock(StreamFetcherManager.class));
-		Mockito.when(adaptor.stopStreaming(any(), anyBoolean(), any())).thenReturn(new Result(false));
-
-		Broadcast broadcast = new Broadcast();
-		//It means there is no stream to stop
-		assertTrue(streamSourceRest.checkStopStreaming(broadcast));
-
-		broadcast.setUpdateTime(System.currentTimeMillis());
-		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		//it should return false because adaptor return false
-		assertFalse(streamSourceRest.checkStopStreaming(broadcast));
-	}
-
-	@Test
 	public void testUpdateIPCamera() {
 		Result result = new Result(false);
 
@@ -2524,8 +2508,6 @@ public class BroadcastRestServiceV2UnitTest {
 		// Check Stream source update working normal.
 
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
-
-		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any());
 
 		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 		broadcastUpdate.setUsername("new_user");
@@ -2625,8 +2607,6 @@ public class BroadcastRestServiceV2UnitTest {
 		// Check Stream source update working normal.
 
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
-
-		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any());
 
 		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 		broadcastUpdate.setUpdateTime(System.currentTimeMillis());

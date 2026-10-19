@@ -340,6 +340,7 @@ public class DBStoresUnitTest {
 		testCompareAndSetFetcherNode(dataStore);
 		DataStore otherNode = new MongoStore(mongoUri(), "testdb");
 		testCompareAndSetFetcherNodeAcrossNodes(dataStore, otherNode);
+		testGetUncachedAcrossNodes(dataStore, otherNode);
 		otherNode.close(false);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -421,6 +422,7 @@ public class DBStoresUnitTest {
 		testCompareAndSetFetcherNode(dataStore);
 		DataStore otherNode = new RedisStore(redisUri(), "testdb");
 		testCompareAndSetFetcherNodeAcrossNodes(dataStore, otherNode);
+		testGetUncachedAcrossNodes(dataStore, otherNode);
 		otherNode.close(false);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -922,6 +924,18 @@ public class DBStoresUnitTest {
 		Map<String, Long> counts = node2.getHeldStreamFetcherSourceCounts();
 		assertNull(counts.get("10.0.0.9"));
 		assertEquals(streamIds.size(), counts.values().stream().mapToLong(Long::longValue).sum());
+	}
+
+	/** A row another node changed a moment ago, read past this node's cache. */
+	public void testGetUncachedAcrossNodes(DataStore node1, DataStore node2) {
+		String streamId = node1.save(streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, null, Broadcast.FETCHER_DESIRED_ACTION_START));
+		assertNull(node1.get(streamId).getFetcherNode(), "now in this node's cache, if it keeps one");
+
+		assertTrue(node2.compareAndSetFetcherNode(streamId, null, "10.0.0.2", false, new BroadcastUpdate()));
+		assertEquals("10.0.0.2", node1.getUncached(streamId).getFetcherNode());
+		assertEquals("10.0.0.2", node1.get(streamId).getFetcherNode(), "the fresh row is what this node reads from then on");
+
+		assertNull(node1.getUncached("no-such-stream"));
 	}
 
 	private static Broadcast streamFetcherSource(String type, String fetcherNode, String fetcherDesiredAction) {
