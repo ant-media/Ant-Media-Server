@@ -20,7 +20,13 @@ public interface IStatsCollector {
 	 * @return the CPU limit that server does not exceed.
 	 */
 	public int getCpuLimit();
-	
+
+	/**
+	 * It's configurable and it's based on percentage of the system memory.
+	 * @return the memory usage limit that server does not exceed.
+	 */
+	public int getMemoryLimit();
+
 	/**
 	 * It's configurable
 	 * In MB

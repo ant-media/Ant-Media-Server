@@ -2,7 +2,7 @@ package io.antmedia.streamsource;
 
 import static io.antmedia.streamsource.StreamSourceFixture.HOST;
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
-import static io.antmedia.streamsource.StreamSourceFixture.onContext;
+import static io.antmedia.streamsource.StreamSourceFixture.peek;
 import static io.antmedia.streamsource.StreamSourceFixture.tick;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -127,6 +127,12 @@ class StreamFetcherManagerTest {
 		assertFalse(manager.startStreaming(asRead).isSuccess());
 		assertNull(manager.getStreamFetcher("moved"), "a lost claim starts nothing");
 		assertEquals(OTHER_NODE, fixture.rows.get("moved").getFetcherNode());
+
+		//updated on another node after the caller read it, the claim starts what the row says now
+		Broadcast beforeUpdate = fixture.row("updated", "fake://old");
+		fixture.row("updated", "fake://new");
+		assertTrue(manager.startStreaming(beforeUpdate).isSuccess());
+		assertEquals("fake://new", peek(manager.getStreamFetcher("updated"), "streamUrl"));
 	}
 
 	@Test
@@ -136,9 +142,19 @@ class StreamFetcherManagerTest {
 		Result suspended = manager.startStreaming(licensed);
 		assertFalse(suspended.isSuccess());
 		assertEquals("License is suspended", suspended.getMessage());
+		assertEquals(StreamFetcherManager.START_REFUSED, suspended.getErrorId(), "nothing was touched, so another node may take it");
 		assertTrue(manager.getStreamFetcherList().isEmpty());
 		assertNull(licensed.getFetcherNode(), "a refused start claims nothing");
 		when(fixture.licenceService.isLicenceSuspended()).thenReturn(false);
+
+		//this node is at its cpu or memory limit
+		when(fixture.statsCollector.enoughResource()).thenReturn(false);
+		Broadcast busy = fixture.row("busy", "fake://busy");
+		Result full = manager.startStreaming(busy);
+		assertEquals(StreamFetcherManager.START_REFUSED, full.getErrorId());
+		assertTrue(manager.fetchers.isEmpty());
+		assertNull(busy.getFetcherNode());
+		when(fixture.statsCollector.enoughResource()).thenReturn(true);
 
 		//somebody else registered first
 		StreamFetcher squatter = mock(StreamFetcher.class);
@@ -210,7 +226,7 @@ class StreamFetcherManagerTest {
 		Broadcast row = fixture.row("failing", "fake://failing");
 		row.setFetcherFailures(1);
 
-		assertTrue(onContext(context, () -> manager.claimAndStart(row, null, false)).isSuccess());
+		assertTrue(manager.claimAndStart("failing", null, false).isSuccess());
 		awaitState(manager.fetchers.get(0), State.STOPPED);
 		assertNull(row.getFetcherNode());
 		assertEquals(2, row.getFetcherFailures());
@@ -220,7 +236,7 @@ class StreamFetcherManagerTest {
 		verify(fixture.app, never()).closeBroadcast(eq("failing"), any(), any(), any());
 
 		//the third failure in a row reaches the limit: not wanted anymore, so nothing starts it again
-		assertTrue(onContext(context, () -> manager.claimAndStart(row, null, false)).isSuccess());
+		assertTrue(manager.claimAndStart("failing", null, false).isSuccess());
 		awaitState(manager.fetchers.get(1), State.STOPPED);
 		assertNull(row.getFetcherNode());
 		assertEquals(3, row.getFetcherFailures());
@@ -231,7 +247,7 @@ class StreamFetcherManagerTest {
 		Broadcast flaky = fixture.row("flaky", "fake://flaky");
 		flaky.setFetcherFailures(2);
 		manager.prepare = fetcher -> fetcher.script(FakeWorker.publishesThenEnds());
-		assertTrue(onContext(context, () -> manager.claimAndStart(flaky, null, false)).isSuccess());
+		assertTrue(manager.claimAndStart("flaky", null, false).isSuccess());
 		awaitState(manager.fetchers.get(2), State.STOPPED);
 		assertEquals(1, flaky.getFetcherFailures());
 		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, flaky.getFetcherDesiredAction());

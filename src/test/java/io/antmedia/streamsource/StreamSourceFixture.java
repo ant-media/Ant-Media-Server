@@ -25,8 +25,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.awaitility.Awaitility;
@@ -44,6 +46,7 @@ import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.streamsource.StreamFetcher.State;
 import io.antmedia.streamsource.StreamFetcher.StateListener;
 import io.vertx.core.Context;
@@ -75,6 +78,7 @@ class StreamSourceFixture implements AutoCloseable {
 	final ServerSettings serverSettings = mock(ServerSettings.class);
 	final ILicenceService licenceService = mock(ILicenceService.class);
 	final AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+	final IStatsCollector statsCollector = mock(IStatsCollector.class);
 	final DataStore dataStore = mock(DataStore.class);
 	final IScope scope = mock(IScope.class);
 
@@ -108,6 +112,10 @@ class StreamSourceFixture implements AutoCloseable {
 		when(serverSettings.getDefaultHttpPort()).thenReturn(5080);
 
 		when(app.getDataStore()).thenReturn(dataStore);
+		when(app.getStatsCollector()).thenReturn(statsCollector);
+		when(statsCollector.enoughResource()).thenReturn(true);
+		when(statsCollector.getCpuLimit()).thenReturn(75);
+		when(statsCollector.getMemoryLimit()).thenReturn(75);
 		when(app.getFreshBroadcastUpdateForStatus(anyString(), anyString())).thenAnswer(call -> {
 			BroadcastUpdate update = new BroadcastUpdate();
 			update.setStatus(call.getArgument(1));
@@ -140,6 +148,10 @@ class StreamSourceFixture implements AutoCloseable {
 					.filter(row -> Broadcast.FETCHER_DESIRED_ACTION_START.equals(row.getFetcherDesiredAction()) && !aliveNodes.contains(row.getFetcherNode()))
 					.toList();
 		});
+		when(dataStore.getHeldStreamFetcherSourceCounts()).thenAnswer(call -> rows.values().stream()
+				.map(Broadcast::getFetcherNode)
+				.filter(Objects::nonNull)
+				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting())));
 	}
 
 	/** Atomic like the real ones, so two nodes in one test can race for a row. */
@@ -232,16 +244,6 @@ class StreamSourceFixture implements AutoCloseable {
 		List<ClusterNode> nodes = Stream.of(aliveNodes).map(ip -> new ClusterNode(ip, "node-" + ip)).toList();
 		when(clusterNotifier.getAliveNodes()).thenReturn(nodes);
 		when(clusterNotifier.getLeader()).thenReturn(nodes.stream().min(Comparator.comparing(ClusterNode::getIp)).orElse(null));
-	}
-
-	/** Runs the task on the given context and waits for its answer, the way the manager's own entry points do. */
-	static <T> T onContext(Context target, Supplier<T> task) {
-		try {
-			return CompletableFuture.supplyAsync(task, command -> target.runOnContext(v -> command.run())).get(10, TimeUnit.SECONDS);
-		}
-		catch (Exception e) {
-			throw new IllegalStateException("The task did not run on the shared context", e);
-		}
 	}
 
 	/**

@@ -8,13 +8,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
@@ -38,7 +46,9 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -174,7 +184,7 @@ public class RestProxyTest {
 			fail();
 		}
 
-		Mockito.doReturn(broadcast).when(dtStore).get(Mockito.anyString());
+		Mockito.doReturn(broadcast).when(dtStore).getUncached(Mockito.anyString());
 
 		Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);
 		Mockito.when(dtStore.isAvailable()).thenReturn(true);
@@ -319,6 +329,51 @@ public class RestProxyTest {
 	}
 
 	@Test
+	public void testPulledSourceGoesToItsFetcherNode() throws Exception {
+		RestProxyFilter restFilter = spy(new RestProxyFilter());
+
+		ConfigurableWebApplicationContext webAppContext = mock(ConfigurableWebApplicationContext.class);
+		Mockito.doReturn(webAppContext).when(restFilter).getAppContext();
+		Mockito.doReturn(true).when(webAppContext).containsBean(IClusterNotifier.BEAN_NAME);
+		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
+		Mockito.doReturn(clusterNotifier).when(webAppContext).getBean(IClusterNotifier.BEAN_NAME);
+		when(clusterNotifier.getAliveNodes()).thenReturn(List.of(new ClusterNode("10.0.0.2", "holder"), new ClusterNode("10.0.0.1", "this")));
+
+		ServerSettings serverSettings = spy(new ServerSettings());
+		Mockito.doReturn("10.0.0.1").when(serverSettings).getHostAddress();
+		Mockito.doReturn(serverSettings).when(restFilter).getServerSettings();
+		Mockito.doNothing().when(restFilter).forwardRequestToNode(any(), any(), any());
+
+		//finished by its status and nobody's by the cached copy, but the row itself says another node fetches it
+		Broadcast source = new Broadcast();
+		source.setStreamId("source");
+		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		source.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		source.setFetcherNode("10.0.0.2");
+		DataStore dtStore = mock(DataStore.class);
+		Mockito.doReturn(new Broadcast()).when(dtStore).get("source");
+		Mockito.doReturn(source).when(dtStore).getUncached("source");
+		Mockito.doReturn(dtStore).when(restFilter).getDataStore();
+
+		MockHttpServletRequest update = new MockHttpServletRequest(HttpMethod.PUT, "/LiveApp/rest/v2/broadcasts/source");
+		update.setRemoteAddr("10.0.0.9");
+		restFilter.doFilter(update, new MockHttpServletResponse(), new MockFilterChain());
+		verify(restFilter).forwardRequestToNode(eq(update), any(), eq("10.0.0.2"));
+		verify(restFilter, never()).isHostRunning(any(), anyInt());
+
+		//held by a node that is gone, by nobody, or by this node: it is handled here
+		for (String fetcherNode : Arrays.asList("10.0.0.3", null, "10.0.0.1")) {
+			source.setFetcherNode(fetcherNode);
+			MockHttpServletRequest stop = new MockHttpServletRequest(HttpMethod.POST, "/LiveApp/rest/v2/broadcasts/source/stop");
+			stop.setRemoteAddr("10.0.0.9");
+			MockFilterChain chain = new MockFilterChain();
+			restFilter.doFilter(stop, new MockHttpServletResponse(), chain);
+			assertNotNull(chain.getRequest(), "handled here when held by " + fetcherNode);
+		}
+		verify(restFilter, times(1)).forwardRequestToNode(any(), any(), any());
+	}
+
+	@Test
 	public void testBlockSubscriberCluster() throws ServletException, IOException {
 		RestProxyFilter restFilter = spy(new RestProxyFilter());
 
@@ -358,7 +413,7 @@ public class RestProxyTest {
 			fail();
 		}
 
-		Mockito.doReturn(broadcast).when(dtStore).get(Mockito.anyString());
+		Mockito.doReturn(broadcast).when(dtStore).getUncached(Mockito.anyString());
 		Mockito.doReturn(subscriber).when(dtStore).getSubscriber(streamId, subscriberId);
 
 		Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);
