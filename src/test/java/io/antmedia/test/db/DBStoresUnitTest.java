@@ -152,6 +152,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
@@ -230,6 +231,7 @@ public class DBStoresUnitTest {
 		testConnectionEventsBug(dataStore);
 		testSubscriberAvgBitrate(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testLocalLiveBroadcast(dataStore);
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
@@ -248,6 +250,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
@@ -333,6 +336,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
@@ -408,6 +412,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
@@ -876,6 +881,30 @@ public class DBStoresUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	public void testAddVodReplacesSameVodId(DataStore datastore) {
+		long vodCount = datastore.getTotalVodNumber();
+		String vodId = RandomStringUtils.randomAlphanumeric(24);
+
+		//placeholder like clip-creator's async range clip
+		VoD placeholder = new VoD("streamName", "streamId", "streams/" + vodId + ".mp4", vodId + ".mp4", 111, 111, 0, 0, VoD.STREAM_VOD, vodId, null);
+		placeholder.setProcessStatus(VoD.PROCESS_STATUS_PROCESSING);
+		assertEquals(vodId, datastore.addVod(placeholder));
+
+		VoD finished = new VoD("streamName", "streamId", "streams/" + vodId + ".mp4", vodId + ".mp4", 222, 111, 10000, 12345, VoD.STREAM_VOD, vodId, null);
+		assertEquals(vodId, datastore.addVod(finished));
+
+		assertEquals(vodCount + 1, datastore.getTotalVodNumber());
+		VoD vod = datastore.getVoD(vodId);
+		assertEquals(10000, vod.getDuration());
+		assertEquals(12345, vod.getFileSize());
+
+		assertTrue(datastore.updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FINISHED));
+		assertEquals(VoD.PROCESS_STATUS_FINISHED, datastore.getVoD(vodId).getProcessStatus());
+
+		assertTrue(datastore.deleteVod(vodId));
+		assertEquals(vodCount, datastore.getTotalVodNumber());
 	}
 
 	public void testVoDFunctions(DataStore datastore) {
