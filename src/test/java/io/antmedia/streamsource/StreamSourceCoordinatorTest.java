@@ -189,7 +189,7 @@ class StreamSourceCoordinatorTest {
 
 		row("mine", HOST);
 		Broadcast orphan = row("orphan", DEAD);
-		Broadcast peers = row("peers", PEER);
+		Broadcast heldByPeer = row("peers", PEER);
 		tick(node);
 		assertEquals(Set.of("mine"), node.getStreamFetcherList().keySet());
 		assertEquals(DEAD, orphan.getFetcherNode());
@@ -198,7 +198,7 @@ class StreamSourceCoordinatorTest {
 		aliveNodes(cluster, HOST, PEER);
 		tick(node);
 		assertEquals(Set.of("mine", "orphan"), node.getStreamFetcherList().keySet());
-		assertEquals(PEER, peers.getFetcherNode());
+		assertEquals(PEER, heldByPeer.getFetcherNode());
 
 		//no node in the list is alive, this one included: nobody leads, but what this node holds still runs
 		aliveNodes(cluster);
@@ -275,10 +275,10 @@ class StreamSourceCoordinatorTest {
 		ScriptedManager node = fixture.newManager();
 
 		//the start goes to its holder, which answers for itself
-		Broadcast peers = row("peers", PEER);
-		assertTrue(node.isStreamRunning(peers));
+		Broadcast heldByPeer = row("peers", PEER);
+		assertTrue(node.isStreamRunning(heldByPeer));
 		answers.put(PEER, new Result(false, "peers", "Stream is already active. It's already streaming or trying to connect"));
-		Result start = node.startStreaming(peers);
+		Result start = node.startStreaming(heldByPeer);
 		assertFalse(start.isSuccess());
 		assertTrue(start.getMessage().contains("already active"));
 		assertEquals(List.of(new Claim(PEER, "peers", PEER, true, true)), claims);
@@ -286,8 +286,8 @@ class StreamSourceCoordinatorTest {
 
 		//the stop is written for the peer, its next tick stops it
 		assertTrue(node.stopStreaming("peers", false).isSuccess());
-		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, peers.getFetcherDesiredAction());
-		assertEquals(PEER, peers.getFetcherNode());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, heldByPeer.getFetcherDesiredAction());
+		assertEquals(PEER, heldByPeer.getFetcherNode());
 
 		//a node that is gone runs nothing, so its source is placed again
 		Broadcast deadNodes = row("dead-nodes", DEAD);

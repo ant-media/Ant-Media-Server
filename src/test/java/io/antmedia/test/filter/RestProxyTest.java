@@ -184,7 +184,7 @@ public class RestProxyTest {
 			fail();
 		}
 
-		Mockito.doReturn(broadcast).when(dtStore).getUncached(Mockito.anyString());
+		doReturn(broadcast).when(dtStore).getUncached(Mockito.anyString());
 
 		Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);
 		Mockito.when(dtStore.isAvailable()).thenReturn(true);
@@ -333,15 +333,15 @@ public class RestProxyTest {
 		RestProxyFilter restFilter = spy(new RestProxyFilter());
 
 		ConfigurableWebApplicationContext webAppContext = mock(ConfigurableWebApplicationContext.class);
-		Mockito.doReturn(webAppContext).when(restFilter).getAppContext();
-		Mockito.doReturn(true).when(webAppContext).containsBean(IClusterNotifier.BEAN_NAME);
+		doReturn(webAppContext).when(restFilter).getAppContext();
+		doReturn(true).when(webAppContext).containsBean(IClusterNotifier.BEAN_NAME);
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
-		Mockito.doReturn(clusterNotifier).when(webAppContext).getBean(IClusterNotifier.BEAN_NAME);
+		doReturn(clusterNotifier).when(webAppContext).getBean(IClusterNotifier.BEAN_NAME);
 		when(clusterNotifier.getAliveNodes()).thenReturn(List.of(new ClusterNode("10.0.0.2", "holder"), new ClusterNode("10.0.0.1", "this")));
 
 		ServerSettings serverSettings = spy(new ServerSettings());
-		Mockito.doReturn("10.0.0.1").when(serverSettings).getHostAddress();
-		Mockito.doReturn(serverSettings).when(restFilter).getServerSettings();
+		doReturn("10.0.0.1").when(serverSettings).getHostAddress();
+		doReturn(serverSettings).when(restFilter).getServerSettings();
 		Mockito.doNothing().when(restFilter).forwardRequestToNode(any(), any(), any());
 
 		//finished by its status and nobody's by the cached copy, but the row itself says another node fetches it
@@ -351,9 +351,9 @@ public class RestProxyTest {
 		source.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 		source.setFetcherNode("10.0.0.2");
 		DataStore dtStore = mock(DataStore.class);
-		Mockito.doReturn(new Broadcast()).when(dtStore).get("source");
-		Mockito.doReturn(source).when(dtStore).getUncached("source");
-		Mockito.doReturn(dtStore).when(restFilter).getDataStore();
+		doReturn(new Broadcast()).when(dtStore).get("source");
+		doReturn(source).when(dtStore).getUncached("source");
+		doReturn(dtStore).when(restFilter).getDataStore();
 
 		MockHttpServletRequest update = new MockHttpServletRequest(HttpMethod.PUT, "/LiveApp/rest/v2/broadcasts/source");
 		update.setRemoteAddr("10.0.0.9");
@@ -371,6 +371,10 @@ public class RestProxyTest {
 			assertNotNull(chain.getRequest(), "handled here when held by " + fetcherNode);
 		}
 		verify(restFilter, times(1)).forwardRequestToNode(any(), any(), any());
+
+		//the app stopped in the middle of the request, the holder is not asked and nothing throws
+		doReturn(null).when(restFilter).getAppContext();
+		assertFalse(restFilter.isNodeAlive("10.0.0.2"));
 	}
 
 	@Test
@@ -413,7 +417,7 @@ public class RestProxyTest {
 			fail();
 		}
 
-		Mockito.doReturn(broadcast).when(dtStore).getUncached(Mockito.anyString());
+		doReturn(broadcast).when(dtStore).getUncached(Mockito.anyString());
 		Mockito.doReturn(subscriber).when(dtStore).getSubscriber(streamId, subscriberId);
 
 		Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);

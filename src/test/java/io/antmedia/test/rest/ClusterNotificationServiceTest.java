@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -59,5 +60,17 @@ public class ClusterNotificationServiceTest {
 		Result started = new Result(true, "stream1", "Stream fetcher is started");
 		when(streamFetcherManager.claimAndStart("stream1", "10.0.0.2", true)).thenReturn(started);
 		assertSame(started, clusterNotificationService.claimAndStartStreamSource("stream1", "10.0.0.2", true));
+
+		//no fetcher node means nobody held it
+		when(streamFetcherManager.claimAndStart("stream1", null, false)).thenReturn(started);
+		assertSame(started, clusterNotificationService.claimAndStartStreamSource("stream1", null, false));
+
+		//what no node ever sends is refused before it reaches the claim and its logs
+		assertFalse(clusterNotificationService.claimAndStartStreamSource("stream1\nforged", "10.0.0.2", true).isSuccess());
+		assertFalse(clusterNotificationService.claimAndStartStreamSource("stream1", "10.0.0.2\r\nforged", true).isSuccess());
+
+		verify(streamFetcherManager).claimAndStart("stream1", "10.0.0.2", true);
+		verify(streamFetcherManager).claimAndStart("stream1", null, false);
+		verifyNoMoreInteractions(streamFetcherManager);
 	}
 }

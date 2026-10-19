@@ -59,6 +59,8 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 	private static final String ALREADY_ACTIVE_MESSAGE = "Stream is already active. It's already streaming or trying to connect";
 
+	private static final String STOPPED_MESSAGE = "Stream stopped";
+
 	/** errorId of a start this node turned down without touching the row, so another node may take it. */
 	public static final int START_REFUSED = -7;
 
@@ -311,18 +313,18 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 			}
 			releaseUnfetched(row);
 			result.setSuccess(true);
-			result.setMessage("Stream stopped");
+			result.setMessage(STOPPED_MESSAGE);
 			return result;
 		}
 
 		if (stopBlocking) {
 			result.setSuccess(fetcher.stopStreamBlocking());
-			result.setMessage(result.isSuccess() ? "Stream stopped" : "Failed to stop the stream with Blocking :" + streamId);
+			result.setMessage(result.isSuccess() ? STOPPED_MESSAGE : "Failed to stop the stream with Blocking :" + streamId);
 		}
 		else {
 			fetcher.stopStream();
 			result.setSuccess(true);
-			result.setMessage("Stream stopped");
+			result.setMessage(STOPPED_MESSAGE);
 		}
 
 		return result;
