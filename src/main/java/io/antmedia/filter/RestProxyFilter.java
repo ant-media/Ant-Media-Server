@@ -168,10 +168,14 @@ public class RestProxyFilter extends AbstractFilter {
 	}
 
 
-	/** Its heartbeat is fresh. Only called in cluster mode. */
+	/** Its heartbeat is fresh. Only called in cluster mode. False while the app is stopping, the request is then handled here. */
 	public boolean isNodeAlive(String node) {
-		IClusterNotifier clusterNotifier = (IClusterNotifier) getAppContext().getBean(IClusterNotifier.BEAN_NAME);
-		return node != null && clusterNotifier.getAliveNodes().stream().anyMatch(alive -> node.equals(alive.getIp()));
+		ApplicationContext context = getAppContext();
+		if (node == null || context == null) {
+			return false;
+		}
+		IClusterNotifier clusterNotifier = (IClusterNotifier) context.getBean(IClusterNotifier.BEAN_NAME);
+		return clusterNotifier.getAliveNodes().stream().anyMatch(alive -> node.equals(alive.getIp()));
 	}
 
 	public void forwardRequestToNode(ServletRequest request, ServletResponse response, String registeredNodeIp) throws IOException, ServletException

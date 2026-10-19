@@ -834,19 +834,19 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	@Test
 	public void testCloseBroadcastWithEndWrite() throws Exception {
-		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AntMediaApplicationAdapter spyAdaptor = spy(adapter);
 		Mockito.doNothing().when(spyAdaptor).resetHLSStats(Mockito.anyString());
 		Mockito.doNothing().when(spyAdaptor).resetDASHStats(Mockito.anyString());
 		DataStore dataStore = new InMemoryDataStore("testCloseBroadcastWithEndWrite");
 		spyAdaptor.setDataStore(dataStore);
-		spyAdaptor.setStatsCollector(Mockito.mock(IStatsCollector.class));
+		spyAdaptor.setStatsCollector(mock(IStatsCollector.class));
 		spyAdaptor.setServerSettings(new ServerSettings());
 		AppSettings appSettings = new AppSettings();
 		String hookURL = "listener_hook_url";
 		appSettings.setListenerHookURL(hookURL);
 		spyAdaptor.setAppSettings(appSettings);
 
-		IStreamListener streamListener = Mockito.mock(IStreamListener.class);
+		IStreamListener streamListener = mock(IStreamListener.class);
 		spyAdaptor.addStreamListener(streamListener);
 
 		Broadcast broadcast = new Broadcast();

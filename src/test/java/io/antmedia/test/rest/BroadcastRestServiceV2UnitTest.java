@@ -2218,7 +2218,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam, false, null);
 		DataStore dataStore = spy(new InMemoryDataStore("startStopStreamSource"));
-		Mockito.doReturn(dataStore).when(streamSourceRest).getDataStore();
+		doReturn(dataStore).when(streamSourceRest).getDataStore();
 
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
 		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();

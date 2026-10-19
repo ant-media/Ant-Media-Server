@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import io.antmedia.StreamIdValidator;
 import io.antmedia.rest.model.Result;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -85,6 +86,10 @@ public class ClusterNotificationService extends RestServiceBase {
 	public Result claimAndStartStreamSource(@Parameter(description = "id of the broadcast", required = true) @PathParam("id") String id,
 			@Parameter(description = "Fetcher node the caller read, the claim only wins while the row still names it. None means no node", required = false) @QueryParam("expectedFetcherNode") String expectedFetcherNode,
 			@Parameter(description = "A user start, which also resets the failure count", required = false) @QueryParam("userStart") boolean userStart) {
+
+		if (!StreamIdValidator.isStreamIdValid(id) || !StreamIdValidator.isStreamIdValid(expectedFetcherNode)) {
+			return new Result(false, "Invalid stream id or fetcher node");
+		}
 		return getApplication().getStreamFetcherManager().claimAndStart(id, expectedFetcherNode, userStart);
 	}
 
