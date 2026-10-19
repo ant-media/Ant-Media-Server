@@ -402,7 +402,7 @@ class StreamFetcherManagerTest {
 
 		//taken while it was still connecting: its first packet must not publish it here, startPublish is not fenced
 		Broadcast early = fixture.row("taken-early", "fake://taken-early");
-		manager.prepare = fetcher -> fetcher.script(new FakeWorker() {
+		manager.prepare = next -> next.script(new FakeWorker() {
 			{
 				publishes = true;
 				holds = true;
