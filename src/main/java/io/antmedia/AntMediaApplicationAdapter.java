@@ -30,6 +30,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -417,8 +420,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		vertx.setTimer(1000, l -> vertx.executeBlocking(() -> {
-			//both of these read whole lists from the database, so keep them off the event loop
-			getStreamFetcherManager().resumeUnattendedSources();
+			//both of these read whole lists from the database, so keep them off the event loop. The first stream source tick
+			//starts the sources this node held before it went down
+			getStreamFetcherManager().getCoordinator().tick();
 			scheduleStoredPlayLists();
 			return null;
 		}, false));
@@ -744,6 +748,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @param parameters
 	 */
 	public void closeBroadcast(String streamId, String subscriberId, Map<String, String> parameters) {
+		closeBroadcast(streamId, subscriberId, parameters, null);
+	}
+
+	/**
+	 * @param end saves the finished update instead of the plain write and returns whether it was saved, null for the
+	 * plain write. False means the stream did not end, like a stream source another node took over, so the end hook,
+	 * main track update and ended script are skipped. The local cleanup still runs.
+	 */
+	public void closeBroadcast(String streamId, String subscriberId, Map<String, String> parameters, @Nullable Predicate<BroadcastUpdate> end) {
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
@@ -751,6 +764,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
 
+				boolean ended = true;
 				if (broadcast.isZombi()) {
 
 					logger.info("Deleting streamId:{} because it's a zombi stream", streamId);
@@ -764,7 +778,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					broadcastUpdate.setHlsViewerCount(0);
 					broadcastUpdate.setDashViewerCount(0);
 					broadcastUpdate.setWebRTCViewerCount(0);
-					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+					if (end == null) {
+						getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+					}
+					else {
+						ended = end.test(broadcastUpdate);
+					}
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
 
@@ -775,7 +794,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String mainTrackId = broadcast.getMainTrackStreamId();
 				final String role = broadcast.getRole();
 				final String listenerHookURL = getListenerHookURL(broadcast);
-				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
+				if (ended && listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
@@ -793,7 +812,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				LoggerUtils.logAnalyticsFromServer(publishEndedEvent);
 
-				if(StringUtils.isNotBlank(broadcast.getMainTrackStreamId())) {
+				if(ended && StringUtils.isNotBlank(broadcast.getMainTrackStreamId())) {
 					updateMainTrackWithRecentlyFinishedBroadcast(broadcast);
 				}	
 
@@ -814,7 +833,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 				
-				runStreamEndedScript(broadcast);
+				if (ended) {
+					runStreamEndedScript(broadcast);
+				}
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));

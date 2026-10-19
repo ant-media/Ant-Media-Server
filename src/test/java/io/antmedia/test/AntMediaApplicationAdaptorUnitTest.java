@@ -135,6 +135,7 @@ import io.antmedia.streamsource.PlaylistController;
 import io.antmedia.streamsource.RTMPClusterStreamFetcher;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.streamsource.StreamSourceCoordinator;
 import io.antmedia.track.ISubtrackPoller;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
@@ -833,6 +834,41 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
+	public void testCloseBroadcastWithEndWrite() throws Exception {
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		Mockito.doNothing().when(spyAdaptor).resetHLSStats(Mockito.anyString());
+		Mockito.doNothing().when(spyAdaptor).resetDASHStats(Mockito.anyString());
+		DataStore dataStore = new InMemoryDataStore("testCloseBroadcastWithEndWrite");
+		spyAdaptor.setDataStore(dataStore);
+		spyAdaptor.setStatsCollector(Mockito.mock(IStatsCollector.class));
+		spyAdaptor.setServerSettings(new ServerSettings());
+		AppSettings appSettings = new AppSettings();
+		String hookURL = "listener_hook_url";
+		appSettings.setListenerHookURL(hookURL);
+		spyAdaptor.setAppSettings(appSettings);
+
+		IStreamListener streamListener = Mockito.mock(IStreamListener.class);
+		spyAdaptor.addStreamListener(streamListener);
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("streamId");
+		broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		broadcast.setUpdateTime(System.currentTimeMillis());
+		dataStore.save(broadcast);
+
+		//the end write is refused, another node holds the source: nothing written or announced, local cleanup still runs
+		spyAdaptor.closeBroadcast("streamId", null, null, update -> false);
+		verify(spyAdaptor, never()).notifyHook(any(), any(), any(), eq(AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM), any(), any(), any(), any(), any(), any(), any());
+		verify(streamListener, times(1)).streamFinished(any());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, dataStore.get("streamId").getStatus());
+
+		//the end write is done by the caller and announced
+		spyAdaptor.closeBroadcast("streamId", null, null, update -> dataStore.updateBroadcastFields("streamId", update));
+		verify(spyAdaptor, times(1)).notifyHook(eq(hookURL), eq("streamId"), any(), eq(AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM), any(), any(), any(), any(), any(), any(), any());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, dataStore.get("streamId").getStatus());
+	}
+
+	@Test
 	public void testHookAfterDefined() 
 	{
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
@@ -1329,6 +1365,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		IContext context = mock(IContext.class);
 		when(scope.getContext()).thenReturn(context);
 		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 
 
 		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
@@ -1830,6 +1867,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//When createInitializationProcess(scope.getName());
 
 		StreamFetcherManager streamFetcherManager = mock(StreamFetcherManager.class);
+		StreamSourceCoordinator coordinator = mock(StreamSourceCoordinator.class);
+		when(streamFetcherManager.getCoordinator()).thenReturn(coordinator);
 
 		spyAdapter.setStreamFetcherManager(streamFetcherManager);
 		AppSettings settings = new AppSettings();
@@ -1841,9 +1880,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		spyAdapter.appStart(scope);
 
-		//boot resume is the manager's job now. Which rows it takes is asserted in StreamFetcherManagerTest
-		verify(streamFetcherManager, timeout(5000).times(1)).resumeUnattendedSources();
-		verify(streamFetcherManager, never()).startStreaming(Mockito.any(), Mockito.anyBoolean());
+		//the first tick starts what this node held before it went down. What it takes is asserted in StreamSourceCoordinatorTest
+		verify(coordinator, timeout(5000).times(1)).tick();
+		verify(streamFetcherManager, never()).startStreaming(Mockito.any());
 
 		await().atMost(5, TimeUnit.SECONDS).until(() -> spyAdapter.getPlayListSchedulerTimer().containsKey(plannedId));
 		spyAdapter.cancelPlaylistSchedule(plannedId);
@@ -1894,6 +1933,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
 		Mockito.when(context.getBean(ILicenceService.BEAN_NAME)).thenReturn(licenseService);
 		when(licenseService.isLicenceSuspended()).thenReturn(false);
+		when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 
 		when(appContext.getBean(StatsCollector.BEAN_NAME)).thenReturn(statsCollector);
 		when(statsCollector.enoughResource()).thenReturn(true);
@@ -2327,57 +2367,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Verify the retry logic was triggered
 		//verify(spyAdapter, times(2)).trySendClusterPostWithDelay(eq(testUrl), eq(testToken), eq(0));
-	}
-
-
-	@Test
-	public void testStreamFetcherNotStartAutomatically()
-	{
-		IScope scope = mock(IScope.class);
-		when(scope.getName()).thenReturn("junit");
-
-		DataStore dataStore = new InMemoryDataStore("dbname");
-		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
-		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-
-		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
-		IContext context = mock(IContext.class);
-		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
-
-		StorageClient storageClient = Mockito.mock(StorageClient.class);
-		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
-
-		when(scope.getContext()).thenReturn(context);
-		spyAdapter.setDataStoreFactory(dsf);
-
-		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
-		spyAdapter.setScope(scope);
-
-
-		Broadcast broadcast = new Broadcast();
-		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		dataStore.save(broadcast);
-
-		Result result = new Result(false);
-		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
-		//When createInitializationProcess(scope.getName());
-
-		StreamFetcherManager streamFetcherManager = mock(StreamFetcherManager.class);
-
-		spyAdapter.setStreamFetcherManager(streamFetcherManager);
-		AppSettings settings = new AppSettings();
-		settings.setStartStreamFetcherAutomatically(false);
-		spyAdapter.setAppSettings(settings);
-		spyAdapter.setServerSettings(new ServerSettings());
-		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
-		spyAdapter.setStreamPlaySecurityList(new ArrayList<>());
-
-		spyAdapter.appStart(scope);
-
-		await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
-
-		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
-		verify(streamFetcherManager, never()).startStreaming(broadcastListCaptor.capture());
 	}
 
 
