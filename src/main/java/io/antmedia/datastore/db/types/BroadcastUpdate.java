@@ -4,6 +4,7 @@ package io.antmedia.datastore.db.types;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast.HLSParameters;
@@ -22,6 +23,8 @@ import lombok.Setter;
  */
 @Schema(description="This is the BroadcastUpdate and it's almost same with BroadcastUpdate with all default values are null. We update the fields in update method if it's not null."
 		+ "It makes this data up to date in race conditions.")
+//a client may send back the whole broadcast it read, only compareAndSetFetcherNode writes the fetcher node
+@JsonIgnoreProperties({"fetcherNode"})
 public class BroadcastUpdate {
 
     private String streamId = null;
