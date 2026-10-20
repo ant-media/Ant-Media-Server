@@ -73,6 +73,43 @@ public class TomcatLoaderTest extends UnitTestBase<TomcatLoader> {
         }
     }
 
+    @Test
+    public void testAddContextSkipsInitializersWithoutSharedContext() throws Exception {
+        TomcatLoader loader = new TomcatLoader();
+        EmbeddedTomcat previousEmbedded = loader.getEmbedded();
+        ApplicationContext previousApplicationContext = org.red5.server.LoaderBase.getApplicationContext();
+        EmbeddedTomcat embeddedTomcat = mock(EmbeddedTomcat.class);
+        Host host = mock(Host.class);
+        Context context = mock(Context.class);
+        Loader webappLoader = mock(Loader.class);
+        ApplicationContext contextWithoutCommonBean = mock(ApplicationContext.class);
+        when(host.getName()).thenReturn("no-initializer-test");
+        when(embeddedTomcat.addWebapp(host, "", "/root-webapp")).thenReturn(context);
+        when(context.getLoader()).thenReturn(webappLoader);
+        when(webappLoader.getClassLoader()).thenReturn(getClass().getClassLoader());
+        var previousRed5Context = org.red5.server.LoaderBase.getRed5ApplicationContext("no-initializer-test");
+        loader.setEmbedded(embeddedTomcat);
+        loader.setHost(host);
+        try {
+            loader.setApplicationContext(null);
+            org.assertj.core.api.Assertions.assertThat(loader.addContext("", "/root-webapp", host)).isSameAs(context);
+
+            loader.setApplicationContext(contextWithoutCommonBean);
+            org.assertj.core.api.Assertions.assertThat(loader.addContext("", "/root-webapp", host)).isSameAs(context);
+
+            verify(contextWithoutCommonBean).containsBean("red5.common");
+            verify(contextWithoutCommonBean, never()).getBean(eq("red5.common"), eq(ApplicationContext.class));
+            verify(context, never()).addServletContainerInitializer(any(), any());
+        } finally {
+            TomcatLoader.embedded = previousEmbedded;
+            loader.setApplicationContext(previousApplicationContext);
+            org.red5.server.LoaderBase.removeRed5ApplicationContext("no-initializer-test");
+            if (previousRed5Context != null) {
+                org.red5.server.LoaderBase.setRed5ApplicationContext("no-initializer-test", previousRed5Context);
+            }
+        }
+    }
+
     /**
      * This Test checks handling of parse exception while creation
      * Previously if there is a parse exception while creating tomcat, it was not handled
