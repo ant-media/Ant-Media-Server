@@ -62,6 +62,13 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @return
 	 */
 	int getNumberOfTotalViewers();
+
+	/**
+	 * Returns total number of viewers without the edges pulling streams from this node:
+	 * their players count on the edge
+	 * @return
+	 */
+	int getNumberOfTotalViewersExcludingEdges();
 	
 	/**
 	 * Returns total number of viewer of a specific stream

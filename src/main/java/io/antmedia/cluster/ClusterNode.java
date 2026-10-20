@@ -30,14 +30,19 @@ public class ClusterNode implements Serializable {
 
 	private int dbQueryAveargeTimeMs;
 
-	// Heartbeat-reported load: streams ingested on this node and players it serves (WebRTC+HLS+DASH,
-	// origin-to-edge links excluded). Integer so a node that does not report them reads null, not 0.
+	// Heartbeat-reported load: streams ingested on this node, players it serves (WebRTC+HLS+DASH,
+	// origin-to-edge links excluded) and average GPU utilization with the GPU model (null: no GPU).
+	// Boxed so a node that does not report them reads null, not 0.
 	// Kept out of Kryo (Redis cluster store): its field layout has no versioning, so an added field
 	// makes entries written by older nodes unreadable. The Redis store carries them in a side map.
 	@Optional(LOAD_KRYO_CONTEXT_KEY)
 	private Integer streams;
 	@Optional(LOAD_KRYO_CONTEXT_KEY)
 	private Integer viewers;
+	@Optional(LOAD_KRYO_CONTEXT_KEY)
+	private Integer gpu;
+	@Optional(LOAD_KRYO_CONTEXT_KEY)
+	private String gpuModel;
 
 	// Admin-defined note set from the management panel. Stored independently of the heartbeat
 	// fields (memory/cpu/lastUpdateTime) so periodic node updates never overwrite it.
@@ -135,6 +140,22 @@ public class ClusterNode implements Serializable {
 
 	public void setViewers(Integer viewers) {
 		this.viewers = viewers;
+	}
+
+	public Integer getGpu() {
+		return gpu;
+	}
+
+	public void setGpu(Integer gpu) {
+		this.gpu = gpu;
+	}
+
+	public String getGpuModel() {
+		return gpuModel;
+	}
+
+	public void setGpuModel(String gpuModel) {
+		this.gpuModel = gpuModel;
 	}
 
 	public String getNote() {
