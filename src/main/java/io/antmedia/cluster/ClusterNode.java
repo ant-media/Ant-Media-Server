@@ -2,6 +2,8 @@ package io.antmedia.cluster;
 
 import java.io.Serializable;
 
+import com.esotericsoftware.kryo.serializers.FieldSerializer.Optional;
+
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
@@ -17,6 +19,7 @@ public class ClusterNode implements Serializable {
 	public static final String ALIVE = "alive";
 	public static final String DEAD = "dead";
 	public static final long NODE_UPDATE_PERIOD = 5000;
+	private static final String LOAD_KRYO_CONTEXT_KEY = "clusterNodeLoad";
 	
 	@Id
 	private String id;
@@ -29,7 +32,11 @@ public class ClusterNode implements Serializable {
 
 	// Heartbeat-reported load: streams ingested on this node and players it serves (WebRTC+HLS+DASH,
 	// origin-to-edge links excluded). Integer so a node that does not report them reads null, not 0.
+	// Kept out of Kryo (Redis cluster store): its field layout has no versioning, so an added field
+	// makes entries written by older nodes unreadable. The Redis store carries them in a side map.
+	@Optional(LOAD_KRYO_CONTEXT_KEY)
 	private Integer streams;
+	@Optional(LOAD_KRYO_CONTEXT_KEY)
 	private Integer viewers;
 
 	// Admin-defined note set from the management panel. Stored independently of the heartbeat
