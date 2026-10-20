@@ -38,6 +38,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.HlsStatisticsFilter;
+import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
@@ -167,8 +168,15 @@ public class HlsStatisticsFilterTest {
 			
 			
 			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, never()).registerEdgeSession(anyString());
 			
-			
+			// An edge pulling for its own players carries the node-communication header: still a viewer, marked as edge
+			String edgeSessionId = RandomStringUtils.randomAlphanumeric(16);
+			when(session.getId()).thenReturn(edgeSessionId);
+			when(mockRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)).thenReturn("edge-jwt");
+			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
+			verify(streamStats, times(1)).registerNewViewer(streamId, edgeSessionId, null);
+			verify(streamStats, times(1)).registerEdgeSession(edgeSessionId);
 			
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));

@@ -56,11 +56,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null)
 			{
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
-				IStreamStats stats = getStreamStats(getBeanName());
-				if (stats != null) {
-					stats.registerNewViewer(streamId, sessionId, subscriberId);
-
-				}
+				registerViewer(httpRequest, streamId, sessionId, subscriberId);
 			}
 			startStreamingIfAutoStartStopEnabled((HttpServletRequest) request, streamId);
 
@@ -79,6 +75,18 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 		}
 
+	}
+
+	private void registerViewer(HttpServletRequest httpRequest, String streamId, String sessionId, String subscriberId) {
+		IStreamStats stats = getStreamStats(getBeanName());
+		if (stats != null) {
+			stats.registerNewViewer(streamId, sessionId, subscriberId);
+			// an edge pulling segments for its own players: left out of this node's player count only.
+			// TokenFilterManager runs first and rejects an invalid header
+			if (httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION) != null) {
+				stats.registerEdgeSession(sessionId);
+			}
+		}
 	}
 
 	public void startStreamingIfAutoStartStopEnabled(HttpServletRequest request, String streamId) {

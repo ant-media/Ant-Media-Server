@@ -16,6 +16,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -129,6 +130,27 @@ public class HlsViewerStatsTest {
 		viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(101, viewerCount);
 
+	}
+
+	@Test
+	public void testViewerCountExcludingEdges() {
+		HlsViewerStats viewerStats = spy(new HlsViewerStats());
+		viewerStats.setVertx(vertx);
+		viewerStats.setDataStore(new InMemoryDataStore("datastore"));
+
+		String streamId = "stream" + ThreadLocalRandom.current().nextInt(999999);
+		viewerStats.registerNewViewer(streamId, "player", null);
+		viewerStats.registerNewViewer(streamId, "edge", null);
+		viewerStats.registerEdgeSession("edge");
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> viewerStats.getTotalViewerCount() == 2);
+		assertEquals(1, viewerStats.getTotalViewerCountExcludingEdges());
+
+		// an edge mark expires like a viewer: a later plain session with that id counts again
+		doReturn(-1).when(viewerStats).getTimeoutMS();
+		viewerStats.updateViewerCountProcess(ViewerStats.HLS_TYPE);
+		viewerStats.registerNewViewer(streamId, "edge", null);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> viewerStats.getTotalViewerCountExcludingEdges() == 1);
 	}
 
 	@Test

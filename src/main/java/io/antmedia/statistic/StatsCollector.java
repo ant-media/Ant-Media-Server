@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalDouble;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
@@ -20,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.ToLongFunction;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -1210,6 +1213,44 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public int getLocalWebRTCViewers() {
 		return getWebRTCMetric(IWebRTCAdaptor::getNumberOfTotalViewers);
+	}
+
+	/**
+	 * @return players this node serves (WebRTC+HLS+DASH), edges pulling streams from it left out
+	 */
+	public int getLocalViewers() {
+		int count = getWebRTCMetric(IWebRTCAdaptor::getNumberOfTotalViewersExcludingEdges);
+		for (IScope scope : scopes) {
+			ApplicationContext context = scope.getContext().getApplicationContext();
+			for (String viewerStatsBeanName : List.of(HlsViewerStats.BEAN_NAME, DashViewerStats.BEAN_NAME)) {
+				if (context.containsBean(viewerStatsBeanName)) {
+					count += ((ViewerStats) context.getBean(viewerStatsBeanName)).getTotalViewerCountExcludingEdges();
+				}
+			}
+		}
+		return count;
+	}
+
+	/**
+	 * @return average utilization of this node's GPUs, null when it has none
+	 */
+	public Integer getLocalGPUUtilization() {
+		GPUUtils gpuUtils = GPUUtils.getInstance();
+		OptionalDouble average = IntStream.range(0, gpuUtils.getDeviceCount()).map(gpuUtils::getGPUUtilization).filter(utilization -> utilization >= 0).average();
+		return average.isPresent() ? (int) Math.round(average.getAsDouble()) : null;
+	}
+
+	/**
+	 * @return this node's GPU model, "2x NVIDIA T4" for several of the same; null when it has none
+	 */
+	public String getLocalGPUModel() {
+		GPUUtils gpuUtils = GPUUtils.getInstance();
+		int deviceCount = gpuUtils.getDeviceCount();
+		List<String> names = IntStream.range(0, deviceCount).mapToObj(gpuUtils::getDeviceName).filter(Objects::nonNull).distinct().toList();
+		if (names.isEmpty()) {
+			return null;
+		}
+		return names.size() == 1 && deviceCount > 1 ? deviceCount + "x " + names.get(0) : String.join(", ", names);
 	}
 
 	private int getWebRTCMetric(java.util.function.ToIntFunction<IWebRTCAdaptor> metric) {

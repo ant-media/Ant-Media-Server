@@ -83,6 +83,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	public static class ApplicationInfo {
 		public String name;
 		public int liveStreamCount;
+		public int viewerCount;
 		public int vodCount;
 		public long storage;
 	}
@@ -212,8 +213,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			}
 			ApplicationInfo info = new ApplicationInfo();
 			info.name = name;
-			info.liveStreamCount = getAppLiveStreamCount(getRootScope().getScope(name));
-			info.vodCount = getVoDCount(getRootScope().getScope(name));
+			IScope appScope = getRootScope().getScope(name);
+			info.liveStreamCount = getAppLiveStreamCount(appScope);
+			info.viewerCount = getAppViewerCount(appScope);
+			info.vodCount = getVoDCount(appScope);
 
 			File appFolder = new File("webapps/"+name);
 			info.storage = getDirectorySize(appFolder.toPath());
@@ -377,6 +380,18 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		int size = 0;
 		if (appScope != null) {
 			size = (int)getApplicationAdaptor(appScope).getDataStore().getActiveBroadcastCount();
+		}
+		return size;
+	}
+
+	/**
+	 * Read from the app's DataStore, so in a cluster it is the cluster-wide total
+	 * (needs writeStatsToDatastore, else 0).
+	 */
+	public int getAppViewerCount(IScope appScope) {
+		int size = 0;
+		if (appScope != null) {
+			size = getApplicationAdaptor(appScope).getDataStore().getTotalViewersCount();
 		}
 		return size;
 	}

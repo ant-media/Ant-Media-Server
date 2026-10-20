@@ -2,6 +2,8 @@ package io.antmedia.cluster;
 
 import java.io.Serializable;
 
+import com.esotericsoftware.kryo.serializers.FieldSerializer.Optional;
+
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
@@ -17,6 +19,7 @@ public class ClusterNode implements Serializable {
 	public static final String ALIVE = "alive";
 	public static final String DEAD = "dead";
 	public static final long NODE_UPDATE_PERIOD = 5000;
+	private static final String LOAD_KRYO_CONTEXT_KEY = "clusterNodeLoad";
 	
 	@Id
 	private String id;
@@ -26,6 +29,20 @@ public class ClusterNode implements Serializable {
 	private String cpu;
 
 	private int dbQueryAveargeTimeMs;
+
+	// Heartbeat-reported load: streams ingested on this node, players it serves (WebRTC+HLS+DASH,
+	// origin-to-edge links excluded) and average GPU utilization with the GPU model (null: no GPU).
+	// Boxed so a node that does not report them reads null, not 0.
+	// Kept out of Kryo (Redis cluster store): its field layout has no versioning, so an added field
+	// makes entries written by older nodes unreadable. The Redis store carries them in a side map.
+	@Optional(LOAD_KRYO_CONTEXT_KEY)
+	private Integer streams;
+	@Optional(LOAD_KRYO_CONTEXT_KEY)
+	private Integer viewers;
+	@Optional(LOAD_KRYO_CONTEXT_KEY)
+	private Integer gpu;
+	@Optional(LOAD_KRYO_CONTEXT_KEY)
+	private String gpuModel;
 
 	// Admin-defined note set from the management panel. Stored independently of the heartbeat
 	// fields (memory/cpu/lastUpdateTime) so periodic node updates never overwrite it.
@@ -107,6 +124,38 @@ public class ClusterNode implements Serializable {
 	 */
 	public void setDbQueryAveargeTimeMs(int dbQueryAveargeTimeMs) {
 		this.dbQueryAveargeTimeMs = dbQueryAveargeTimeMs;
+	}
+
+	public Integer getStreams() {
+		return streams;
+	}
+
+	public void setStreams(Integer streams) {
+		this.streams = streams;
+	}
+
+	public Integer getViewers() {
+		return viewers;
+	}
+
+	public void setViewers(Integer viewers) {
+		this.viewers = viewers;
+	}
+
+	public Integer getGpu() {
+		return gpu;
+	}
+
+	public void setGpu(Integer gpu) {
+		this.gpu = gpu;
+	}
+
+	public String getGpuModel() {
+		return gpuModel;
+	}
+
+	public void setGpuModel(String gpuModel) {
+		this.gpuModel = gpuModel;
 	}
 
 	public String getNote() {

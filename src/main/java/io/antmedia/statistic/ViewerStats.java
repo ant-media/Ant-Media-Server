@@ -53,6 +53,8 @@ public class ViewerStats {
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
 	Map<String, String> sessionId2subscriberId = new ConcurrentHashMap<>();
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
+	// edge sessions pulling streams from this node -> last request time
+	Map<String, Long> edgeSessionMap = new ConcurrentHashMap<>();
 
 	private Object lock = new Object();
 	
@@ -137,6 +139,10 @@ public class ViewerStats {
 		
 	}
 	
+	public void registerEdgeSession(String sessionId) {
+		edgeSessionMap.put(sessionId, System.currentTimeMillis());
+	}
+
 	public void resetViewerMap(String streamID, String type) {
 		
 		Iterator<Entry<String, Long>> viewerIterator;
@@ -176,6 +182,17 @@ public class ViewerStats {
 		int viewerCount = 0;
 		for (Map<String, Long> map : streamsViewerMap.values()) {
 			viewerCount += map.size();
+		}
+		return viewerCount;
+	}
+
+	/**
+	 * @return total viewers without the edges pulling streams from this node: their players count on the edge
+	 */
+	public int getTotalViewerCountExcludingEdges() {
+		int viewerCount = 0;
+		for (Map<String, Long> map : streamsViewerMap.values()) {
+			viewerCount += (int) map.keySet().stream().filter(sessionId -> !edgeSessionMap.containsKey(sessionId)).count();
 		}
 		return viewerCount;
 	}
@@ -266,6 +283,8 @@ public class ViewerStats {
 		Map<String, Long> viewerMapEntry;
 		
 		long now = System.currentTimeMillis();
+
+		edgeSessionMap.values().removeIf(lastRequestTime -> lastRequestTime < (now - getTimeoutMS()));
 		
 		while (streamIterator.hasNext()) 
 		{
