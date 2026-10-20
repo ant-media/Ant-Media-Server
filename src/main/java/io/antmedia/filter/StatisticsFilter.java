@@ -70,7 +70,10 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			{
 				logger.debug("req ip {} viewer id {} stream id {} status {}", request.getRemoteHost(), viewerId, streamId, status);
 				IStreamStats stats = getStreamStats(getBeanName());
-				if (stats != null) {
+				// An edge pulling segments to serve its own players is not a viewer; its players count on the edge.
+				// TokenFilterManager runs first and rejects an invalid header, so a present one is a verified edge.
+				boolean edgePull = httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION) != null;
+				if (stats != null && !edgePull) {
 					//this viewer was first counted under its fingerprint, move that entry over to the
 					//cookie based id instead of registering the same client a second time
 					if (previousViewerId != null) {
