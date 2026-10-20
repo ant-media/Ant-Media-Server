@@ -16,6 +16,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -137,7 +138,7 @@ public class HlsViewerStatsTest {
 		viewerStats.setVertx(vertx);
 		viewerStats.setDataStore(new InMemoryDataStore("datastore"));
 
-		String streamId = "stream" + (int) (Math.random() * 999999);
+		String streamId = "stream" + ThreadLocalRandom.current().nextInt(999999);
 		viewerStats.registerNewViewer(streamId, "player", null);
 		viewerStats.registerNewViewer(streamId, "edge", null);
 		viewerStats.registerEdgeSession("edge");
