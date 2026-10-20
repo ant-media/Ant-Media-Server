@@ -82,6 +82,10 @@ public class ClusterRestServiceV2Test {
 		assertEquals("192.168.1.1", node.getIp());
 		assertEquals("node-1", node.getId());
 		assertNull(node.getNote());
+		assertNull(node.getStreams());
+		assertNull(node.getViewers());
+		assertNull(node.getGpu());
+		assertNull(node.getGpuModel());
 
 		node.setId("node-2");
 		node.setIp("10.0.0.5");
@@ -90,6 +94,10 @@ public class ClusterRestServiceV2Test {
 		node.setDbQueryAveargeTimeMs(7);
 		node.setLastUpdateTime(12345L);
 		node.setNote("origin node in eu-west-1");
+		node.setStreams(3);
+		node.setViewers(42);
+		node.setGpu(65);
+		node.setGpuModel("2x NVIDIA T4");
 
 		assertEquals("node-2", node.getId());
 		assertEquals("10.0.0.5", node.getIp());
@@ -98,6 +106,10 @@ public class ClusterRestServiceV2Test {
 		assertEquals(7, node.getDbQueryAveargeTimeMs());
 		assertEquals(12345L, node.getLastUpdateTime());
 		assertEquals("origin node in eu-west-1", node.getNote());
+		assertEquals(3, node.getStreams());
+		assertEquals(42, node.getViewers());
+		assertEquals(65, node.getGpu());
+		assertEquals("2x NVIDIA T4", node.getGpuModel());
 
 		// status is derived from how stale the last heartbeat is
 		node.setLastUpdateTime(System.currentTimeMillis());

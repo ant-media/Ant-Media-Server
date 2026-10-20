@@ -48,9 +48,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class AdminApplicationTest {
 	
@@ -413,14 +417,14 @@ public class AdminApplicationTest {
 
 	@Test
 	public void testViewerCount() {
-		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
+		AntMediaApplicationAdapter adaptor = mock(AntMediaApplicationAdapter.class);
+		AdminApplication adminApplication = spy(new AdminApplication());
 
-		Mockito.doReturn(adaptor).when(adminApplication).getApplicationAdaptor(Mockito.any());
+		doReturn(adaptor).when(adminApplication).getApplicationAdaptor(Mockito.any());
 		InMemoryDataStore dataStore = new InMemoryDataStore("junit");
-		Mockito.when(adaptor.getDataStore()).thenReturn(dataStore);
+		when(adaptor.getDataStore()).thenReturn(dataStore);
 		assertEquals(0, adminApplication.getAppViewerCount(null));
-		assertEquals(0, adminApplication.getAppViewerCount(Mockito.mock(IScope.class)));
+		assertEquals(0, adminApplication.getAppViewerCount(mock(IScope.class)));
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -429,7 +433,7 @@ public class AdminApplicationTest {
 		broadcast.setDashViewerCount(1);
 		dataStore.save(broadcast);
 
-		assertEquals(6, adminApplication.getAppViewerCount(Mockito.mock(IScope.class)));
+		assertEquals(6, adminApplication.getAppViewerCount(mock(IScope.class)));
 	}
 
 
