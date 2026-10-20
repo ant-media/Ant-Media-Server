@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -171,11 +172,15 @@ public class HlsStatisticsFilterTest {
 			
 			
 			verify(streamStats, times(1)).registerNewViewer(eq(streamId), anyString(), isNull());
-			
-			// An edge pulling for its own players carries the node-communication header: not a viewer here
+			verify(streamStats, never()).registerEdgeSession(anyString());
+
+			// An edge pulling for its own players carries the node-communication header: still a viewer, marked as edge
+			when(mockRequest.getRemoteAddr()).thenReturn("10.0.0.2");
 			when(mockRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)).thenReturn("edge-jwt");
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
-			verify(streamStats, times(1)).registerNewViewer(eq(streamId), anyString(), isNull());
+			ArgumentCaptor<String> viewerIds = ArgumentCaptor.forClass(String.class);
+			verify(streamStats, times(2)).registerNewViewer(eq(streamId), viewerIds.capture(), isNull());
+			verify(streamStats, times(1)).registerEdgeSession(viewerIds.getAllValues().get(1));
 			
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
