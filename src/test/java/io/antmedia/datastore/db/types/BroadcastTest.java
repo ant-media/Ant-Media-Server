@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.test.UnitTestBase;
@@ -47,6 +48,13 @@ class BroadcastTest extends UnitTestBase<Broadcast> {
 		assertThat(update.getName()).isEqualTo("n");
 		assertThat(update.getFetcherDesiredAction()).isNull();
 		assertThat(update.getFetcherFailures()).isNull();
+
+		//a client that sends back the whole broadcast it read, every field like Gson writes it, gets no error and changes none of them
+		broadcast.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
+		BroadcastUpdate whole = mapper.readValue(new Gson().toJson(broadcast), BroadcastUpdate.class);
+		assertThat(whole.getStreamId()).isEqualTo("s1");
+		assertThat(whole.getFetcherDesiredAction()).isNull();
+		assertThat(whole.getFetcherFailures()).isNull();
 	}
 
 	private static Broadcast broadcastOf(String type, boolean autoStartStopEnabled) {
