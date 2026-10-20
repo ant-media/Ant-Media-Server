@@ -49,6 +49,9 @@ import io.vertx.core.Vertx;
  * A start goes to the alive node that holds the source, or else to the alive node with room and the fewest
  * sources. Each tick this node starts or lets go of the sources it holds, and the leader (lowest alive
  * address) places every source nobody alive holds. Every take is a claim on the row, so only one node gets it.
+ *
+ * Nodes with streamSourceFetchEnabled off (edges) take a source only while no node with it on is alive, and hand
+ * it over once one with room is.
  */
 public class StreamSourceCoordinator {
 
@@ -106,6 +109,15 @@ public class StreamSourceCoordinator {
 		this.serverSettings = (ServerSettings) red5Context.getBean(ServerSettings.BEAN_NAME);
 		this.clusterNotifier = red5Context.hasBean(IClusterNotifier.BEAN_NAME) ? (IClusterNotifier) red5Context.getBean(IClusterNotifier.BEAN_NAME) : null;
 
+		if (!serverSettings.isStreamSourceFetchEnabled()) {
+			if (clusterNotifier == null) {
+				logger.info("streamSourceFetchEnabled=false has no effect without a cluster, app:{}", scope.getName());
+			}
+			else {
+				logger.info("This node does not fetch stream sources of app:{} while another node can (streamSourceFetchEnabled=false)", scope.getName());
+			}
+		}
+
 		timerId = vertx.setPeriodic(TICK_PERIOD_MS, l -> vertx.executeBlocking(() -> { tick(); return null; }, false));
 	}
 
@@ -117,7 +129,9 @@ public class StreamSourceCoordinator {
 
 		long startTime = System.currentTimeMillis();
 		try {
-			reconcileHeldSources();
+			List<Broadcast> held = manager.getDatastore().getHeldStreamFetcherSources(manager.getHost());
+			reconcileHeldSources(held);
+			handBack(held);
 			if (isLeader()) {
 				placeOrphans();
 			}
@@ -139,11 +153,11 @@ public class StreamSourceCoordinator {
 	 * shared context, because STOPPED unregisters before it lets go of the row: from any other thread a
 	 * source that just stopped looks held and not running.
 	 */
-	private void reconcileHeldSources() {
+	private void reconcileHeldSources(List<Broadcast> held) {
 		DataStore datastore = manager.getDatastore();
 		String host = manager.getHost();
 
-		for (Broadcast row : datastore.getHeldStreamFetcherSources(host)) {
+		for (Broadcast row : held) {
 			context.runOnContext(v -> {
 				String streamId = row.getStreamId();
 				if (manager.getStreamFetcher(streamId) != null) {
@@ -156,6 +170,36 @@ public class StreamSourceCoordinator {
 					datastore.compareAndSetFetcherNode(streamId, host, null, false, new BroadcastUpdate());
 				}
 			});
+		}
+	}
+
+	/**
+	 * On a node with streamSourceFetchEnabled off, moves what it runs as the last resort to a node that fetches,
+	 * once one with room is alive. That node claims it over this one, whose fetcher tick then stops it here without
+	 * a trace, so it never stops before another node runs it. A refusal leaves it running here.
+	 */
+	private void handBack(List<Broadcast> held) {
+		if (serverSettings.isStreamSourceFetchEnabled()) {
+			return;
+		}
+
+		String host = manager.getHost();
+		List<String> running = held.stream().map(Broadcast::getStreamId).filter(id -> manager.getStreamFetcher(id) != null).toList();
+		if (running.isEmpty()) {
+			return;
+		}
+
+		Map<String, ClusterNode> mayFetch = nodesThatMayFetch(aliveNodes());
+		if (mayFetch.containsKey(host) || mayFetch.values().stream().allMatch(this::isFull)) {
+			return;
+		}
+
+		for (String streamId : running) {
+			logger.info("Handing streamId:{} over to a node that fetches stream sources", streamId);
+			if (placeAndStart(streamId, host, false).getErrorId() == StreamFetcherManager.START_REFUSED) {
+				//nobody took it, the rest would fare no better this tick
+				return;
+			}
 		}
 	}
 
@@ -180,12 +224,14 @@ public class StreamSourceCoordinator {
 			return;
 		}
 
+		//picked once from every alive node: an origin that refuses below must not let the edges in
+		Map<String, ClusterNode> mayFetch = nodesThatMayFetch(alive);
 		Map<String, Long> held = new HashMap<>(manager.getDatastore().getHeldStreamFetcherSourceCounts());
 		while (!pending.isEmpty() && !manager.isServerShuttingDown()) {
 			List<Placement> placements = new ArrayList<>();
 			while (placements.size() < MAX_PLACEMENTS_IN_FLIGHT && !pending.isEmpty()) {
 				Broadcast row = pending.poll();
-				List<String> candidates = candidates(row.getFetcherNode(), alive, held);
+				List<String> candidates = candidates(row.getFetcherNode(), mayFetch, held);
 				if (candidates.isEmpty()) {
 					logger.warn("No node can take streamId:{} now", row.getStreamId());
 					continue;
@@ -202,7 +248,7 @@ public class StreamSourceCoordinator {
 				if (result.getErrorId() == StreamFetcherManager.START_REFUSED) {
 					logger.info("Node:{} did not take streamId:{}, it is skipped until the next tick: {}", placement.node(), placement.row().getStreamId(), result.getMessage());
 					held.merge(placement.node(), -1L, Long::sum);
-					alive.remove(placement.node());
+					mayFetch.remove(placement.node());
 					pending.add(placement.row());
 				}
 			}
@@ -213,15 +259,15 @@ public class StreamSourceCoordinator {
 	private record Placement(Broadcast row, String node, CompletableFuture<Result> result) { }
 
 	/**
-	 * Starts the source on its holder while that node is alive, otherwise on the best alive node, moving on while a
-	 * node refuses or does not answer. Stops at any other answer: a node took it, a node claimed it but could not
-	 * start it, or the claim was lost because the row changed.
+	 * Starts the source on its holder while that node is alive and may fetch, otherwise on the best node, moving on
+	 * while a node refuses or does not answer. Stops at any other answer: a node took it, a node claimed it but
+	 * could not start it, or the claim was lost because the row changed.
 	 */
 	Result placeAndStart(String streamId, @Nullable String expectedFetcherNode, boolean userStart) {
-		Result result = new Result(false, streamId, "No node has room to fetch the stream");
+		Result result = new Result(false, streamId, "No node can take the stream now");
 		result.setErrorId(StreamFetcherManager.START_REFUSED);
 
-		for (String node : candidates(expectedFetcherNode, aliveNodes(), manager.getDatastore().getHeldStreamFetcherSourceCounts())) {
+		for (String node : candidates(expectedFetcherNode, nodesThatMayFetch(aliveNodes()), manager.getDatastore().getHeldStreamFetcherSourceCounts())) {
 			result = claimAndStartOn(node, streamId, expectedFetcherNode, userStart);
 			if (result.getErrorId() != StreamFetcherManager.START_REFUSED) {
 				return result;
@@ -233,17 +279,18 @@ public class StreamSourceCoordinator {
 		return result;
 	}
 
-	/** 
-	 * The holder while it is alive. 
-	 * Otherwise the alive nodes with room, by: fewest held sources, then this node, then the lower address. 
+	/**
+	 * The holder while it may fetch. Otherwise the nodes that may fetch and have room, by: fewest held sources,
+	 * then this node, then the lower address. An alive holder that may not fetch (an edge while an origin is
+	 * alive) loses the source to the one that claims it, its own tick then stops it.
 	 **/
-	private List<String> candidates(@Nullable String expectedFetcherNode, Map<String, ClusterNode> alive, Map<String, Long> held) {
-		if (alive.containsKey(expectedFetcherNode)) {
+	private List<String> candidates(@Nullable String expectedFetcherNode, Map<String, ClusterNode> mayFetch, Map<String, Long> held) {
+		if (mayFetch.containsKey(expectedFetcherNode)) {
 			return List.of(expectedFetcherNode);
 		}
 
 		String host = manager.getHost();
-		return alive.values().stream()
+		return mayFetch.values().stream()
 				.filter(node -> !isFull(node))
 				.map(ClusterNode::getIp)
 				.sorted(Comparator.<String>comparingLong(ip -> held.getOrDefault(ip, 0L))
@@ -325,8 +372,25 @@ public class StreamSourceCoordinator {
 		if (clusterNotifier != null) {
 			clusterNotifier.getAliveNodes().forEach(node -> alive.put(node.getIp(), node));
 		}
-		alive.putIfAbsent(manager.getHost(), new ClusterNode(manager.getHost(), manager.getHost()));
+		//this node's own setting is the truth, its heartbeat may still carry the one it had before a restart
+		alive.computeIfAbsent(manager.getHost(), host -> new ClusterNode(host, host))
+				.setStreamSourceFetchEnabled(serverSettings.isStreamSourceFetchEnabled());
 		return alive;
+	}
+
+	/**
+	 * The alive nodes with streamSourceFetchEnabled, or all of them as a last resort when none of those is alive.
+	 * One that is full still counts, so it keeps the others out.
+	 */
+	private static Map<String, ClusterNode> nodesThatMayFetch(Map<String, ClusterNode> alive) {
+		Map<String, ClusterNode> mayFetch = new HashMap<>(alive);
+		mayFetch.values().removeIf(node -> !node.isStreamSourceFetchEnabled());
+		return mayFetch.isEmpty() ? new HashMap<>(alive) : mayFetch;
+	}
+
+	/** False while this node has streamSourceFetchEnabled off and a node with it on is alive. */
+	boolean mayFetchHere() {
+		return serverSettings.isStreamSourceFetchEnabled() || nodesThatMayFetch(aliveNodes()).containsKey(manager.getHost());
 	}
 
 	private boolean isLeader() {

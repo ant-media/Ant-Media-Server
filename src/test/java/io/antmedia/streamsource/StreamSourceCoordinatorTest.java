@@ -2,11 +2,13 @@ package io.antmedia.streamsource;
 
 import static io.antmedia.streamsource.StreamSourceFixture.HOST;
 import static io.antmedia.streamsource.StreamSourceFixture.aliveNodes;
+import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
 import static io.antmedia.streamsource.StreamSourceFixture.peek;
 import static io.antmedia.streamsource.StreamSourceFixture.settle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,7 +41,10 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher.State;
+import io.antmedia.streamsource.StreamSourceFixture.ScriptedFetcher;
 import io.antmedia.streamsource.StreamSourceFixture.ScriptedManager;
 
 /**
@@ -335,6 +340,177 @@ class StreamSourceCoordinatorTest {
 	}
 
 	@Test
+	void aNodeThatDoesNotFetchIsNeverPlacedOnWhileAnotherCan() {
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER, OTHER_PEER);
+		//this node is switched off but its heartbeat is from before that restart, the other peer's from before the setting existed
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, true), heartbeat(PEER, false), heartbeat(OTHER_PEER, null)));
+		ScriptedManager node = fixture.newManager();
+
+		//nobody holds anything, so by the usual order this node would go first and PEER next
+		assertTrue(node.startStreaming(fixture.row("one", "fake://one")).isSuccess());
+		assertEquals(OTHER_PEER, fixture.rows.get("one").getFetcherNode());
+
+		//this node leads and places them all on the one node that fetches, however many it already holds
+		for (int i = 0; i < 3; i++) {
+			row("orphan-" + i, DEAD);
+		}
+		tick(node);
+		assertEquals(4, fixture.rows.values().stream().filter(row -> OTHER_PEER.equals(row.getFetcherNode())).count());
+		assertTrue(node.getStreamFetcherList().isEmpty());
+		assertTrue(claims.stream().allMatch(claim -> OTHER_PEER.equals(claim.node())), "a node that does not fetch is never asked");
+	}
+
+	@Test
+	void whenNoNodeFetchesTheOthersTakeItAsALastResort() {
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER, OTHER_PEER);
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+		ClusterNode otherPeer = heartbeat(OTHER_PEER, false);
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, false), heartbeat(PEER, false), otherPeer));
+		ScriptedManager node = fixture.newManager();
+		row("a", PEER);
+		row("b", OTHER_PEER);
+
+		//the usual order among them all, so this node, holding the fewest, takes it
+		assertTrue(node.startStreaming(fixture.row("one", "fake://one")).isSuccess());
+		assertEquals(HOST, fixture.rows.get("one").getFetcherNode());
+		assertTrue(claims.isEmpty());
+
+		//a node that fetches is back: it gets the next one, though all hold one and this node would go first
+		otherPeer.setStreamSourceFetchEnabled(true);
+		assertTrue(node.startStreaming(fixture.row("two", "fake://two")).isSuccess());
+		assertEquals(OTHER_PEER, fixture.rows.get("two").getFetcherNode());
+		assertEquals(List.of(new Claim(OTHER_PEER, "two", null, true, true)), claims);
+	}
+
+	@Test
+	void aFullOriginKeepsTheEdgesOut() {
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER, OTHER_PEER);
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, false), heartbeat(PEER, false), load(OTHER_PEER, "90", "1000/8000")));
+		ScriptedManager node = fixture.newManager();
+
+		Result start = node.startStreaming(fixture.row("one", "fake://one"));
+		assertEquals(StreamFetcherManager.START_REFUSED, start.getErrorId());
+		assertEquals("No node can take the stream now", start.getMessage());
+
+		Broadcast orphan = row("orphan", DEAD);
+		tick(node);
+		assertNull(fixture.rows.get("one").getFetcherNode());
+		assertEquals(DEAD, orphan.getFetcherNode());
+		assertTrue(node.getStreamFetcherList().isEmpty());
+		assertTrue(claims.isEmpty());
+
+		//only once the origin is dead do the edges take over, one each
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, false), heartbeat(PEER, false)));
+		tick(node);
+		assertEquals(1, node.getStreamFetcherList().size());
+		assertEquals(1, fixture.rows.values().stream().filter(row -> PEER.equals(row.getFetcherNode())).count());
+	}
+
+	@Test
+	void aSourceAnOptOutNodeHoldsMovesToAnOrigin() {
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER);
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, true), heartbeat(PEER, false)));
+		ScriptedManager node = fixture.newManager();
+
+		//an edge took it as the last resort while the origins were down. This node claims it over the alive edge,
+		//whose own tick then stops it
+		Broadcast heldByEdge = row("edges", PEER);
+		assertTrue(node.startStreaming(heldByEdge).isSuccess());
+		assertEquals(HOST, heldByEdge.getFetcherNode());
+		assertNotNull(node.getStreamFetcher("edges"));
+		assertTrue(claims.isEmpty(), "the edge is not asked");
+	}
+
+	@Test
+	void aLastResortSourceIsHandedBackWhenAnOriginReturns() {
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER);
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, false)));
+		ScriptedManager edge = fixture.newManager();
+
+		//the origin is dead, so this edge runs both as the last resort
+		assertTrue(edge.startStreaming(fixture.row("cam-1", "fake://cam-1")).isSuccess());
+		assertTrue(edge.startStreaming(fixture.row("cam-2", "fake://cam-2")).isSuccess());
+
+		//back but full, nothing moves
+		ClusterNode origin = load(PEER, "90", "1000/8000");
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, false), origin));
+		tick(edge);
+		assertTrue(claims.isEmpty());
+
+		//room by its heartbeat but its application is still starting: asked once, the other one waits for the next tick
+		origin.setCpu("10");
+		broken.add(PEER);
+		tick(edge);
+		assertEquals(1, claims.size());
+		assertEquals(Set.of("cam-1", "cam-2"), edge.getStreamFetcherList().keySet());
+
+		//ready: it claims both over the edge, which runs them until its own fetcher ticks
+		broken.clear();
+		claims.clear();
+		tick(edge);
+		assertEquals(Set.of(new Claim(PEER, "cam-1", HOST, false, true), new Claim(PEER, "cam-2", HOST, false, true)), Set.copyOf(claims));
+		assertEquals(2, edge.getStreamFetcherList().size());
+
+		//the edge stops them without writing over the origin's rows, and does not offer them again
+		for (ScriptedFetcher fetcher : edge.fetchers) {
+			StreamSourceFixture.tick(fetcher);
+			fetcher.releaseAll();
+			awaitState(fetcher, State.STOPPED);
+			Broadcast row = fixture.rows.get(fetcher.getStreamId());
+			assertEquals(PEER, row.getFetcherNode());
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, row.getStatus(), "no end write over the origin's row");
+		}
+		assertTrue(edge.getStreamFetcherList().isEmpty());
+		claims.clear();
+		tick(edge);
+		assertTrue(claims.isEmpty());
+	}
+
+	@Test
+	void aSourceOfANodeThatStopsAnsweringMovesAndTheOldHolderStepsAside() {
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER);
+		//two real nodes on one database, a manager takes its host when it is made
+		when(fixture.serverSettings.getHostAddress()).thenReturn(PEER);
+		ScriptedManager frozen = fixture.newManager();
+		when(fixture.serverSettings.getHostAddress()).thenReturn(HOST);
+		ScriptedManager leader = fixture.newManager();
+
+		frozen.prepare = fetcher -> fetcher.script(FakeWorker.publishing());
+		Broadcast row = fixture.row("cam", "fake://cam");
+		assertTrue(frozen.startStreaming(row).isSuccess());
+		ScriptedFetcher stale = frozen.fetchers.get(0);
+		awaitState(stale, State.STREAMING);
+		assertEquals(PEER, row.getFetcherNode());
+		//on air for a while, so the retry delay does not hold the failover back
+		row.setStartTime(System.currentTimeMillis() - 60000);
+
+		//its heartbeat stops and it is not ticked meanwhile, the leader takes the source over it
+		aliveNodes(cluster, HOST);
+		tick(leader);
+		assertEquals(HOST, row.getFetcherNode());
+		assertNotNull(leader.getStreamFetcher("cam"));
+		assertSame(stale, frozen.getStreamFetcher("cam"), "a frozen node does not know yet");
+
+		//back: its first tick stops it without a trace, the leader's row and run are untouched
+		aliveNodes(cluster, HOST, PEER);
+		StreamSourceFixture.tick(stale);
+		stale.releaseAll();
+		awaitState(stale, State.STOPPED);
+		tick(frozen);
+		assertTrue(frozen.getStreamFetcherList().isEmpty());
+		assertEquals(HOST, row.getFetcherNode());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, row.getStatus(), "no end write over the leader's row");
+		assertNotNull(leader.getStreamFetcher("cam"));
+		assertTrue(claims.isEmpty());
+	}
+
+	@Test
 	void theCoordinatorTicksUntilTheApplicationGoesDown() {
 		StreamFetcherManager manager = new StreamFetcherManager(fixture.vertx, fixture.dataStore, fixture.scope);
 		assertNotEquals(-1L, peek(manager.getCoordinator(), "timerId"), "it ticks on a timer");
@@ -387,6 +563,13 @@ class StreamSourceCoordinatorTest {
 		ClusterNode node = new ClusterNode(ip, "node-" + ip);
 		node.setCpu(cpu);
 		node.setMemory(memory);
+		return node;
+	}
+
+	/** An alive node by its heartbeat. Null streamSourceFetchEnabled is a row written before the setting existed. */
+	private static ClusterNode heartbeat(String ip, Boolean streamSourceFetchEnabled) {
+		ClusterNode node = new ClusterNode(ip, "node-" + ip);
+		node.setStreamSourceFetchEnabled(streamSourceFetchEnabled);
 		return node;
 	}
 

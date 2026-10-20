@@ -874,6 +874,10 @@ public class InMemoryDataStore extends DataStore {
 		//used in mongo for cluster mode. useless here.
 	}
 
+	public void clearStreamInfoList(String streamId, String host) {
+		//used in mongo for cluster mode. useless here.
+	}
+
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
 		boolean result = false;

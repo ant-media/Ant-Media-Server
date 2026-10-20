@@ -110,6 +110,7 @@ class StreamSourceFixture implements AutoCloseable {
 		when(licenceService.isLicenceSuspended()).thenReturn(false);
 		when(serverSettings.getHostAddress()).thenReturn(HOST);
 		when(serverSettings.getDefaultHttpPort()).thenReturn(5080);
+		when(serverSettings.isStreamSourceFetchEnabled()).thenReturn(true);
 
 		when(app.getDataStore()).thenReturn(dataStore);
 		when(app.getStatsCollector()).thenReturn(statsCollector);

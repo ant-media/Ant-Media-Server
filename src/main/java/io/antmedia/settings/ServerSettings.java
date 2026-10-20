@@ -56,6 +56,8 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
 
+	private static final String SETTINGS_STREAM_SOURCE_FETCH_ENABLED = "streamSourceFetchEnabled";
+
 	public static final String LOG_LEVEL_ALL = "ALL";
 	public static final String LOG_LEVEL_TRACE = "TRACE";
 	public static final String LOG_LEVEL_DEBUG = "DEBUG";
@@ -202,6 +204,13 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
 	private String nodeGroup = DEFAULT_NODE_GROUP;
+
+	/**
+	 * Whether this node pulls stream sources (IP cameras, stream sources, VOD rows) in a cluster. False on edges
+	 * that only play: they fetch only while no node with it true is alive. No effect without a cluster.
+	 */
+	@Value( "${"+SETTINGS_STREAM_SOURCE_FETCH_ENABLED+":true}" )
+	private boolean streamSourceFetchEnabled = true;
 
 	private Logging.Severity webrtcLogLevel = Logging.Severity.LS_WARNING;
 
@@ -690,6 +699,14 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	public void setNodeGroup(String nodeGroup) {
 		this.nodeGroup = nodeGroup;
+	}
+
+	public boolean isStreamSourceFetchEnabled() {
+		return streamSourceFetchEnabled;
+	}
+
+	public void setStreamSourceFetchEnabled(boolean streamSourceFetchEnabled) {
+		this.streamSourceFetchEnabled = streamSourceFetchEnabled;
 	}
 
 	public int getCpuMeasurementPeriodMs() {
