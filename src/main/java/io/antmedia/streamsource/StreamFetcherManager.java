@@ -135,8 +135,8 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 	}
 
 	/**
-	 * A user start: the REST start and create, and a viewer of an on-demand source. Runs on the node that
-	 * holds the source, or on the best node when nobody alive does, and resets its failure count.
+	 * A user start: the REST start and create, and a viewer of an on-demand source. Runs on the alive node that
+	 * holds the source while that node may fetch, otherwise on the best node, and resets its failure count.
 	 */
 	public Result startStreaming(@Nonnull Broadcast broadcast) {
 		return coordinator.placeAndStart(broadcast.getStreamId(), broadcast.getFetcherNode(), true);
@@ -177,6 +177,9 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 		}
 
 		String refusal = refusal(streamId);
+		if (refusal == null && !coordinator.mayFetchHere()) {
+			refusal = "Stream source fetching is disabled on this node";
+		}
 		if (refusal == null && !getApplication().getStatsCollector().enoughResource()) {
 			refusal = "Not enough resource on server to start streaming.";
 		}

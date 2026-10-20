@@ -37,6 +37,10 @@
 # -e: Memory Limit: Set the Memory Limit percentage that server does not exceed. Default value is 75
 #       If Memory usage is more than this value, server reports highResourceUsage and does not allow publish or play
 #       Example usage: ./start.sh -e 60
+#
+# -f: Stream source fetching: true or false. Default value is true.
+#       Set false on edges that should not pull stream sources, IP cameras and VOD rows in a cluster.
+#       Example usage: ./start.sh -f false
 
 if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
@@ -56,12 +60,13 @@ DB_PASSWORD=
 LICENSE_KEY=
 CPU_LIMIT=
 MEMORY_LIMIT=
+STREAM_SOURCE_FETCH_ENABLED=
 
 # Set the default value for JVM_MEMORY_OPTIONS
 JVM_MEMORY_OPTIONS="-Xms1g"
 
 
-while getopts g:s:r:m:h:u:p:l:a:n:w:k:j:c:e:t option
+while getopts g:s:r:m:h:u:p:l:a:n:w:k:j:c:e:f:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -79,6 +84,7 @@ do
     j) JVM_MEMORY_OPTIONS=${OPTARG};;
     c) CPU_LIMIT=${OPTARG};;
     e) MEMORY_LIMIT=${OPTARG};;
+    f) STREAM_SOURCE_FETCH_ENABLED=${OPTARG};;
    esac
 done
 
@@ -180,6 +186,16 @@ fi
 
 if [ ! -z ${MEMORY_LIMIT} ]; then
   sed -i $SED_COMPATIBILITY 's/server.memory_limit_percentage=.*/server.memory_limit_percentage='$MEMORY_LIMIT'/' $RED5_HOME/conf/red5.properties
+fi
+
+# a conf directory kept from an older version has no such line
+if [ ! -z ${STREAM_SOURCE_FETCH_ENABLED} ]; then
+  if [ $(grep -E "^streamSourceFetchEnabled=" $RED5_HOME/conf/red5.properties | wc -l) -eq "0" ]; then
+    echo "" >> $RED5_HOME/conf/red5.properties #add new line
+    echo "streamSourceFetchEnabled=${STREAM_SOURCE_FETCH_ENABLED}" >> $RED5_HOME/conf/red5.properties
+  else
+    sed -i $SED_COMPATIBILITY 's/^streamSourceFetchEnabled=.*/streamSourceFetchEnabled='$STREAM_SOURCE_FETCH_ENABLED'/' $RED5_HOME/conf/red5.properties
+  fi
 fi
 
 P=":" # The default classpath separator

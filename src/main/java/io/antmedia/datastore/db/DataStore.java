@@ -867,10 +867,17 @@ public abstract class DataStore {
 	public abstract  List<StreamInfo> getStreamInfoList(String streamId);
 
 	/**
-	 * Remove the stream info list from db
+	 * Removes the stream info that any node saved for the stream
 	 * @param streamId
 	 */
 	public abstract  void clearStreamInfoList(String streamId);
+
+	/**
+	 * Removes only the stream info the given node saved for the stream. 
+	 * In new cluster system, it is possible for  a same stream to already be running
+	 * on another node, while this one is also still running. This is done to provide smooth fall-over
+	 */
+	public abstract void clearStreamInfoList(String streamId, String host);
 
 	/**
 	 * Updates the stream fields if it's not null

@@ -1,8 +1,10 @@
 package io.antmedia.streamsource;
 
 import static io.antmedia.streamsource.StreamSourceFixture.HOST;
+import static io.antmedia.streamsource.StreamSourceFixture.aliveNodes;
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
 import static io.antmedia.streamsource.StreamSourceFixture.peek;
+import static io.antmedia.streamsource.StreamSourceFixture.settle;
 import static io.antmedia.streamsource.StreamSourceFixture.tick;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
@@ -184,6 +187,53 @@ class StreamFetcherManagerTest {
 		assertEquals("Server is shutting down", lateResult.getMessage());
 		assertTrue(closing.getStreamFetcherList().isEmpty());
 		assertNull(late.getFetcherNode());
+	}
+
+	@Test
+	void anOptOutNodeRefusesClaimsWhileAnOriginIsAliveAndLetsGoOfWhatItHolds() {
+		//an edge with streamSourceFetchEnabled=false next to an origin, whose lower address makes it the leader
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, OTHER_NODE);
+		ScriptedManager edge = fixture.newManager();
+
+		Broadcast source = fixture.row("source", "fake://source");
+		Result refused = edge.claimAndStart("source", null, true);
+		assertEquals(StreamFetcherManager.START_REFUSED, refused.getErrorId(), "nothing was touched, so the origin may take it");
+		assertEquals("Stream source fetching is disabled on this node", refused.getMessage());
+		assertNull(source.getFetcherNode());
+		assertTrue(edge.fetchers.isEmpty());
+
+		//held from before a restart: let go for the leader to place on the origin, still wanted
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		Broadcast held = heldRow("held");
+		edge.getCoordinator().tick();
+		settle(edge.context());
+		assertNull(held.getFetcherNode());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, held.getFetcherDesiredAction());
+		assertTrue(edge.fetchers.isEmpty());
+
+		//no origin is alive anymore, so the edge takes it as the last resort
+		aliveNodes(cluster, HOST);
+		assertTrue(edge.claimAndStart("source", null, true).isSuccess());
+		assertEquals(HOST, source.getFetcherNode());
+	}
+
+	@Test
+	void aStandaloneServerFetchesWithTheSettingOff() {
+		//nobody else could ever take it, so a standalone server set like an edge still fetches
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+
+		Broadcast source = fixture.row("source", "fake://source");
+		assertTrue(manager.startStreaming(source).isSuccess());
+		assertEquals(HOST, source.getFetcherNode());
+
+		//and its own tick neither lets go of it nor tries to hand it over
+		ScriptedFetcher running = manager.fetchers.get(0);
+		manager.getCoordinator().tick();
+		settle(context);
+		assertSame(running, manager.getStreamFetcher("source"));
+		assertEquals(HOST, source.getFetcherNode());
+		assertEquals(1, manager.fetchers.size());
 	}
 
 	@Test

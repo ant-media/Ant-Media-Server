@@ -1435,6 +1435,16 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public void clearStreamInfoList(String streamId, String host) {
+		long startTime = System.nanoTime();
+		synchronized(broadcastLock) {
+			datastore.find(StreamInfo.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("host", host))
+					.delete(new DeleteOptions().multi(true));
+		}
+		recordQueryDuration(startTime, "clearStreamInfoListOfHost");
+	}
+
+	@Override
 	public boolean saveToken(Token token) {
 		long startTime = System.nanoTime();
 

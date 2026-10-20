@@ -338,6 +338,7 @@ public class DBStoresUnitTest {
 		testFetcherFields(dataStore);
 		testHeldAndOrphanStreamFetcherSources(dataStore);
 		testCompareAndSetFetcherNode(dataStore);
+		testClearStreamInfoList(dataStore);
 		DataStore otherNode = new MongoStore(mongoUri(), "testdb");
 		testCompareAndSetFetcherNodeAcrossNodes(dataStore, otherNode);
 		testGetUncachedAcrossNodes(dataStore, otherNode);
@@ -420,6 +421,7 @@ public class DBStoresUnitTest {
 		testFetcherFields(dataStore);
 		testHeldAndOrphanStreamFetcherSources(dataStore);
 		testCompareAndSetFetcherNode(dataStore);
+		testClearStreamInfoList(dataStore);
 		DataStore otherNode = new RedisStore(redisUri(), "testdb");
 		testCompareAndSetFetcherNodeAcrossNodes(dataStore, otherNode);
 		testGetUncachedAcrossNodes(dataStore, otherNode);
@@ -832,6 +834,31 @@ public class DBStoresUnitTest {
 				dataStore.getOrphanStreamFetcherSources(List.of()).stream().map(Broadcast::getStreamId).collect(Collectors.toSet()));
 
 		assertEquals(Map.of("10.0.0.1", 2L, "10.0.0.2", 2L), dataStore.getHeldStreamFetcherSourceCounts());
+	}
+
+	public void testClearStreamInfoList(DataStore dataStore) {
+		String moved = "streamInfoMoved";
+		String other = "streamInfoOther";
+		dataStore.clearStreamInfoList(moved);
+		dataStore.clearStreamInfoList(other);
+		for (String[] streamAndHost : new String[][] {{moved, "10.0.0.1"}, {moved, "10.0.0.2"}, {other, "10.0.0.1"}}) {
+			StreamInfo streamInfo = new StreamInfo();
+			streamInfo.setStreamId(streamAndHost[0]);
+			streamInfo.setHost(streamAndHost[1]);
+			dataStore.saveStreamInfo(streamInfo);
+		}
+
+		//the old holder of a stream source that moved takes only its own rows
+		dataStore.clearStreamInfoList(moved, "10.0.0.1");
+		assertEquals(List.of("10.0.0.2"), dataStore.getStreamInfoList(moved).stream().map(StreamInfo::getHost).toList());
+		assertEquals(1, dataStore.getStreamInfoList(other).size());
+
+		//a stream that ends takes every node's rows, of that stream only
+		dataStore.clearStreamInfoList(moved);
+		assertTrue(dataStore.getStreamInfoList(moved).isEmpty());
+		assertEquals(1, dataStore.getStreamInfoList(other).size());
+
+		dataStore.clearStreamInfoList(other);
 	}
 
 	public void testCompareAndSetFetcherNode(DataStore dataStore) {

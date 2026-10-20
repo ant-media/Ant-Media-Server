@@ -751,6 +751,10 @@ public abstract class MapBasedDataStore extends DataStore
 		//used in mongo for cluster mode. useless here.
 	}
 
+	public void clearStreamInfoList(String streamId, String host) {
+		//used in mongo for cluster mode. useless here.
+	}
+
 
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();
