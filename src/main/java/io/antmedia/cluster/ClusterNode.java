@@ -27,6 +27,11 @@ public class ClusterNode implements Serializable {
 
 	private int dbQueryAveargeTimeMs;
 
+	// Heartbeat-reported load: streams ingested on this node and players it serves (WebRTC+HLS+DASH,
+	// origin-to-edge links excluded). Integer so a node that does not report them reads null, not 0.
+	private Integer streams;
+	private Integer viewers;
+
 	// Admin-defined note set from the management panel. Stored independently of the heartbeat
 	// fields (memory/cpu/lastUpdateTime) so periodic node updates never overwrite it.
 	private String note;
@@ -107,6 +112,22 @@ public class ClusterNode implements Serializable {
 	 */
 	public void setDbQueryAveargeTimeMs(int dbQueryAveargeTimeMs) {
 		this.dbQueryAveargeTimeMs = dbQueryAveargeTimeMs;
+	}
+
+	public Integer getStreams() {
+		return streams;
+	}
+
+	public void setStreams(Integer streams) {
+		this.streams = streams;
+	}
+
+	public Integer getViewers() {
+		return viewers;
+	}
+
+	public void setViewers(Integer viewers) {
+		this.viewers = viewers;
 	}
 
 	public String getNote() {

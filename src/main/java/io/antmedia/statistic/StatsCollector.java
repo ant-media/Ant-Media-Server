@@ -1212,6 +1212,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return getWebRTCMetric(IWebRTCAdaptor::getNumberOfTotalViewers);
 	}
 
+	public int getLocalViewers() {
+		return getLocalWebRTCViewers() + getLocalHLSViewers() + getLocalDASHViewers();
+	}
+
 	private int getWebRTCMetric(java.util.function.ToIntFunction<IWebRTCAdaptor> metric) {
 		int count = 0;
 		for (IScope scope : scopes) {
