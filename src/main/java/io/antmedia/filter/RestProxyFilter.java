@@ -32,7 +32,8 @@ import io.antmedia.settings.ServerSettings;
 import jakarta.ws.rs.HttpMethod;
 
 /**
- * This filter forwards incoming requests to the origin node that is responsible for that stream.
+ * This filter forwards incoming requests to the origin node that is responsible for that stream: the fetcher node
+ * of a pulled source (IP camera, stream source, VOD), the origin node of anything else.
  * It adds JWT token for security check
  * 
  * @author mekya
@@ -55,7 +56,13 @@ public class RestProxyFilter extends AbstractFilter {
 
 			if (streamId != null && !streamId.isEmpty())
 			{
-				Broadcast broadcast = getBroadcast(httpRequest, streamId);
+				//past the read cache, the node that fetches a source may have changed a moment ago
+				DataStore dataStore = getDataStore();
+				Broadcast broadcast = dataStore != null ? dataStore.getUncached(streamId) : null;
+				if (broadcast != null) {
+					request.setAttribute(BROADCAST_OBJECT, broadcast);
+				}
+				boolean pulled = broadcast != null && AntMediaApplicationAdapter.isPulledSource(broadcast.getType());
 				boolean subscriberBlockReq = isSubscriberBlockReq(httpRequest.getRequestURI());
 
 				log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
@@ -68,7 +75,6 @@ public class RestProxyFilter extends AbstractFilter {
 						String subscriberId = getSubscriberId(httpRequest.getRequestURI());
 						if(subscriberId != null)
 						{
-							DataStore dataStore = getDataStore();
 							Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
 							
 							if (subscriber != null && !StringUtils.isBlank(subscriber.getRegisteredNodeIp()) 
@@ -92,12 +98,18 @@ public class RestProxyFilter extends AbstractFilter {
 					}
 				}
 				
-				/** 
+				//a pulled source runs on its fetcher node whatever its status says, and a dead one runs nothing
+				else if (pulled && !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getFetcherNode())
+						&& isNodeAlive(broadcast.getFetcherNode()))
+				{
+					forwardRequestToNode(request, response, broadcast.getFetcherNode());
+				}
+				/**
 				 * if broadcast is not null and it's streaming and this node is not destined for this node,
 				 * forward the request to the origin address. This also handles the scenario if the origin server is dead or broadcast stuck
 				 * because AntMediaApplicationAdapter.isStreaming checks the last update time
 				 */
-				else if (broadcast != null && AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())
+				else if (broadcast != null && !pulled && AntMediaApplicationAdapter.isStreaming(broadcast.getStatus())
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())
 						&& isHostRunning(broadcast.getOriginAdress(), getServerSettings().getDefaultHttpPort())) 
 				{
@@ -156,7 +168,17 @@ public class RestProxyFilter extends AbstractFilter {
 	}
 
 
-	public void forwardRequestToNode(ServletRequest request, ServletResponse response, String registeredNodeIp) throws IOException, ServletException 
+	/** Its heartbeat is fresh. Only called in cluster mode. False while the app is stopping, the request is then handled here. */
+	public boolean isNodeAlive(String node) {
+		ApplicationContext context = getAppContext();
+		if (node == null || context == null) {
+			return false;
+		}
+		IClusterNotifier clusterNotifier = (IClusterNotifier) context.getBean(IClusterNotifier.BEAN_NAME);
+		return clusterNotifier.getAliveNodes().stream().anyMatch(alive -> node.equals(alive.getIp()));
+	}
+
+	public void forwardRequestToNode(ServletRequest request, ServletResponse response, String registeredNodeIp) throws IOException, ServletException
 	{
 		//token validity is 5 seconds -> 5000
 		String jwtToken = JWTFilter.generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);

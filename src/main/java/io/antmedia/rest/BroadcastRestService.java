@@ -3,6 +3,7 @@ package io.antmedia.rest;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -94,6 +95,9 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
+	private static final String PREFERRED_FETCHER_NODE_NOT_VALID = "Preferred fetcher node is not valid";
+	//an IPv4 or IPv6 address or a host name, as a node is listed in the cluster
+	private static final Pattern NODE_ADDRESS = Pattern.compile("[a-z0-9.:_-]*", Pattern.CASE_INSENSITIVE);
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
 	private static final String CONTINUOUS_MOVE = "continuous";
@@ -185,6 +189,10 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createBroadcast(@Parameter(description = "Broadcast object. Set the required fields, it may be null as well.", required = false) Broadcast broadcast,
 			@Parameter(description = "Starts IP Camera, Stream Source, or NDI broadcasts immediately when true. For NDI broadcasts, set type to NDI and streamUrl to a discovered NDI source name. Its value is false by default.", required = false) @QueryParam("autoStart") boolean autoStart) {
+
+		if (broadcast != null && !isNodeAddressValid(broadcast.getPreferredFetcherNode())) {
+			return Response.status(Status.BAD_REQUEST).entity(new Result(false, PREFERRED_FETCHER_NODE_NOT_VALID)).build();
+		}
 
 		if (broadcast != null && broadcast.getStreamId() != null) {
 
@@ -401,6 +409,10 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
+	private static boolean isNodeAddressValid(String address) {
+		return address == null || NODE_ADDRESS.matcher(address).matches();
+	}
+
 	@Operation(description = "Updates the Broadcast objects fields if it's not null." + 
 			" The updated fields are as follows: name, description, userName, password, IP address, streamUrl of the broadcast. " + 
 			"It also updates the social endpoints")
@@ -421,6 +433,10 @@ public class BroadcastRestService extends RestServiceBase{
 				String streamId = id.replaceAll(REPLACE_CHARS, "_");
 				logger.info("Broadcast with stream id: {} is null", streamId);
 				return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
+			}
+
+			if (!isNodeAddressValid(broadcast.getPreferredFetcherNode())) {
+				return new Result(false, PREFERRED_FETCHER_NODE_NOT_VALID);
 			}
 
 			if (broadcastInDB.getType() != null && 

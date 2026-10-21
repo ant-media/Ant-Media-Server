@@ -9,10 +9,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -251,6 +254,39 @@ public class InMemoryDataStore extends DataStore {
 			}
 		}
 		return streamsList;
+	}
+
+	@Override
+	public synchronized boolean compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update) {
+		Broadcast broadcast = broadcastMap.get(streamId);
+		if (broadcast == null || !Objects.equals(expectedFetcherNode, broadcast.getFetcherNode())
+				|| (onlyIfDesiredStart && !Broadcast.FETCHER_DESIRED_ACTION_START.equals(broadcast.getFetcherDesiredAction()))) {
+			return false;
+		}
+		broadcast.setFetcherNode(newFetcherNode);
+		updateStreamInfo(broadcast, update);
+		return true;
+	}
+
+	@Override
+	public synchronized List<Broadcast> getHeldStreamFetcherSources(String fetcherNode) {
+		return broadcastMap.values().stream().filter(broadcast -> fetcherNode.equals(broadcast.getFetcherNode())).toList();
+	}
+
+	@Override
+	public synchronized List<Broadcast> getOrphanStreamFetcherSources(Collection<String> aliveNodes) {
+		return broadcastMap.values().stream()
+				.filter(broadcast -> Broadcast.FETCHER_DESIRED_ACTION_START.equals(broadcast.getFetcherDesiredAction())
+						&& (broadcast.getFetcherNode() == null || !aliveNodes.contains(broadcast.getFetcherNode())))
+				.toList();
+	}
+
+	@Override
+	public synchronized Map<String, Long> getHeldStreamFetcherSourceCounts() {
+		return broadcastMap.values().stream()
+				.map(Broadcast::getFetcherNode)
+				.filter(Objects::nonNull)
+				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 	}
 
 	@Override
@@ -835,6 +871,10 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	public void clearStreamInfoList(String streamId) {
+		//used in mongo for cluster mode. useless here.
+	}
+
+	public void clearStreamInfoList(String streamId, String host) {
 		//used in mongo for cluster mode. useless here.
 	}
 

@@ -95,6 +95,11 @@ public abstract class DataStore {
 	 */
 	public abstract Broadcast get(String id);
 
+	/** {@link #get} past any read cache, for a decision a write of another node may have changed a moment ago. */
+	public Broadcast getUncached(String id) {
+		return get(id);
+	}
+
 	public Broadcast get(Map<String, String> broadcastMap, String streamId, Gson gson) {
 		long startTime = System.nanoTime();
 
@@ -209,6 +214,30 @@ public abstract class DataStore {
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 
 	public abstract List<Broadcast> getExternalStreamsList();
+
+	/**
+	 * The one write that changes which node fetches a stream source. In a single atomic write it sets fetcherNode to
+	 * newFetcherNode and applies update, but only if the row's fetcherNode is still expectedFetcherNode and, when
+	 * onlyIfDesiredStart, its fetcherDesiredAction is still start. Null on either node means no node.
+	 * <ul>
+	 * <li>claim: expected is the value just read (null or a dead node), new is this node</li>
+	 * <li>release: expected is this node, new is null</li>
+	 * <li>a holder's own write: expected and new are both this node, so it is refused once another node took over</li>
+	 * </ul>
+	 * Atomic across every node sharing this database: of two nodes claiming one row, exactly one gets true.
+	 *
+	 * @return false when the row is gone or no longer matches, and then nothing is written
+	 */
+	public abstract boolean compareAndSetFetcherNode(String streamId, @Nullable String expectedFetcherNode, @Nullable String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update);
+
+	/** Stream fetcher sources whose fetcherNode is the given node. */
+	public abstract List<Broadcast> getHeldStreamFetcherSources(String fetcherNode);
+
+	/** Stream fetcher sources whose desired action is start and whose fetcherNode is not one of aliveNodes, or none. */
+	public abstract List<Broadcast> getOrphanStreamFetcherSources(Collection<String> aliveNodes);
+
+	/** How many stream fetcher sources each node holds. A node that holds none is not in the map. */
+	public abstract Map<String, Long> getHeldStreamFetcherSourceCounts();
 
 	/**
 	 * Closes the database
@@ -838,10 +867,17 @@ public abstract class DataStore {
 	public abstract  List<StreamInfo> getStreamInfoList(String streamId);
 
 	/**
-	 * Remove the stream info list from db
+	 * Removes the stream info that any node saved for the stream
 	 * @param streamId
 	 */
 	public abstract  void clearStreamInfoList(String streamId);
+
+	/**
+	 * Removes only the stream info the given node saved for the stream. 
+	 * In new cluster system, it is possible for  a same stream to already be running
+	 * on another node, while this one is also still running. This is done to provide smooth fall-over
+	 */
+	public abstract void clearStreamInfoList(String streamId, String host);
 
 	/**
 	 * Updates the stream fields if it's not null
@@ -1069,6 +1105,18 @@ public abstract class DataStore {
 			broadcast.setMaxIdleTime(newBroadcast.getMaxIdleTime());
 		}
 		
+		if (newBroadcast.getFetcherDesiredAction() != null) {
+			broadcast.setFetcherDesiredAction(newBroadcast.getFetcherDesiredAction());
+		}
+
+		if (newBroadcast.getFetcherFailures() != null) {
+			broadcast.setFetcherFailures(newBroadcast.getFetcherFailures());
+		}
+
+		if (newBroadcast.getPreferredFetcherNode() != null) {
+			broadcast.setPreferredFetcherNode(newBroadcast.getPreferredFetcherNode());
+		}
+
 		
 	}
 

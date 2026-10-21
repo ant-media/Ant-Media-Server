@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -20,14 +22,21 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.EncoderSettings;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
 
 
 @Schema(description="The basic broadcast class")
 @Entity(value = "broadcast")
 @Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), 
 	@Index(fields = @Field("streamId"), options = @IndexOptions(unique = true, name="streamId_unique_index")), 
-	@Index(fields = @Field("status")) })
+	@Index(fields = @Field("status")),
+	@Index(fields = @Field("originAdress")),
+	@Index(fields = @Field("fetcherNode")) })
 public class Broadcast {
+
+	public static final String FETCHER_DESIRED_ACTION_START = "start";
+	public static final String FETCHER_DESIRED_ACTION_STOP = "stop";
 
 	@JsonIgnore
 	@Id
@@ -193,6 +202,41 @@ public class Broadcast {
 	private String originAdress;
 
 	/**
+	 * What the user wants for a pulled source. Only user actions write it, a crash, a shutdown or a failed attempt
+	 * never does. See {@link #getFetcherDesiredAction()} for rows saved before it existed.
+	 */
+	@Schema(description = "What the user wants for a stream source or IP camera, set by the server", allowableValues = {FETCHER_DESIRED_ACTION_START, FETCHER_DESIRED_ACTION_STOP})
+	@JsonProperty(access = Access.READ_ONLY)
+	@Setter
+	private String fetcherDesiredAction;
+
+	/**
+	 * The one node allowed to fetch this source, null when no node holds it. Only that node writes itself here.
+	 */
+	@Schema(description = "The node that fetches this stream source or IP camera, set by the server")
+	@JsonProperty(access = Access.READ_ONLY)
+	@Getter
+	@Setter
+	private String fetcherNode;
+
+	/**
+	 * Set by the user. While this node is alive and able to fetch, every start of the source goes to it alone.
+	 * Blank means none.
+	 */
+	@Schema(description = "Address of the cluster node that fetches this stream source or IP camera, as in the cluster node list. "
+			+ "While that node is alive every start goes to it, also when it is full or fails; another node takes the source only while it is dead. "
+			+ "A source that already runs elsewhere is not moved. Empty for no preference")
+	@Getter
+	@Setter
+	private String preferredFetcherNode;
+
+	@Schema(description = "Consecutive failed fetch attempts of this stream source or IP camera on any node, set by the server")
+	@JsonProperty(access = Access.READ_ONLY)
+	@Getter
+	@Setter
+	private int fetcherFailures;
+
+	/**
 	 * Mp4 muxing is enabled or not for the stream
 	 * 1 means enabled, -1 means disabled, 0 means no settings for the stream
 	 */
@@ -273,6 +317,10 @@ public class Broadcast {
 	@Schema(description ="the number of RTMP viewers of the stream")
 	private int rtmpViewerCount = 0;
 
+	/**
+	 * The last time this stream started, for every stream type: each publish start and each fetch attempt of a pulled
+	 * source write it again.
+	 */
 	@Schema(description ="Publishing start time of the stream in unixtimestamp milliseconds")
 	private long startTime = 0;
 
@@ -813,6 +861,19 @@ public class Broadcast {
 	public void setOriginAdress(String originAdress) {
 		this.originAdress = originAdress;
 	}
+
+	/**
+	 * Rows saved before this field existed keep what boot resume always did: stream sources and IP cameras that
+	 * are not on demand start, everything else does not.
+	 */
+	public String getFetcherDesiredAction() {
+		if (fetcherDesiredAction != null) {
+			return fetcherDesiredAction;
+		}
+		boolean pulled = AntMediaApplicationAdapter.IP_CAMERA.equals(type) || AntMediaApplicationAdapter.STREAM_SOURCE.equals(type);
+		return pulled && !autoStartStopEnabled ? FETCHER_DESIRED_ACTION_START : FETCHER_DESIRED_ACTION_STOP;
+	}
+
 	public int getMp4Enabled() {
 		return mp4Enabled;
 	}
