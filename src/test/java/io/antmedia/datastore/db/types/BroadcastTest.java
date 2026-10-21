@@ -57,6 +57,25 @@ class BroadcastTest extends UnitTestBase<Broadcast> {
 		assertThat(whole.getFetcherFailures()).isNull();
 	}
 
+	@Test
+	void restWritesThePreferredFetcherNode() throws Exception {
+		ObjectMapper mapper = new ObjectMapper();
+
+		assertThat(mapper.readValue("{\"streamId\":\"s1\",\"preferredFetcherNode\":\"10.0.0.1\"}", Broadcast.class).getPreferredFetcherNode()).isEqualTo("10.0.0.1");
+		//a body without it, as every client sent before the field existed
+		assertThat(mapper.readValue("{\"streamId\":\"s1\"}", Broadcast.class).getPreferredFetcherNode()).isNull();
+
+		//on an update, missing or null leaves it as it is, empty clears it
+		assertThat(mapper.readValue("{\"name\":\"n\"}", BroadcastUpdate.class).getPreferredFetcherNode()).isNull();
+		assertThat(mapper.readValue("{\"preferredFetcherNode\":null}", BroadcastUpdate.class).getPreferredFetcherNode()).isNull();
+		assertThat(mapper.readValue("{\"preferredFetcherNode\":\"\"}", BroadcastUpdate.class).getPreferredFetcherNode()).isEmpty();
+
+		//a client that sends back the whole broadcast it read keeps it as it was
+		Broadcast read = new Broadcast();
+		read.setPreferredFetcherNode("10.0.0.1");
+		assertThat(mapper.readValue(new Gson().toJson(read), BroadcastUpdate.class).getPreferredFetcherNode()).isEqualTo("10.0.0.1");
+	}
+
 	private static Broadcast broadcastOf(String type, boolean autoStartStopEnabled) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setType(type);

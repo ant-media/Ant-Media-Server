@@ -11,8 +11,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,6 +54,9 @@ import io.vertx.core.Vertx;
  *
  * Nodes with streamSourceFetchEnabled off (edges) take a source only while no node with it on is alive, and hand
  * it over once one with room is.
+ *
+ * A source with a preferredFetcherNode that is alive and able to fetch starts there and nowhere else, it only fails
+ * over while that node is dead. A source that already runs on another node is not moved to it.
  */
 public class StreamSourceCoordinator {
 
@@ -183,23 +188,24 @@ public class StreamSourceCoordinator {
 			return;
 		}
 
-		String host = manager.getHost();
-		List<String> running = held.stream().map(Broadcast::getStreamId).filter(id -> manager.getStreamFetcher(id) != null).toList();
+		List<Broadcast> running = held.stream().filter(row -> manager.getStreamFetcher(row.getStreamId()) != null).toList();
 		if (running.isEmpty()) {
 			return;
 		}
 
 		Map<String, ClusterNode> mayFetch = nodesThatMayFetch(aliveNodes());
-		if (mayFetch.containsKey(host) || mayFetch.values().stream().allMatch(this::isFull)) {
+		if (mayFetch.containsKey(manager.getHost()) || mayFetch.values().stream().allMatch(this::isFull)) {
 			return;
 		}
 
-		for (String streamId : running) {
-			logger.info("Handing streamId:{} over to a node that fetches stream sources", streamId);
-			if (placeAndStart(streamId, host, false).getErrorId() == StreamFetcherManager.START_REFUSED) {
-				//nobody took it, the rest would fare no better this tick
+		//a node that refused is not asked again this tick, so a starting origin costs one call
+		Set<String> refused = new HashSet<>();
+		for (Broadcast row : running) {
+			if (refused.containsAll(mayFetch.keySet())) {
 				return;
 			}
+			logger.info("Handing streamId:{} over to a node that fetches stream sources", row.getStreamId());
+			placeAndStart(row, false, refused);
 		}
 	}
 
@@ -224,14 +230,16 @@ public class StreamSourceCoordinator {
 			return;
 		}
 
-		//picked once from every alive node: an origin that refuses below must not let the edges in
+		//picked once from every alive node: an origin that refuses below must not let the edges in, nor a preferred
+		//node that refuses let another node take its sources
 		Map<String, ClusterNode> mayFetch = nodesThatMayFetch(alive);
+		Set<String> refused = new HashSet<>();
 		Map<String, Long> held = new HashMap<>(manager.getDatastore().getHeldStreamFetcherSourceCounts());
 		while (!pending.isEmpty() && !manager.isServerShuttingDown()) {
 			List<Placement> placements = new ArrayList<>();
 			while (placements.size() < MAX_PLACEMENTS_IN_FLIGHT && !pending.isEmpty()) {
 				Broadcast row = pending.poll();
-				List<String> candidates = candidates(row.getFetcherNode(), mayFetch, held);
+				List<String> candidates = candidates(row, mayFetch, held, refused);
 				if (candidates.isEmpty()) {
 					logger.warn("No node can take streamId:{} now", row.getStreamId());
 					continue;
@@ -248,7 +256,7 @@ public class StreamSourceCoordinator {
 				if (result.getErrorId() == StreamFetcherManager.START_REFUSED) {
 					logger.info("Node:{} did not take streamId:{}, it is skipped until the next tick: {}", placement.node(), placement.row().getStreamId(), result.getMessage());
 					held.merge(placement.node(), -1L, Long::sum);
-					mayFetch.remove(placement.node());
+					refused.add(placement.node());
 					pending.add(placement.row());
 				}
 			}
@@ -259,20 +267,27 @@ public class StreamSourceCoordinator {
 	private record Placement(Broadcast row, String node, CompletableFuture<Result> result) { }
 
 	/**
-	 * Starts the source on its holder while that node is alive and may fetch, otherwise on the best node, moving on
-	 * while a node refuses or does not answer. Stops at any other answer: a node took it, a node claimed it but
-	 * could not start it, or the claim was lost because the row changed.
+	 * Starts the source on the first of its candidates that takes it, moving on while a node refuses or does not
+	 * answer. Stops at any other answer: a node took it, a node claimed it but could not start it, or the claim was
+	 * lost because the row changed since it was read.
 	 */
-	Result placeAndStart(String streamId, @Nullable String expectedFetcherNode, boolean userStart) {
+	Result placeAndStart(Broadcast row, boolean userStart) {
+		return placeAndStart(row, userStart, new HashSet<>());
+	}
+
+	/** @param refused the nodes that refused this tick, they are not asked, and every node that refuses here is added */
+	private Result placeAndStart(Broadcast row, boolean userStart, Set<String> refused) {
+		String streamId = row.getStreamId();
 		Result result = new Result(false, streamId, "No node can take the stream now");
 		result.setErrorId(StreamFetcherManager.START_REFUSED);
 
-		for (String node : candidates(expectedFetcherNode, nodesThatMayFetch(aliveNodes()), manager.getDatastore().getHeldStreamFetcherSourceCounts())) {
-			result = claimAndStartOn(node, streamId, expectedFetcherNode, userStart);
+		for (String node : candidates(row, nodesThatMayFetch(aliveNodes()), manager.getDatastore().getHeldStreamFetcherSourceCounts(), refused)) {
+			result = claimAndStartOn(node, streamId, row.getFetcherNode(), userStart);
 			if (result.getErrorId() != StreamFetcherManager.START_REFUSED) {
 				return result;
 			}
 			logger.info("Node:{} did not take streamId:{} {}", node, streamId, result.getMessage());
+			refused.add(node);
 		}
 
 		logger.warn("No node could take streamId:{} {}", streamId, result.getMessage());
@@ -280,18 +295,20 @@ public class StreamSourceCoordinator {
 	}
 
 	/**
-	 * The holder while it may fetch. Otherwise the nodes that may fetch and have room, by: fewest held sources,
-	 * then this node, then the lower address. An alive holder that may not fetch (an edge while an origin is
-	 * alive) loses the source to the one that claims it, its own tick then stops it.
+	 * The holder while it may fetch, else the preferred node while it may fetch, alone even when full, and none once
+	 * it refused. Otherwise the nodes that may fetch, have room and did not refuse, by: fewest held sources, then this
+	 * node, then the lower address. An alive holder that may not fetch (an edge while an origin is alive) loses the
+	 * source to the one that claims it, its own tick then stops it.
 	 **/
-	private List<String> candidates(@Nullable String expectedFetcherNode, Map<String, ClusterNode> mayFetch, Map<String, Long> held) {
-		if (mayFetch.containsKey(expectedFetcherNode)) {
-			return List.of(expectedFetcherNode);
+	private List<String> candidates(Broadcast row, Map<String, ClusterNode> mayFetch, Map<String, Long> held, Set<String> refused) {
+		String pinned = mayFetch.containsKey(row.getFetcherNode()) ? row.getFetcherNode() : row.getPreferredFetcherNode();
+		if (mayFetch.containsKey(pinned)) {
+			return refused.contains(pinned) ? List.of() : List.of(pinned);
 		}
 
 		String host = manager.getHost();
 		return mayFetch.values().stream()
-				.filter(node -> !isFull(node))
+				.filter(node -> !isFull(node) && !refused.contains(node.getIp()))
 				.map(ClusterNode::getIp)
 				.sorted(Comparator.<String>comparingLong(ip -> held.getOrDefault(ip, 0L))
 						.thenComparing(ip -> !host.equals(ip))

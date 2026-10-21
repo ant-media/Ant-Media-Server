@@ -612,6 +612,60 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 	}
 
+	@Test
+	public void testPreferredFetcherNode() {
+		restServiceReal.setAppSettings(new AppSettings());
+		restServiceReal.setServerSettings(mock(ServerSettings.class));
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("scope");
+		restServiceReal.setScope(scope);
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+
+		//a client that does not know the field, or sends it empty, creates as before
+		Broadcast without = (Broadcast) restServiceReal.createBroadcast(new Broadcast(null, "without"), false).getEntity();
+		assertNull(store.get(without.getStreamId()).getPreferredFetcherNode());
+		Broadcast empty = new Broadcast(null, "empty");
+		empty.setPreferredFetcherNode("");
+		assertEquals("", store.get(((Broadcast) restServiceReal.createBroadcast(empty, false).getEntity()).getStreamId()).getPreferredFetcherNode());
+
+		Broadcast pinned = new Broadcast(null, "pinned");
+		pinned.setPreferredFetcherNode("10.0.0.5");
+		String streamId = ((Broadcast) restServiceReal.createBroadcast(pinned, false).getEntity()).getStreamId();
+		assertEquals("10.0.0.5", store.get(streamId).getPreferredFetcherNode());
+
+		//anything but an address is refused before anything is saved
+		Broadcast invalid = new Broadcast(null, "invalid");
+		invalid.setPreferredFetcherNode("10.0.0.5\nforged log line");
+		long saved = store.getTotalBroadcastNumber();
+		Response refused = restServiceReal.createBroadcast(invalid, false);
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), refused.getStatus());
+		assertEquals(saved, store.getTotalBroadcastNumber());
+
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setPreferredFetcherNode("10.0.0.6 ");
+		assertFalse(restServiceReal.updateBroadcast(streamId, update).isSuccess());
+		assertEquals("10.0.0.5", store.get(streamId).getPreferredFetcherNode());
+
+		update.setPreferredFetcherNode("fd00::6");
+		assertTrue(restServiceReal.updateBroadcast(streamId, update).isSuccess());
+		assertEquals("fd00::6", store.get(streamId).getPreferredFetcherNode());
+
+		update.setPreferredFetcherNode("10.0.0.6");
+		assertTrue(restServiceReal.updateBroadcast(streamId, update).isSuccess());
+		assertEquals("10.0.0.6", store.get(streamId).getPreferredFetcherNode());
+
+		//an update without it keeps it, an empty one clears it
+		BroadcastUpdate rename = new BroadcastUpdate();
+		rename.setName("renamed");
+		assertTrue(restServiceReal.updateBroadcast(streamId, rename).isSuccess());
+		assertEquals("10.0.0.6", store.get(streamId).getPreferredFetcherNode());
+		BroadcastUpdate clear = new BroadcastUpdate();
+		clear.setPreferredFetcherNode("");
+		assertTrue(restServiceReal.updateBroadcast(streamId, clear).isSuccess());
+		assertEquals("", store.get(streamId).getPreferredFetcherNode());
+	}
+
 	private static Broadcast streamWithId(String id) throws Exception {
 		Broadcast b = new Broadcast();
 		b.setStreamId(id);

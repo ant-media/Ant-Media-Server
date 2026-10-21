@@ -136,10 +136,11 @@ public class StreamFetcherManager implements StreamFetcher.StateListener {
 
 	/**
 	 * A user start: the REST start and create, and a viewer of an on-demand source. Runs on the alive node that
-	 * holds the source while that node may fetch, otherwise on the best node, and resets its failure count.
+	 * holds the source while that node may fetch, else on its alive preferred node, otherwise on the best node, and
+	 * resets its failure count.
 	 */
 	public Result startStreaming(@Nonnull Broadcast broadcast) {
-		return coordinator.placeAndStart(broadcast.getStreamId(), broadcast.getFetcherNode(), true);
+		return coordinator.placeAndStart(broadcast, true);
 	}
 
 	/**

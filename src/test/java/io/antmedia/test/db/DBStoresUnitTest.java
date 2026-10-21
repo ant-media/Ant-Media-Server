@@ -149,6 +149,7 @@ public class DBStoresUnitTest {
 
 		testBugGetExternalStreamsList(dataStore);
 		testFetcherFields(dataStore);
+		testPreferredFetcherNode(dataStore);
 		testHeldAndOrphanStreamFetcherSources(dataStore);
 		testCompareAndSetFetcherNode(dataStore);
 		testGetPagination(dataStore);
@@ -251,6 +252,7 @@ public class DBStoresUnitTest {
 		testUnexpectedVodOffset(dataStore);
 		testBugGetExternalStreamsList(dataStore);
 		testFetcherFields(dataStore);
+		testPreferredFetcherNode(dataStore);
 		testHeldAndOrphanStreamFetcherSources(dataStore);
 		testCompareAndSetFetcherNode(dataStore);
 		testGetPagination(dataStore);
@@ -341,6 +343,7 @@ public class DBStoresUnitTest {
 		testUnexpectedVodOffset(dataStore);		
 		testBugGetExternalStreamsList(dataStore);
 		testFetcherFields(dataStore);
+		testPreferredFetcherNode(dataStore);
 		testHeldAndOrphanStreamFetcherSources(dataStore);
 		testCompareAndSetFetcherNode(dataStore);
 		testClearStreamInfoList(dataStore);
@@ -426,6 +429,7 @@ public class DBStoresUnitTest {
 		testUnexpectedVodOffset(dataStore);		
 		testBugGetExternalStreamsList(dataStore);
 		testFetcherFields(dataStore);
+		testPreferredFetcherNode(dataStore);
 		testHeldAndOrphanStreamFetcherSources(dataStore);
 		testCompareAndSetFetcherNode(dataStore);
 		testClearStreamInfoList(dataStore);
@@ -816,6 +820,31 @@ public class DBStoresUnitTest {
 		read = dataStore.get(older);
 		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, read.getFetcherDesiredAction());
 		assertEquals(4, read.getFetcherFailures());
+	}
+
+	public void testPreferredFetcherNode(DataStore dataStore) {
+		Broadcast source = streamFetcherSource(AntMediaApplicationAdapter.STREAM_SOURCE, null, null);
+		source.setPreferredFetcherNode("10.0.0.1");
+		String streamId = dataStore.save(source);
+		assertEquals("10.0.0.1", dataStore.get(streamId).getPreferredFetcherNode());
+
+		//an update without it leaves it as it is
+		BroadcastUpdate rename = new BroadcastUpdate();
+		rename.setName("renamed");
+		assertTrue(dataStore.updateBroadcastFields(streamId, rename));
+		assertEquals("10.0.0.1", dataStore.get(streamId).getPreferredFetcherNode());
+
+		BroadcastUpdate change = new BroadcastUpdate();
+		change.setPreferredFetcherNode("10.0.0.2");
+		assertTrue(dataStore.updateBroadcastFields(streamId, change));
+		assertEquals("10.0.0.2", dataStore.get(streamId).getPreferredFetcherNode());
+
+		BroadcastUpdate clear = new BroadcastUpdate();
+		clear.setPreferredFetcherNode("");
+		assertTrue(dataStore.updateBroadcastFields(streamId, clear));
+		assertEquals("", dataStore.get(streamId).getPreferredFetcherNode());
+
+		assertTrue(dataStore.delete(streamId));
 	}
 
 	public void testHeldAndOrphanStreamFetcherSources(DataStore dataStore) {
