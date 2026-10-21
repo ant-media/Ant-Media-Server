@@ -219,6 +219,17 @@ public class Broadcast {
 	@Setter
 	private String fetcherNode;
 
+	/**
+	 * Set by the user. While this node is alive and able to fetch, every start of the source goes to it alone.
+	 * Blank means none.
+	 */
+	@Schema(description = "Address of the cluster node that fetches this stream source or IP camera, as in the cluster node list. "
+			+ "While that node is alive every start goes to it, also when it is full or fails; another node takes the source only while it is dead. "
+			+ "A source that already runs elsewhere is not moved. Empty for no preference")
+	@Getter
+	@Setter
+	private String preferredFetcherNode;
+
 	@Schema(description = "Consecutive failed fetch attempts of this stream source or IP camera on any node, set by the server")
 	@JsonProperty(access = Access.READ_ONLY)
 	@Getter

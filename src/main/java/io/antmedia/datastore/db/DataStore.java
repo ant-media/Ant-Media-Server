@@ -1113,6 +1113,10 @@ public abstract class DataStore {
 			broadcast.setFetcherFailures(newBroadcast.getFetcherFailures());
 		}
 
+		if (newBroadcast.getPreferredFetcherNode() != null) {
+			broadcast.setPreferredFetcherNode(newBroadcast.getPreferredFetcherNode());
+		}
+
 		
 	}
 

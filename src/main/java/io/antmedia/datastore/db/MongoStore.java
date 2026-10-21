@@ -1209,6 +1209,10 @@ public class MongoStore extends DataStore {
 			updates.add(set("fetcherFailures", broadcast.getFetcherFailures()));
 		}
 
+		if (broadcast.getPreferredFetcherNode() != null) {
+			updates.add(set("preferredFetcherNode", broadcast.getPreferredFetcherNode()));
+		}
+
 		prepareFields(broadcast, updates);
 		return updates;
 	}

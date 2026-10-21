@@ -178,6 +178,11 @@ public class BroadcastUpdate {
     @Setter
     private Integer fetcherFailures = null;
 
+    //null leaves it as it is, empty clears it
+    @Getter
+    @Setter
+    private String preferredFetcherNode = null;
+
 	public String getStreamId() {
 		return streamId;
 	}

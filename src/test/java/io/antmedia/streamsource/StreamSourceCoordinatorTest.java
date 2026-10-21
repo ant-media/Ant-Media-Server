@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -508,6 +509,112 @@ class StreamSourceCoordinatorTest {
 		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, row.getStatus(), "no end write over the leader's row");
 		assertNotNull(leader.getStreamFetcher("cam"));
 		assertTrue(claims.isEmpty());
+	}
+
+	@Test
+	void aSourceStartsOnlyOnItsPreferredNodeWhileThatNodeIsAlive() {
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER, OTHER_PEER);
+		ScriptedManager node = fixture.newManager();
+		//by the usual order this node would go first and PEER, holding the most, last
+		row("a", PEER);
+		row("b", PEER);
+
+		Broadcast pinned = fixture.row("pinned", "fake://pinned");
+		pinned.setPreferredFetcherNode(PEER);
+		assertTrue(node.startStreaming(pinned).isSuccess());
+		assertEquals(PEER, pinned.getFetcherNode());
+
+		//full by its heartbeat and refusing: it is still the only node asked, and the start answers its refusal
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, null), load(PEER, "90", "1000/8000"), heartbeat(OTHER_PEER, null)));
+		Result full = new Result(false, "second", "Not enough resource on server to start streaming.");
+		full.setErrorId(StreamFetcherManager.START_REFUSED);
+		answers.put(PEER, full);
+		Broadcast second = fixture.row("second", "fake://second");
+		second.setPreferredFetcherNode(PEER);
+		claims.clear();
+		Result refused = node.startStreaming(second);
+		assertEquals(StreamFetcherManager.START_REFUSED, refused.getErrorId());
+		assertEquals("Not enough resource on server to start streaming.", refused.getMessage());
+		assertEquals(List.of(PEER), claims.stream().map(Claim::node).toList());
+		assertNull(second.getFetcherNode());
+
+		//the leader does not give its sources to another node either, they wait for it
+		Broadcast orphan = row("orphan", DEAD);
+		orphan.setPreferredFetcherNode(PEER);
+		claims.clear();
+		tick(node);
+		assertEquals(Set.of("second", "orphan"), claims.stream().map(Claim::streamId).collect(Collectors.toSet()));
+		assertTrue(claims.stream().allMatch(claim -> PEER.equals(claim.node())), "asked once each this tick, nobody else");
+		assertEquals(DEAD, orphan.getFetcherNode());
+		assertNull(second.getFetcherNode());
+		assertTrue(node.getStreamFetcherList().isEmpty());
+	}
+
+	@Test
+	void aSourceFailsOverFromItsPreferredNodeOnlyWhileItIsDead() {
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER);
+		ScriptedManager node = fixture.newManager();
+
+		//its preferred node went down while running it: the leader starts it on another node
+		Broadcast failedOver = row("failed-over", PEER);
+		failedOver.setPreferredFetcherNode(PEER);
+		aliveNodes(cluster, HOST);
+		tick(node);
+		assertEquals(HOST, failedOver.getFetcherNode());
+
+		//back again, it does not take over what runs elsewhere now, a start goes to where it runs
+		aliveNodes(cluster, HOST, PEER);
+		tick(node);
+		assertFalse(node.startStreaming(failedOver).isSuccess(), "already active here");
+		assertEquals(HOST, failedOver.getFetcherNode());
+		assertTrue(claims.isEmpty());
+
+		//an address no alive node has, or an empty one, is no preference: the usual order
+		Broadcast unknown = fixture.row("unknown", "fake://unknown");
+		unknown.setPreferredFetcherNode(DEAD);
+		assertTrue(node.startStreaming(unknown).isSuccess());
+		assertEquals(PEER, unknown.getFetcherNode());
+		Broadcast empty = fixture.row("empty", "fake://empty");
+		empty.setPreferredFetcherNode("");
+		assertTrue(node.startStreaming(empty).isSuccess());
+		assertEquals(HOST, empty.getFetcherNode());
+
+		//a preferred node that does not fetch is passed over while one that does is alive
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, null), heartbeat(PEER, false)));
+		Broadcast onAnEdge = fixture.row("on-an-edge", "fake://on-an-edge");
+		onAnEdge.setPreferredFetcherNode(PEER);
+		claims.clear();
+		assertTrue(node.startStreaming(onAnEdge).isSuccess());
+		assertEquals(HOST, onAnEdge.getFetcherNode());
+		assertTrue(claims.isEmpty());
+	}
+
+	@Test
+	void aSourcePinnedToARefusingOriginDoesNotHoldBackTheHandBackOfTheOthers() {
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER, OTHER_PEER);
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, false)));
+		ScriptedManager edge = fixture.newManager();
+
+		//both origins were dead, so this edge runs both as the last resort
+		Broadcast pinned = fixture.row("pinned", "fake://pinned");
+		pinned.setPreferredFetcherNode(PEER);
+		assertTrue(edge.startStreaming(pinned).isSuccess());
+		Broadcast free = fixture.row("free", "fake://free");
+		assertTrue(edge.startStreaming(free).isSuccess());
+
+		//back, but the preferred origin of the first one refuses: whichever is offered first, the other one still
+		//moves, to the origin that takes it, and the refusing one is asked once
+		Result full = new Result(false, "pinned", "Not enough resource on server to start streaming.");
+		full.setErrorId(StreamFetcherManager.START_REFUSED);
+		answers.put(PEER, full);
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, false), heartbeat(PEER, null), heartbeat(OTHER_PEER, null)));
+		tick(edge);
+		assertEquals(OTHER_PEER, free.getFetcherNode());
+		assertEquals(HOST, pinned.getFetcherNode(), "it keeps running here until its origin takes it");
+		assertEquals(1, claims.stream().filter(claim -> PEER.equals(claim.node())).count());
 	}
 
 	@Test
