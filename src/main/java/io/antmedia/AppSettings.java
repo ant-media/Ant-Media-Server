@@ -1024,6 +1024,14 @@ public class AppSettings implements Serializable {
 	@Value("${dataChannelEnabled:true}")
 	private boolean dataChannelEnabled = true;
 
+	/**
+	 * Enable/Disable system-generated data channel messages such as track assignments,
+	 * audio levels, participant role updates and player lifecycle events.
+	 * Application messages sent by publishers, players or the REST API are not affected.
+	 */
+	@Value("${systemDataChannelMessagesEnabled:true}")
+	private boolean systemDataChannelMessagesEnabled = true;
+
 
 	/**
 	 * Defines the distribution list for player messages
