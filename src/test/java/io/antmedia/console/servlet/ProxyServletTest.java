@@ -92,6 +92,13 @@ class ProxyServletTest extends UnitTestBase<ProxyServlet> {
 	}
 
 	@Test
+	void shouldNotTouchHeaderWhenSecretBlank() {
+		appSettings.setJwtSecretKey("");
+
+		assertThat(forwardedAuthorization()).isEqualTo(BROWSER_TOKEN);
+	}
+
+	@Test
 	void shouldNotTouchHeaderWhenAppNotFound() {
 		request.setParameter(AuthenticationFilter.DISPATCH_PATH_URL, "unknown/rest/v2/broadcasts/count");
 

@@ -44,7 +44,8 @@ public class ProxyServlet extends URITemplateProxyServlet {
 		super.copyRequestHeaders(servletRequest, proxyRequest);
 
 		AppSettings appSettings = getAppSettings(servletRequest);
-		if (appSettings != null && appSettings.isJwtControlEnabled() && StringUtils.isBlank(appSettings.getJwksURL())) {
+		if (appSettings != null && appSettings.isJwtControlEnabled() && StringUtils.isBlank(appSettings.getJwksURL())
+				&& StringUtils.isNotBlank(appSettings.getJwtSecretKey())) {
 			proxyRequest.setHeader(JWTFilter.JWT_TOKEN_AUTHORIZATION_HEADER,
 					JWTFilter.generateJwtToken(appSettings.getJwtSecretKey(), System.currentTimeMillis() + DASHBOARD_JWT_EXPIRE_MS));
 		}
