@@ -2015,6 +2015,52 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testStartStopStreamingBulk() throws Exception {
+		BroadcastRestService restService = new BroadcastRestService();
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		DataStore ds = mock(DataStore.class);
+		restService.setDataStore(ds);
+		restService.setApplication(app);
+
+		assertTrue(restService.startStreamSourcesBulk(null).isEmpty());
+		assertTrue(restService.stopStreamingBulk(new ArrayList<>(), true).isEmpty());
+
+		Broadcast ok = new Broadcast();
+		ok.setStreamId("ok");
+		ok.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ok.setStreamUrl("rtsp://127.0.0.1/ok");
+		Broadcast boom = new Broadcast();
+		boom.setStreamId("boom");
+		boom.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		boom.setStreamUrl("rtsp://127.0.0.1/boom");
+		doReturn(ok).when(ds).get("ok");
+		doReturn(boom).when(ds).get("boom");
+		doReturn(new Result(true)).when(app).startStreaming(ok);
+		doThrow(new IllegalStateException("fetcher error")).when(app).startStreaming(boom);
+
+		//a missing id and an exception must not stop the rest of the list
+		List<Result> started = restService.startStreamSourcesBulk(List.of("missing", "boom", "ok"));
+		assertEquals(3, started.size());
+		assertEquals("missing", started.get(0).getDataId());
+		assertFalse(started.get(0).isSuccess());
+		assertEquals("boom", started.get(1).getDataId());
+		assertFalse(started.get(1).isSuccess());
+		assertEquals("fetcher error", started.get(1).getMessage());
+		assertEquals("ok", started.get(2).getDataId());
+		assertTrue(started.get(2).isSuccess());
+
+		doReturn(new Result(true)).when(app).stopStreaming(any(Broadcast.class), anyBoolean(), any());
+
+		List<Result> stopped = restService.stopStreamingBulk(List.of("ok", "missing"), false);
+		verify(app).stopStreaming(ok, false, null);
+		assertEquals(2, stopped.size());
+		assertEquals("ok", stopped.get(0).getDataId());
+		assertTrue(stopped.get(0).isSuccess());
+		assertEquals("missing", stopped.get(1).getDataId());
+		assertFalse(stopped.get(1).isSuccess());
+	}
+
+	@Test
 	public void testAddIPCameraViaCreateBroadcast() 
 	{
 

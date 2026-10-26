@@ -994,6 +994,29 @@ public class RestServiceV2Test {
 		return gson.fromJson(result.toString(), listType);
 	}
 
+	public static List<Result> callBulkStartStreaming(List<String> streamIds) throws Exception {
+		return callBulk(ROOT_SERVICE_URL + "/v2/broadcasts/bulk/start", streamIds);
+	}
+
+	public static List<Result> callBulkStopStreaming(List<String> streamIds) throws Exception {
+		return callBulk(ROOT_SERVICE_URL + "/v2/broadcasts/bulk/stop", streamIds);
+	}
+
+	private static List<Result> callBulk(String url, List<String> streamIds) throws Exception {
+		Gson gson = new Gson();
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(streamIds))).build();
+		HttpResponse response = HTTP_CLIENT.execute(post);
+
+		StringBuffer result = readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		Type listType = new TypeToken<List<Result>>() {
+		}.getType();
+		return gson.fromJson(result.toString(), listType);
+	}
+
 	public static Result callPlayNextItem(String playlistId, Integer index) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/playlists/" + playlistId + "/next"
 				+ (index != null ? "?index=" + index : "");

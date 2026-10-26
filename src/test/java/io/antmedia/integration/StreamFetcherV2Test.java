@@ -585,6 +585,57 @@ public class StreamFetcherV2Test {
 	}
 
 	@Test
+	public void testBulkStartStopStreamSources() throws Exception {
+		int port1 = freeSrtPort();
+		int port2 = freeSrtPort();
+		Process publisher1 = startSrtPublisher(port1);
+		Process publisher2 = startSrtPublisher(port2);
+		RestServiceV2Test restService = new RestServiceV2Test();
+		String sourceId1 = null;
+		String sourceId2 = null;
+		try {
+			sourceId1 = restService.createBroadcast("bulk source 1", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:" + port1, null).getStreamId();
+			sourceId2 = restService.createBroadcast("bulk source 2", AntMediaApplicationAdapter.STREAM_SOURCE, "srt://127.0.0.1:" + port2, null).getStreamId();
+			List<String> ids = Arrays.asList(sourceId1, sourceId2);
+
+			//unknown id fails on its own without blocking the others
+			List<Result> started = RestServiceV2Test.callBulkStartStreaming(Arrays.asList(sourceId1, "bulk_missing_id", sourceId2));
+			assertEquals(3, started.size());
+			assertEquals(sourceId1, started.get(0).getDataId());
+			assertTrue(started.get(0).isSuccess());
+			assertEquals("bulk_missing_id", started.get(1).getDataId());
+			assertFalse(started.get(1).isSuccess());
+			assertEquals(sourceId2, started.get(2).getDataId());
+			assertTrue(started.get(2).isSuccess());
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
+					ids.stream().allMatch(id -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(id).getStatus())));
+
+			List<Result> stopped = RestServiceV2Test.callBulkStopStreaming(ids);
+			assertEquals(2, stopped.size());
+			assertEquals(sourceId1, stopped.get(0).getDataId());
+			assertTrue(stopped.get(0).isSuccess());
+			assertEquals(sourceId2, stopped.get(1).getDataId());
+			assertTrue(stopped.get(1).isSuccess());
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
+					ids.stream().noneMatch(id -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(restService.getBroadcast(id).getStatus())));
+		}
+		finally {
+			//run even if an assertion above failed - otherwise a failure here leaves live fetchers
+			//running for the rest of the class's shared Spring context (@DirtiesContext is AFTER_CLASS)
+			for (String id : new String[] {sourceId1, sourceId2}) {
+				if (id != null) {
+					restService.stopStreaming(id);
+					RestServiceV2Test.callDeleteBroadcast(id);
+				}
+			}
+			stopPublisher(publisher1);
+			stopPublisher(publisher2);
+		}
+	}
+
+	@Test
 	public void testStreamSourceSelfHealsAfterTransientDrop() throws Exception {
 		int port = freeSrtPort();
 		Process publisher = startSrtPublisher(port);

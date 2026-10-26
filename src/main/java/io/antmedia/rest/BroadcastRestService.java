@@ -3,6 +3,7 @@ package io.antmedia.rest;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -1337,6 +1338,67 @@ public class BroadcastRestService extends RestServiceBase{
 			@Parameter(description = "Stop also subtracks", required = false) @QueryParam("stopSubtracks") Boolean stopSubtracks) 
 	{
 		return super.stopStreaming(id, stopSubtracks, null);
+	}
+
+	@Operation(summary = "Start multiple streaming sources",
+			description = "Starts each stream source in the list. Returns one result per stream id; dataId is the stream id.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result per stream id",
+							content = @Content(
+									mediaType = "application/json",
+									array = @ArraySchema(schema = @Schema(implementation = Result.class))
+									))
+	}
+			)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/bulk/start")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Result> startStreamSourcesBulk(@Parameter(description = "Stream ids to start", required = true) List<String> streamIds)
+	{
+		return runForEach(streamIds, super::startStreamSource);
+	}
+
+	@Operation(summary = "Stop multiple active streams",
+			description = "Stops each stream in the list. Returns one result per stream id; dataId is the stream id. "
+					+ "In cluster mode, only streams running on this node can be stopped.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result per stream id",
+							content = @Content(
+									mediaType = "application/json",
+									array = @ArraySchema(schema = @Schema(implementation = Result.class))
+									))
+	}
+			)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/bulk/stop")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Result> stopStreamingBulk(@Parameter(description = "Stream ids to stop", required = true) List<String> streamIds,
+			@Parameter(description = "Stop also subtracks", required = false) @QueryParam("stopSubtracks") Boolean stopSubtracks)
+	{
+		return runForEach(streamIds, id -> super.stopStreaming(id, stopSubtracks, null));
+	}
+
+	// ponytail: sequential and local only; forward per origin node if cluster-wide bulk is needed
+	private List<Result> runForEach(List<String> streamIds, Function<String, Result> action)
+	{
+		List<Result> results = new ArrayList<>();
+		if (streamIds == null) {
+			return results;
+		}
+		for (String id : streamIds) {
+			Result result;
+			try {
+				result = action.apply(id);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				result = new Result(false, e.getMessage());
+			}
+			result.setDataId(id);
+			results.add(result);
+		}
+		return results;
 	}
 
 
