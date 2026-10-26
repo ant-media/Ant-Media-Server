@@ -5,6 +5,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -98,7 +99,8 @@ public class AuthenticationFilter extends AbstractFilter {
 			throws IOException, ServletException {
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
-		String path = ((HttpServletRequest) request).getRequestURI();
+		//Tomcat routes on the decoded, dot-segment-free path. getRequestURI is raw, "/rest/v2/users/x/../../request/blocked" would pass the whitelist
+		String path = httpRequest.getServletPath() + Objects.toString(httpRequest.getPathInfo(), "");
 
 		ServerSettings serverSettings = getServerSettings();
 
