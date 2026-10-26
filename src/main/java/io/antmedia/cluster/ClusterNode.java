@@ -21,6 +21,13 @@ public class ClusterNode implements Serializable {
 	@Id
 	private String id;
 	private String ip;
+
+	/**
+	 * Private IPv4 address detected on an active local interface, for monitoring.
+	 * Null when no private address is available (including older registrations).
+	 * This does not replace the advertised cluster address in {@code ip}.
+	 */
+	private String privateIp;
 	private long lastUpdateTime;
 	private String memory;
 	private String cpu;
@@ -58,6 +65,14 @@ public class ClusterNode implements Serializable {
 
 	public void setIp(String ip) {
 		this.ip = ip;
+	}
+
+	public String getPrivateIp() {
+		return privateIp;
+	}
+
+	public void setPrivateIp(String privateIp) {
+		this.privateIp = privateIp;
 	}
 
 	public String getStatus() {
