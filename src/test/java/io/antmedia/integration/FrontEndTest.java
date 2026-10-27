@@ -49,7 +49,6 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.test.StreamFetcherUnitTest;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 public class FrontEndTest {
@@ -165,6 +164,8 @@ public class FrontEndTest {
 		logger.info("Closing the driver");
 		if(this.driver != null)
 			this.driver.quit();
+
+		CameraEmulator.stopIfStarted();
 	}
 
 	public static ChromeOptions getChromeOptions() {
@@ -254,7 +255,7 @@ public class FrontEndTest {
 	public void testAutoStartStop() {
 		
 		RestServiceV2Test restService = new RestServiceV2Test();
-		StreamFetcherUnitTest.startCameraEmulator();
+		CameraEmulator.start();
 
 		Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -310,10 +311,6 @@ public class FrontEndTest {
 			
 			return localBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 		});
-		
-		
-		StreamFetcherUnitTest.stopCameraEmulator();
-		
 	}
 
 	@Test
