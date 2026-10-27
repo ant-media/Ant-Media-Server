@@ -683,6 +683,10 @@ public class MongoStore extends DataStore {
 				if (vod.getVodId() == null) {
 					vod.setVodId(RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis());
 				}
+				else {
+					//replace the existing record with the same vodId (e.g. a processing placeholder) like map based stores do
+					vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID, vod.getVodId())).delete(new DeleteOptions().multi(true));
+				}
 
 				vodDatastore.save(vod);
 				result = true;
