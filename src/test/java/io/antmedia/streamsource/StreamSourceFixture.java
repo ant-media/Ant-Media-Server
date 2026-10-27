@@ -1,6 +1,7 @@
 package io.antmedia.streamsource;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -8,9 +9,11 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +25,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.awaitility.Awaitility;
 import org.red5.server.api.IContext;
@@ -31,12 +38,15 @@ import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.cluster.ClusterNode;
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.streamsource.StreamFetcher.State;
 import io.antmedia.streamsource.StreamFetcher.StateListener;
 import io.vertx.core.Context;
@@ -54,6 +64,9 @@ class StreamSourceFixture implements AutoCloseable {
 
 	static final String STREAM_TYPE = "streamSource";
 
+	/** This node, the host address every manager made here runs as. */
+	static final String HOST = "127.0.0.1";
+
 	/** Long enough that a retry never fires behind an assertion by accident. */
 	static final long NO_RETRY_IN_THIS_TEST_MS = 600000;
 
@@ -65,6 +78,7 @@ class StreamSourceFixture implements AutoCloseable {
 	final ServerSettings serverSettings = mock(ServerSettings.class);
 	final ILicenceService licenceService = mock(ILicenceService.class);
 	final AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+	final IStatsCollector statsCollector = mock(IStatsCollector.class);
 	final DataStore dataStore = mock(DataStore.class);
 	final IScope scope = mock(IScope.class);
 
@@ -94,32 +108,65 @@ class StreamSourceFixture implements AutoCloseable {
 		when(springContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		when(licenceService.isLicenceSuspended()).thenReturn(false);
-		when(serverSettings.getHostAddress()).thenReturn("127.0.0.1");
+		when(serverSettings.getHostAddress()).thenReturn(HOST);
 		when(serverSettings.getDefaultHttpPort()).thenReturn(5080);
+		when(serverSettings.isStreamSourceFetchEnabled()).thenReturn(true);
 
 		when(app.getDataStore()).thenReturn(dataStore);
+		when(app.getStatsCollector()).thenReturn(statsCollector);
+		when(statsCollector.enoughResource()).thenReturn(true);
+		when(statsCollector.getCpuLimit()).thenReturn(75);
+		when(statsCollector.getMemoryLimit()).thenReturn(75);
 		when(app.getFreshBroadcastUpdateForStatus(anyString(), anyString())).thenAnswer(call -> {
 			BroadcastUpdate update = new BroadcastUpdate();
 			update.setStatus(call.getArgument(1));
+			update.setStartTime(System.currentTimeMillis());
 			update.setUpdateTime(System.currentTimeMillis());
+			update.setOriginAdress(serverSettings.getHostAddress());
 			return update;
 		});
 
-		//the real adapter writes finished from here, and the manager leans on that to free the stream id
+		//the real adapter hands its finished update to the end write, and the manager leans on that to free the stream id
 		doAnswer(call -> {
-			Broadcast row = rows.get((String) call.getArgument(0));
-			if (row != null) {
-				row.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-			}
+			BroadcastUpdate finished = new BroadcastUpdate();
+			finished.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+			finished.setUpdateTime(System.currentTimeMillis());
+			Predicate<BroadcastUpdate> end = call.getArgument(3);
+			end.test(finished);
 			return null;
-		}).when(app).closeBroadcast(anyString(), any(), any());
+		}).when(app).closeBroadcast(anyString(), any(), any(), any());
 
 		when(dataStore.get(anyString())).thenAnswer(call -> rows.get((String) call.getArgument(0)));
-		when(dataStore.getExternalStreamsList()).thenAnswer(call -> new ArrayList<>(rows.values()));
 		when(dataStore.updateBroadcastFields(anyString(), any())).thenAnswer(call -> apply(call.getArgument(0), call.getArgument(1)));
+
+		when(dataStore.compareAndSetFetcherNode(anyString(), any(), any(), anyBoolean(), any())).thenAnswer(call ->
+				compareAndSetFetcherNode(call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3), call.getArgument(4)));
+		when(dataStore.getHeldStreamFetcherSources(anyString())).thenAnswer(call ->
+				rows.values().stream().filter(row -> call.getArgument(0).equals(row.getFetcherNode())).toList());
+		when(dataStore.getOrphanStreamFetcherSources(any())).thenAnswer(call -> {
+			Collection<String> aliveNodes = call.getArgument(0);
+			return rows.values().stream()
+					.filter(row -> Broadcast.FETCHER_DESIRED_ACTION_START.equals(row.getFetcherDesiredAction()) && !aliveNodes.contains(row.getFetcherNode()))
+					.toList();
+		});
+		when(dataStore.getHeldStreamFetcherSourceCounts()).thenAnswer(call -> rows.values().stream()
+				.map(Broadcast::getFetcherNode)
+				.filter(Objects::nonNull)
+				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting())));
 	}
 
-	/** Only the fields the state machine and the playlist controller write, enough to assert on. */
+	/** Atomic like the real ones, so two nodes in one test can race for a row. */
+	private synchronized boolean compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update) {
+		Broadcast row = rows.get(streamId);
+		if (row == null || !Objects.equals(expectedFetcherNode, row.getFetcherNode())
+				|| (onlyIfDesiredStart && !Broadcast.FETCHER_DESIRED_ACTION_START.equals(row.getFetcherDesiredAction()))) {
+			return false;
+		}
+		row.setFetcherNode(newFetcherNode);
+		return apply(streamId, update);
+	}
+
+	/** Only the fields the state machine, the playlist controller and the coordinator write, enough to assert on. */
 	private boolean apply(String streamId, BroadcastUpdate update) {
 		Broadcast row = rows.get(streamId);
 		if (row == null || update == null) {
@@ -128,6 +175,18 @@ class StreamSourceFixture implements AutoCloseable {
 
 		if (update.getStatus() != null) {
 			row.setStatus(update.getStatus());
+		}
+		if (update.getOriginAdress() != null) {
+			row.setOriginAdress(update.getOriginAdress());
+		}
+		if (update.getFetcherDesiredAction() != null) {
+			row.setFetcherDesiredAction(update.getFetcherDesiredAction());
+		}
+		if (update.getFetcherFailures() != null) {
+			row.setFetcherFailures(update.getFetcherFailures());
+		}
+		if (update.getStartTime() != null) {
+			row.setStartTime(update.getStartTime());
 		}
 		if (update.getPlayListStatus() != null) {
 			row.setPlayListStatus(update.getPlayListStatus());
@@ -170,6 +229,22 @@ class StreamSourceFixture implements AutoCloseable {
 
 	ScriptedManager newManager() {
 		return new ScriptedManager(vertx, dataStore, scope);
+	}
+
+	/** Managers made after this run in cluster mode, with these nodes alive and the lowest one leading. */
+	IClusterNotifier clusterMode(String... aliveNodes) {
+		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
+		IContext red5Context = scope.getContext();
+		when(red5Context.hasBean(IClusterNotifier.BEAN_NAME)).thenReturn(true);
+		when(red5Context.getBean(IClusterNotifier.BEAN_NAME)).thenReturn(clusterNotifier);
+		aliveNodes(clusterNotifier, aliveNodes);
+		return clusterNotifier;
+	}
+
+	static void aliveNodes(IClusterNotifier clusterNotifier, String... aliveNodes) {
+		List<ClusterNode> nodes = Stream.of(aliveNodes).map(ip -> new ClusterNode(ip, "node-" + ip)).toList();
+		when(clusterNotifier.getAliveNodes()).thenReturn(nodes);
+		when(clusterNotifier.getLeader()).thenReturn(nodes.stream().min(Comparator.comparing(ClusterNode::getIp)).orElse(null));
 	}
 
 	/**
@@ -271,7 +346,7 @@ class StreamSourceFixture implements AutoCloseable {
 		/** One per attempt, in order. */
 		final List<FakeWorker> workers = new CopyOnWriteArrayList<>();
 
-		/** Used once the script runs out, so a fetcher can retry forever without being written out. */
+		/** Used once the script runs out, so a fetcher can reconnect any number of times without being written out. */
 		volatile Supplier<FakeWorker> workerSupplier = FakeWorker::new;
 
 		/** Makes startStream() throw, which is how the manager's registration rollback is tested. */
@@ -327,6 +402,8 @@ class StreamSourceFixture implements AutoCloseable {
 			super(vertx, datastore, scope);
 			this.managerVertx = vertx;
 			this.managerScope = scope;
+			//the tests run every coordinator tick by hand
+			getCoordinator().shutdown();
 		}
 
 		@Override

@@ -9,12 +9,16 @@ import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -90,6 +94,8 @@ public class MongoStore extends DataStore {
 	public static final String IMAGE_ID = "imageId";
 	public static final String STATUS = "status";
 	private static final String ORIGIN_ADDRESS = "originAdress";
+	private static final String FETCHER_NODE = "fetcherNode";
+	private static final String FETCHER_DESIRED_ACTION = "fetcherDesiredAction";
 	private static final String START_TIME = "startTime"; 
 	private static final String DURATION = "duration"; 
 	private static final String CREATION_DATE = "creationDate";
@@ -271,6 +277,12 @@ public class MongoStore extends DataStore {
 
 		recordQueryDuration(startTime, "get");
 		return broadcast;
+	}
+
+	@Override
+	public Broadcast getUncached(String id) {
+		getBroadcastCache().evictIfPresent(getBroadcastCacheKey(id));
+		return get(id);
 	}
 
 	@Override
@@ -643,6 +655,90 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public boolean compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update) {
+		long startTime = System.nanoTime();
+		boolean result = false;
+		synchronized(broadcastLock) {
+			try {
+				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq(FETCHER_NODE, expectedFetcherNode));
+				if (onlyIfDesiredStart) {
+					query.filter(fetcherDesiredStartFilter());
+				}
+
+				List<UpdateOperator> updates = toUpdateOperators(update);
+				updates.add(newFetcherNode != null ? set(FETCHER_NODE, newFetcherNode) : UpdateOperators.unset(FETCHER_NODE));
+
+				//matched, not modified: a write of the values already there still holds the row
+				result = query.update(updates).execute().getMatchedCount() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			//won or lost, the cached copy no longer matches the database
+			getBroadcastCache().evictIfPresent(getBroadcastCacheKey(streamId));
+		}
+		recordQueryDuration(startTime, "compareAndSetFetcherNode");
+		return result;
+	}
+
+	@Override
+	public List<Broadcast> getHeldStreamFetcherSources(String fetcherNode) {
+		long startTime = System.nanoTime();
+		List<Broadcast> streamList = new ArrayList<>();
+		synchronized(broadcastLock) {
+			try {
+				streamList = datastore.find(Broadcast.class).filter(Filters.eq(FETCHER_NODE, fetcherNode)).iterator().toList();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		recordQueryDuration(startTime, "getHeldStreamFetcherSources");
+		return streamList;
+	}
+
+	@Override
+	public List<Broadcast> getOrphanStreamFetcherSources(Collection<String> aliveNodes) {
+		long startTime = System.nanoTime();
+		List<Broadcast> streamList = new ArrayList<>();
+		synchronized(broadcastLock) {
+			try {
+				//$nin also matches a row with no fetcher node at all
+				streamList = datastore.find(Broadcast.class).filter(fetcherDesiredStartFilter(), Filters.nin(FETCHER_NODE, aliveNodes)).iterator().toList();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		recordQueryDuration(startTime, "getOrphanStreamFetcherSources");
+		return streamList;
+	}
+
+	@Override
+	public Map<String, Long> getHeldStreamFetcherSourceCounts() {
+		long startTime = System.nanoTime();
+		Map<String, Long> counts = new HashMap<>();
+		synchronized(broadcastLock) {
+			try {
+				counts = datastore.find(Broadcast.class).filter(Filters.ne(FETCHER_NODE, null))
+						.iterator(new FindOptions().projection().include(FETCHER_NODE)).toList().stream()
+						.collect(Collectors.groupingBy(Broadcast::getFetcherNode, Collectors.counting()));
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		recordQueryDuration(startTime, "getHeldStreamFetcherSourceCounts");
+		return counts;
+	}
+
+	/** The database side of {@link Broadcast#getFetcherDesiredAction()} being start, its default for older rows included. */
+	private Filter fetcherDesiredStartFilter() {
+		return Filters.or(
+				Filters.eq(FETCHER_DESIRED_ACTION, Broadcast.FETCHER_DESIRED_ACTION_START),
+				Filters.and(
+						Filters.eq(FETCHER_DESIRED_ACTION, null),
+						Filters.in("type", List.of(AntMediaApplicationAdapter.IP_CAMERA, AntMediaApplicationAdapter.STREAM_SOURCE)),
+						Filters.ne("autoStartStopEnabled", true)));
+	}
+
+	@Override
 	public void close(boolean deleteDB) {
 		long startTime = System.nanoTime();
 
@@ -945,157 +1041,8 @@ public class MongoStore extends DataStore {
 				if(cachedBroadcast != null) {
 					updateStreamInfo(cachedBroadcast, broadcast);
 				}
-				
-				List<UpdateOperator> updates = new ArrayList<>();
 
-				if (broadcast.getName() != null) {
-					updates.add(set("name",  broadcast.getName()));
-				}
-
-				if (broadcast.getDescription() != null) {
-					updates.add(set("description", broadcast.getDescription()));
-				}
-
-				if (broadcast.getUsername() != null) {
-					updates.add(set("username", broadcast.getUsername()));
-				}
-
-				if (broadcast.getPassword() != null) {
-					updates.add(set("password", broadcast.getPassword()));
-				}
-
-				if (broadcast.getIpAddr() != null) {
-					updates.add(set("ipAddr", broadcast.getIpAddr()));
-				}
-
-				if (broadcast.getStreamUrl() != null) {
-					updates.add(set("streamUrl", broadcast.getStreamUrl()));
-				}
-
-				if (broadcast.getLatitude() != null) {
-					updates.add(set("latitude", broadcast.getLatitude()));
-				}
-
-				if (broadcast.getLongitude() != null) {
-					updates.add(set("longitude", broadcast.getLongitude()));
-				}
-
-				if (broadcast.getAltitude() != null) {
-					updates.add(set("altitude", broadcast.getAltitude()));
-				}
-
-				if (broadcast.getMainTrackStreamId() != null) {
-					updates.add(set("mainTrackStreamId", broadcast.getMainTrackStreamId()));
-				}
-
-				if (broadcast.getPlayListItemList() != null) {
-					updates.add(set("playListItemList", broadcast.getPlayListItemList()));
-				}
-
-				if (broadcast.getPlayListStatus() != null) {
-					updates.add(set("playListStatus", broadcast.getPlayListStatus()));
-				}
-
-				if (broadcast.getEndPointList() != null) {
-					updates.add(set("endPointList", broadcast.getEndPointList()));
-				}
-
-				if (broadcast.getSubFolder() != null) {
-					updates.add(set("subFolder", broadcast.getSubFolder()));
-				}
-
-				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
-					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
-				}
-
-				if (broadcast.getSpeed() != null) {
-					updates.add(set("speed", broadcast.getSpeed()));
-				}
-
-				if(broadcast.getEncoderSettingsList() != null){
-					updates.add(set("encoderSettingsList",broadcast.getEncoderSettingsList()));
-				}
-
-				if (broadcast.getPlannedStartDate() != null) {
-					updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
-				}
-
-				if (broadcast.getSeekTimeInMs() != null) {
-					updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
-				}
-
-				if (broadcast.getReceivedBytes() != null) {
-					updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
-				}
-
-				if (broadcast.getBitrate() != null) {
-					updates.add(set("bitrate", broadcast.getBitrate()));
-				}
-
-				if (broadcast.getUserAgent() != null) {
-					updates.add(set("userAgent", broadcast.getUserAgent()));
-				}
-
-				if (broadcast.getWebRTCViewerLimit() != null) {
-					updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
-				}
-				
-				if (broadcast.getWebRTCViewerCount() != null) {
-					updates.add(set(WEBRTC_VIEWER_COUNT, broadcast.getWebRTCViewerCount()));
-				}
-
-				if (broadcast.getHlsViewerLimit() != null) {
-					updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
-				}
-
-				if (broadcast.getDashViewerLimit() != null) {
-					updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
-				}
-
-				if (broadcast.getMetaData() != null) {
-					updates.add(set(META_DATA, broadcast.getMetaData()));
-				}
-
-				if (broadcast.getUpdateTime() != null && broadcast.getUpdateTime() > 0) {
-					updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
-				}
-
-				if (broadcast.getSubtracksLimit() != null) {
-					updates.add(set("subtracksLimit", broadcast.getSubtracksLimit()));
-				}
-
-				if (broadcast.getCurrentPlayIndex() != null) {
-					updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
-				}
-
-				if (broadcast.getPlaylistLoopEnabled() != null) {
-					updates.add(set("playlistLoopEnabled", broadcast.getPlaylistLoopEnabled()));
-				}
-
-				if (broadcast.getAutoStartStopEnabled() != null) {
-					updates.add(set("autoStartStopEnabled", broadcast.getAutoStartStopEnabled()));
-				}
-
-				if (broadcast.getPendingPacketSize() != null) {
-					updates.add(set("pendingPacketSize", broadcast.getPendingPacketSize()));
-				}
-
-				if (broadcast.getPlannedEndDate() != null) {
-					updates.add(set("plannedEndDate", broadcast.getPlannedEndDate()));
-				}
-
-				if (broadcast.getRole() != null) {
-					updates.add(set(ROLE, broadcast.getRole()));
-				}
-
-				if (broadcast.getQuality() != null) {
-					updates.add(set("quality", broadcast.getQuality()));
-				}
-
-
-				prepareFields(broadcast, updates, cachedBroadcast);
-
-				UpdateResult updateResult = query.update(updates).execute();
+				UpdateResult updateResult = query.update(toUpdateOperators(broadcast)).execute();
 
 				result = updateResult.getModifiedCount() == 1;
 
@@ -1107,7 +1054,170 @@ public class MongoStore extends DataStore {
 		return result;
 	}
 
-	private void prepareFields(BroadcastUpdate broadcast, List<UpdateOperator> updates, Broadcast cachedBroadcast) {
+	private List<UpdateOperator> toUpdateOperators(BroadcastUpdate broadcast) {
+		List<UpdateOperator> updates = new ArrayList<>();
+
+		if (broadcast.getName() != null) {
+			updates.add(set("name",  broadcast.getName()));
+		}
+
+		if (broadcast.getDescription() != null) {
+			updates.add(set("description", broadcast.getDescription()));
+		}
+
+		if (broadcast.getUsername() != null) {
+			updates.add(set("username", broadcast.getUsername()));
+		}
+
+		if (broadcast.getPassword() != null) {
+			updates.add(set("password", broadcast.getPassword()));
+		}
+
+		if (broadcast.getIpAddr() != null) {
+			updates.add(set("ipAddr", broadcast.getIpAddr()));
+		}
+
+		if (broadcast.getStreamUrl() != null) {
+			updates.add(set("streamUrl", broadcast.getStreamUrl()));
+		}
+
+		if (broadcast.getLatitude() != null) {
+			updates.add(set("latitude", broadcast.getLatitude()));
+		}
+
+		if (broadcast.getLongitude() != null) {
+			updates.add(set("longitude", broadcast.getLongitude()));
+		}
+
+		if (broadcast.getAltitude() != null) {
+			updates.add(set("altitude", broadcast.getAltitude()));
+		}
+
+		if (broadcast.getMainTrackStreamId() != null) {
+			updates.add(set("mainTrackStreamId", broadcast.getMainTrackStreamId()));
+		}
+
+		if (broadcast.getPlayListItemList() != null) {
+			updates.add(set("playListItemList", broadcast.getPlayListItemList()));
+		}
+
+		if (broadcast.getPlayListStatus() != null) {
+			updates.add(set("playListStatus", broadcast.getPlayListStatus()));
+		}
+
+		if (broadcast.getEndPointList() != null) {
+			updates.add(set("endPointList", broadcast.getEndPointList()));
+		}
+
+		if (broadcast.getSubFolder() != null) {
+			updates.add(set("subFolder", broadcast.getSubFolder()));
+		}
+
+		if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
+			updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
+		}
+
+		if (broadcast.getSpeed() != null) {
+			updates.add(set("speed", broadcast.getSpeed()));
+		}
+
+		if(broadcast.getEncoderSettingsList() != null){
+			updates.add(set("encoderSettingsList",broadcast.getEncoderSettingsList()));
+		}
+
+		if (broadcast.getPlannedStartDate() != null) {
+			updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
+		}
+
+		if (broadcast.getSeekTimeInMs() != null) {
+			updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
+		}
+
+		if (broadcast.getReceivedBytes() != null) {
+			updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
+		}
+
+		if (broadcast.getBitrate() != null) {
+			updates.add(set("bitrate", broadcast.getBitrate()));
+		}
+
+		if (broadcast.getUserAgent() != null) {
+			updates.add(set("userAgent", broadcast.getUserAgent()));
+		}
+
+		if (broadcast.getWebRTCViewerLimit() != null) {
+			updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
+		}
+
+		if (broadcast.getWebRTCViewerCount() != null) {
+			updates.add(set(WEBRTC_VIEWER_COUNT, broadcast.getWebRTCViewerCount()));
+		}
+
+		if (broadcast.getHlsViewerLimit() != null) {
+			updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
+		}
+
+		if (broadcast.getDashViewerLimit() != null) {
+			updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
+		}
+
+		if (broadcast.getMetaData() != null) {
+			updates.add(set(META_DATA, broadcast.getMetaData()));
+		}
+
+		if (broadcast.getUpdateTime() != null && broadcast.getUpdateTime() > 0) {
+			updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
+		}
+
+		if (broadcast.getSubtracksLimit() != null) {
+			updates.add(set("subtracksLimit", broadcast.getSubtracksLimit()));
+		}
+
+		if (broadcast.getCurrentPlayIndex() != null) {
+			updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
+		}
+
+		if (broadcast.getPlaylistLoopEnabled() != null) {
+			updates.add(set("playlistLoopEnabled", broadcast.getPlaylistLoopEnabled()));
+		}
+
+		if (broadcast.getAutoStartStopEnabled() != null) {
+			updates.add(set("autoStartStopEnabled", broadcast.getAutoStartStopEnabled()));
+		}
+
+		if (broadcast.getPendingPacketSize() != null) {
+			updates.add(set("pendingPacketSize", broadcast.getPendingPacketSize()));
+		}
+
+		if (broadcast.getPlannedEndDate() != null) {
+			updates.add(set("plannedEndDate", broadcast.getPlannedEndDate()));
+		}
+
+		if (broadcast.getRole() != null) {
+			updates.add(set(ROLE, broadcast.getRole()));
+		}
+
+		if (broadcast.getQuality() != null) {
+			updates.add(set("quality", broadcast.getQuality()));
+		}
+
+		if (broadcast.getFetcherDesiredAction() != null) {
+			updates.add(set(FETCHER_DESIRED_ACTION, broadcast.getFetcherDesiredAction()));
+		}
+
+		if (broadcast.getFetcherFailures() != null) {
+			updates.add(set("fetcherFailures", broadcast.getFetcherFailures()));
+		}
+
+		if (broadcast.getPreferredFetcherNode() != null) {
+			updates.add(set("preferredFetcherNode", broadcast.getPreferredFetcherNode()));
+		}
+
+		prepareFields(broadcast, updates);
+		return updates;
+	}
+
+	private void prepareFields(BroadcastUpdate broadcast, List<UpdateOperator> updates) {
 
 		if ( broadcast.getDuration() != null) {
 			updates.add(set(DURATION, broadcast.getDuration()));
@@ -1326,6 +1436,16 @@ public class MongoStore extends DataStore {
 			}
 		}
 		recordQueryDuration(startTime, "clearStreamInfoList");
+	}
+
+	@Override
+	public void clearStreamInfoList(String streamId, String host) {
+		long startTime = System.nanoTime();
+		synchronized(broadcastLock) {
+			datastore.find(StreamInfo.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("host", host))
+					.delete(new DeleteOptions().multi(true));
+		}
+		recordQueryDuration(startTime, "clearStreamInfoListOfHost");
 	}
 
 	@Override

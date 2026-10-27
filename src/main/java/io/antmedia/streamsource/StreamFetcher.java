@@ -28,6 +28,9 @@ import io.vertx.core.Vertx;
  * packets is a {@link StreamFetcherWorker} running on a pool thread, every status write belongs to the
  * {@link StreamFetcherManager} that listens to the transitions.
  *
+ * It never retries: an attempt that ends takes it to {@link State#STOPPED}, only a forced restart
+ * reconnects in place. Trying a failed source again is the manager's call.
+ *
  * Every transition runs on one vert.x context, so no field below needs a lock. Public entry points
  * post their work to that context and return.
  */
@@ -48,7 +51,7 @@ public class StreamFetcher {
 	private static final long TICK_PERIOD_MS = MuxAdaptor.STAT_UPDATE_PERIOD_MS / 2;
 
 	public enum State {
-		IDLE, CONNECTING, STREAMING, RECONNECT_WAIT, STOPPING, STOPPED
+		IDLE, CONNECTING, STREAMING, STOPPING, STOPPED
 	}
 
 	/**
@@ -56,7 +59,7 @@ public class StreamFetcher {
 	 * Usually why an attempt ended, or why this StreamFetcher stopped.
 	 *  Never a state, always data. */
 	public enum Reason {
-		OPEN_FAILED, READ_ERROR, EOF, TIMEOUT, DELETED, STOP_REQUESTED, RECONNECT, RETRIES_EXHAUSTED, NO_RETRY
+		OPEN_FAILED, READ_ERROR, EOF, TIMEOUT, DELETED, STOP_REQUESTED, RECONNECT
 	}
 
 	/**
@@ -110,14 +113,14 @@ public class StreamFetcher {
 	@Getter
 	private volatile State state = State.IDLE;
 	private long attemptId;
-	private int failures;
 	private int abandonedWorkers;
 
-	/** False keeps this StreamFetcher from reconnecting after a failure. Playlist items are started this way. */
+	/** Set by the manager for a playlist item, whose row is the playlist's and has no holder. */
 	@Setter
-	private boolean restartStream = true;
+	@Getter
+	private boolean playlistItem;
 
-	/** True while the attempt that just ended had reached */
+	/** True once the current attempt reached STREAMING, until its end is reported. */
 	@Getter
 	private boolean published;
 
@@ -132,7 +135,6 @@ public class StreamFetcher {
 	private Reason pendingReason;
 	private Result lastError = new Result(false, "");
 	private long tickTimerId = -1;
-	private long retryTimerId = -1;
 
 	private final AtomicReference<StreamFetcherWorker> currentWorker = new AtomicReference<>();
 
@@ -171,9 +173,8 @@ public class StreamFetcher {
 				return;
 			}
 			if (pool == null) {
-				//fail loudly, without a pool no worker can ever end and this would abort and retry forever
 				logger.error("Stream fetcher is not initialized with a thread pool, cannot fetch streamId:{}", streamId);
-				enterStopped(Reason.NO_RETRY);
+				enterStopped(Reason.OPEN_FAILED);
 				return;
 			}
 			tickTimerId = vertx.setPeriodic(TICK_PERIOD_MS, t -> tick());
@@ -189,7 +190,7 @@ public class StreamFetcher {
 		logger.info("Stop is requested for {} and streamId:{}", streamUrl, streamId);
 		context.runOnContext(v -> {
 			switch (state) {
-				case IDLE, RECONNECT_WAIT -> enterStopped(Reason.STOP_REQUESTED);
+				case IDLE -> enterStopped(Reason.STOP_REQUESTED);
 				case CONNECTING, STREAMING -> abort(Reason.STOP_REQUESTED);
 				case STOPPING -> pendingReason = Reason.STOP_REQUESTED;
 				default -> logger.info("Stop is ignored in state:{} for streamId:{}", state, streamId);
@@ -228,10 +229,11 @@ public class StreamFetcher {
 	/** Drops the current connection and connects again, keeping this StreamFetcher and its registration. */
 	public void restart() {
 		context.runOnContext(v -> {
-			switch (state) {
-				case STREAMING -> abort(Reason.RECONNECT);
-				case RECONNECT_WAIT -> enterConnecting();
-				default -> logger.info("Restart is ignored in state:{} for streamId:{}", state, streamId);
+			if (state == State.STREAMING) {
+				abort(Reason.RECONNECT);
+			}
+			else {
+				logger.info("Restart is ignored in state:{} for streamId:{}", state, streamId);
 			}
 		});
 	}
@@ -291,7 +293,6 @@ public class StreamFetcher {
 		if (id != attemptId || state != State.CONNECTING) {
 			return;
 		}
-		failures = 0;
 		published = true;
 		lastReason = null;
 		transition(State.STREAMING);
@@ -311,13 +312,14 @@ public class StreamFetcher {
 		currentWorker.set(null);
 
 		switch (state) {
-			case CONNECTING, STREAMING -> retryOrStop(reason);
+			case CONNECTING, STREAMING -> enterStopped(reason);
 			//abort() is the only way into STOPPING and it always sets pendingReason, so it is never null here
 			case STOPPING -> {
-				switch (pendingReason) {
-					case STOP_REQUESTED -> enterStopped(Reason.STOP_REQUESTED);
-					case RECONNECT -> enterConnecting();
-					default -> retryOrStop(Reason.TIMEOUT);
+				if (pendingReason == Reason.RECONNECT) {
+					enterConnecting();
+				}
+				else {
+					enterStopped(pendingReason);
 				}
 			}
 			default -> logger.warn("Worker ended with {} in state:{} for streamId:{}", reason, state, streamId);
@@ -325,29 +327,6 @@ public class StreamFetcher {
 
 		//the transition above is the one that reported the ended attempt, the next one is a new attempt
 		published = false;
-	}
-
-	private void retryOrStop(Reason reason) {
-		int maxRetryAttempts = appSettings.getStreamFetcherMaxRetryAttempts();
-
-		if (reason == Reason.DELETED) {
-			enterStopped(Reason.DELETED);
-		}
-		else if (!restartStream) {
-			enterStopped(Reason.NO_RETRY);
-		}
-		else if (maxRetryAttempts >= 0 && failures + 1 > maxRetryAttempts) {
-			logger.error("Giving up on {} after {} failed attempts for streamId:{}", streamUrl, failures, streamId);
-			enterStopped(Reason.RETRIES_EXHAUSTED);
-		}
-		else if (getDataStore().get(streamId) == null) {
-			enterStopped(Reason.DELETED);
-		}
-		else {
-			failures++;
-			lastReason = reason;
-			transition(State.RECONNECT_WAIT);
-		}
 	}
 
 	private void abort(Reason reason) {
@@ -411,14 +390,6 @@ public class StreamFetcher {
 		state = to;
 		stateSinceMs = System.currentTimeMillis();
 
-		if (to == State.RECONNECT_WAIT) {
-			scheduleRetry();
-		}
-		else if (retryTimerId != -1) {
-			vertx.cancelTimer(retryTimerId);
-			retryTimerId = -1;
-		}
-
 		if (to == State.STOPPED && tickTimerId != -1) {
 			vertx.cancelTimer(tickTimerId);
 			tickTimerId = -1;
@@ -450,19 +421,6 @@ public class StreamFetcher {
 		if (to == State.STOPPED) {
 			stopFuture.complete(null);
 		}
-	}
-
-	private void scheduleRetry() {
-		long id = attemptId;
-		//vert.x refuses a timer shorter than 1ms, and a throw here would leave this stuck in RECONNECT_WAIT
-		long retryDelayMs = Math.max(1, appSettings.getStreamFetcherRetryDelayMs());
-		logger.info("Stream fetcher will try to fetch {} again after {}ms, failure:{} streamId:{}", streamUrl, retryDelayMs, failures, streamId);
-
-		retryTimerId = vertx.setTimer(retryDelayMs, t -> {
-			if (id == attemptId && state == State.RECONNECT_WAIT) {
-				enterConnecting();
-			}
-		});
 	}
 
 	public boolean isThreadActive() {

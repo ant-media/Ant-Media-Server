@@ -1,6 +1,5 @@
 package io.antmedia;
 
-import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
 import java.io.File;
@@ -30,6 +29,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -84,7 +86,6 @@ import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
-import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.ipcamera.OnvifCamera;
@@ -203,6 +204,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	/** Spread of the random delay added to a scheduled playlist start, so they don't all fire at once. */
 	private static final int PLAYLIST_SCHEDULE_JITTER_MS = 5000;
+
+	/** Shared by every reachability check, a client per check costs a selector thread each. */
+	private static final HttpClient REACHABILITY_CLIENT = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(1)).build();
 
 	public static final String BEAN_NAME = "web.handler";
 
@@ -414,8 +418,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		vertx.setTimer(1000, l -> vertx.executeBlocking(() -> {
-			//both of these read whole lists from the database, so keep them off the event loop
-			getStreamFetcherManager().resumeUnattendedSources();
+			//both of these read whole lists from the database, so keep them off the event loop. The first stream source tick
+			//starts the sources this node held before it went down
+			getStreamFetcherManager().getCoordinator().tick();
 			scheduleStoredPlayLists();
 			return null;
 		}, false));
@@ -741,6 +746,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @param parameters
 	 */
 	public void closeBroadcast(String streamId, String subscriberId, Map<String, String> parameters) {
+		closeBroadcast(streamId, subscriberId, parameters, null);
+	}
+
+	/**
+	 * @param end saves the finished update instead of the plain write and returns whether it was saved, null for the
+	 * plain write. False means the stream did not end, like a stream source another node took over, so the end hook,
+	 * main track update and ended script are skipped. The local cleanup still runs.
+	 */
+	public void closeBroadcast(String streamId, String subscriberId, Map<String, String> parameters, @Nullable Predicate<BroadcastUpdate> end) {
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
@@ -748,6 +762,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
 
+				boolean ended = true;
 				if (broadcast.isZombi()) {
 
 					logger.info("Deleting streamId:{} because it's a zombi stream", streamId);
@@ -761,7 +776,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					broadcastUpdate.setHlsViewerCount(0);
 					broadcastUpdate.setDashViewerCount(0);
 					broadcastUpdate.setWebRTCViewerCount(0);
-					getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+					if (end == null) {
+						getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
+					}
+					else {
+						ended = end.test(broadcastUpdate);
+					}
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
 
@@ -772,7 +792,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String mainTrackId = broadcast.getMainTrackStreamId();
 				final String role = broadcast.getRole();
 				final String listenerHookURL = getListenerHookURL(broadcast);
-				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
+				if (ended && listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
@@ -790,7 +810,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				LoggerUtils.logAnalyticsFromServer(publishEndedEvent);
 
-				if(StringUtils.isNotBlank(broadcast.getMainTrackStreamId())) {
+				if(ended && StringUtils.isNotBlank(broadcast.getMainTrackStreamId())) {
 					updateMainTrackWithRecentlyFinishedBroadcast(broadcast);
 				}	
 
@@ -811,7 +831,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				
 				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 				
-				runStreamEndedScript(broadcast);
+				if (ended) {
+					runStreamEndedScript(broadcast);
+				}
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -843,41 +865,45 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public static boolean isInstanceAlive(String originAdress, String hostAddress, int httpPort, String appName) {
+		return isInstanceAliveAsync(originAdress, hostAddress, httpPort, appName).join();
+	}
+
+	public static CompletableFuture<Boolean> isInstanceAliveAsync(String originAdress, String hostAddress, int httpPort, String appName) {
 		if (StringUtils.isBlank(originAdress) || Strings.CS.equals(originAdress, hostAddress)) {
-			return true;
+			return CompletableFuture.completedFuture(true);
 		}
 
-		String url = "http://" + originAdress + ":" + httpPort + "/" + appName;
-
-		boolean result = isEndpointReachable(url);
-		if (!result) {
-			logger.warn("Instance with origin address {} is not reachable through its app:{}", originAdress, appName);
-		}
-		return result;
+		return isEndpointReachableAsync("http://" + originAdress + ":" + httpPort + "/" + appName);
 	}
 
 	public static boolean isEndpointReachable(String endpoint) {
-		HttpClient client = HttpClient.newHttpClient();
-		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create(endpoint))
-				.method("HEAD", HttpRequest.BodyPublishers.noBody()) // HEAD request
-				.timeout(java.time.Duration.ofSeconds(1))
-				.build();
+		return isEndpointReachableAsync(endpoint).join();
+	}
 
-
+	/**
+	 * Any HTTP answer means reachable. A connection failure, the 1s timeout or an address that is not a valid
+	 * URI means not. Never throws.
+	 */
+	public static CompletableFuture<Boolean> isEndpointReachableAsync(String endpoint) {
 		try {
-			HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
-		} catch (InterruptedException e) {
-			logger.error("InterruptedException Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-			return false;
-		} catch (Exception e) {
-			logger.error("Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
-			return false;
+			HttpRequest request = HttpRequest.newBuilder()
+					.uri(URI.create(endpoint))
+					.method("HEAD", HttpRequest.BodyPublishers.noBody())
+					.timeout(java.time.Duration.ofSeconds(1))
+					.build();
+
+			return REACHABILITY_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding())
+					.handle((response, e) -> {
+						if (e != null) {
+							logger.warn("Endpoint is not reachable: {}, {}", endpoint, e.getMessage());
+						}
+						return e == null;
+					});
 		}
-		return true;
-
-
+		catch (Exception e) {
+			logger.warn("Endpoint is not reachable: {}, {}", endpoint, e.getMessage());
+			return CompletableFuture.completedFuture(false);
+		}
 	}
 
 	/**
@@ -1720,16 +1746,25 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status));
 	}
 
+	/** A source the stream fetcher pulls, which runs on the node that holds it. Playlists keep their own flow. */
+	public static boolean isPulledSource(String type) {
+		return IP_CAMERA.equals(type) || STREAM_SOURCE.equals(type) || VOD.equals(type);
+	}
+
 	public Result startStreaming(Broadcast broadcast) {
+		String type = broadcast.getType();
+
+		//placed on a node in the cluster, which checks its own resources
+		if (isPulledSource(type)) {
+			return getStreamFetcherManager().startStreaming(broadcast);
+		}
+
 		Result result = new Result(false);
 
-		// Check resource availability first
 		if (!getStatsCollector().enoughResource()) {
 			result.setMessage("Not enough resource on server to start streaming.");
 			return result;
 		}
-
-		String type = broadcast.getType();
 
 		if (PLAY_LIST.equals(type)) {
 			return getStreamFetcherManager().getPlaylistController().startPlaylist(broadcast);
@@ -1739,29 +1774,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			return startNdiSource(broadcast);
 		}
 
-		if (!IP_CAMERA.equals(type) && !STREAM_SOURCE.equals(type) && !VOD.equals(type)) {
-			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", type, broadcast.getStreamId());
-			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist, NDI");
-			return result;
-		}
-
-		//a pulled source belongs to the node in its origin address, anybody else hands the request over
-		String originAddress = broadcast.getOriginAdress();
-		if (isClusterMode() && StringUtils.isNotBlank(originAddress) && !originAddress.equals(getServerSettings().getHostAddress())) {
-
-			forwardStartStreaming(broadcast);
-			result.setSuccess(true);
-			result.setErrorId(FETCH_REQUEST_REDIRECTED_TO_ORIGIN);
-			result.setMessage("Request forwarded to origin server for fetching. Check broadcast status for final confirmation.");
-			return result;
-		}
-
-		result = getStreamFetcherManager().startStreaming(broadcast);
-
-		if (isClusterMode() && StringUtils.isBlank(originAddress)) {
-			result.setMessage("Broadcasts origin address is not set. " + getServerSettings().getHostAddress() + " will fetch the stream.");
-		}
-
+		logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", type, broadcast.getStreamId());
+		result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist, NDI");
 		return result;
 	}
 
@@ -1784,42 +1798,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return new Result(true, broadcast.getStreamId(), "");
 	}
 
-	public void forwardStartStreaming(Broadcast broadcast) {
-		String jwtToken = JWTFilter.generateJwtToken(
-				getAppSettings().getClusterCommunicationKey(),
-				System.currentTimeMillis() + 5000
-				);
-
-		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" +
-				getServerSettings().getDefaultHttpPort() +
-				File.separator + getAppSettings().getAppName() +
-				File.separator + "rest" +
-				File.separator + "v2" +
-				File.separator + "broadcasts" +
-				File.separator + broadcast.getStreamId() +
-				File.separator + "start";
-
-
-		CompletableFuture<Boolean> future = new CompletableFuture<>();
-
-		trySendClusterPostWithDelay(restRouteOfNode, jwtToken, CLUSTER_POST_RETRY_ATTEMPT_COUNT, future, null);
-
-
-		future.thenAccept(success -> {
-			if (success) {
-				logger.info("Cluster POST redirection to {} succeeded", restRouteOfNode);
-			} else {
-				logger.info("Cluster POST redirection to {} failed. Local node {} will fetch the stream. ", restRouteOfNode, getServerSettings().getHostAddress());
-				getStreamFetcherManager().startStreaming(broadcast);
-			}
-		})
-		.exceptionally(ex -> {
-			logger.error("Cluster POST encountered an exception: {}", ExceptionUtils.getStackTrace(ex));
-			getStreamFetcherManager().startStreaming(broadcast);
-			return null;
-		});
-	}
-
 	public Result stopStreaming(Broadcast broadcast, boolean stopSubtracks, String subscriberId)
 	{
 		Result result = new Result(false);
@@ -1827,7 +1805,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		String type = broadcast.getType();
 
-		if (IP_CAMERA.equals(type) || STREAM_SOURCE.equals(type) || VOD.equals(type))
+		if (isPulledSource(type))
 		{
 			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId(), false);
 		}

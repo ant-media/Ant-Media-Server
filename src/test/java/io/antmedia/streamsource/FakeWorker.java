@@ -46,7 +46,7 @@ class FakeWorker extends StreamFetcherWorker {
 		return worker;
 	}
 
-	/** Delivers one packet and then ends, which is what clears the retry budget. */
+	/** Delivers one packet and then ends: a source that was on air and dropped. */
 	static FakeWorker publishesThenEnds() {
 		FakeWorker worker = new FakeWorker();
 		worker.publishes = true;

@@ -3,10 +3,15 @@ package io.antmedia.datastore.db.types;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast.HLSParameters;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * This is like a clone of Broadcast object. Just some differences, all default values are null in this object
@@ -18,6 +23,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Schema(description="This is the BroadcastUpdate and it's almost same with BroadcastUpdate with all default values are null. We update the fields in update method if it's not null."
 		+ "It makes this data up to date in race conditions.")
+//a client may send back the whole broadcast it read, only compareAndSetFetcherNode writes the fetcher node
+@JsonIgnoreProperties({"fetcherNode"})
 public class BroadcastUpdate {
 
     private String streamId = null;
@@ -159,6 +166,22 @@ public class BroadcastUpdate {
     private Boolean virtual = null;
     
     private Integer maxIdleTime = null;
+
+    //written by the server only, a REST body can never carry them
+    @JsonIgnore
+    @Getter
+    @Setter
+    private String fetcherDesiredAction = null;
+
+    @JsonIgnore
+    @Getter
+    @Setter
+    private Integer fetcherFailures = null;
+
+    //null leaves it as it is, empty clears it
+    @Getter
+    @Setter
+    private String preferredFetcherNode = null;
 
 	public String getStreamId() {
 		return streamId;

@@ -1,6 +1,5 @@
 package io.antmedia.streamsource;
 
-import static io.antmedia.streamsource.StreamSourceFixture.NO_RETRY_IN_THIS_TEST_MS;
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
 import static io.antmedia.streamsource.StreamSourceFixture.peek;
 import static io.antmedia.streamsource.StreamSourceFixture.poke;
@@ -55,8 +54,6 @@ class StreamFetcherTest {
 	@BeforeEach
 	void before() {
 		fixture = new StreamSourceFixture();
-		//a retry that fires behind an assertion would make every test below a coin flip
-		fixture.appSettings.setStreamFetcherRetryDelayMs(NO_RETRY_IN_THIS_TEST_MS);
 	}
 
 	@AfterEach
@@ -77,14 +74,14 @@ class StreamFetcherTest {
 		assertEquals(1, fetcher.workers.size(), "a second start must not open a second attempt");
 		assertEquals(List.of(State.CONNECTING), recorder.states());
 
-		//without a pool nothing could ever end an attempt, so it would abort and retry forever
+		//without a pool no attempt could ever run or end
 		Recorder noPoolRecorder = new Recorder();
 		ScriptedFetcher noPool = fixture.newFetcher("no-pool", noPoolRecorder);
 		noPool.initialize(fixture.context, null, noPoolRecorder);
 		noPool.startStream();
 
 		awaitState(noPool, State.STOPPED);
-		assertEquals(Reason.NO_RETRY, noPool.getLastReason());
+		assertEquals(Reason.OPEN_FAILED, noPool.getLastReason());
 		assertTrue(noPool.workers.isEmpty());
 		assertEquals(-1L, peek(noPool, "tickTimerId"), "a fetcher that never started must not leave a timer");
 	}
@@ -102,10 +99,9 @@ class StreamFetcherTest {
 			assertEquals(State.STOPPED, fetcher.getState(), "stopping from " + state);
 			assertSame(stopped, fetcher.stopStream(), "every caller waits on the same future");
 
-			boolean hadAnAttemptToTearDown = state != State.IDLE && state != State.RECONNECT_WAIT;
+			boolean hadAnAttemptToTearDown = state != State.IDLE;
 			assertEquals(hadAnAttemptToTearDown, recorder.states().contains(State.STOPPING), "teardown path from " + state);
 			assertEquals(-1L, peek(fetcher, "tickTimerId"), "tick timer left armed after stopping from " + state);
-			assertEquals(-1L, peek(fetcher, "retryTimerId"), "retry timer left armed after stopping from " + state);
 		}
 	}
 
@@ -135,12 +131,6 @@ class StreamFetcherTest {
 
 		awaitState(streaming, State.CONNECTING);
 		assertEquals(2, streaming.workers.size());
-
-		//RECONNECT_WAIT connects now instead of sitting out a retry timer that is ten minutes away
-		ScriptedFetcher waiting = inState(State.RECONNECT_WAIT, "restart-waiting", new Recorder());
-		waiting.restart();
-		awaitState(waiting, State.CONNECTING);
-		assertEquals(2, waiting.workers.size());
 	}
 
 	@Test
@@ -177,106 +167,7 @@ class StreamFetcherTest {
 	}
 
 	@Test
-	void retriesUntilTheAttemptBudgetRunsOut() {
-		fixture.appSettings.setStreamFetcherRetryDelayMs(10);
-
-		//zero means give up after the first failure
-		fixture.appSettings.setStreamFetcherMaxRetryAttempts(0);
-		ScriptedFetcher noRetries = fixture.newFetcher("retry-none", new Recorder());
-		noRetries.startStream();
-		awaitState(noRetries, State.STOPPED);
-		assertEquals(Reason.RETRIES_EXHAUSTED, noRetries.getLastReason());
-		assertEquals(1, noRetries.workers.size());
-
-		//two means the first attempt plus two more
-		fixture.appSettings.setStreamFetcherMaxRetryAttempts(2);
-		ScriptedFetcher twoRetries = fixture.newFetcher("retry-two", new Recorder());
-		twoRetries.startStream();
-		awaitState(twoRetries, State.STOPPED);
-		assertEquals(Reason.RETRIES_EXHAUSTED, twoRetries.getLastReason());
-		assertEquals(3, twoRetries.workers.size());
-
-		//an attempt that published clears the budget, so a flaky source is never given up on
-		ScriptedFetcher recovering = fixture.newFetcher("retry-reset", new Recorder());
-		recovering.script(FakeWorker.ending(Reason.EOF), FakeWorker.ending(Reason.EOF), FakeWorker.publishesThenEnds());
-		recovering.startStream();
-		awaitState(recovering, State.STOPPED);
-		assertEquals(Reason.RETRIES_EXHAUSTED, recovering.getLastReason());
-		assertEquals(5, recovering.workers.size(), "the two attempts before the one that published must not count");
-	}
-
-	@Test
-	void theRetryDelayIsReadWhenItIsUsedAndNeverTrustedToBeSane() {
-		//the fetcher was built while the delay was ten minutes, lowering it now has to take effect
-		ScriptedFetcher live = fixture.newFetcher("retry-live", new Recorder());
-		fixture.appSettings.setStreamFetcherRetryDelayMs(20);
-		live.startStream();
-
-		Awaitility.await("the lowered delay is used")
-				.atMost(10, TimeUnit.SECONDS)
-				.until(() -> live.workers.size() >= 3);
-		live.stopStream();
-
-		//vert.x refuses a timer shorter than 1ms, and that throw used to strand the fetcher in RECONNECT_WAIT
-		ScriptedFetcher zeroDelay = fixture.newFetcher("retry-zero", new Recorder());
-		fixture.appSettings.setStreamFetcherRetryDelayMs(0);
-		zeroDelay.startStream();
-
-		Awaitility.await("a zero delay still retries")
-				.atMost(10, TimeUnit.SECONDS)
-				.until(() -> zeroDelay.workers.size() >= 3);
-		zeroDelay.stopStream();
-	}
-
-	@Test
-	void anArmedRetryTimerCannotOutliveWhatArmedIt() {
-		fixture.appSettings.setStreamFetcherRetryDelayMs(1000);
-
-		//a stop landed while the retry was armed, the timer must not bring the source back
-		ScriptedFetcher stopped = fixture.newFetcher("retry-after-stop", new Recorder());
-		stopped.script(FakeWorker.ending(Reason.READ_ERROR));
-		stopped.startStream();
-		awaitState(stopped, State.RECONNECT_WAIT);
-
-		assertEquals(Reason.READ_ERROR, stopped.getLastReason(), "the owner is told why the attempt ended");
-		assertNotEquals(-1L, peek(stopped, "retryTimerId"));
-
-		stopped.stopStream();
-		awaitState(stopped, State.STOPPED);
-		assertEquals(-1L, peek(stopped, "retryTimerId"));
-
-		Awaitility.await("the retry timer stays dead")
-				.during(1500, TimeUnit.MILLISECONDS)
-				.atMost(6, TimeUnit.SECONDS)
-				.until(() -> stopped.getState() == State.STOPPED);
-		assertEquals(1, stopped.workers.size());
-
-		//a restart during the wait connects now, and the timer it replaced must not add a second attempt
-		ScriptedFetcher restarted = fixture.newFetcher("retry-after-restart", new Recorder());
-		restarted.script(FakeWorker.ending(Reason.EOF), FakeWorker.holding());
-		restarted.startStream();
-		awaitState(restarted, State.RECONNECT_WAIT);
-		restarted.restart();
-		awaitState(restarted, State.CONNECTING);
-
-		Awaitility.await("the replaced timer never fires")
-				.during(1500, TimeUnit.MILLISECONDS)
-				.atMost(6, TimeUnit.SECONDS)
-				.until(() -> restarted.getState() == State.CONNECTING);
-		assertEquals(2, restarted.workers.size());
-		restarted.releaseAll();
-	}
-
-	@Test
-	void givesUpForGoodWhenRetryingWouldBePointless() {
-		//restartStream=false is how a playlist item is started: one attempt, then it is the playlist's call
-		ScriptedFetcher once = fixture.newFetcher("no-restart", new Recorder());
-		once.setRestartStream(false);
-		once.startStream();
-		awaitState(once, State.STOPPED);
-		assertEquals(Reason.NO_RETRY, once.getLastReason());
-		assertEquals(1, once.workers.size());
-
+	void aDeletedSourceIsNeverFetched() {
 		//the row was already gone when the attempt was about to open, so nothing is even tried
 		ScriptedFetcher deletedBefore = fixture.newFetcher("deleted-before", new Recorder());
 		fixture.rows.remove("deleted-before");
@@ -284,17 +175,6 @@ class StreamFetcherTest {
 		awaitState(deletedBefore, State.STOPPED);
 		assertEquals(Reason.DELETED, deletedBefore.getLastReason());
 		assertEquals(0, deletedBefore.workers.get(0).runs.get());
-
-		//the row goes while the attempt runs, so it is the retry decision that has to catch it
-		ScriptedFetcher deletedDuring = fixture.newFetcher("deleted-during", new Recorder());
-		deletedDuring.script(FakeWorker.holding());
-		deletedDuring.startStream();
-		awaitState(deletedDuring, State.CONNECTING);
-		fixture.rows.remove("deleted-during");
-		deletedDuring.releaseAll();
-		awaitState(deletedDuring, State.STOPPED);
-		assertEquals(Reason.DELETED, deletedDuring.getLastReason());
-		assertEquals(1, deletedDuring.workers.size());
 
 		//deleted halfway through a teardown that was about to reconnect
 		ScriptedFetcher deletedInStopping = fixture.newFetcher("deleted-stopping", new Recorder());
@@ -318,7 +198,7 @@ class StreamFetcherTest {
 		refused.initialize(fixture.context, deadPool, new Recorder());
 
 		refused.startStream();
-		awaitState(refused, State.RECONNECT_WAIT);
+		awaitState(refused, State.STOPPED);
 		assertEquals(Reason.OPEN_FAILED, refused.getLastReason());
 		assertEquals(0, refused.workers.get(0).runs.get());
 
@@ -332,7 +212,7 @@ class StreamFetcherTest {
 		});
 
 		throwing.startStream();
-		awaitState(throwing, State.RECONNECT_WAIT);
+		awaitState(throwing, State.STOPPED);
 		assertEquals(Reason.READ_ERROR, throwing.getLastReason());
 	}
 
@@ -350,16 +230,16 @@ class StreamFetcherTest {
 		held.set(null);
 		tick(lost);
 
-		assertEquals(State.RECONNECT_WAIT, lost.getState());
+		assertEquals(State.STOPPED, lost.getState());
 		assertEquals(Reason.READ_ERROR, lost.getLastReason());
-		assertTrue(recorder.ticks.get() >= 1, "the owner still gets its maintenance call");
 
-		//the worker it lost track of returns late, into a fetcher that is already waiting to retry
+		//the worker it lost track of returns late, into a fetcher that is already stopped
 		lost.releaseAll();
 		Awaitility.await("the lost worker cannot change anything")
 				.during(400, TimeUnit.MILLISECONDS)
 				.atMost(5, TimeUnit.SECONDS)
-				.until(() -> lost.getState() == State.RECONNECT_WAIT);
+				.until(() -> lost.getState() == State.STOPPED);
+		assertEquals(List.of(State.CONNECTING, State.STOPPED), recorder.states());
 
 		//an open that delivers nothing is aborted and counts as a failure
 		ScriptedFetcher silent = fixture.newFetcher("tick-silent", new Recorder());
@@ -373,7 +253,7 @@ class StreamFetcherTest {
 		assertTrue(silent.workers.get(0).abortRequested.get());
 
 		silent.releaseAll();
-		awaitState(silent, State.RECONNECT_WAIT);
+		awaitState(silent, State.STOPPED);
 		assertEquals(Reason.TIMEOUT, silent.getLastReason());
 
 		//nothing left to maintain once it is terminal
@@ -388,8 +268,7 @@ class StreamFetcherTest {
 	void theListenerSeesEveryTransitionAndCannotStrandTheEngine() throws Exception {
 		Recorder recorder = new Recorder();
 		ScriptedFetcher fetcher = fixture.newFetcher("listener", recorder);
-		fetcher.script(FakeWorker.publishesThenEnds(), FakeWorker.holding());
-		fixture.appSettings.setStreamFetcherRetryDelayMs(20);
+		fetcher.script(FakeWorker.publishing());
 
 		IStreamFetcherListener legacy = mock(IStreamFetcherListener.class);
 		//outside code too. Its throw on the final transition must not keep the stop future from completing
@@ -397,19 +276,7 @@ class StreamFetcherTest {
 		fetcher.setStreamFetcherListener(legacy);
 
 		fetcher.startStream();
-		Awaitility.await("the second attempt is connecting")
-				.atMost(15, TimeUnit.SECONDS)
-				.until(() -> fetcher.workers.size() == 2 && fetcher.getState() == State.CONNECTING);
-		//the last transition is recorded after the state it carries is published
-		settle(fixture.context);
-
-		//published is what tells the manager an attempt that was on air just ended
-		assertEquals(List.of(
-				new Transition(State.IDLE, State.CONNECTING, false),
-				new Transition(State.CONNECTING, State.STREAMING, true),
-				new Transition(State.STREAMING, State.RECONNECT_WAIT, true),
-				new Transition(State.RECONNECT_WAIT, State.CONNECTING, false)), recorder.transitions);
-
+		awaitState(fetcher, State.STREAMING);
 		verify(legacy).streamStarted(legacy);
 		verify(legacy, never()).streamFinished(any());
 
@@ -421,6 +288,39 @@ class StreamFetcherTest {
 
 		assertEquals(State.STOPPED, fetcher.getState());
 		verify(legacy).streamFinished(legacy);
+
+		//published is what tells the manager the attempt that ended was on air
+		assertEquals(List.of(
+				new Transition(State.IDLE, State.CONNECTING, false),
+				new Transition(State.CONNECTING, State.STREAMING, true),
+				new Transition(State.STREAMING, State.STOPPING, true),
+				new Transition(State.STOPPING, State.STOPPED, true)), recorder.transitions);
+	}
+
+	/** Trying a source again is the manager's call, so every attempt that ends is the end of its StreamFetcher. */
+	@Test
+	void anAttemptThatEndsStopsTheFetcherWithItsReason() {
+		for (Reason reason : List.of(Reason.OPEN_FAILED, Reason.READ_ERROR, Reason.EOF)) {
+			Recorder recorder = new Recorder();
+			ScriptedFetcher fetcher = fixture.newFetcher("ends-" + reason, recorder);
+			fetcher.script(FakeWorker.ending(reason));
+			fetcher.startStream();
+
+			awaitState(fetcher, State.STOPPED);
+			assertEquals(reason, fetcher.getLastReason());
+			assertEquals(1, fetcher.workers.size(), "no second attempt after " + reason);
+			assertEquals(List.of(new Transition(State.IDLE, State.CONNECTING, false), new Transition(State.CONNECTING, State.STOPPED, false)), recorder.transitions);
+		}
+
+		//a source that was on air and dropped
+		Recorder recorder = new Recorder();
+		ScriptedFetcher dropped = fixture.newFetcher("dropped", recorder);
+		dropped.script(FakeWorker.publishesThenEnds());
+		dropped.startStream();
+
+		awaitState(dropped, State.STOPPED);
+		assertEquals(Reason.EOF, dropped.getLastReason());
+		assertEquals(new Transition(State.STREAMING, State.STOPPED, true), recorder.transitions.get(recorder.transitions.size() - 1));
 	}
 
 	@Test
@@ -542,14 +442,14 @@ class StreamFetcherTest {
 		ScriptedFetcher failing = fixture.newFetcher("camera-error", new Recorder());
 		FakeWorker refused = FakeWorker.holding();
 		refused.error.set(new Result(false, "Connection refused"));
-		failing.script(refused, FakeWorker.holding());
+		failing.script(refused);
 
 		failing.startStream();
 		awaitState(failing, State.CONNECTING);
 		assertEquals("Connection refused", failing.getCameraError().getMessage());
 
 		refused.release();
-		awaitState(failing, State.RECONNECT_WAIT);
+		awaitState(failing, State.STOPPED);
 
 		//the worker that knew why is gone, the reason must not go with it
 		assertEquals("Connection refused", failing.getCameraError().getMessage());
@@ -593,17 +493,12 @@ class StreamFetcherTest {
 				assertEquals(after, fetcher.getState(), label);
 
 				long tickTimer = (long) peek(fetcher, "tickTimerId");
-				long retryTimer = (long) peek(fetcher, "retryTimerId");
 
 				if (after == State.STOPPED) {
 					assertEquals(-1L, tickTimer, "tick timer left armed after " + label);
-					assertEquals(-1L, retryTimer, "retry timer left armed after " + label);
 				}
 				else if (!fetcher.workers.isEmpty()) {
 					assertNotEquals(-1L, tickTimer, "nothing left to move this fetcher on after " + label);
-				}
-				if (after == State.RECONNECT_WAIT) {
-					assertNotEquals(-1L, retryTimer, "nothing left to retry after " + label);
 				}
 
 				fetcher.releaseAll();
@@ -627,15 +522,11 @@ class StreamFetcherTest {
 		return switch (entry) {
 			case START -> from == State.IDLE ? State.CONNECTING : from;
 			case STOP -> switch (from) {
-				case IDLE, RECONNECT_WAIT -> State.STOPPED;
+				case IDLE -> State.STOPPED;
 				case CONNECTING, STREAMING -> State.STOPPING;
 				default -> from;
 			};
-			case RESTART -> switch (from) {
-				case STREAMING -> State.STOPPING;
-				case RECONNECT_WAIT -> State.CONNECTING;
-				default -> from;
-			};
+			case RESTART -> from == State.STREAMING ? State.STOPPING : from;
 			case FIRST_PACKET -> from == State.CONNECTING ? State.STREAMING : from;
 			case SEEK, TICK -> from;
 		};
@@ -664,11 +555,6 @@ class StreamFetcherTest {
 				fetcher.script(FakeWorker.publishing());
 				fetcher.startStream();
 				awaitState(fetcher, State.STREAMING);
-			}
-			case RECONNECT_WAIT -> {
-				fetcher.script(FakeWorker.ending(Reason.EOF), FakeWorker.holding());
-				fetcher.startStream();
-				awaitState(fetcher, State.RECONNECT_WAIT);
 			}
 			case STOPPING -> {
 				fetcher.script(FakeWorker.holding());
