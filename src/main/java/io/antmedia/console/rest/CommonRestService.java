@@ -14,7 +14,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.annotations.VisibleForTesting;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -115,7 +114,8 @@ public class CommonRestService {
 	private static final String LOG_LEVEL_OFF = "OFF";
 
 	public static final String USER_PASSWORD = "user.password";
-	private static final String AUTHENTICATED_PASSWORD_MARKER = "authenticated";
+	// Preserve the legacy session presence check without retaining a credential.
+	private static final String AUTH_MARKER = "authenticated";
 
 	public static final String USER_EMAIL = "user.email";
 
@@ -417,7 +417,7 @@ public class CommonRestService {
 				HttpSession session = servletRequest.getSession();
 				session.setAttribute(IS_AUTHENTICATED, true);
 				session.setAttribute(USER_EMAIL, user.getEmail());
-				session.setAttribute(USER_PASSWORD, AUTHENTICATED_PASSWORD_MARKER);
+				session.setAttribute(USER_PASSWORD, AUTH_MARKER);
 				user = userFromDB;
 				if(user.getScope() != null && user.getUserType() != null){
 					message = user.getScope() + "/" + user.getUserType();
@@ -577,7 +577,7 @@ public class CommonRestService {
 					if (session != null) {
 						session.setAttribute(IS_AUTHENTICATED, true);
 						session.setAttribute(USER_EMAIL, userMail);
-						session.setAttribute(USER_PASSWORD, AUTHENTICATED_PASSWORD_MARKER);
+						session.setAttribute(USER_PASSWORD, AUTH_MARKER);
 					}
 				}
 			}
@@ -1247,17 +1247,17 @@ public class CommonRestService {
 		return dataStore;
 	}
 
-	protected PasswordVerificationResult verifyPassword(User user, String rawPassword) {
+	protected PasswordVerificationResult verifyPassword(User user, String md5HashedPassword) {
 		if (user == null) {
 			return PasswordVerificationResult.failed();
 		}
 
-		return getPasswordService().verify(rawPassword, user.getPassword());
+		return getPasswordService().verify(md5HashedPassword, user.getPassword());
 	}
 
-	protected void upgradePasswordIfNeeded(User user, String rawPassword, PasswordVerificationResult verificationResult) {
+	protected void upgradePasswordIfNeeded(User user, String md5HashedPassword, PasswordVerificationResult verificationResult) {
 		if (verificationResult.isVerified() && verificationResult.isNeedsRehash()) {
-			user.setPassword(getPasswordService().hash(rawPassword));
+			user.setPassword(getPasswordService().hash(md5HashedPassword));
 			getDataStore().editUser(user);
 		}
 	}

@@ -3,14 +3,17 @@ package io.antmedia.console.security;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
+/**
+ * Stores the credential supplied by the client using salted Argon2id. The console
+ * supplies MD5(password), so new database entries contain Argon2id(MD5(password)).
+ * MD5 is only used on the server to verify legacy database entries.
+ */
 public class PasswordService {
 
-	private static final Pattern MD5_PATTERN = Pattern.compile("^[a-fA-F0-9]{32}$");
 	private static final String ARGON2_PREFIX = "$argon2";
 
 	private final Argon2PasswordEncoder argon2PasswordEncoder;
@@ -23,38 +26,36 @@ public class PasswordService {
 		this.argon2PasswordEncoder = argon2PasswordEncoder;
 	}
 
-	public String hash(String rawPassword) {
-		return argon2PasswordEncoder.encode(rawPassword);
+	public String hash(String md5HashedPassword) {
+		return argon2PasswordEncoder.encode(md5HashedPassword);
 	}
 
-	public PasswordVerificationResult verify(String rawPassword, String storedPassword) {
-		if (rawPassword == null || storedPassword == null) {
+	public PasswordVerificationResult verify(String md5HashedPassword, String storedPassword) {
+		if (md5HashedPassword == null || storedPassword == null) {
 			return PasswordVerificationResult.failed();
 		}
 
 		if (isArgon2Hash(storedPassword)) {
 			try {
-				return new PasswordVerificationResult(argon2PasswordEncoder.matches(rawPassword, storedPassword), false);
+				return new PasswordVerificationResult(argon2PasswordEncoder.matches(md5HashedPassword, storedPassword), false);
 			}
 			catch (RuntimeException e) {
 				return PasswordVerificationResult.failed();
 			}
 		}
 
-		String md5Password = getMD5Hash(rawPassword);
-		boolean legacyMatch = storedPassword.equals(md5Password)
-				|| storedPassword.equals(getMD5Hash(md5Password))
-				|| (!isMD5Hash(storedPassword) && storedPassword.equals(rawPassword));
+		// Older databases may contain MD5(password) or MD5(MD5(password)).
+		// Retain the double-hash fallback for existing API clients sending plaintext.
+		String md5Password = getMD5Hash(md5HashedPassword);
+		boolean legacyMatch = storedPassword.equals(md5HashedPassword)
+				|| storedPassword.equals(md5Password)
+				|| storedPassword.equals(getMD5Hash(md5Password));
 
 		return new PasswordVerificationResult(legacyMatch, legacyMatch);
 	}
 
 	public boolean isArgon2Hash(String storedPassword) {
 		return storedPassword != null && storedPassword.startsWith(ARGON2_PREFIX);
-	}
-
-	private boolean isMD5Hash(String storedPassword) {
-		return storedPassword != null && MD5_PATTERN.matcher(storedPassword).matches();
 	}
 
 	public static String getMD5Hash(String pass) {
