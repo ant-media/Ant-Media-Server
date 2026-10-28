@@ -495,6 +495,14 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertTrue(spyAdapter.updateSettings(newSettings, false, false));
 
+		newSettings.setSrtPassphrase("short");
+		assertFalse(spyAdapter.updateSettings(newSettings, false, false));
+		assertEquals("", settings.getSrtPassphrase());
+
+		newSettings.setSrtPassphrase("passphrase1234");
+		assertTrue(spyAdapter.updateSettings(newSettings, false, false));
+		assertEquals("passphrase1234", settings.getSrtPassphrase());
+
 	}
 
 	@Test
