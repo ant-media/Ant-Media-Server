@@ -1123,6 +1123,14 @@ public class CommonRestService {
 	}
 
 	public String changeServerSettings(ServerSettings serverSettings){
+		String requestedHostAddress = serverSettings.getHostAddress();
+		String currentHostAddress = getServerSettingsInternal().getHostAddress();
+		if (!Objects.equals(requestedHostAddress, currentHostAddress)) {
+			logger.warn("Rejecting server settings update because the request host address does not match this server");
+			return gson.toJson(new Result(false,
+					"Server settings belong to another host. Reload the page and try again."));
+		}
+
 		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
 
 		String serverName = "";
