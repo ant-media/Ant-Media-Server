@@ -13,6 +13,7 @@ import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.console.rest.RestServiceV2;
 import io.antmedia.console.rest.SupportRequest;
 import io.antmedia.console.rest.SupportRestService;
+import io.antmedia.console.security.PasswordService;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.licence.ILicenceService;
@@ -576,22 +577,23 @@ public class ConsoleRestV2UnitTest {
 
 		Result result = restService.addInitialUser(user);
 		assertTrue(result.isSuccess());
-		assertEquals(restService.getMD5Hash(password), dbStore.getUser(userName).getPassword());
+		assertTrue(new PasswordService().verify(password, dbStore.getUser(userName).getPassword()).isVerified());
 		assertEquals(UserType.ADMIN, dbStore.getUser(userName).getUserType());
 
 		//Change password tests
+		user.setPassword(password);
 		user.setNewPassword("password2");
 		Result result2 = restService.changeUserPasswordInternal(userName, user);
 		assertTrue(result2.isSuccess());
 
-		assertEquals(restService.getMD5Hash("password2"), dbStore.getUser(userName).getPassword());
+		assertTrue(new PasswordService().verify("password2", dbStore.getUser(userName).getPassword()).isVerified());
 
 		user.setPassword("password2");
 		user.setNewPassword("12345");
 		result2 = restService.changeUserPasswordInternal(userName, user);
 		assertTrue(result2.isSuccess());
 
-		assertEquals(restService.getMD5Hash("12345"), dbStore.getUser(userName).getPassword());
+		assertTrue(new PasswordService().verify("12345", dbStore.getUser(userName).getPassword()).isVerified());
 
 		//Does not exist with pass
 		result2 = restService.changeUserPasswordInternal(userName, user);
@@ -631,7 +633,7 @@ public class ConsoleRestV2UnitTest {
 
 		Result result = restService.addInitialUser(user);
 		assertTrue(result.isSuccess());
-		assertEquals(restService.getMD5Hash(password), dbStore.getUser(userName).getPassword());
+		assertTrue(new PasswordService().verify(password, dbStore.getUser(userName).getPassword()).isVerified());
 		assertEquals(UserType.ADMIN, dbStore.getUser(userName).getUserType());
 
 		//Add second user
@@ -653,7 +655,7 @@ public class ConsoleRestV2UnitTest {
 		result = restService.editUser(user2);
 		assertTrue(result.isSuccess());
 
-		assertEquals(restService.getMD5Hash("password2"), dbStore.getUser(userName2).getPassword());
+        assertTrue(new PasswordService().verify("password2", dbStore.getUser(userName2).getPassword()).isVerified());
 
 		//Null check
 		result = restService.editUser(null);
