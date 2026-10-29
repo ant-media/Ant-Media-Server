@@ -94,6 +94,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
+	private static final String SRT_PASSPHRASE_INVALID_MESSAGE = "SRT passphrase must be " + AppSettings.SRT_PASSPHRASE_MIN_LENGTH + " to " + AppSettings.SRT_PASSPHRASE_MAX_LENGTH + " characters";
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
 	private static final String CONTINUOUS_MOVE = "continuous";
@@ -212,6 +213,10 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 
 
+		}
+
+		if (broadcast != null && !AppSettings.isSrtPassphraseValid(broadcast.getSrtPassphraseOverride())) {
+			return Response.status(Status.BAD_REQUEST).entity(new Result(false, SRT_PASSPHRASE_INVALID_MESSAGE)).build();
 		}
 
 		Object returnObject = new Result(false, "unexpected parameters received");
@@ -416,6 +421,10 @@ public class BroadcastRestService extends RestServiceBase{
 		Result result = new Result(false);
 		if (id != null && broadcast != null) 
 		{
+			if (!AppSettings.isSrtPassphraseValid(broadcast.getSrtPassphraseOverride())) {
+				return new Result(false, SRT_PASSPHRASE_INVALID_MESSAGE);
+			}
+
 			Broadcast broadcastInDB = getDataStore().get(id);
 			if (broadcastInDB == null) {
 				String streamId = id.replaceAll(REPLACE_CHARS, "_");
@@ -487,6 +496,9 @@ public class BroadcastRestService extends RestServiceBase{
 			if (streamFetcher != null) {
 				streamFetcher.seekTime(seekTimeMs);
 				result.setSuccess(true);
+			}
+			else if (getApplication().getStreamFetcherManager().getPlaylistController().isRunning(id)) {
+				result.setMessage("Playlist item is preparing, try again shortly: " + id);
 			}
 			else {
 				result.setMessage("Not active stream source found with this id: " + id + " make sure you give the id of a running stream source");
@@ -1259,7 +1271,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get IP Camera Error after connection failure",
-			description = "Checks for an error after a connection failure with an IP camera. Returning true indicates an error; false indicates no error.",
+			description = "Checks for an error after a connection failure with an IP camera or stream source. Returning true indicates no error (last connection attempt succeeded); false indicates an error occurred, with the message describing it.",
 			responses = {
 					@ApiResponse(responseCode = "200", description = "IP Camera error status",
 							content = @Content(

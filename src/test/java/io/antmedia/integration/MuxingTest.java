@@ -966,6 +966,55 @@ public class MuxingTest {
 		appSettings.setEnableTimeTokenForPublish(false);
 		appSettings.setTimeTokenSecretForPublish("");
 		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
-		
+
+	}
+
+	@Test
+	public void testRTMPSubfolderInAppPath() throws Exception {
+		// OBS-style: server rtmp://localhost/live/0, stream key <streamId>. "0" is a subfolder, not the streamId
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
+
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
+
+		String appName = "live";
+		String restUrl = "http://" + ServerSettings.getLocalHostAddress() +":5080/" + appName +"/rest";
+		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings(appName);
+
+		appSettings.setPublishTokenControlEnabled(false);
+		appSettings.setPublishJwtControlEnabled(false);
+		appSettings.setEnableTimeTokenForPublish(false);
+		appSettings.setIpFilterEnabled(false);
+		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+
+		String subfolder = "0";
+		String streamId = "stream_" + (int) (Math.random()*10000);
+
+		Process process = execute(ffmpegPath + " -re -stream_loop -1 -i src/test/resources/test.flv -c copy -f flv"
+				+ " -rtmp_app " + appName + "/" + subfolder + " -rtmp_playpath " + streamId
+				+ " rtmp://localhost/" + appName);
+
+		try {
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcast	= ConsoleAppRestServiceTest.callGetBroadcast(restUrl, streamId);
+				return broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus());
+			});
+
+			Broadcast subfolderBroadcast = ConsoleAppRestServiceTest.callGetBroadcast(restUrl, subfolder);
+			assertTrue(subfolderBroadcast == null
+					|| !AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(subfolderBroadcast.getStatus()));
+		}
+		finally {
+			process.destroy();
+			ConsoleAppRestServiceTest.callDeleteBroadcast(streamId, appName);
+			ConsoleAppRestServiceTest.callDeleteBroadcast(subfolder, appName);
+			appSettings.setIpFilterEnabled(true);
+			ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+		}
 	}
 }

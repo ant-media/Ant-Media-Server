@@ -106,6 +106,10 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	/** jwt server filter control*/
 	public static final String SETTINGS_JWT_SERVER_CONTROL_ENABLED = "server.jwtServerControlEnabled";
 
+	public static final String SETTINGS_PROMETHEUS_ENABLED = "prometheus.enabled";
+
+	public static final String SETTINGS_PROMETHEUS_PORT = "prometheus.port";
+
 	public static final String SETTINGS_JWKS_URL = "server.jwksURL";
 
 	private static final String SETTINGS_SERVER_STATUS_WEBHOOK_URL = "server.statusWebHookURL";
@@ -263,6 +267,12 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	@Value( "${"+SETTINGS_JWT_SERVER_CONTROL_ENABLED+":false}" )
 	private boolean jwtServerControlEnabled;
 
+	@Value("${"+SETTINGS_PROMETHEUS_ENABLED+":true}")
+	private boolean prometheusEnabled = true;
+
+	@Value("${"+SETTINGS_PROMETHEUS_PORT+":9090}")
+	private int prometheusPort = 9090;
+
 	/**
 	 * Server JWT secret key
 	 * "afw7Zz9MqvLiheA5X3GFEKvLWb1JTKC2"
@@ -330,6 +340,15 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	@Value( "${"+LOCAL_LICENCE_SERVER_IP+":#{null}}" )
 	private String localLicenceServerIps;
 
+	private String pluginRegistryUrl = "https://antmedia-plugins.s3.eu-west-2.amazonaws.com/catalog.json";
+
+	public String getPluginRegistryUrl() {
+		return pluginRegistryUrl;
+	}
+
+	public void setPluginRegistryUrl(String pluginRegistryUrl) {
+		this.pluginRegistryUrl = pluginRegistryUrl;
+	}
 
 	public String getJwksURL() {
 		return jwksURL;
@@ -778,6 +797,22 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	public void setJwtServerControlEnabled(boolean jwtServerControlEnabled) {
 		this.jwtServerControlEnabled = jwtServerControlEnabled;
+	}
+
+	public boolean isPrometheusEnabled() {
+		return prometheusEnabled;
+	}
+
+	public void setPrometheusEnabled(boolean prometheusEnabled) {
+		this.prometheusEnabled = prometheusEnabled;
+	}
+
+	public int getPrometheusPort() {
+		return prometheusPort;
+	}
+
+	public void setPrometheusPort(int prometheusPort) {
+		this.prometheusPort = prometheusPort;
 	}
 
 	public boolean isSslEnabled() {
