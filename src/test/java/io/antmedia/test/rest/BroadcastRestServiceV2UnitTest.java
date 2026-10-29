@@ -63,6 +63,7 @@ import com.google.common.io.Files;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.RecordType;
+import io.antmedia.integration.CameraEmulator;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
@@ -99,9 +100,9 @@ import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.type.StreamMetricsHistory;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.streamsource.PlaylistController;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
-import io.antmedia.test.StreamFetcherUnitTest;
 import io.antmedia.test.StreamSchedularUnitTest;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
@@ -138,6 +139,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@AfterEach
 	public void after() {
 		restServiceReal = null;
+		CameraEmulator.stopIfStarted();
 	}
 
 	private String redisUri() {
@@ -1491,6 +1493,48 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testSrtPassphraseOverrideValidation() throws Exception {
+		AppSettings settings = mock(AppSettings.class);
+		restServiceReal.setAppSettings(settings);
+
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("scope");
+		restServiceReal.setScope(scope);
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		restServiceReal.setServerSettings(mock(ServerSettings.class));
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("srtStream");
+		broadcast.setSrtPassphraseOverride("short");
+
+		Response response = restServiceReal.createBroadcast(broadcast, false);
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+		assertFalse(((Result) response.getEntity()).isSuccess());
+		assertNull(store.get("srtStream"));
+
+		broadcast.setSrtPassphraseOverride("streampassphrase1");
+		response = restServiceReal.createBroadcast(broadcast, false);
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		assertEquals("streampassphrase1", store.get("srtStream").getSrtPassphraseOverride());
+
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setSrtPassphraseOverride("a".repeat(81));
+		assertFalse(restServiceReal.updateBroadcast("srtStream", update).isSuccess());
+		assertEquals("streampassphrase1", store.get("srtStream").getSrtPassphraseOverride());
+
+		update.setSrtPassphraseOverride("rotatedpassphrase1");
+		assertTrue(restServiceReal.updateBroadcast("srtStream", update).isSuccess());
+		assertEquals("rotatedpassphrase1", store.get("srtStream").getSrtPassphraseOverride());
+
+		//blank clears the override so the stream falls back to the app setting
+		update.setSrtPassphraseOverride("");
+		assertTrue(restServiceReal.updateBroadcast("srtStream", update).isSuccess());
+		assertEquals("", store.get("srtStream").getSrtPassphraseOverride());
+	}
+
+	@Test
 	public void testAllInOne() {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
@@ -2085,6 +2129,12 @@ public class BroadcastRestServiceV2UnitTest {
 		DataStore dataStore = new InMemoryDataStore("db");
 		adaptor.setDataStore(dataStore);
 
+		//without this the adapter builds a real StreamFetcherManager, whose context needs a vertx
+		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
+		PlaylistController playlistController = mock(PlaylistController.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
+		adaptor.setStreamFetcherManager(fetcherManager);
+
 		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
@@ -2162,6 +2212,13 @@ public class BroadcastRestServiceV2UnitTest {
 
 		cameraErrorV2 = streamSourceRest.getCameraErrorV2("any_stream");
 		assertFalse(cameraErrorV2.isSuccess());
+		assertEquals("Camera is not found with streamId: any_stream", cameraErrorV2.getMessage());
+
+		//a playlist between two items has no fetcher registered, so it gets its own answer
+		when(playlistController.isRunning("any_stream")).thenReturn(true);
+		cameraErrorV2 = streamSourceRest.getCameraErrorV2("any_stream");
+		assertFalse(cameraErrorV2.isSuccess());
+		assertTrue(cameraErrorV2.getMessage().contains("Playlist item is preparing"));
 
 		cameraErrorV2 = streamSourceRest.getCameraErrorV2(null);
 		assertFalse(cameraErrorV2.isSuccess());
@@ -2189,7 +2246,7 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testStartStopStreamSource()  {
 
 		//start ONVIF Camera emulator
-		StreamFetcherUnitTest.startCameraEmulator();
+		CameraEmulator.start();
 
 		//create an IP Camera for emulator
 		Broadcast newCam = new Broadcast("startStopIPCamera", "127.0.0.1:8080", "admin", "admin",
@@ -2248,11 +2305,6 @@ public class BroadcastRestServiceV2UnitTest {
 			Result result = streamSourceRest.startStreamSource(streamSource.getStreamId());
 			assertFalse(result.isSuccess());
 		}
-
-
-
-		//stop camera emulator
-		StreamFetcherUnitTest.stopCameraEmulator();
 	}
 
 	@Test
@@ -2302,7 +2354,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testConnectToCamera()  {
 		//start ONVIF Camera emulator
-		StreamFetcherUnitTest.startCameraEmulator();
+		CameraEmulator.start();
 
 		//create a cam broadcast
 		Broadcast newCam = new Broadcast("testAddIPCamera", "127.0.0.1:8080", "admin", "admin",
@@ -2331,19 +2383,13 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//message should be connection error code (-1) because IP is set
 		assertEquals(-1, result.getErrorId());
-
-
-		//stop camera emulator
-		StreamFetcherUnitTest.stopCameraEmulator();
-
-
 	}
 
 	@Test
 	public void testSearchOnvifDevices()  {
 
 		//start ONVIF Cam emulator
-		StreamFetcherUnitTest.startCameraEmulator();
+		CameraEmulator.start();
 
 		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 
@@ -2361,11 +2407,6 @@ public class BroadcastRestServiceV2UnitTest {
 		//assertEquals(1, result.length);
 		//*****************************************************************************
 		//*****************************************************************************
-
-
-		//stop camera emulator
-		StreamFetcherUnitTest.stopCameraEmulator();
-
 	}
 
 	@Test
@@ -2993,17 +3034,25 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(adaptor).when(broadcastRestService).getApplication();
 		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
+		PlaylistController playlistController = mock(PlaylistController.class);
+		when(fetcherManager.getPlaylistController()).thenReturn(playlistController);
 		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(fetcherManager);
-
-
-
 
 		Result updateSeekTime = broadcastRestService.updateSeekTime("", 1000);
 		assertFalse(updateSeekTime.isSuccess());
+		assertEquals("Id field is blank.", updateSeekTime.getMessage());
 
 		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
 		assertFalse(updateSeekTime.isSuccess());
+		assertTrue(updateSeekTime.getMessage().contains("Not active stream source"));
 
+		//a playlist between two items has no fetcher registered, so it gets its own answer
+		when(playlistController.isRunning("streamId")).thenReturn(true);
+		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
+		assertFalse(updateSeekTime.isSuccess());
+		assertTrue(updateSeekTime.getMessage().contains("Playlist item is preparing"));
+
+		//a registered fetcher is answered first, whatever the playlist says
 		StreamFetcher fetcher =  Mockito.mock(StreamFetcher.class);
 		Mockito.when(fetcherManager.getStreamFetcher("streamId")).thenReturn(fetcher);
 
@@ -3128,7 +3177,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testGetCameraProfiles() {
 		//start ONVIF Camera emulator
-		StreamFetcherUnitTest.startCameraEmulator();
+		CameraEmulator.start();
 
 		//create a cam broadcast
 		Broadcast newCam = new Broadcast("testAddIPCamera", "127.0.0.1:8080", "admin", "admin",

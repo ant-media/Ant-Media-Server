@@ -20,7 +20,6 @@ public class DashViewerStats extends ViewerStats implements IStreamStats, Applic
 	
 	public static final String BEAN_NAME = "dash.viewerstats";
 	
-	private Object lock = new Object();
 
 
 	//TODO: Code duplication(HLSViewerStats) move this method to ViewerStats
@@ -30,7 +29,7 @@ public class DashViewerStats extends ViewerStats implements IStreamStats, Applic
 		
 		setType(ViewerStats.DASH_TYPE);
 
-		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
 
 		serverSettings = (ServerSettings)applicationContext.getBean(ServerSettings.BEAN_NAME);
 
@@ -42,9 +41,7 @@ public class DashViewerStats extends ViewerStats implements IStreamStats, Applic
 		
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
-			synchronized (lock) {
-				updateViewerCountProcess(DASH_TYPE);
-			}
+			updateViewerCountProcess(DASH_TYPE);
 		});	
 	}
 
