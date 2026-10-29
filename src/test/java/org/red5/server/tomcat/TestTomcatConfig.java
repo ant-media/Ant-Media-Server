@@ -22,7 +22,7 @@ public class TestTomcatConfig {
         XPath xpath = XPathFactory.newInstance().newXPath();
 
         String[] expressions = {
-            "//entry[@key='keepAliveTimout' and @value='-1']",
+            "//entry[@key='keepAliveTimeout' and @value='30000']",
             "//entry[@key='disableUploadTimeout' and @value='false']",
             "//entry[@key='connectionTimeout' and @value='-1']",
             "//entry[@key='connectionUploadTimeout' and @value='-1']"
@@ -30,7 +30,7 @@ public class TestTomcatConfig {
 
         for (String expr : expressions) {
             Node result = (Node) xpath.evaluate(expr, doc, XPathConstants.NODE);
-            assertNotNull(result);
+            assertNotNull(result, expr);
         }    
   }
 }

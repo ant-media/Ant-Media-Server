@@ -187,6 +187,11 @@ public class EndpointMuxer extends Muxer {
 
 	@Override
 	public boolean openIO() {
+		if (url == null || !url.contains("://")) {
+			logger.error("Not opening IO for stream:{} because endpoint url is not valid:{}", streamId, url);
+			return false;
+		}
+
 		AVFormatContext context = getOutputFormatContext();
 		if (context == null) {
 			return false;
