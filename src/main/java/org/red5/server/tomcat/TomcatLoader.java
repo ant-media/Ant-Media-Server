@@ -214,6 +214,12 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		// instance a context
 		org.apache.catalina.Context ctx = embedded.addWebapp(host, contextPath, docBase);
 		if (ctx != null) {
+            // Shared services can contribute endpoints without modifying application web.xml files.
+            if (applicationContext != null && applicationContext.containsBean("red5.common")) {
+                ApplicationContext common = applicationContext.getBean("red5.common", ApplicationContext.class);
+                common.getBeansOfType(jakarta.servlet.ServletContainerInitializer.class).values()
+                        .forEach(initializer -> ctx.addServletContainerInitializer(initializer, java.util.Set.of()));
+            }
 			// grab the current classloader
 			ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 			ctx.setParentClassLoader(classLoader);
