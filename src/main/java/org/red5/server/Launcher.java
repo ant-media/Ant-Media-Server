@@ -34,6 +34,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.Red5;
 import org.slf4j.Logger;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.webrtc.PeerConnectionFactory;
 
@@ -75,6 +76,11 @@ public class Launcher {
 		// get the first logger
 		final Logger log = Red5LoggerFactory.getLogger(Launcher.class);
 		setLog(log);
+		// Route Tomcat/Jersey JUL records through Logback before Spring starts them.
+		SLF4JBridgeHandler.removeHandlersForRootLogger();
+		SLF4JBridgeHandler.install();
+		Thread.setDefaultUncaughtExceptionHandler((thread, exception) ->
+				log.error("Uncaught exception in thread {}", thread.getName(), exception));
 
 		// version info banner
 		Version version = RestServiceBase.getSoftwareVersion();
