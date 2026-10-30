@@ -75,6 +75,8 @@ public class Launcher {
 		// get the first logger
 		final Logger log = Red5LoggerFactory.getLogger(Launcher.class);
 		setLog(log);
+		Thread.setDefaultUncaughtExceptionHandler((thread, exception) ->
+				log.error("Uncaught exception in thread {}", thread.getName(), exception));
 
 		// version info banner
 		Version version = RestServiceBase.getSoftwareVersion();
