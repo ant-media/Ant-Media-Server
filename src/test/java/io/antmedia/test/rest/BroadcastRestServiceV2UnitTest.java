@@ -1493,6 +1493,48 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testSrtPassphraseOverrideValidation() throws Exception {
+		AppSettings settings = mock(AppSettings.class);
+		restServiceReal.setAppSettings(settings);
+
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn("scope");
+		restServiceReal.setScope(scope);
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		restServiceReal.setServerSettings(mock(ServerSettings.class));
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("srtStream");
+		broadcast.setSrtPassphraseOverride("short");
+
+		Response response = restServiceReal.createBroadcast(broadcast, false);
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+		assertFalse(((Result) response.getEntity()).isSuccess());
+		assertNull(store.get("srtStream"));
+
+		broadcast.setSrtPassphraseOverride("streampassphrase1");
+		response = restServiceReal.createBroadcast(broadcast, false);
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		assertEquals("streampassphrase1", store.get("srtStream").getSrtPassphraseOverride());
+
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setSrtPassphraseOverride("a".repeat(81));
+		assertFalse(restServiceReal.updateBroadcast("srtStream", update).isSuccess());
+		assertEquals("streampassphrase1", store.get("srtStream").getSrtPassphraseOverride());
+
+		update.setSrtPassphraseOverride("rotatedpassphrase1");
+		assertTrue(restServiceReal.updateBroadcast("srtStream", update).isSuccess());
+		assertEquals("rotatedpassphrase1", store.get("srtStream").getSrtPassphraseOverride());
+
+		//blank clears the override so the stream falls back to the app setting
+		update.setSrtPassphraseOverride("");
+		assertTrue(restServiceReal.updateBroadcast("srtStream", update).isSuccess());
+		assertEquals("", store.get("srtStream").getSrtPassphraseOverride());
+	}
+
+	@Test
 	public void testAllInOne() {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);

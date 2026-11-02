@@ -164,6 +164,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
 		testUpdateStatus(dataStore);
+		testSrtPassphraseOverride(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
@@ -263,6 +264,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
 		testUpdateStatus(dataStore);
+		testSrtPassphraseOverride(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
@@ -351,6 +353,7 @@ public class DBStoresUnitTest {
 		testClearAtStartCluster(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
+		testSrtPassphraseOverride(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
@@ -428,6 +431,7 @@ public class DBStoresUnitTest {
 		testClearAtStartCluster(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
+		testSrtPassphraseOverride(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
@@ -3732,6 +3736,36 @@ public class DBStoresUnitTest {
 		assertEquals("apn", subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getServiceName());
 		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getExtraData());
 
+	}
+
+	public void testSrtPassphraseOverride(DataStore dataStore) throws Exception {
+
+		String id = RandomStringUtils.insecure().nextAlphanumeric(16);
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(id);
+		broadcast.setSrtPassphraseOverride("streampassphrase1");
+
+		assertNotNull(dataStore.save(broadcast));
+		assertEquals("streampassphrase1", dataStore.get(id).getSrtPassphraseOverride());
+
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setName("no passphrase in this update");
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
+		assertEquals("streampassphrase1", dataStore.get(id).getSrtPassphraseOverride());
+
+		updateData = new BroadcastUpdate();
+		updateData.setSrtPassphraseOverride("rotatedpassphrase1");
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
+		assertEquals("rotatedpassphrase1", dataStore.get(id).getSrtPassphraseOverride());
+
+		//an empty value has to clear it so the stream falls back to the app setting
+		updateData = new BroadcastUpdate();
+		updateData.setSrtPassphraseOverride("");
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
+		assertEquals("", dataStore.get(id).getSrtPassphraseOverride());
+
+		dataStore.delete(id);
 	}
 
 	public void testUpdateBroadcastEncoderSettings(DataStore dataStore) {
