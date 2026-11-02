@@ -24,6 +24,7 @@ import jakarta.servlet.http.HttpSession;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
@@ -60,6 +61,7 @@ import io.antmedia.console.AdminApplication.ApplicationInfo;
 import io.antmedia.console.AdminApplication.BroadcastInfo;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.preference.PreferenceStore;
@@ -67,6 +69,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.SslConfigurationType;
+import io.antmedia.rest.model.StreamSearchResult;
 import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.SslConfigurator;
@@ -167,6 +170,10 @@ public class CommonRestService {
 	public static final String USER_TYPE = "user-type";
 
 	public static final String SCOPE_SYSTEM = "system";
+
+	private static final int MIN_STREAM_SEARCH_LENGTH = 2;
+	private static final int MAX_STREAM_SEARCH_LENGTH = 100;
+	private static final int MAX_STREAM_SEARCH_RESULTS = 50;
 	
 	
 	public static final String APP_NAME_REGEX = "^[a-zA-Z0-9_-]*$";
@@ -821,8 +828,76 @@ public class CommonRestService {
 
 
 	public String getApplicationInfo() {
-		List<ApplicationInfo> info = getApplication().getApplicationInfo();
+		List<ApplicationInfo> info = getApplication().getApplicationInfo(getAccessibleApps());
 		return gson.toJson(info);
+	}
+
+	/**
+	 * Searches stream id and name across the applications the user can access, one application
+	 * at a time: each query holds that application's datastore lock.
+	 */
+	public StreamSearchResult searchStreams(String query) {
+		String search = StringUtils.trimToEmpty(query);
+		List<StreamSearchResult.Item> results = new ArrayList<>();
+		if (search.length() < MIN_STREAM_SEARCH_LENGTH || search.length() > MAX_STREAM_SEARCH_LENGTH) {
+			return new StreamSearchResult(results, false);
+		}
+
+		for (String appName : getAccessibleApps()) {
+			AntMediaApplicationAdapter adaptor = getAppAdaptor(appName);
+			if (adaptor == null) {
+				continue;
+			}
+			// One over the limit tells us whether anything was left out.
+			int size = MAX_STREAM_SEARCH_RESULTS + 1 - results.size();
+			for (Broadcast broadcast : adaptor.getDataStore().getBroadcastList(0, size, null, null, null, search)) {
+				results.add(new StreamSearchResult.Item(broadcast.getStreamId(), broadcast.getName(), appName));
+			}
+			if (results.size() > MAX_STREAM_SEARCH_RESULTS) {
+				return new StreamSearchResult(new ArrayList<>(results.subList(0, MAX_STREAM_SEARCH_RESULTS)), true);
+			}
+		}
+		return new StreamSearchResult(results, false);
+	}
+
+	private List<String> getAccessibleApps() {
+		List<String> apps = getApplication().getApplications().stream()
+				.filter(appName -> !AdminApplication.APP_NAME.equals(appName))
+				.toList();
+
+		HttpSession session = servletRequest.getSession(false);
+		Object email = session == null ? null : session.getAttribute(USER_EMAIL);
+		if (email == null) {
+			// Only a server JWT request gets here without a session user, and it has full access.
+			return apps;
+		}
+
+		User user = getDataStore().getUser(email.toString());
+		if (user == null) {
+			return List.of();
+		}
+		return apps.stream().filter(appName -> canAccessApp(user, appName)).toList();
+	}
+
+	/**
+	 * @return true if the user is not limited to specific applications. A set scope wins over
+	 * the application map, which is what older users rely on.
+	 */
+	public static boolean canAccessAllApps(User user) {
+		String scope = user.getScope();
+		if (scope != null) {
+			return scope.isBlank() || SCOPE_SYSTEM.equals(scope);
+		}
+		Map<String, String> appRoles = user.getAppNameUserType();
+		return appRoles == null || appRoles.isEmpty() || appRoles.containsKey(SCOPE_SYSTEM);
+	}
+
+	public static boolean canAccessApp(User user, String appName) {
+		if (canAccessAllApps(user)) {
+			return true;
+		}
+		String scope = user.getScope();
+		return scope != null ? scope.equals(appName) : user.getAppNameUserType().containsKey(appName);
 	}
 
 	/**

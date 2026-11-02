@@ -203,8 +203,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return size;
 	}
 
-	public List<ApplicationInfo> getApplicationInfo() {
-		List<String> appNames = getApplications();
+	public List<ApplicationInfo> getApplicationInfo(List<String> appNames) {
 		List<ApplicationInfo> appsInfo = new ArrayList<>();
 		for (String name : appNames) {
 			if (name.equals(APP_NAME)) {

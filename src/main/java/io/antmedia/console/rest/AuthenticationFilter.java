@@ -5,6 +5,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -40,6 +41,7 @@ public class AuthenticationFilter extends AbstractFilter {
 	public static final String DISPATCH_PATH_URL = "_path";
 	public static final String PROXY_AUTHORIZATION_HEADER_JWT_TOKEN = "ProxyAuthorization";
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
+	private static final Pattern PROXY_PATH = Pattern.compile("/?rest(/v2)?/request(/.*)?");
 
 	public AbstractConsoleDataStore getAbstractConsoleDataStore()
 	{
@@ -158,7 +160,9 @@ public class AuthenticationFilter extends AbstractFilter {
 					String userScope = currentUser.getScope(); // should be null above 2.9.1
 					Map appNameUserType = currentUser.getAppNameUserType();
 
-					String dispatchURL = httpRequest.getParameter(DISPATCH_PATH_URL);
+					// _path only means something on the proxy. Anywhere else it must not grant access.
+					boolean proxyRequest = isProxyRequest(path);
+					String dispatchURL = proxyRequest ? httpRequest.getParameter(DISPATCH_PATH_URL) : null;
 					String appName = "";
 
 					if (StringUtils.isNotBlank(dispatchURL)) {
@@ -173,12 +177,9 @@ public class AuthenticationFilter extends AbstractFilter {
 						}
 					}
 
-					boolean scopeAccess;
-					if(userScope != null){ // backwards comp
-						scopeAccess = scopeAccessGranted(userScope, dispatchURL);
-
-					}else{
-						scopeAccess =  checkScopeAccessForAppName(appNameUserType, dispatchURL) || isRequestingOneOfAppSettingsOfUsersApps(appNameUserType, null, path);
+					boolean scopeAccess = hasScopeAccess(currentUser, dispatchURL, appName);
+					if (userScope == null) {
+						scopeAccess = scopeAccess || isRequestingOneOfAppSettingsOfUsersApps(appNameUserType, null, path);
 					}
 
 					if(appNameUserType != null && appNameUserType.containsKey("system")){ // system means access to everything.  it can be everything -> read_only or user or admin
@@ -190,7 +191,9 @@ public class AuthenticationFilter extends AbstractFilter {
 						//This is the READ part. No need to check the user type because scope is critical
 						if (scopeAccess || isRequestingOneOfAppSettingsOfUsersApps(appNameUserType, userScope, path)
 								|| path.equals("/rest/v2/version") || path.equals("/rest/v2/enterprise-edition")
-								|| path.equals("/rest/v2/admin-status")) 
+								|| path.equals("/rest/v2/admin-status")
+								// These two filter their results by the user's applications
+								|| path.equals("/rest/v2/applications-info") || path.equals("/rest/v2/streams/search"))
 						{
 							chain.doFilter(request, response);
 						}
@@ -203,9 +206,9 @@ public class AuthenticationFilter extends AbstractFilter {
 					else
 					{
 						//if it's not GET method, it should be PUT, DELETE or POST, check the authorization
-						if (path.equals("/rest/v2/users/password") || path.startsWith("/rest/v2/support/request")) 
+						if (path.equals("/rest/v2/users/password") || path.equals("/rest/v2/users/logout") || path.startsWith("/rest/v2/support/request"))
 						{
-							//changing own password and sending support are allowed for all users
+							//changing own password, logging out and sending support are allowed for all users
 							chain.doFilter(request, response);
 						}
 						else if (scopeAccess) 
@@ -244,8 +247,8 @@ public class AuthenticationFilter extends AbstractFilter {
 							}
 						}
 						else {
-							if ((currentUser.getAppNameUserType() != null && UserType.ADMIN.toString().equals(currentUser.getAppNameUserType().get(appName))) ||
-									UserType.ADMIN.equals(currentUser.getUserType()) && (path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1))))
+							if ((!proxyRequest && currentUser.getAppNameUserType() != null && UserType.ADMIN.toString().equals(currentUser.getAppNameUserType().get(appName))) ||
+									UserType.ADMIN.equals(currentUser.getUserType()) && userScope != null && (path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1))))
 							{
 								//only admin user can access to change the application settings out of its scope
 								chain.doFilter(request, response);
@@ -286,50 +289,24 @@ public class AuthenticationFilter extends AbstractFilter {
 		return false;
 	}
 
-	private boolean scopeAccessGranted(String userScope, String dispatchUrl){
-
-		boolean granted = false;
-		if (userScope == null || userScope.equals(CommonRestService.SCOPE_SYSTEM)) 
-		{
-			//Allow system level access 
-			granted = true;
+	private boolean hasScopeAccess(User user, String dispatchUrl, String appName) {
+		if (StringUtils.isBlank(dispatchUrl)) {
+			// Not an application request, so it's system level. A blank scope has never had this.
+			return user.getScope() != null ? CommonRestService.SCOPE_SYSTEM.equals(user.getScope()) : CommonRestService.canAccessAllApps(user);
 		}
-		else 
-		{
-			//Allow application level access
-			if ((dispatchUrl != null && (dispatchUrl.startsWith(userScope) || dispatchUrl.startsWith(userScope, 1)))) 
-			{
-				//second dispatch url is if the url starts with "/"
-				granted = true;
-			}
-
-		}
-		return granted;
+		return CommonRestService.canAccessAllApps(user) || (!hasDotSegment(dispatchUrl) && CommonRestService.canAccessApp(user, appName));
 	}
 
-	private boolean checkScopeAccessForAppName(Map appNameUserType, String dispatchUrl) {
+	// The filter sees the raw URI and the container resolves dot segments after it, so
+	// /rest/v2/request/../user-list is not a proxy request even though it looks like one.
+	private boolean isProxyRequest(String path) {
+		return PROXY_PATH.matcher(path).matches() && !hasDotSegment(path);
+	}
 
-		boolean granted = false;
-		if(appNameUserType == null || appNameUserType.isEmpty() || appNameUserType.containsKey("system")){
-			granted = true;
-
-		}else{
-			if (dispatchUrl != null) {
-				for (Object obj : appNameUserType.entrySet()) {
-					Map.Entry<String, String> entry = (Map.Entry<String, String>) obj;
-					String appName = entry.getKey();
-
-					if (dispatchUrl.startsWith(appName) || dispatchUrl.startsWith("/" + appName)) {
-						// second dispatch url is if the url starts with "/"
-						granted = true;
-						break;
-					}
-				}
-			}
-
-		}
-
-		return granted;
+	// A forwarded path can climb out of the application it names: customer1/../customer10.
+	// ponytail: also rejects a harmless "a..b" stream id for app-scoped users, parse segments if anyone needs one.
+	private boolean hasDotSegment(String url) {
+		return url.contains("..") || url.contains("\\") || url.toLowerCase().contains("%2e");
 	}
 
 	private boolean checkJWT( String jwtString) {

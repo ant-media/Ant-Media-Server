@@ -1,5 +1,6 @@
 package io.antmedia.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -3310,8 +3311,240 @@ public class ConsoleAppRestServiceTest{
 		
 	}
 
+	private static HttpResponse callWithSession(RequestBuilder builder, String path) throws Exception {
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		return client.execute(builder.setUri(ROOT_SERVICE_URL + path).build());
+	}
+
+	private static int getStatus(String path) throws Exception {
+		return callWithSession(RequestBuilder.get(), path).getStatusLine().getStatusCode();
+	}
+
+	private static String getBody(String path) throws Exception {
+		HttpResponse response = callWithSession(RequestBuilder.get(), path);
+		String body = RestServiceV2Test.readResponse(response).toString();
+		assertEquals(200, response.getStatusLine().getStatusCode(), body);
+		return body;
+	}
+
+	private static void loginAsSystemAdmin() throws Exception {
+		User admin = new User();
+		admin.setEmail(TEST_USER_EMAIL);
+		admin.setPassword(TEST_USER_PASS);
+		resetCookieStore();
+		assertTrue(callAuthenticateUser(admin).isSuccess());
+	}
+
+	private static User createScopedUser(String appName, UserType role) throws Exception {
+		User user = new User();
+		user.setEmail("scoped" + System.nanoTime() + "@antmedia.io");
+		user.setPassword(TEST_USER_PASS);
+		Map<String, String> appRoles = new HashMap<>();
+		appRoles.put(appName, role.toString());
+		user.setAppNameUserType(appRoles);
+		assertTrue(callCreateUser(user).isSuccess());
+		return user;
+	}
+
+	private static void loginAs(User user) throws Exception {
+		resetCookieStore();
+		assertTrue(callAuthenticateUser(user).isSuccess());
+	}
+
+	private static JSONArray searchResults(String term) throws Exception {
+		return (JSONArray) ((JSONObject) new JSONParser().parse(getBody("/streams/search?q=" + term))).get("results");
+	}
+
+	private static JSONArray applicationInfo() throws Exception {
+		return (JSONArray) new JSONParser().parse(getBody("/applications-info"));
+	}
+
+	// Runs in finally: no assertions, so it never hides the failure that got us here.
+	private static void cleanUpAsAdmin(List<String> userEmails, Map<String, String> streamIdToApp) throws Exception {
+		loginAsSystemAdmin();
+		streamIdToApp.forEach((streamId, app) -> callDeleteBroadcast(streamId, app));
+		userEmails.forEach(ConsoleAppRestServiceTest::callDeleteUser);
+	}
+
+	@Test
+	public void testAnonymousCannotReadAppListOrSearch() throws Exception {
+		resetCookieStore();
+
+		assertThat(getStatus("/applications-info")).isEqualTo(403);
+		assertThat(getStatus("/streams/search?q=anything")).isEqualTo(403);
+	}
+
+	@Test
+	public void testAppScopedUserSeesOnlyOwnAppsInListAndSearch() throws Exception {
+		String ownApp = "LiveApp";
+		String otherApp = "live";
+		String searchTerm = "globalSearch" + System.nanoTime();
+		String ownStream = searchTerm + "Own";
+		String otherStream = searchTerm + "Other";
+		List<String> users = new ArrayList<>();
+
+		try {
+			assertThat(callCreateBroadcast(ownStream, ownApp)).isNotNull();
+			assertThat(callCreateBroadcast(otherStream, otherApp)).isNotNull();
+
+			assertThat(searchResults(searchTerm)).hasSize(2);
+
+			User scopedUser = createScopedUser(ownApp, UserType.READ_ONLY);
+			users.add(scopedUser.getEmail());
+			// "Live" is a prefix of LiveApp, but not an app itself.
+			User prefixUser = createScopedUser("Live", UserType.READ_ONLY);
+			users.add(prefixUser.getEmail());
+
+			loginAs(scopedUser);
+
+			JSONArray appInfo = applicationInfo();
+			assertThat(appInfo).hasSize(1);
+			assertThat(((JSONObject) appInfo.get(0)).get("name")).isEqualTo(ownApp);
+
+			JSONObject search = (JSONObject) new JSONParser().parse(getBody("/streams/search?q=" + searchTerm));
+			JSONArray results = (JSONArray) search.get("results");
+			assertThat(results).hasSize(1);
+			JSONObject result = (JSONObject) results.get(0);
+			assertThat(result.get("streamId")).isEqualTo(ownStream);
+			assertThat(result.get("appName")).isEqualTo(ownApp);
+			assertThat(search.get("truncated")).isEqualTo(false);
+
+			loginAs(prefixUser);
+
+			assertThat(applicationInfo()).isEmpty();
+			assertThat(searchResults(searchTerm)).isEmpty();
+		}
+		finally {
+			cleanUpAsAdmin(users, Map.of(ownStream, ownApp, otherStream, otherApp));
+		}
+	}
+
+	@Test
+	public void testAppScopedUserCannotReachOtherApps() throws Exception {
+		String ownApp = "LiveApp";
+		String otherApp = "live";
+		String otherStream = "traversal" + System.nanoTime();
+		String otherStreamPath = "/rest/v2/broadcasts/" + otherStream;
+		List<String> users = new ArrayList<>();
+
+		try {
+			assertThat(callCreateBroadcast(otherStream, otherApp)).isNotNull();
+
+			// Proves the encoded form really escapes the app, otherwise the 403 below would prove nothing. Plain ".." gets a 404.
+			assertThat(getBody("/request?_path=" + ownApp + "/%252e%252e/" + otherApp + otherStreamPath)).contains(otherStream);
+
+			User scopedUser = createScopedUser(ownApp, UserType.READ_ONLY);
+			users.add(scopedUser.getEmail());
+			User prefixUser = createScopedUser("Live", UserType.READ_ONLY);
+			users.add(prefixUser.getEmail());
+
+			loginAs(scopedUser);
+
+			assertThat(callGetBroadcastListWithPath(ownApp)).isNotNull();
+			assertThat(getStatus("/request?_path=" + otherApp + otherStreamPath)).isEqualTo(403);
+			assertThat(getStatus("/request?_path=" + ownApp + "/../" + otherApp + otherStreamPath)).isEqualTo(403);
+			assertThat(getStatus("/request?_path=" + ownApp + "/..;/" + otherApp + otherStreamPath)).isEqualTo(403);
+			assertThat(getStatus("/request?_path=" + ownApp + "/%252e%252e/" + otherApp + otherStreamPath)).isEqualTo(403);
+
+			loginAs(prefixUser);
+
+			assertThat(getStatus("/request?_path=" + ownApp + "/rest/v2/broadcasts/list/0/50")).isEqualTo(403);
+		}
+		finally {
+			cleanUpAsAdmin(users, Map.of(otherStream, otherApp));
+		}
+	}
+
+	@Test
+	public void testAppAdminCannotUseProxyPathOnManagementEndpoints() throws Exception {
+		String ownApp = "LiveApp";
+		String attackerEmail = "escalated" + System.nanoTime() + "@antmedia.io";
+		List<String> users = new ArrayList<>(List.of(attackerEmail));
+
+		try {
+			User appAdmin = createScopedUser(ownApp, UserType.ADMIN);
+			users.add(appAdmin.getEmail());
+
+			loginAs(appAdmin);
+
+			assertThat(getStatus("/system-status")).isEqualTo(403);
+			assertThat(getStatus("/user-list?_path=" + ownApp)).isEqualTo(403);
+			assertThat(getStatus("/server-settings?_path=" + ownApp)).isEqualTo(403);
+
+			User newAdmin = new User();
+			newAdmin.setEmail(attackerEmail);
+			newAdmin.setPassword(TEST_USER_PASS);
+			newAdmin.setUserType(UserType.ADMIN);
+			newAdmin.setAppNameUserType(new HashMap<>(Map.of(CommonRestService.SCOPE_SYSTEM, UserType.ADMIN.toString())));
+
+			// The only write attempted here: a partial POST to /server-settings would corrupt the test server.
+			RequestBuilder createUser = RequestBuilder.post()
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(new Gson().toJson(newAdmin)));
+			assertThat(callWithSession(createUser, "/users?_path=" + ownApp).getStatusLine().getStatusCode()).isEqualTo(403);
+
+			loginAsSystemAdmin();
+			assertThat(getBody("/user-list")).doesNotContain(attackerEmail);
+		}
+		finally {
+			cleanUpAsAdmin(users, Map.of());
+		}
+	}
+
+	@Test
+	public void testAppScopedUserLogoutEndsSession() throws Exception {
+		User scopedUser = createScopedUser("LiveApp", UserType.READ_ONLY);
+
+		try {
+			loginAs(scopedUser);
+			assertThat(getStatus("/applications-info")).isEqualTo(200);
+
+			assertThat(callWithSession(RequestBuilder.delete(), "/users/logout").getStatusLine().getStatusCode()).isEqualTo(200);
+
+			assertThat(new Gson().fromJson(getBody("/authentication-status"), Result.class).isSuccess()).isFalse();
+			assertThat(getStatus("/applications-info")).isEqualTo(403);
+		}
+		finally {
+			cleanUpAsAdmin(List.of(scopedUser.getEmail()), Map.of());
+		}
+	}
+
 	@Test
 	public void testMultiAppUserPermission() throws Exception {
+		String enterpriseOrCommunityApp = callIsEnterpriseEdition().isSuccess() ? "WebRTCAppEE" : "WebRTCApp";
+		List<String> users = List.of("userTest1@antmedia.io", "userTest2@antmedia.io", "userTest3@antmedia.io", "userTest4@antmedia.io",
+				"userTest5@antmedia.io", "userTest6@antmedia.io", "userTest7@antmedia.io", "shouldntBeAbleToCreate@antmedia.io");
+
+		// A failed run leaves its users behind, and the checks need to create them again.
+		users.forEach(ConsoleAppRestServiceTest::callDeleteUser);
+
+		// The checks call app REST without a token, so an app with JWT control on answers 403 to everyone.
+		List<String> jwtApps = new ArrayList<>();
+		for (String app : List.of(enterpriseOrCommunityApp, "LiveApp", "live")) {
+			AppSettings settings = callGetAppSettings(app);
+			if (settings.isJwtControlEnabled()) {
+				settings.setJwtControlEnabled(false);
+				assertTrue(callSetAppSettings(app, settings).isSuccess());
+				jwtApps.add(app);
+			}
+		}
+
+		try {
+			checkMultiAppUserPermission();
+		}
+		finally {
+			loginAsSystemAdmin();
+			for (String app : jwtApps) {
+				AppSettings settings = callGetAppSettings(app);
+				settings.setJwtControlEnabled(true);
+				callSetAppSettings(app, settings);
+			}
+			users.forEach(ConsoleAppRestServiceTest::callDeleteUser);
+		}
+	}
+
+	private void checkMultiAppUserPermission() throws Exception {
 
 		Result result = callIsEnterpriseEdition();
 		String appName1 = "WebRTCApp";
