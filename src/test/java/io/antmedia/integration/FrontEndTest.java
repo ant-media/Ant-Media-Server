@@ -30,9 +30,11 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoAlertPresentException;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.logging.LogEntries;
@@ -191,26 +193,65 @@ public class FrontEndTest {
 		return chrome_options;
 	}
 
-	// CI takes the panel from the same-name panel branch, else panel master (build-projects action).
-	@Test
-	public void testAppScopedUserStaysLoggedInOnPanel() throws Exception {
+	private String createPanelUser(String appName) throws Exception {
 		String email = "panelScoped" + System.nanoTime() + "@antmedia.io";
 		User user = new User();
 		user.setEmail(email);
 		user.setPassword("05a671c66aefea124cc08b76ea6d30bb"); // hash of "testtest", the panel hashes what is typed
-		user.setAppNameUserType(new HashMap<>(Map.of("LiveApp", UserType.READ_ONLY.toString())));
+		user.setAppNameUserType(new HashMap<>(Map.of(appName, UserType.READ_ONLY.toString())));
 		assertThat(ConsoleAppRestServiceTest.callCreateUser(user).isSuccess()).isTrue();
+		return email;
+	}
+
+	private WebDriverWait loginToPanel(String email) {
+		this.driver = new ChromeDriver(getChromeOptions());
+		this.driver.get("http://localhost:5080/reborn-panel/#/login");
+
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+		WebElement emailInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("input[type='email']")));
+		// The first-run welcome modal would hold keyboard focus over the page.
+		((JavascriptExecutor) this.driver).executeScript("localStorage.setItem('ams.beta.notice.seen', 'true')");
+		emailInput.sendKeys(email);
+		this.driver.findElement(By.cssSelector("input[type='password']")).sendKeys("testtest");
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
+
+		wait.until(d -> !d.getCurrentUrl().contains("/login"));
+		return wait;
+	}
+
+	// CI takes the panel from the same-name panel branch, else panel master (build-projects action).
+	@Test
+	public void testPanelStreamSearchShowsOnlyAccessibleStreams() throws Exception {
+		String term = "panelSearch" + System.nanoTime();
+		String ownStream = term + "Own";
+		String otherStream = term + "Other";
+		String email = createPanelUser("LiveApp");
 
 		try {
-			this.driver = new ChromeDriver(getChromeOptions());
-			this.driver.get("http://localhost:5080/reborn-panel/#/login");
+			assertThat(ConsoleAppRestServiceTest.callCreateBroadcast(ownStream, "LiveApp")).isNotNull();
+			assertThat(ConsoleAppRestServiceTest.callCreateBroadcast(otherStream, "live")).isNotNull();
 
-			WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-			wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("input[type='email']"))).sendKeys(email);
-			this.driver.findElement(By.cssSelector("input[type='password']")).sendKeys("testtest");
-			wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
+			WebDriverWait wait = loginToPanel(email);
+			this.driver.get("http://localhost:5080/reborn-panel/#/apps");
+			wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("input[aria-label='Search streams']"))).sendKeys(term);
 
-			wait.until(d -> !d.getCurrentUrl().contains("/login"));
+			wait.until(ExpectedConditions.textToBePresentInElementLocated(By.tagName("body"), ownStream));
+			assertThat(this.driver.findElement(By.tagName("body")).getText()).doesNotContain(otherStream);
+		}
+		finally {
+			ConsoleAppRestServiceTest.callDeleteBroadcast(ownStream, "LiveApp");
+			ConsoleAppRestServiceTest.callDeleteBroadcast(otherStream, "live");
+			ConsoleAppRestServiceTest.callDeleteUser(email);
+		}
+	}
+
+	// CI takes the panel from the same-name panel branch, else panel master (build-projects action).
+	@Test
+	public void testAppScopedUserStaysLoggedInOnPanel() throws Exception {
+		String email = createPanelUser("LiveApp");
+
+		try {
+			WebDriverWait wait = loginToPanel(email);
 
 			// Longer than the panel's 15s apps poll, so a 403 from a later poll can't slip through.
 			Awaitility.await().during(20, TimeUnit.SECONDS).atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
