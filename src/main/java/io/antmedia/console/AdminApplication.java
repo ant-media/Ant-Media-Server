@@ -49,10 +49,12 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.console.plugin.PluginService;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 /**
@@ -102,6 +104,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	private IClusterNotifier clusterNotifier;
 
+	private PluginService pluginService;
 
 	private Queue<String> currentApplicationCreationProcesses = new ConcurrentLinkedQueue<>();
 
@@ -112,16 +115,17 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		vertx = (Vertx) scope.getContext().getBean("vertxCore");
 		warDeployer = (WarDeployer) app.getContext().getBean("warDeployer");
 
+		pluginService.scanInstalledPlugins();
+
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) -> 
+			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) ->
 			createApplicationWithURL(appName, warFileURI, secretKey)
 					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
 			});
-
 		}
 
 		return super.appStart(app);
@@ -730,4 +734,14 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	public void setWarDeployer(WarDeployer warDeployer) {
 		this.warDeployer = warDeployer;
 	}
+
+	@Autowired
+	public void setPluginService(PluginService pluginService) {
+		this.pluginService = pluginService;
+	}
+
+	public PluginService getPluginService() {
+		return pluginService;
+	}
+
 }

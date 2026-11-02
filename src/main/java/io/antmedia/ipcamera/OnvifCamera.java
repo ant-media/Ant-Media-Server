@@ -13,6 +13,7 @@ import org.onvif.ver10.schema.Profile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.UrlQueryUtils;
 import io.antmedia.ipcamera.onvif.soap.OnvifDevice;
 import io.antmedia.ipcamera.onvif.soap.devices.PtzDevices;
 
@@ -95,20 +96,13 @@ public class OnvifCamera implements IOnvifCamera {
 			String[] ipAddrParts = address.split("\\?");
 			
 			String query = ipAddrParts[1];
-			String[] parameters = query.split("&");
-			
-			for (String param : parameters) {
-				String[] keyValue = param.split("=", 2);
-				String key = keyValue[0];
-				String value = keyValue.length > 1 ? keyValue[1] : "";
 
-				if(PROFILE_INDEX.equals(key)) {
-					try {
-						profileIndex = Integer.parseInt(value);
-					}
-					catch(NumberFormatException e){
-						logger.error("Profile index for IP camera should be an integer but it is {}", value);
-					}
+			for (String value : UrlQueryUtils.getParamValues(query, PROFILE_INDEX)) {
+				try {
+					profileIndex = Integer.parseInt(value);
+				}
+				catch(NumberFormatException e){
+					logger.error("Profile index for IP camera should be an integer but it is {}", value);
 				}
 			}
 		}

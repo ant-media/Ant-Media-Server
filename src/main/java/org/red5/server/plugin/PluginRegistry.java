@@ -18,7 +18,9 @@
 
 package org.red5.server.plugin;
 
+import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
@@ -128,6 +130,11 @@ public class PluginRegistry {
      *            plugin name
      * @return requested plug-in matching the name given or null if not found
      */
+    public static Set<String> getPluginNames() {
+        // plugins is a ConcurrentHashMap, so a snapshot of its key set is already thread-safe without explicit locking
+        return new HashSet<>(plugins.keySet());
+    }
+
     public static IRed5Plugin getPlugin(String pluginName) {
         IRed5Plugin plugin = null;
         pluginReadLock.lock();

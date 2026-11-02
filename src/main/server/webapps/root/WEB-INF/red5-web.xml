@@ -40,5 +40,9 @@
 	
 		
 	<context:component-scan base-package="io.antmedia.console.rest" />
- 
+
+	<!-- PluginService owns plugin install/uninstall. It autowires the pluginDeployer bean
+	     declared in red5-common.xml, which is this context's parent. -->
+	<context:component-scan base-package="io.antmedia.console.plugin" />
+
 </beans>

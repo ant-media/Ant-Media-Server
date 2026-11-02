@@ -152,6 +152,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
@@ -163,6 +164,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
 		testUpdateStatus(dataStore);
+		testSrtPassphraseOverride(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
@@ -230,6 +232,7 @@ public class DBStoresUnitTest {
 		testConnectionEventsBug(dataStore);
 		testSubscriberAvgBitrate(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testLocalLiveBroadcast(dataStore);
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
@@ -248,6 +251,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
@@ -260,6 +264,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
 		testUpdateStatus(dataStore);
+		testSrtPassphraseOverride(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
@@ -333,6 +338,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
@@ -347,6 +353,7 @@ public class DBStoresUnitTest {
 		testClearAtStartCluster(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
+		testSrtPassphraseOverride(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
@@ -408,6 +415,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
+		testAddVodReplacesSameVodId(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
@@ -423,6 +431,7 @@ public class DBStoresUnitTest {
 		testClearAtStartCluster(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
+		testSrtPassphraseOverride(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
@@ -876,6 +885,30 @@ public class DBStoresUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	public void testAddVodReplacesSameVodId(DataStore datastore) {
+		long vodCount = datastore.getTotalVodNumber();
+		String vodId = RandomStringUtils.randomAlphanumeric(24);
+
+		//placeholder like clip-creator's async range clip
+		VoD placeholder = new VoD("streamName", "streamId", "streams/" + vodId + ".mp4", vodId + ".mp4", 111, 111, 0, 0, VoD.STREAM_VOD, vodId, null);
+		placeholder.setProcessStatus(VoD.PROCESS_STATUS_PROCESSING);
+		assertEquals(vodId, datastore.addVod(placeholder));
+
+		VoD finished = new VoD("streamName", "streamId", "streams/" + vodId + ".mp4", vodId + ".mp4", 222, 111, 10000, 12345, VoD.STREAM_VOD, vodId, null);
+		assertEquals(vodId, datastore.addVod(finished));
+
+		assertEquals(vodCount + 1, datastore.getTotalVodNumber());
+		VoD vod = datastore.getVoD(vodId);
+		assertEquals(10000, vod.getDuration());
+		assertEquals(12345, vod.getFileSize());
+
+		assertTrue(datastore.updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FINISHED));
+		assertEquals(VoD.PROCESS_STATUS_FINISHED, datastore.getVoD(vodId).getProcessStatus());
+
+		assertTrue(datastore.deleteVod(vodId));
+		assertEquals(vodCount, datastore.getTotalVodNumber());
 	}
 
 	public void testVoDFunctions(DataStore datastore) {
@@ -3703,6 +3736,36 @@ public class DBStoresUnitTest {
 		assertEquals("apn", subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getServiceName());
 		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getExtraData());
 
+	}
+
+	public void testSrtPassphraseOverride(DataStore dataStore) throws Exception {
+
+		String id = RandomStringUtils.insecure().nextAlphanumeric(16);
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(id);
+		broadcast.setSrtPassphraseOverride("streampassphrase1");
+
+		assertNotNull(dataStore.save(broadcast));
+		assertEquals("streampassphrase1", dataStore.get(id).getSrtPassphraseOverride());
+
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setName("no passphrase in this update");
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
+		assertEquals("streampassphrase1", dataStore.get(id).getSrtPassphraseOverride());
+
+		updateData = new BroadcastUpdate();
+		updateData.setSrtPassphraseOverride("rotatedpassphrase1");
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
+		assertEquals("rotatedpassphrase1", dataStore.get(id).getSrtPassphraseOverride());
+
+		//an empty value has to clear it so the stream falls back to the app setting
+		updateData = new BroadcastUpdate();
+		updateData.setSrtPassphraseOverride("");
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
+		assertEquals("", dataStore.get(id).getSrtPassphraseOverride());
+
+		dataStore.delete(id);
 	}
 
 	public void testUpdateBroadcastEncoderSettings(DataStore dataStore) {
