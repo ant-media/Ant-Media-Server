@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -29,6 +31,25 @@ import io.antmedia.test.UnitTestBase;
 
 @Tag("fast")
 class CommonRestServiceTest extends UnitTestBase<CommonRestService> {
+
+	@Test
+	void shouldRejectServerSettingsFromAnotherHost() {
+		ServerSettings currentSettings = mock(ServerSettings.class);
+		when(currentSettings.getHostAddress()).thenReturn("10.0.0.2");
+		ServerSettings requestedSettings = mock(ServerSettings.class);
+		when(requestedSettings.getHostAddress()).thenReturn("10.0.0.1");
+		when(requestedSettings.getLicenceKey()).thenReturn("node-1-licence-key");
+
+		classUnderTest = new CommonRestService();
+		classUnderTest.setServerSettings(currentSettings);
+
+		JsonObject result = JsonParser.parseString(classUnderTest.changeServerSettings(requestedSettings))
+				.getAsJsonObject();
+
+		assertThat(result.get("success").getAsBoolean()).isFalse();
+		assertThat(result.get("message").getAsString()).contains("another host");
+		verify(currentSettings, never()).setLicenceKey("node-1-licence-key");
+	}
 
 	@Test
 	void shouldReturnNullAppAdaptorWithoutApplication() {
