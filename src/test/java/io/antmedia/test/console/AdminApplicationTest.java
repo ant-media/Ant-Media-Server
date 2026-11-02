@@ -346,6 +346,27 @@ public class AdminApplicationTest {
 	}
 	
 	@Test
+	public void testGetApplicationInfoOnlyForGivenApps() {
+		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
+		IScope rootScope = Mockito.mock(IScope.class);
+		IScope customer1Scope = Mockito.mock(IScope.class);
+		Mockito.doReturn(rootScope).when(adminApplication).getRootScope();
+		Mockito.when(rootScope.getScope("customer1")).thenReturn(customer1Scope);
+		Mockito.doReturn(3).when(adminApplication).getAppLiveStreamCount(customer1Scope);
+		Mockito.doReturn(2).when(adminApplication).getVoDCount(customer1Scope);
+
+		List<AdminApplication.ApplicationInfo> info = adminApplication.getApplicationInfo(List.of("customer1", AdminApplication.APP_NAME));
+
+		assertEquals(1, info.size());
+		assertEquals("customer1", info.get(0).name);
+		assertEquals(3, info.get(0).liveStreamCount);
+		assertEquals(2, info.get(0).vodCount);
+		// Must not walk other apps' disks or scopes.
+		verify(rootScope, never()).getScope("customer10");
+		verify(adminApplication, never()).getApplications();
+	}
+
+	@Test
 	public void testGetApplication() {
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		AdminApplication adminApplication = Mockito.spy(new AdminApplication());

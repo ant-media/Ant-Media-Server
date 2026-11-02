@@ -1,5 +1,6 @@
 package io.antmedia.test.console;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -7,7 +8,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -780,6 +783,208 @@ public class AuthenticationFilterTest {
 			fail(e.getMessage());
 		}
 
+	}
+
+	private static final String PROXY_URI = "/rest/v2/request";
+	private static final String APP_INFO_URI = "/rest/v2/applications-info";
+	private static final String SEARCH_URI = "/rest/v2/streams/search";
+	private static final String LIST_PATH = "/rest/v2/broadcasts/list/0/10";
+
+	private static User mapUser(UserType userType, Map<String, String> appRoles) {
+		return new User("scoped@test.com", "pass", userType, null, appRoles);
+	}
+
+	private static User customer1MapUser() {
+		return mapUser(null, Map.of("customer1", UserType.ADMIN.toString()));
+	}
+
+	private static User customer1ScopeUser() {
+		return new User("scoped@test.com", "pass", UserType.ADMIN, "customer1", new HashMap<>());
+	}
+
+	// Forbidden requests must end in a 403, so a filter exception fails the test rather than passing as "denied".
+	private boolean isForwarded(User user, String method, String uri, String dispatchPath) throws Exception {
+		AuthenticationFilter filter = Mockito.spy(new AuthenticationFilter());
+		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+		HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+		FilterChain chain = Mockito.mock(FilterChain.class);
+		HttpSession session = Mockito.mock(HttpSession.class);
+
+		when(request.getSession()).thenReturn(session);
+		when(session.getAttribute(CommonRestService.IS_AUTHENTICATED)).thenReturn(true);
+		when(session.getAttribute(CommonRestService.USER_EMAIL)).thenReturn(user.getEmail());
+		when(session.getAttribute(CommonRestService.USER_PASSWORD)).thenReturn("pass");
+		when(request.getMethod()).thenReturn(method);
+		when(request.getRequestURI()).thenReturn(uri);
+		when(request.getParameter(AuthenticationFilter.DISPATCH_PATH_URL)).thenReturn(dispatchPath);
+
+		Mockito.doReturn(null).when(filter).getWebApplicationContext();
+		AbstractConsoleDataStore store = Mockito.mock(AbstractConsoleDataStore.class);
+		Mockito.doReturn(store).when(filter).getAbstractConsoleDataStore();
+		when(store.getUser(Mockito.any())).thenReturn(user);
+
+		filter.doFilter(request, response, chain);
+
+		boolean forwarded = !Mockito.mockingDetails(chain).getInvocations().isEmpty();
+		if (!forwarded) {
+			Mockito.verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, AuthenticationFilter.FORBIDDEN_ERROR);
+		}
+		return forwarded;
+	}
+
+	@Tag("fast")
+	@Test
+	public void testProxyPathMustMatchAllowedAppExactly() throws Exception {
+		for (User user : List.of(customer1MapUser(), customer1ScopeUser())) {
+			for (String allowed : List.of("customer1" + LIST_PATH, "/customer1" + LIST_PATH, "customer1", "customer1/rest/v2/broadcasts/cam.1")) {
+				assertThat(isForwarded(user, HttpMethod.GET, PROXY_URI, allowed)).as(allowed).isTrue();
+			}
+			for (String denied : List.of("customer10" + LIST_PATH, "/customer10" + LIST_PATH, "customer1x" + LIST_PATH, "customer1-test" + LIST_PATH, "Customer1" + LIST_PATH)) {
+				assertThat(isForwarded(user, HttpMethod.GET, PROXY_URI, denied)).as(denied).isFalse();
+			}
+		}
+	}
+
+	@Tag("fast")
+	@Test
+	public void testProxyWriteToPrefixMatchedAppIsForbidden() throws Exception {
+		String own = "customer1/rest/v2/broadcasts/cam1";
+		String other = "customer10/rest/v2/broadcasts/cam1";
+
+		User mapRole = customer1MapUser();
+		assertThat(isForwarded(mapRole, HttpMethod.DELETE, PROXY_URI, own)).isTrue();
+		assertThat(isForwarded(mapRole, HttpMethod.DELETE, PROXY_URI, other)).isFalse();
+
+		// User-level ADMIN with no scope: must be a clean 403 for other apps.
+		User userLevelAdmin = mapUser(UserType.ADMIN, Map.of("customer1", UserType.ADMIN.toString()));
+		assertThat(isForwarded(userLevelAdmin, HttpMethod.DELETE, PROXY_URI, own)).isTrue();
+		assertThat(isForwarded(userLevelAdmin, HttpMethod.DELETE, PROXY_URI, other)).isFalse();
+
+		User scoped = customer1ScopeUser();
+		assertThat(isForwarded(scoped, HttpMethod.DELETE, PROXY_URI, own)).isTrue();
+		assertThat(isForwarded(scoped, HttpMethod.DELETE, PROXY_URI, other)).isFalse();
+	}
+
+	// The proxy forwards _path to the server, which resolves these to customer10.
+	@Tag("fast")
+	@Test
+	public void testProxyPathWithDotSegmentsIsForbidden() throws Exception {
+		List<String> traversals = List.of(
+				"customer1/../customer10" + LIST_PATH,
+				"/customer1/../customer10" + LIST_PATH,
+				"customer1/./../customer10" + LIST_PATH,
+				"customer1/%2e%2e/customer10" + LIST_PATH,
+				"customer1/%2E%2E/customer10" + LIST_PATH,
+				"customer1/.%2e/customer10" + LIST_PATH,
+				"customer1/%2e./customer10" + LIST_PATH,
+				"customer1/..;/customer10" + LIST_PATH,
+				"customer1/..%2fcustomer10" + LIST_PATH,
+				"customer1/..\\customer10" + LIST_PATH);
+
+		for (User user : List.of(customer1MapUser(), customer1ScopeUser())) {
+			for (String traversal : traversals) {
+				assertThat(isForwarded(user, HttpMethod.GET, PROXY_URI, traversal)).as(traversal).isFalse();
+				assertThat(isForwarded(user, HttpMethod.POST, PROXY_URI, traversal)).as(traversal).isFalse();
+			}
+		}
+	}
+
+	// _path grants access only on the proxy. Elsewhere it must not unlock a management endpoint.
+	@Tag("fast")
+	@Test
+	public void testProxyPathGrantsNothingOutsideTheProxy() throws Exception {
+		String ownPath = "customer1" + LIST_PATH;
+
+		for (User user : List.of(customer1MapUser(), customer1ScopeUser())) {
+			for (String uri : List.of("/rest/v2/user-list", "/rest/v2/server-settings", "/rest/v2/thread-dump", "/rest/v2/system-status")) {
+				assertThat(isForwarded(user, HttpMethod.GET, uri, ownPath)).as(uri).isFalse();
+			}
+			for (String uri : List.of("/rest/v2/users", "/rest/v2/server-settings")) {
+				assertThat(isForwarded(user, HttpMethod.POST, uri, ownPath)).as(uri).isFalse();
+			}
+
+			assertThat(isForwarded(user, HttpMethod.GET, "/rest/request", ownPath)).isTrue();
+			assertThat(isForwarded(user, HttpMethod.GET, "/rest/v2/request/sub", ownPath)).isTrue();
+
+			// The container resolves these to /rest/v2/user-list after the filter has run.
+			for (String disguised : List.of("/rest/v2/request/../user-list", "/rest/v2/request/%2e%2e/user-list", "/rest/v2/request/%2E%2E/user-list")) {
+				assertThat(isForwarded(user, HttpMethod.GET, disguised, ownPath)).as(disguised).isFalse();
+			}
+		}
+
+		User systemAdmin = mapUser(null, Map.of("system", UserType.ADMIN.toString()));
+		assertThat(isForwarded(systemAdmin, HttpMethod.GET, "/rest/v2/user-list", "anything")).isTrue();
+	}
+
+	@Tag("fast")
+	@Test
+	public void testScopedUserCanReadOwnAppListAndSearchOnly() throws Exception {
+		User readOnly = mapUser(null, Map.of("customer1", UserType.READ_ONLY.toString()));
+
+		for (User user : List.of(customer1MapUser(), customer1ScopeUser(), readOnly)) {
+			for (String uri : List.of(APP_INFO_URI, SEARCH_URI)) {
+				assertThat(isForwarded(user, HttpMethod.GET, uri, null)).as(uri).isTrue();
+				assertThat(isForwarded(user, HttpMethod.POST, uri, null)).as(uri).isFalse();
+				assertThat(isForwarded(user, HttpMethod.GET, uri + "/extra", null)).as(uri).isFalse();
+			}
+		}
+	}
+
+	// CommonRestService treats "no session user" as a server JWT request, which is only safe if this holds.
+	@Tag("fast")
+	@Test
+	public void testAnonymousCannotReadAppListOrSearch() throws Exception {
+		for (String uri : List.of(APP_INFO_URI, SEARCH_URI)) {
+			AuthenticationFilter filter = Mockito.spy(new AuthenticationFilter());
+			HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+			HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+			FilterChain chain = Mockito.mock(FilterChain.class);
+
+			when(request.getSession()).thenReturn(Mockito.mock(HttpSession.class));
+			when(request.getMethod()).thenReturn(HttpMethod.GET);
+			when(request.getRequestURI()).thenReturn(uri);
+			Mockito.doReturn(null).when(filter).getWebApplicationContext();
+
+			filter.doFilter(request, response, chain);
+
+			Mockito.verify(chain, Mockito.never()).doFilter(request, response);
+			Mockito.verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not authenticated user");
+		}
+	}
+
+	@Tag("fast")
+	@Test
+	public void testScopedUserStaysForbiddenFromSystemEndpoints() throws Exception {
+		List<String> systemUris = List.of("/rest/v2/system-status", "/rest/v2/server-settings", "/rest/v2/user-list", "/rest/v2/applications",
+				"/rest/v2/cluster-mode-status", "/rest/v2/last-licence-status", "/rest/v2/thread-dump");
+
+		for (User user : List.of(customer1MapUser(), customer1ScopeUser())) {
+			for (String uri : systemUris) {
+				assertThat(isForwarded(user, HttpMethod.GET, uri, null)).as(uri).isFalse();
+			}
+		}
+	}
+
+	@Tag("fast")
+	@Test
+	public void testScopedUserCanLogout() throws Exception {
+		User readOnly = mapUser(null, Map.of("customer1", UserType.READ_ONLY.toString()));
+
+		for (User user : List.of(customer1MapUser(), customer1ScopeUser(), readOnly)) {
+			assertThat(isForwarded(user, HttpMethod.DELETE, "/rest/v2/users/logout", null)).isTrue();
+		}
+	}
+
+	// Older users: blank scope and a null or empty map keep today's all-access.
+	@Tag("fast")
+	@Test
+	public void testUsersWithoutScopesKeepAllAccess() throws Exception {
+		User blankScope = new User("scoped@test.com", "pass", UserType.ADMIN, "", new HashMap<>());
+		assertThat(isForwarded(blankScope, HttpMethod.GET, PROXY_URI, "anyapp" + LIST_PATH)).isTrue();
+
+		assertThat(isForwarded(mapUser(null, null), HttpMethod.GET, "/rest/v2/system-status", null)).isTrue();
+		assertThat(isForwarded(mapUser(null, new HashMap<>()), HttpMethod.GET, "/rest/v2/system-status", null)).isTrue();
+		assertThat(isForwarded(mapUser(null, null), HttpMethod.GET, PROXY_URI, "anyapp" + LIST_PATH)).isTrue();
 	}
 
 

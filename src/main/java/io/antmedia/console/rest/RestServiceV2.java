@@ -24,6 +24,7 @@ import io.antmedia.datastore.db.types.User;
 import io.antmedia.plugin.api.PluginRecord;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.StreamSearchResult;
 import io.antmedia.settings.ServerSettings;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.License;
@@ -402,6 +403,18 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public String getApplicationInfo() {
 	    return super.getApplicationInfo();
+	}
+
+	@Operation(summary = "Searches stream id and name across the applications the user can access",
+	           description = "Returns at most 50 streams. Queries shorter than 2 or longer than 100 characters return nothing.",
+	           responses = {@ApiResponse(responseCode = "200", description = "Successful operation",
+	                            content = @Content(schema = @Schema(implementation = StreamSearchResult.class)))})
+	@GET
+	@Path("/streams/search")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public StreamSearchResult searchStreams(@Parameter(description = "Text to search in stream id and name", required = true) @QueryParam("q") String query) {
+	    return super.searchStreams(query);
 	}
 
 	@Operation(summary = "Returns live streams in the specified application",

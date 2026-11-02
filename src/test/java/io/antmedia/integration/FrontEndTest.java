@@ -1,5 +1,6 @@
 package io.antmedia.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,7 +11,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -45,6 +48,8 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.User;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.Result;
@@ -184,6 +189,39 @@ public class FrontEndTest {
 		chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
 
 		return chrome_options;
+	}
+
+	// CI takes the panel from the same-name panel branch, else panel master (build-projects action).
+	@Test
+	public void testAppScopedUserStaysLoggedInOnPanel() throws Exception {
+		String email = "panelScoped" + System.nanoTime() + "@antmedia.io";
+		User user = new User();
+		user.setEmail(email);
+		user.setPassword("05a671c66aefea124cc08b76ea6d30bb"); // hash of "testtest", the panel hashes what is typed
+		user.setAppNameUserType(new HashMap<>(Map.of("LiveApp", UserType.READ_ONLY.toString())));
+		assertThat(ConsoleAppRestServiceTest.callCreateUser(user).isSuccess()).isTrue();
+
+		try {
+			this.driver = new ChromeDriver(getChromeOptions());
+			this.driver.get("http://localhost:5080/reborn-panel/#/login");
+
+			WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+			wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("input[type='email']"))).sendKeys(email);
+			this.driver.findElement(By.cssSelector("input[type='password']")).sendKeys("testtest");
+			wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
+
+			wait.until(d -> !d.getCurrentUrl().contains("/login"));
+
+			// Longer than the panel's 15s apps poll, so a 403 from a later poll can't slip through.
+			Awaitility.await().during(20, TimeUnit.SECONDS).atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+					.until(() -> !this.driver.getCurrentUrl().contains("/login"));
+
+			wait.until(ExpectedConditions.textToBePresentInElementLocated(By.tagName("body"), "LiveApp"));
+			assertThat(this.driver.findElement(By.tagName("body")).getText()).doesNotContain("System CPU");
+		}
+		finally {
+			ConsoleAppRestServiceTest.callDeleteUser(email);
+		}
 	}
 
 	//This was a bug for community edition
