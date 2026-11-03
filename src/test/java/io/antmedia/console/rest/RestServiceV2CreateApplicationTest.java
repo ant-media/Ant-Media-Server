@@ -35,6 +35,7 @@ class RestServiceV2CreateApplicationTest extends UnitTestBase<RestServiceV2> {
 	@Test
 	void rejectsTheOtherRootWebappPaths() {
 		assertThat(List.of("root", "rest", "metrics", "assets", "images"))
+				.isNotEmpty()
 				.allSatisfy(name -> assertThat(classUnderTest.createApplication(name, null).getMessage())
 						.isEqualTo("Application name " + name + " is reserved"));
 		verify(classUnderTest, never()).isApplicationExists(anyString());
