@@ -31,6 +31,8 @@ class WebVttHlsPlaylist {
 	private final List<WebVttCue> cues = new ArrayList<>();
 	private final Map<Long, Segment> knownSegments = new HashMap<>();
 	private final Set<Long> writtenSequences = new HashSet<>();
+	private final Map<Long, String> writtenSegmentContents = new HashMap<>();
+	private String writtenPlaylistContent;
 	private TimelinePlaylist mediaPlaylist;
 
 	WebVttHlsPlaylist(WebVttTrack track, File directory, String baseName) {
@@ -40,18 +42,15 @@ class WebVttHlsPlaylist {
 		playlistFile = new File(directory, playlistName(track, baseName));
 	}
 
-	WebVttTrack track() {
-		return track;
-	}
-
-	String playlistName() {
-		return playlistFile.getName();
-	}
-
 	synchronized void addCue(WebVttCue cue) throws IOException {
 		cues.add(cue);
 		if (mediaPlaylist != null) {
-			writeFiles();
+			for (Segment segment : mediaPlaylist.segments()) {
+				if (cue.startTimeMs() >= segment.startMs()
+						&& cue.startTimeMs() < segment.startMs() + segment.durationMs()) {
+					writeSegmentIfChanged(segment);
+				}
+			}
 		}
 	}
 
@@ -66,11 +65,13 @@ class WebVttHlsPlaylist {
 		if (parsed.segments().isEmpty()) {
 			return;
 		}
-		mediaPlaylist = addTimeline(parsed);
+		mediaPlaylist = assignAndRememberSegmentTimes(parsed);
 		writeFiles();
+		removeExpiredSegments();
+		removeExpiredCues();
 	}
 
-	private TimelinePlaylist addTimeline(TimelinePlaylist parsed) {
+	private TimelinePlaylist assignAndRememberSegmentTimes(TimelinePlaylist parsed) {
 		List<Segment> segments = new ArrayList<>();
 		long startMs = findStartTime(parsed);
 		for (Segment segment : parsed.segments()) {
@@ -99,13 +100,31 @@ class WebVttHlsPlaylist {
 
 	private void writeFiles() throws IOException {
 		for (Segment segment : mediaPlaylist.segments()) {
-			writeAtomically(new File(directory, segmentName(segment.sequence())), createSegmentContent(segment));
-			writtenSequences.add(segment.sequence());
+			writeSegmentIfChanged(segment);
 		}
-		writeAtomically(playlistFile, createPlaylistContent());
-		removeExpiredFiles();
+		writePlaylistIfChanged();
+	}
+
+	private void writePlaylistIfChanged() throws IOException {
+		String playlistContent = createPlaylistContent();
+		if (!playlistContent.equals(writtenPlaylistContent)) {
+			writeAtomically(playlistFile, playlistContent);
+			writtenPlaylistContent = playlistContent;
+		}
+	}
+
+	private void removeExpiredCues() {
 		long earliestCueTime = mediaPlaylist.segments().get(0).startMs();
 		cues.removeIf(cue -> cue.endTimeMs() < earliestCueTime);
+	}
+
+	private void writeSegmentIfChanged(Segment segment) throws IOException {
+		String content = createSegmentContent(segment);
+		if (!content.equals(writtenSegmentContents.get(segment.sequence()))) {
+			writeAtomically(new File(directory, segmentName(segment.sequence())), content);
+			writtenSegmentContents.put(segment.sequence(), content);
+			writtenSequences.add(segment.sequence());
+		}
 	}
 
 	private String createSegmentContent(Segment segment) {
@@ -135,12 +154,13 @@ class WebVttHlsPlaylist {
 		return new MediaPlaylistParser().writePlaylistAsString(builder.build());
 	}
 
-	private void removeExpiredFiles() throws IOException {
+	private void removeExpiredSegments() throws IOException {
 		long firstSequenceToKeep = Math.max(0, mediaPlaylist.mediaSequence() - 1);
 		for (Long sequence : new HashSet<>(writtenSequences)) {
 			if (sequence < firstSequenceToKeep) {
 				Files.deleteIfExists(new File(directory, segmentName(sequence)).toPath());
 				writtenSequences.remove(sequence);
+				writtenSegmentContents.remove(sequence);
 				knownSegments.remove(sequence);
 			}
 		}
