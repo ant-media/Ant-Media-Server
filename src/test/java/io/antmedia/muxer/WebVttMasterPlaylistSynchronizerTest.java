@@ -34,21 +34,21 @@ class WebVttMasterPlaylistSynchronizerTest extends UnitTestBase<WebVttMasterPlay
 		classUnderTest = new WebVttMasterPlaylistSynchronizer(master.toFile(),
 				List.of(new WebVttTrack(2, "eng", "English captions")), "test");
 
-		assertThat(classUnderTest.synchronize(false)).isEmpty();
+		assertThat(classUnderTest.synchronizeIfChanged()).isEmpty();
 
 		Files.writeString(master, FFMPEG_MASTER, StandardCharsets.UTF_8);
-		assertThat(classUnderTest.synchronize(false)).contains("test_0.m3u8");
+		assertThat(classUnderTest.synchronizeIfChanged()).contains("test_0.m3u8");
 		assertThat(Files.readString(master)).contains("TYPE=AUDIO", "TYPE=SUBTITLES", "SUBTITLES=\"subs\"");
 
 		FileTime mergedModificationTime = Files.getLastModifiedTime(master);
-		assertThat(classUnderTest.synchronize(false)).contains("test_0.m3u8");
+		assertThat(classUnderTest.synchronizeIfChanged()).contains("test_0.m3u8");
 		assertThat(Files.getLastModifiedTime(master)).isEqualTo(mergedModificationTime);
-		assertThat(classUnderTest.synchronize(true)).contains("test_0.m3u8");
+		assertThat(classUnderTest.synchronizeRegardlessOfFileChanges()).contains("test_0.m3u8");
 		assertThat(Files.getLastModifiedTime(master)).isEqualTo(mergedModificationTime);
 
 		Files.writeString(master, FFMPEG_MASTER, StandardCharsets.UTF_8);
 		Files.setLastModifiedTime(master, FileTime.fromMillis(mergedModificationTime.toMillis() + 1_000));
-		assertThat(classUnderTest.synchronize(false)).contains("test_0.m3u8");
+		assertThat(classUnderTest.synchronizeIfChanged()).contains("test_0.m3u8");
 		assertThat(Files.readString(master)).contains("TYPE=SUBTITLES", "SUBTITLES=\"subs\"");
 	}
 }

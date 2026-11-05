@@ -26,7 +26,15 @@ class WebVttMasterPlaylistSynchronizer {
 		this.baseName = baseName;
 	}
 
-	Optional<String> synchronize(boolean force) throws IOException {
+	Optional<String> synchronizeIfChanged() throws IOException {
+		return synchronize(false);
+	}
+
+	Optional<String> synchronizeRegardlessOfFileChanges() throws IOException {
+		return synchronize(true);
+	}
+
+	private Optional<String> synchronize(boolean force) throws IOException {
 		if (!masterPlaylist.isFile()) {
 			return Optional.empty();
 		}
@@ -41,8 +49,8 @@ class WebVttMasterPlaylistSynchronizer {
 		lastModified = modified;
 		lastSize = size;
 		String source = Files.readString(masterPlaylist.toPath(), StandardCharsets.UTF_8);
-		mediaPlaylistName = HLSMuxer.getPrimaryVariantUri(source);
-		String merged = HLSMuxer.addWebVttToMasterPlaylistContent(tracks, baseName, source);
+		mediaPlaylistName = WebVttPlaylistManager.getPrimaryVariantUri(source);
+		String merged = WebVttPlaylistManager.addWebVttToMasterPlaylistContent(tracks, baseName, source);
 		if (!merged.equals(source)) {
 			File temporaryFile = new File(masterPlaylist.getParentFile(), masterPlaylist.getName() + ".tmp");
 			Files.writeString(temporaryFile.toPath(), merged, StandardCharsets.UTF_8);
