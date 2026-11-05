@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,8 +57,7 @@ public class HLSMuxer extends Muxer  {
 	public static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
 	public static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
 
-	public static final String HLS_FILES_REGEX_MATCHER = "(\\d{9}\\.(ts|fmp4)|\\.m3u8)$";
-	
+	public static final String HLS_FILES_REGEX_MATCHER = "(\\d{9}\\.(ts|fmp4)|\\d+\\.vtt|\\.m3u8)$";
 	private static final String VARIANT_AUDIO_GROUP = "audio";
 
 	public static final long BANDWIDTH_STEP = 500000;
@@ -105,11 +105,11 @@ public class HLSMuxer extends Muxer  {
 	private AVPacket tmpPacketForSEI;
 
 	private String segmentFileNameSuffix;
-	
 	private boolean variantStreamMappingEnabled;
+	private final WebVttPlaylistManager webVttPlaylistManager = new WebVttPlaylistManager();
 
 	private long stableBandwidthBps;
-	
+
 
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
@@ -230,6 +230,9 @@ public class HLSMuxer extends Muxer  {
 			
 			options.put("start_number", ""+startIndex);
 
+			webVttPlaylistManager.configureOutput(file, initialResourceNameWithoutExtension, streamId);
+			webVttPlaylistManager.initializePlaylists();
+
 
 			tmpPacketForSEI = avcodec.av_packet_alloc();
 			isInitialized = true;
@@ -270,6 +273,14 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	@Override
+	protected boolean checkToDropPacket(AVPacket pkt, int codecType) {
+		if (webVttPlaylistManager.containsTrack(pkt.stream_index()) && codecType == AVMEDIA_TYPE_DATA) {
+			return true;
+		}
+		return super.checkToDropPacket(pkt, codecType);
+	}
+
+	@Override
 	public synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 
@@ -304,6 +315,9 @@ public class HLSMuxer extends Muxer  {
 		} 
 		else {
 			super.writePacket(pkt, inputTimebase, outputTimebase, codecType);
+		}
+		if (codecType == AVMEDIA_TYPE_VIDEO && webVttPlaylistManager.hasTracks()) {
+			webVttPlaylistManager.synchronizeChangedPlaylists();
 		}
 
 	}
@@ -390,7 +404,32 @@ public class HLSMuxer extends Muxer  {
 	public boolean writeHeader() {
 		configureVariantStreamMappingIfRequired();
 		createID3StreamIfRequired();
-		return super.writeHeader();
+		boolean result = super.writeHeader();
+		if (result && webVttPlaylistManager.hasTracks()) {
+			if (variantStreamMappingEnabled) {
+				webVttPlaylistManager.attachToVariantMasterPlaylist();
+			}
+			else {
+				webVttPlaylistManager.writeWebVttMasterPlaylist();
+			}
+		}
+		return result;
+	}
+
+	public void setWebVttTracks(Collection<WebVttTrack> tracks) {
+		webVttPlaylistManager.configureOutput(file, initialResourceNameWithoutExtension, streamId);
+		webVttPlaylistManager.setWebVttTracks(tracks);
+	}
+
+	public void addWebVttTrack(WebVttTrack track) {
+		webVttPlaylistManager.configureOutput(file, initialResourceNameWithoutExtension, streamId);
+		webVttPlaylistManager.addWebVttTrack(track);
+	}
+
+	public synchronized void writeWebVttCue(int inputStreamIndex, WebVttCue cue) {
+		if (isRunning.get()) {
+			webVttPlaylistManager.writeWebVttCue(inputStreamIndex, cue);
+		}
 	}
 	
 	public void configureVariantStreamMappingIfRequired() {
@@ -513,6 +552,7 @@ public class HLSMuxer extends Muxer  {
 			return;
 
 		super.writeTrailer();
+		webVttPlaylistManager.synchronizeFinalPlaylists();
 
 		//We provide a solution to have full mp4 recording even for stream are interrupted.
 		//It works in this way:
@@ -575,10 +615,9 @@ public class HLSMuxer extends Muxer  {
 	
 	public String getHLSFilesRegularExpression(int indexOfSuffix) {
 		String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
-		String hlsFileExtensions = TS_EXTENSION + "|" + FMP4_EXTENSION;
+		String hlsFileExtensions = TS_EXTENSION + "|" + FMP4_EXTENSION + "|vtt|m3u8";
 		if (variantStreamMappingEnabled) {
 			segmentFileWithoutSuffix = segmentFileWithoutSuffix.replace("%v", ".*");
-			hlsFileExtensions += "|m3u8";
 		}
 		return segmentFileWithoutSuffix + ".*\\.(?:" + hlsFileExtensions + ")$";
 	}

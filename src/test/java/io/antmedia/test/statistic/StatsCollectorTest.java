@@ -651,10 +651,10 @@ public class StatsCollectorTest {
 
 	@Test
 	public void testCpuLimitOfHundredDisablesCpuAdmissionControl() {
-		StatsCollector monitor = Mockito.spy(new StatsCollector());
-		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.LINUX);
-		Mockito.when(monitor.getCpuLoad()).thenReturn(100);
-		Mockito.when(monitor.getMemoryLoad()).thenReturn(10);
+		StatsCollector monitor = spy(new StatsCollector());
+		when(monitor.getOSType()).thenReturn(SystemUtils.LINUX);
+		when(monitor.getCpuLoad()).thenReturn(100);
+		when(monitor.getMemoryLoad()).thenReturn(10);
 
 		monitor.setCpuLimit(100);
 		assertTrue(monitor.enoughResource());
