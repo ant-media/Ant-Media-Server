@@ -384,7 +384,10 @@ public abstract class Muxer {
 	}
 
 	public String getOutputURL() {
-		return file.getAbsolutePath();
+		if(file != null)
+			return file.getAbsolutePath();
+
+		return null;
 	}
 
 

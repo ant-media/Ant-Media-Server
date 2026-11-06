@@ -25,12 +25,14 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import com.amazonaws.util.Base32;
@@ -1017,4 +1019,39 @@ public class MuxingTest {
 			ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
 		}
 	}
+
+    @Test
+    public void testIsAbrEnabled() {
+
+        //no broadcast level abr
+        Broadcast broadcast = new Broadcast();
+        broadcast.setEncoderSettingsList(Collections.emptyList());
+
+        AppSettings appSettings = new AppSettings();
+        appSettings.setEncoderSettings(Collections.emptyList());
+
+        assertFalse(MuxAdaptor.isAbrEnabled(broadcast, appSettings));
+
+
+        //broadcast level abr
+        broadcast.setEncoderSettingsList(List.of(new EncoderSettings()));
+        appSettings.setEncoderSettings(Collections.emptyList());
+
+        assertTrue(MuxAdaptor.isAbrEnabled(broadcast, appSettings));
+
+
+        //app settings abr
+        broadcast.setEncoderSettingsList(Collections.emptyList());
+        appSettings.setEncoderSettings(List.of(new EncoderSettings()));
+
+        assertTrue(MuxAdaptor.isAbrEnabled(broadcast, appSettings));
+
+
+        // broadcast and app setting both abr
+        broadcast.setEncoderSettingsList(List.of(new EncoderSettings()));
+        appSettings.setEncoderSettings(List.of(new EncoderSettings()));
+
+        assertTrue(MuxAdaptor.isAbrEnabled(broadcast, appSettings));
+    }
+
 }
