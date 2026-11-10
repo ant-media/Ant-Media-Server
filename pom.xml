@@ -63,7 +63,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
    
     <properties>
         <!-- Pinned release archives; checksums below must change with the version. -->
-        <native.webrtc.version>1.0.0</native.webrtc.version>
+        <native.webrtc.version>1.1.0</native.webrtc.version>
         <native.webrtc.x64.url>https://github.com/ant-media/native-webrtc-build/releases/download/v${native.webrtc.version}/libjingle-peerconnection-${native.webrtc.version}-linux-x64.tar.gz</native.webrtc.x64.url>
         <native.webrtc.arm64.url>https://github.com/ant-media/native-webrtc-build/releases/download/v${native.webrtc.version}/libjingle-peerconnection-${native.webrtc.version}-linux-arm64.tar.gz</native.webrtc.arm64.url>
         <skipTests>false</skipTests>
@@ -112,7 +112,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                         <configuration>
                             <url>${native.webrtc.x64.url}</url>
                             <outputFileName>libjingle-peerconnection-${native.webrtc.version}-linux-x64.tar.gz</outputFileName>
-                            <sha256>97a8ca51b1759fdfe4676185ee40d59f9f3b60fbca4c6ecf585a263be10c9cd8</sha256>
+                            <sha256>TODO-v1.1.0-linux-x64-sha256</sha256>
                         </configuration>
                     </execution>
                     <execution>
@@ -122,7 +122,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                         <configuration>
                             <url>${native.webrtc.arm64.url}</url>
                             <outputFileName>libjingle-peerconnection-${native.webrtc.version}-linux-arm64.tar.gz</outputFileName>
-                            <sha256>19a0b6da9aedadbca4b448985df25a769f3e7e5ba302b250574888100a5cf28f</sha256>
+                            <sha256>TODO-v1.1.0-linux-arm64-sha256</sha256>
                         </configuration>
                     </execution>
                 </executions>
@@ -719,8 +719,8 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <id>native-webrtc-authenticated</id>
             <activation><property><name>env.GITHUB_TOKEN</name></property></activation>
             <properties>
-                <native.webrtc.x64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/601144912</native.webrtc.x64.url>
-                <native.webrtc.arm64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/601144928</native.webrtc.arm64.url>
+                <native.webrtc.x64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/TODO-v1.1.0-linux-x64-asset-id</native.webrtc.x64.url>
+                <native.webrtc.arm64.url>https://api.github.com/repos/ant-media/native-webrtc-build/releases/assets/TODO-v1.1.0-linux-arm64-asset-id</native.webrtc.arm64.url>
             </properties>
             <build>
                 <plugins>
