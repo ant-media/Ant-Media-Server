@@ -892,9 +892,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private void sampleResourceHistory() {
 		try {
 			sampleNetwork();
+
+			long totalMemory = SystemUtils.osTotalPhysicalMemory();
+			long availableMemory = SystemUtils.osAvailableMemory();
+			long usedMemory = availableMemory > 0 && availableMemory < totalMemory
+					? totalMemory - availableMemory : SystemUtils.osInUsePhysicalMemory();
 			resourceHistory.offer(new ResourceSample(
 					cpuLoad,
-					percent(SystemUtils.osInUsePhysicalMemory(), SystemUtils.osTotalPhysicalMemory()),
+					percent(usedMemory, totalMemory),
 					percent(SystemUtils.osHDInUseSpace(null), SystemUtils.osHDTotalSpace(null)),
 					percent(SystemUtils.jvmInUseMemory(), SystemUtils.jvmMaxMemory()),
 					getDBQueryAverageTimeMs(),
