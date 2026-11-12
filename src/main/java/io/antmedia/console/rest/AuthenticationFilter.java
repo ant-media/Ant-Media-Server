@@ -5,6 +5,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -40,6 +41,10 @@ public class AuthenticationFilter extends AbstractFilter {
 	public static final String DISPATCH_PATH_URL = "_path";
 	public static final String PROXY_AUTHORIZATION_HEADER_JWT_TOKEN = "ProxyAuthorization";
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
+	public static final String PANEL_AUTHENTICATED_ATTRIBUTE = "io.antmedia.console.panelAuthenticated";
+	// Unauthenticated GET /rest/v2/users/{usermail}/blocked (login page). 
+	// Exactly one segment, so "x/../../request" style paths can't match
+	private static final Pattern BLOCKED_STATUS_PATH = Pattern.compile("^/rest/v2/users/[^/]+/blocked$");
 
 	public AbstractConsoleDataStore getAbstractConsoleDataStore()
 	{
@@ -98,7 +103,10 @@ public class AuthenticationFilter extends AbstractFilter {
 			throws IOException, ServletException {
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
-		String path = ((HttpServletRequest) request).getRequestURI();
+		// Not getRequestURI()! it is raw and causes security vulnerability
+		//  so "/rest/v2/users/x/../../request/blocked" matched the whitelist but dispatched to the proxy
+		String pathInfo = httpRequest.getPathInfo();
+		String path = httpRequest.getServletPath() + (pathInfo != null ? pathInfo : "");
 
 		ServerSettings serverSettings = getServerSettings();
 
@@ -123,6 +131,7 @@ public class AuthenticationFilter extends AbstractFilter {
 		
 		{
 			if(checkJWT(jwtToken)) {
+				httpRequest.setAttribute(PANEL_AUTHENTICATED_ATTRIBUTE, Boolean.TRUE);
 				chain.doFilter(request, response);
 			}
 			else {
@@ -139,13 +148,14 @@ public class AuthenticationFilter extends AbstractFilter {
 				path.equals("/rest/v2/first-login-status") ||
 				path.equals("/rest/v2/users/authenticate") ||
 				path.equals("/rest/v2/liveness") ||
-				(path.startsWith("/rest/v2/users/") && path.endsWith("/blocked"))
+				(HttpMethod.GET.equals(httpRequest.getMethod()) && BLOCKED_STATUS_PATH.matcher(path).matches())
 				) 
 		{
 			chain.doFilter(request, response);
 		}
 		else if (CommonRestService.isAuthenticated(((HttpServletRequest)request).getSession()))
 		{
+			httpRequest.setAttribute(PANEL_AUTHENTICATED_ATTRIBUTE, Boolean.TRUE);
 			String method = httpRequest.getMethod();
 
 			String userEmail = (String)httpRequest.getSession().getAttribute(CommonRestService.USER_EMAIL);
