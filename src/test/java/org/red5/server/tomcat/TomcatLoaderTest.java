@@ -9,8 +9,10 @@ import org.apache.catalina.Host;
 import org.apache.catalina.Loader;
 import org.apache.catalina.Server;
 import org.apache.catalina.core.StandardContext;
+import org.apache.tomcat.util.scan.StandardJarScanner;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.test.UnitTestBase;
 import org.springframework.beans.factory.InitializingBean;
@@ -18,6 +20,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,6 +41,37 @@ import static org.mockito.Mockito.*;
 public class TomcatLoaderTest extends UnitTestBase<TomcatLoader> {
 
     private static final Object UNSET = new Object();
+
+    @Test
+    public void testEmbeddedTomcatDeniesDirectJspRequests(@TempDir Path tempDir) throws Exception {
+        Path docBase = Files.createDirectories(tempDir.resolve("app"));
+        Files.writeString(docBase.resolve("shell.jsp"), "<% out.print(\"executed\"); %>");
+        Files.writeString(docBase.resolve("index.html"), "static");
+
+        EmbeddedTomcat tomcat = new EmbeddedTomcat();
+        tomcat.setBaseDir(tempDir.toString());
+        tomcat.setPort(0);
+        tomcat.getConnector();
+        Context ctx = tomcat.addWebapp(tomcat.getHost(), "", docBase.toString());
+        ((StandardJarScanner) ctx.getJarScanner()).setScanClassPath(false);
+        tomcat.start();
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String base = "http://127.0.0.1:" + tomcat.getConnector().getLocalPort();
+
+            HttpResponse<String> jsp = client.send(HttpRequest.newBuilder(URI.create(base + "/shell.jsp")).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(403, jsp.statusCode());
+            assertFalse(jsp.body().contains("executed"));
+
+            HttpResponse<String> html = client.send(HttpRequest.newBuilder(URI.create(base + "/index.html")).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, html.statusCode());
+            assertEquals("static", html.body());
+        }
+        finally {
+            tomcat.stop();
+            tomcat.destroy();
+        }
+    }
 
     /**
      * This Test checks handling of parse exception while creation

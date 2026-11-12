@@ -22,12 +22,15 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.apache.catalina.Context;
 import org.apache.catalina.Host;
+import org.apache.catalina.Lifecycle;
 import org.apache.catalina.LifecycleListener;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardHost;
 import org.apache.catalina.startup.ContextConfig;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.catalina.webresources.StandardRoot;
+import org.apache.tomcat.util.descriptor.web.SecurityCollection;
+import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 
 /**
  * Extension of Tomcat's Tomcat class, tailored for Red5.
@@ -64,6 +67,19 @@ public class EmbeddedTomcat extends Tomcat {
         ctx.addLifecycleListener(new DefaultWebXmlListener());
         ctx.setConfigFile(getWebappConfigFile(docBase, contextPath));
         ctx.addLifecycleListener(config);
+        // No app serves JSPs directly, so answer 403 to any *.jsp request: a JSP written into a webapp folder can then never run.
+        // Error-page forwards (e.g. Circle's spa.jsp) are not affected. Added on every start because ContextConfig clears constraints on stop
+        ctx.addLifecycleListener(event -> {
+            if (Lifecycle.CONFIGURE_START_EVENT.equals(event.getType())) {
+                SecurityCollection jsp = new SecurityCollection();
+                jsp.addPatternDecoded("*.jsp");
+                jsp.addPatternDecoded("*.jspx");
+                SecurityConstraint denyJsp = new SecurityConstraint();
+                denyJsp.setAuthConstraint(true);
+                denyJsp.addCollection(jsp);
+                ((Context) event.getLifecycle()).addConstraint(denyJsp);
+            }
+        });
         // prevent it from looking ( if it finds one - it'll have dup error )
         ((ContextConfig) config).setDefaultWebXml(noDefaultWebXmlPath());
         // get the host first, creates a new std host if not already set
