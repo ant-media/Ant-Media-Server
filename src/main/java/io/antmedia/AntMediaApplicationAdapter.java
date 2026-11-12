@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -273,6 +274,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final int CLUSTER_POST_RETRY_ATTEMPT_COUNT = 3;
 	public static final int CLUSTER_POST_TIMEOUT_MS = 1000;
 
+	private static final File FILESYSTEM_ROOT = new File("/");
 	private static final List<String> VOD_IMPORT_FORBIDDEN_DIRECTORIES = List.of("/etc", "/root", "/proc", "/sys", "/dev", "/boot", "/run");
 
 
@@ -531,7 +533,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	private Result createSymbolicLink(File streamsFolder, File vodFolder, Path target) {
+	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
 		Result result = null;
 		try {
 			if (!streamsFolder.exists()) {
@@ -542,6 +544,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				File newLinkFile = new File(streamsFolder, vodFolder.getName());
 				if (!Files.isSymbolicLink(newLinkFile.toPath()))
 				{
+					Path target = vodFolder.toPath();
 					Files.createSymbolicLink(newLinkFile.toPath(), target);
 					result = new Result(true);
 				}
@@ -568,16 +571,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	public Result importVoDFolder(String vodFolderPath) {
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
-		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
 		Result result = null;
 		try {
-			// Check the resolved path so "..", relative paths and symlinks can't sneak past, and link to exactly what was checked
-			Path realDirectory = directory.toPath().toRealPath();
+			// Check the resolved path so "..", relative paths and symlinks can't sneak past, and only use what was checked
+			Path realDirectory = Path.of(vodFolderPath == null ? "" : vodFolderPath).toRealPath();
+			File directory = realDirectory.toFile();
 			Path serverRoot = Path.of("").toRealPath();
-			if (!realDirectory.startsWith(serverRoot) && !serverRoot.startsWith(realDirectory)
+			if (FileUtils.directoryContains(FILESYSTEM_ROOT, directory)
+					&& !realDirectory.startsWith(serverRoot) && !serverRoot.startsWith(realDirectory)
 					&& VOD_IMPORT_FORBIDDEN_DIRECTORIES.stream().noneMatch(realDirectory::startsWith))
 			{
-				result = createSymbolicLink(streamsFolder, directory, realDirectory);
+				result = createSymbolicLink(streamsFolder, directory);
 				if (result.isSuccess()) {
 					int numberOfFilesImported = importToDB(directory, directory);
 					result.setMessage(numberOfFilesImported + " files are imported");
