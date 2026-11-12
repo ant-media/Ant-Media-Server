@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +21,7 @@ import org.apache.catalina.connector.ClientAbortException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
@@ -99,7 +101,7 @@ public class ChunkedTransferServletTest {
 
 			ServletContext servletContext = Mockito.mock(ServletContext.class);
 			Mockito.when(req.getServletContext()).thenReturn(servletContext);
-			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000));
+			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000) + ".m4s");
 
 			ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
 			Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
@@ -229,7 +231,7 @@ public class ChunkedTransferServletTest {
 
 			ServletContext servletContext = Mockito.mock(ServletContext.class);
 			Mockito.when(req.getServletContext()).thenReturn(servletContext);
-			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000));
+			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000) + ".m4s");
 
 			ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
 			Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
@@ -262,7 +264,7 @@ public class ChunkedTransferServletTest {
 
 
 			String streamId = "stream" + (int)(Math.random()*10000);
-			Mockito.when(req.getPathInfo()).thenReturn("/" + streamId + "/ "+ streamId);
+			Mockito.when(req.getPathInfo()).thenReturn("/" + streamId + "/ "+ streamId + ".m4s");
 			f = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS + req.getPathInfo());
 			assertFalse(f.exists());
 			f.getParentFile().mkdirs();
@@ -278,6 +280,66 @@ public class ChunkedTransferServletTest {
 			fail(e.getMessage());
 		}
 
+	}
+
+	private static HttpServletRequest runningAppRequest(String pathInfo, AsyncContext asyncContext) {
+		HttpServletRequest req = Mockito.mock(HttpServletRequest.class);
+		ServletContext servletContext = Mockito.mock(ServletContext.class);
+		Mockito.when(req.getServletContext()).thenReturn(servletContext);
+		Mockito.when(req.getPathInfo()).thenReturn(pathInfo);
+		Mockito.when(req.startAsync()).thenReturn(asyncContext);
+
+		ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+		Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
+		Mockito.when(appContext.getApplicationName()).thenReturn("/junit");
+		Mockito.when(appContext.isRunning()).thenReturn(true);
+		Mockito.when(appContext.getBean(IChunkedCacheManager.BEAN_NAME)).thenReturn(Mockito.mock(IChunkedCacheManager.class));
+		return req;
+	}
+
+	@Test
+	public void testHandleStreamRejectsNonStreamingFile() throws IOException {
+		ChunkedTransferServlet servlet = new ChunkedTransferServlet();
+		AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
+		HttpServletResponse resp = Mockito.mock(HttpServletResponse.class);
+		Mockito.when(resp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
+		String subDir = "stream" + (int)(Math.random()*10000);
+
+		servlet.handleIncomingStream(runningAppRequest("/" + subDir + "/shell.jsp", asyncContext), resp);
+
+		Mockito.verify(asyncContext, Mockito.never()).start(Mockito.any());
+		Mockito.verify(resp).setStatus(HttpServletResponse.SC_FORBIDDEN);
+		assertFalse(new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS + "/" + subDir).exists());
+	}
+
+	@Test
+	public void testWriteAndDeleteRejectSymlinkedFolder(@TempDir Path outsideStreams) throws IOException {
+		ChunkedTransferServlet servlet = new ChunkedTransferServlet();
+		String linkName = "link" + (int)(Math.random()*10000);
+		Path link = Path.of(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS, linkName);
+		java.nio.file.Files.createSymbolicLink(link, outsideStreams);
+		try {
+			AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
+			HttpServletResponse putResp = Mockito.mock(HttpServletResponse.class);
+			Mockito.when(putResp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
+
+			servlet.handleIncomingStream(runningAppRequest("/" + linkName + "/segment.m4s", asyncContext), putResp);
+
+			Mockito.verify(asyncContext, Mockito.never()).start(Mockito.any());
+			Mockito.verify(putResp).setStatus(HttpServletResponse.SC_FORBIDDEN);
+
+			Path outsideFile = java.nio.file.Files.createFile(outsideStreams.resolve("segment.m4s"));
+			HttpServletResponse deleteResp = Mockito.mock(HttpServletResponse.class);
+			Mockito.when(deleteResp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
+
+			servlet.deleteRequest(runningAppRequest("/" + linkName + "/segment.m4s", asyncContext), deleteResp);
+
+			assertTrue(java.nio.file.Files.exists(outsideFile));
+			Mockito.verify(deleteResp).setStatus(HttpServletResponse.SC_CONFLICT);
+		}
+		finally {
+			java.nio.file.Files.delete(link);
+		}
 	}
 
 	@Test

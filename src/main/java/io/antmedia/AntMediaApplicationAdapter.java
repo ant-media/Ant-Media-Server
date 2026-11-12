@@ -13,6 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,7 +32,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -273,8 +273,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final int CLUSTER_POST_RETRY_ATTEMPT_COUNT = 3;
 	public static final int CLUSTER_POST_TIMEOUT_MS = 1000;
 
-	//Allow any sub directory under /
-	private static final String VOD_IMPORT_ALLOWED_DIRECTORY = "/";
+	private static final List<String> VOD_IMPORT_FORBIDDEN_DIRECTORIES = List.of("/etc", "/root", "/proc", "/sys", "/dev", "/boot", "/run");
 
 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
@@ -532,7 +531,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
+	private Result createSymbolicLink(File streamsFolder, File vodFolder, Path target) {
 		Result result = null;
 		try {
 			if (!streamsFolder.exists()) {
@@ -543,7 +542,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				File newLinkFile = new File(streamsFolder, vodFolder.getName());
 				if (!Files.isSymbolicLink(newLinkFile.toPath()))
 				{
-					Path target = vodFolder.toPath();
 					Files.createSymbolicLink(newLinkFile.toPath(), target);
 					result = new Result(true);
 				}
@@ -563,32 +561,35 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	/**
-	 * Import vod files recursively in the directory. It also created symbolic link to make the files streamable
+	 * Import vod files recursively in the directory. It also created symbolic link to make the files streamable.
+	 * The server directory, its parents and system directories are refused, otherwise the link would publish them under streams/
 	 * @param vodFolderPath absolute path of the vod folder to be imported
 	 * @return
 	 */
 	public Result importVoDFolder(String vodFolderPath) {
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
-
-		File allowedDirectory = new File(VOD_IMPORT_ALLOWED_DIRECTORY);
 		Result result = null;
 		try {
-			if (FileUtils.directoryContains(allowedDirectory, directory))
+			// Check the resolved path so "..", relative paths and symlinks can't sneak past, and link to exactly what was checked
+			Path realDirectory = directory.toPath().toRealPath();
+			Path serverRoot = Path.of("").toRealPath();
+			if (!realDirectory.startsWith(serverRoot) && !serverRoot.startsWith(realDirectory)
+					&& VOD_IMPORT_FORBIDDEN_DIRECTORIES.stream().noneMatch(realDirectory::startsWith))
 			{
-
-				result = createSymbolicLink(streamsFolder, directory);
+				result = createSymbolicLink(streamsFolder, directory, realDirectory);
 				if (result.isSuccess()) {
 					int numberOfFilesImported = importToDB(directory, directory);
 					result.setMessage(numberOfFilesImported + " files are imported");
 				}
 			}
 			else {
-				result = new Result(false, "VoD import directory is allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
+				logger.warn("Rejecting VoD import from {}", realDirectory);
+				result = new Result(false, "VoD import directory is not allowed or does not exist");
 			}
-		} catch (IOException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			result = new Result(false, "VoD import directory is allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
+		} catch (IOException | InvalidPathException e) {
+			logger.warn("Cannot resolve VoD import directory: {}", e.getMessage());
+			result = new Result(false, "VoD import directory is not allowed or does not exist");
 		}
 
 		return result;
