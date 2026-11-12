@@ -533,7 +533,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
+	private Result createSymbolicLink(File streamsFolder, File vodFolder, Path target) {
 		Result result = null;
 		try {
 			if (!streamsFolder.exists()) {
@@ -544,7 +544,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				File newLinkFile = new File(streamsFolder, vodFolder.getName());
 				if (!Files.isSymbolicLink(newLinkFile.toPath()))
 				{
-					Path target = vodFolder.toPath();
 					Files.createSymbolicLink(newLinkFile.toPath(), target);
 					result = new Result(true);
 				}
@@ -571,28 +570,28 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	public Result importVoDFolder(String vodFolderPath) {
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
+		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
 		Result result = null;
 		try {
-			// Check the resolved path so "..", relative paths and symlinks can't sneak past, and only use what was checked
-			Path realDirectory = Path.of(vodFolderPath == null ? "" : vodFolderPath).toRealPath();
-			File directory = realDirectory.toFile();
+			// Check the resolved path so "..", relative paths and symlinks can't sneak past, and link to exactly what was checked
+			Path realDirectory = directory.toPath().toRealPath();
 			Path serverRoot = Path.of("").toRealPath();
 			if (FileUtils.directoryContains(FILESYSTEM_ROOT, directory)
 					&& !realDirectory.startsWith(serverRoot) && !serverRoot.startsWith(realDirectory)
 					&& VOD_IMPORT_FORBIDDEN_DIRECTORIES.stream().noneMatch(realDirectory::startsWith))
 			{
-				result = createSymbolicLink(streamsFolder, directory);
+				result = createSymbolicLink(streamsFolder, directory, realDirectory);
 				if (result.isSuccess()) {
 					int numberOfFilesImported = importToDB(directory, directory);
 					result.setMessage(numberOfFilesImported + " files are imported");
 				}
 			}
 			else {
-				logger.warn("Rejecting VoD import from {}", realDirectory);
+				logger.warn("Rejecting VoD import, directory is not allowed");
 				result = new Result(false, "VoD import directory is not allowed or does not exist");
 			}
 		} catch (IOException | InvalidPathException e) {
-			logger.warn("Cannot resolve VoD import directory: {}", e.getMessage());
+			logger.warn("Cannot resolve VoD import directory: {}", e.getClass().getSimpleName());
 			result = new Result(false, "VoD import directory is not allowed or does not exist");
 		}
 

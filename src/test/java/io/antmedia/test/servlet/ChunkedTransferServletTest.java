@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.catalina.connector.ClientAbortException;
 import org.junit.jupiter.api.AfterEach;
@@ -101,7 +102,7 @@ public class ChunkedTransferServletTest {
 
 			ServletContext servletContext = Mockito.mock(ServletContext.class);
 			Mockito.when(req.getServletContext()).thenReturn(servletContext);
-			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000) + ".m4s");
+			Mockito.when(req.getPathInfo()).thenReturn("/stream" + ThreadLocalRandom.current().nextInt(10000) + ".m4s");
 
 			ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
 			Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
@@ -231,7 +232,7 @@ public class ChunkedTransferServletTest {
 
 			ServletContext servletContext = Mockito.mock(ServletContext.class);
 			Mockito.when(req.getServletContext()).thenReturn(servletContext);
-			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000) + ".m4s");
+			Mockito.when(req.getPathInfo()).thenReturn("/stream" + ThreadLocalRandom.current().nextInt(10000) + ".m4s");
 
 			ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
 			Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
@@ -293,7 +294,8 @@ public class ChunkedTransferServletTest {
 		Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
 		Mockito.when(appContext.getApplicationName()).thenReturn("/junit");
 		Mockito.when(appContext.isRunning()).thenReturn(true);
-		Mockito.when(appContext.getBean(IChunkedCacheManager.BEAN_NAME)).thenReturn(Mockito.mock(IChunkedCacheManager.class));
+		IChunkedCacheManager cacheManager = Mockito.mock(IChunkedCacheManager.class);
+		Mockito.when(appContext.getBean(IChunkedCacheManager.BEAN_NAME)).thenReturn(cacheManager);
 		return req;
 	}
 
@@ -302,8 +304,9 @@ public class ChunkedTransferServletTest {
 		ChunkedTransferServlet servlet = new ChunkedTransferServlet();
 		AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
 		HttpServletResponse resp = Mockito.mock(HttpServletResponse.class);
-		Mockito.when(resp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
-		String subDir = "stream" + (int)(Math.random()*10000);
+		PrintWriter writer = Mockito.mock(PrintWriter.class);
+		Mockito.when(resp.getWriter()).thenReturn(writer);
+		String subDir = "stream" + ThreadLocalRandom.current().nextInt(10000);
 
 		servlet.handleIncomingStream(runningAppRequest("/" + subDir + "/shell.jsp", asyncContext), resp);
 
@@ -315,13 +318,14 @@ public class ChunkedTransferServletTest {
 	@Test
 	public void testWriteAndDeleteRejectSymlinkedFolder(@TempDir Path outsideStreams) throws IOException {
 		ChunkedTransferServlet servlet = new ChunkedTransferServlet();
-		String linkName = "link" + (int)(Math.random()*10000);
+		String linkName = "link" + ThreadLocalRandom.current().nextInt(10000);
 		Path link = Path.of(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS, linkName);
 		java.nio.file.Files.createSymbolicLink(link, outsideStreams);
 		try {
 			AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
 			HttpServletResponse putResp = Mockito.mock(HttpServletResponse.class);
-			Mockito.when(putResp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
+			PrintWriter putWriter = Mockito.mock(PrintWriter.class);
+			Mockito.when(putResp.getWriter()).thenReturn(putWriter);
 
 			servlet.handleIncomingStream(runningAppRequest("/" + linkName + "/segment.m4s", asyncContext), putResp);
 
@@ -330,7 +334,8 @@ public class ChunkedTransferServletTest {
 
 			Path outsideFile = java.nio.file.Files.createFile(outsideStreams.resolve("segment.m4s"));
 			HttpServletResponse deleteResp = Mockito.mock(HttpServletResponse.class);
-			Mockito.when(deleteResp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
+			PrintWriter deleteWriter = Mockito.mock(PrintWriter.class);
+			Mockito.when(deleteResp.getWriter()).thenReturn(deleteWriter);
 
 			servlet.deleteRequest(runningAppRequest("/" + linkName + "/segment.m4s", asyncContext), deleteResp);
 

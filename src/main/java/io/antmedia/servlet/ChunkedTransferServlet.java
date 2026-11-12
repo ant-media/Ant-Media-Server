@@ -154,43 +154,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 					return;
 				}
 
-				try {
-					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
-
-					logger.debug("doPut key:{}", finalFile.getAbsolutePath());
-
-					cacheManager.addCache(finalFile.getAbsolutePath());
-					IParser atomparser;
-
-					if (filepath.endsWith(".mpd") || filepath.endsWith(".m3u8")) 
-					{
-						//don't parse atom for mpd files because they are text files
-						atomparser = new MockAtomParser();
-					}
-					else 
-					{
-						atomparser = new AtomParser(completeChunk -> 
-							cacheManager.append(finalFile.getAbsolutePath(), completeChunk));
-					}
-
-
-					AsyncContext asyncContext = req.startAsync();
-					StatusListener statusListener = new StatusListener(filepath);
-					asyncContext.addListener(statusListener);
-
-
-					InputStream inputStream = asyncContext.getRequest().getInputStream();
-					asyncContext.start(() -> 
-						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream, statusListener)
-					);
-				}
-				catch (BeansException | IllegalStateException | IOException e) 
-				{
-					logger.error("Exception in handleIncomingStream for the chunk:{} ",finalFile.getAbsolutePath());
-					logger.error(ExceptionUtils.getStackTrace(e));
-					writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
-				} 
-
+				startAsyncWrite(req, resp, appContext, filepath, finalFile, tmpFile);
 			}
 			else {
 				logger.warn("Rejecting chunked write to {}", filepath);
@@ -203,6 +167,47 @@ public class ChunkedTransferServlet extends HttpServlet {
 			logger.warn("AppContext is not running for write request to {}", req.getRequestURI());
 			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 
+		}
+	}
+
+	private void startAsyncWrite(HttpServletRequest req, HttpServletResponse resp, ConfigurableWebApplicationContext appContext,
+			String filepath, File finalFile, File tmpFile)
+	{
+		try {
+			IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
+
+			logger.debug("doPut key:{}", finalFile.getAbsolutePath());
+
+			cacheManager.addCache(finalFile.getAbsolutePath());
+			IParser atomparser;
+
+			if (filepath.endsWith(".mpd") || filepath.endsWith(".m3u8"))
+			{
+				//don't parse atom for mpd files because they are text files
+				atomparser = new MockAtomParser();
+			}
+			else
+			{
+				atomparser = new AtomParser(completeChunk ->
+					cacheManager.append(finalFile.getAbsolutePath(), completeChunk));
+			}
+
+
+			AsyncContext asyncContext = req.startAsync();
+			StatusListener statusListener = new StatusListener(filepath);
+			asyncContext.addListener(statusListener);
+
+
+			InputStream inputStream = asyncContext.getRequest().getInputStream();
+			asyncContext.start(() ->
+				readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream, statusListener)
+			);
+		}
+		catch (BeansException | IllegalStateException | IOException e)
+		{
+			logger.error("Exception in handleIncomingStream for the chunk:{} ",finalFile.getAbsolutePath());
+			logger.error(ExceptionUtils.getStackTrace(e));
+			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
 		}
 	}
 
