@@ -792,7 +792,6 @@ public class AuthenticationFilterTest {
 
 	}
 
-	// Raw request URI as sent by the client; servlet path and path info as Tomcat dispatches them (decoded, normalized)
 	private static MockHttpServletRequest dispatchedRequest(String method, String rawUri, String servletPath, String pathInfo) {
 		MockHttpServletRequest request = new MockHttpServletRequest(method, rawUri);
 		request.setServletPath(servletPath);

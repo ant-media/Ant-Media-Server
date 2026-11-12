@@ -42,8 +42,6 @@ public class AuthenticationFilter extends AbstractFilter {
 	public static final String PROXY_AUTHORIZATION_HEADER_JWT_TOKEN = "ProxyAuthorization";
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
 	public static final String PANEL_AUTHENTICATED_ATTRIBUTE = "io.antmedia.console.panelAuthenticated";
-	// Unauthenticated GET /rest/v2/users/{usermail}/blocked (login page). 
-	// Exactly one segment, so "x/../../request" style paths can't match
 	private static final Pattern BLOCKED_STATUS_PATH = Pattern.compile("^/rest/v2/users/[^/]+/blocked$");
 
 	public AbstractConsoleDataStore getAbstractConsoleDataStore()
@@ -103,8 +101,6 @@ public class AuthenticationFilter extends AbstractFilter {
 			throws IOException, ServletException {
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
-		// Not getRequestURI()! it is raw and causes security vulnerability
-		//  so "/rest/v2/users/x/../../request/blocked" matched the whitelist but dispatched to the proxy
 		String pathInfo = httpRequest.getPathInfo();
 		String path = httpRequest.getServletPath() + (pathInfo != null ? pathInfo : "");
 
