@@ -14,6 +14,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.red5.server.api.scope.IScope;
 import org.springframework.mock.web.MockServletContext;
@@ -24,6 +25,8 @@ import org.springframework.web.context.support.StaticWebApplicationContext;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.console.security.PasswordService;
+import io.antmedia.datastore.db.types.User;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
@@ -131,5 +134,41 @@ class CommonRestServiceTest extends UnitTestBase<CommonRestService> {
 		assertThat(classUnderTest.getLicenceServiceInstance()).isNull();
 
 		springContext.close();
+	}
+
+	@Test
+	void shouldUpgradeLegacyPassword() {
+		User user = mock(User.class);
+		PasswordService.PasswordVerificationResult passwordVerificationResult =
+				mock(PasswordService.PasswordVerificationResult.class);
+		AbstractConsoleDataStore dataStore = mock(AbstractConsoleDataStore.class);
+		ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
+		when(passwordVerificationResult.isNeedsRehash()).thenReturn(true);
+		when(passwordVerificationResult.isVerified()).thenReturn(true);
+		classUnderTest = new CommonRestService();
+		classUnderTest.dataStore = dataStore;
+
+		classUnderTest.upgradePasswordIfNeeded(user, "oldPassword", passwordVerificationResult);
+
+		verify(user).setPassword(passwordCaptor.capture());
+		verify(dataStore).editUser(user);
+		assertThat(passwordCaptor.getValue()).startsWith("$argon2id$");
+	}
+
+	@Test
+	void shouldNotHashArgon2PasswordAgain() {
+		User user = mock(User.class);
+		PasswordService.PasswordVerificationResult passwordVerificationResult =
+				mock(PasswordService.PasswordVerificationResult.class);
+		AbstractConsoleDataStore dataStore = mock(AbstractConsoleDataStore.class);
+		when(passwordVerificationResult.isNeedsRehash()).thenReturn(false);
+		when(passwordVerificationResult.isVerified()).thenReturn(true);
+		classUnderTest = new CommonRestService();
+		classUnderTest.dataStore = dataStore;
+
+		classUnderTest.upgradePasswordIfNeeded(user, "oldPassword", passwordVerificationResult);
+
+		verify(user, never()).setPassword(org.mockito.ArgumentMatchers.anyString());
+		verify(dataStore, never()).editUser(user);
 	}
 }
