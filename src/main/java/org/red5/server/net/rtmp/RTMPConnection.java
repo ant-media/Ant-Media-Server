@@ -81,9 +81,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.ListenableFutureCallback;
-import org.springframework.util.concurrent.ListenableFutureTask;
 
 /**
  * RTMP connection. Stores information about client streams, data transfer channels, pending RPC calls, bandwidth configuration, AMF
@@ -1453,7 +1450,6 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
         processTasksQueue(queue);
     }
 
-    @SuppressWarnings("unchecked")
     private void processTasksQueue(final ReceivedMessageTaskQueue currentStreamTasks) {
         int streamId = currentStreamTasks.getStreamId();
         if (log.isTraceEnabled()) {
@@ -1464,31 +1460,22 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
             Packet packet = task.getPacket();
             try {
                 final String messageType = getMessageType(packet);
-                ListenableFuture<Packet> future = (ListenableFuture<Packet>) executor.submitListenable(new ListenableFutureTask<Packet>(task));
-                future.addCallback(new ListenableFutureCallback<Packet>() {
-
-                    final long startTime = System.currentTimeMillis();
-
-                    int getProcessingTime() {
-                        return (int) (System.currentTimeMillis() - startTime);
-                    }
-
-                    public void onFailure(Throwable t) {
+                final long startTime = System.currentTimeMillis();
+                // CompletableFuture replaces ListenableFuture, which Spring 7 removed (submitCompletable exists since Spring 6.1)
+                executor.submitCompletable(task).whenComplete((result, t) -> {
+                    int processingTime = (int) (System.currentTimeMillis() - startTime);
+                    if (t != null) {
                         log.debug("ReceivedMessageTask failure: {}", t);
                         if (log.isWarnEnabled()) {
-                            log.warn("onFailure - session: {}, msgtype: {}, processingTime: {}, packetNum: {}", sessionId, messageType, getProcessingTime(), task.getPacketNumber());
+                            log.warn("onFailure - session: {}, msgtype: {}, processingTime: {}, packetNum: {}", sessionId, messageType, processingTime, task.getPacketNumber());
                         }
-                        currentStreamTasks.removeTask(task);
-                    }
-
-                    public void onSuccess(Packet packet) {
+                    } else {
                         log.debug("ReceivedMessageTask success");
                         if (log.isDebugEnabled()) {
-                            log.debug("onSuccess - session: {}, msgType: {}, processingTime: {}, packetNum: {}", sessionId, messageType, getProcessingTime(), task.getPacketNumber());
+                            log.debug("onSuccess - session: {}, msgType: {}, processingTime: {}, packetNum: {}", sessionId, messageType, processingTime, task.getPacketNumber());
                         }
-                        currentStreamTasks.removeTask(task);
                     }
-
+                    currentStreamTasks.removeTask(task);
                 });
             } catch (TaskRejectedException tre) {
                 Throwable[] suppressed = tre.getSuppressed();
