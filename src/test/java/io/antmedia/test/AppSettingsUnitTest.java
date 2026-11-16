@@ -738,7 +738,7 @@ public class AppSettingsUnitTest {
 
 		assertThat(numberOfFields)
 				.as("When an AppSettings field is added or removed, check its default value and update the field count")
-				.isEqualTo(189);
+				.isEqualTo(190);
 	}
 
 
