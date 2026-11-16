@@ -1,9 +1,11 @@
 package io.antmedia.streamsource;
 
-import static io.antmedia.streamsource.StreamSourceFixture.NO_RETRY_IN_THIS_TEST_MS;
+import static io.antmedia.streamsource.StreamSourceFixture.HOST;
+import static io.antmedia.streamsource.StreamSourceFixture.aliveNodes;
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
 import static io.antmedia.streamsource.StreamSourceFixture.peek;
 import static io.antmedia.streamsource.StreamSourceFixture.settle;
+import static io.antmedia.streamsource.StreamSourceFixture.tick;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -11,48 +13,38 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Method;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
-import org.red5.server.api.IContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
-import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher.Reason;
 import io.antmedia.streamsource.StreamFetcher.State;
 import io.antmedia.streamsource.StreamSourceFixture.ScriptedFetcher;
 import io.antmedia.streamsource.StreamSourceFixture.ScriptedManager;
@@ -60,33 +52,22 @@ import io.vertx.core.Context;
 
 /**
  * The manager's own job: who is allowed to start a source, what the registry says about it, and the
- * broadcast status behind it. The state machine underneath is scripted, nothing here opens a source.
+ * broadcast row behind it. The state machine underneath is scripted, nothing here opens a source.
  */
 class StreamFetcherManagerTest {
 
 	private static final long LONG_AGO = 60000;
 
-	/** The node that left the cluster in the adoption tests. */
-	private static final String DEPARTED = "192.168.1.9";
+	/** Another node, which a standalone server never sees alive. */
+	private static final String OTHER_NODE = "10.0.0.9";
 
 	private StreamSourceFixture fixture;
 	private ScriptedManager manager;
 	private Context context;
 
-	private final IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
-	private final IClusterStore clusterStore = mock(IClusterStore.class);
-
-	/** Origins that answer the http reachability check, any other origin is gone. */
-	private final Set<String> answering = ConcurrentHashMap.newKeySet();
-
-	/** Runs while the reachability check of that origin is in flight. */
-	private final Map<String, Runnable> whileAsking = new ConcurrentHashMap<>();
-
 	@BeforeEach
 	void before() {
 		fixture = new StreamSourceFixture();
-		fixture.appSettings.setStreamFetcherRetryDelayMs(NO_RETRY_IN_THIS_TEST_MS);
-
 		manager = fixture.newManager();
 		context = manager.context();
 	}
@@ -124,93 +105,209 @@ class StreamFetcherManagerTest {
 	}
 
 	@Test
-	void forceStartSkipsTheDatabaseHalfOfTheCheck() {
-		//a row left saying broadcasting by a restart, owned by this very host
-		Broadcast stale = fixture.row("stale", "fake://stale");
-		stale.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-		stale.setOriginAdress("127.0.0.1");
+	void aUserStartClaimsTheSourceForThisNode() {
+		//stopped by its user after failing a few times on a node that is gone
+		Broadcast source = fixture.row("claimed", "fake://claimed");
+		source.setFetcherNode(OTHER_NODE);
+		source.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
+		source.setFetcherFailures(4);
 
-		assertFalse(manager.startStreaming(stale).isSuccess(), "the database says this host already owns it");
-		assertTrue(manager.startStreaming(stale, true).isSuccess());
-		assertEquals(1, manager.getStreamFetcherList().size());
+		assertTrue(manager.startStreaming(source).isSuccess());
+		assertEquals(HOST, source.getFetcherNode());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, source.getFetcherDesiredAction());
+		assertEquals(0, source.getFetcherFailures(), "a user start gives the source a fresh retry budget");
+		//the node that died never cleared what it told the edges
+		verify(fixture.dataStore).clearStreamInfoList("claimed");
+
+		//held here from before a restart, nothing runs it yet
+		assertTrue(manager.startStreaming(heldRow("held")).isSuccess());
+		assertNotNull(manager.getStreamFetcher("held"));
+
+		//another node took it after it was read, so the claim on what was read loses
+		Broadcast asRead = fixture.row("moved", "fake://moved");
+		fixture.row("moved", "fake://moved").setFetcherNode(OTHER_NODE);
+
+		assertFalse(manager.startStreaming(asRead).isSuccess());
+		assertNull(manager.getStreamFetcher("moved"), "a lost claim starts nothing");
+		assertEquals(OTHER_NODE, fixture.rows.get("moved").getFetcherNode());
+
+		//updated on another node after the caller read it, the claim starts what the row says now
+		Broadcast beforeUpdate = fixture.row("updated", "fake://old");
+		fixture.row("updated", "fake://new");
+		assertTrue(manager.startStreaming(beforeUpdate).isSuccess());
+		assertEquals("fake://new", peek(manager.getStreamFetcher("updated"), "streamUrl"));
 	}
 
 	@Test
-	void everyRefusalLeavesTheRegistryClean() {
+	void everyRefusalLeavesTheRegistryAndTheRowClean() {
 		when(fixture.licenceService.isLicenceSuspended()).thenReturn(true);
-		Result suspended = manager.startStreaming(fixture.row("licensed", "fake://licensed"));
+		Broadcast licensed = fixture.row("licensed", "fake://licensed");
+		Result suspended = manager.startStreaming(licensed);
 		assertFalse(suspended.isSuccess());
 		assertEquals("License is suspended", suspended.getMessage());
+		assertEquals(StreamFetcherManager.START_REFUSED, suspended.getErrorId(), "nothing was touched, so another node may take it");
 		assertTrue(manager.getStreamFetcherList().isEmpty());
+		assertNull(licensed.getFetcherNode(), "a refused start claims nothing");
 		when(fixture.licenceService.isLicenceSuspended()).thenReturn(false);
 
-		//somebody else registered between the check and the put
-		ScriptedManager raced = fixture.newManager();
+		//this node is at its cpu or memory limit
+		when(fixture.statsCollector.enoughResource()).thenReturn(false);
+		Broadcast busy = fixture.row("busy", "fake://busy");
+		Result full = manager.startStreaming(busy);
+		assertEquals(StreamFetcherManager.START_REFUSED, full.getErrorId());
+		assertTrue(manager.fetchers.isEmpty());
+		assertNull(busy.getFetcherNode());
+		when(fixture.statsCollector.enoughResource()).thenReturn(true);
+
+		//somebody else registered first
 		StreamFetcher squatter = mock(StreamFetcher.class);
-		raced.getStreamFetcherList().put("contended", squatter);
+		manager.getStreamFetcherList().put("contended", squatter);
+		Broadcast contended = fixture.row("contended", "fake://contended");
+		assertFalse(manager.startStreaming(contended).isSuccess());
+		assertSame(squatter, manager.getStreamFetcher("contended"));
+		assertTrue(manager.fetchers.isEmpty(), "the start is refused before a fetcher is made");
+		assertNull(contended.getFetcherNode());
 
-		Result lost = raced.startStreaming(fixture.row("contended", "fake://contended"), true);
-		assertFalse(lost.isSuccess());
-		assertSame(squatter, raced.getStreamFetcher("contended"));
-		assertEquals(State.IDLE, raced.fetchers.get(0).getState(), "the fetcher that lost the race must never start");
-
-		//a throw after registering is the stuck source this rewrite is about: nothing would ever stop it
+		//a throw after registering is the stuck source this rewrite is about: nothing would ever stop it.
+		//It is a failed attempt like any other, so the source is let go for the next start
 		ScriptedManager broken = fixture.newManager();
 		broken.prepare = fetcher -> fetcher.failOnStart = true;
-		Result thrown = broken.startStreaming(fixture.row("broken", "fake://broken"));
-		assertFalse(thrown.isSuccess());
+		Broadcast brokenRow = fixture.row("broken", "fake://broken");
+		assertFalse(broken.startStreaming(brokenRow).isSuccess());
 		assertTrue(broken.getStreamFetcherList().isEmpty(), "a registration that never started must be rolled back");
+		assertNull(brokenRow.getFetcherNode());
+		assertEquals(1, brokenRow.getFetcherFailures());
 
 		//a server on its way down must not accept work its pool will not outlive
 		ScriptedManager closing = fixture.newManager();
 		closing.shuttingDown();
-		Result late = closing.startStreaming(fixture.row("late", "fake://late"));
-		assertFalse(late.isSuccess());
-		assertEquals("Server is shutting down", late.getMessage());
+		Broadcast late = fixture.row("late", "fake://late");
+		Result lateResult = closing.startStreaming(late);
+		assertFalse(lateResult.isSuccess());
+		assertEquals("Server is shutting down", lateResult.getMessage());
 		assertTrue(closing.getStreamFetcherList().isEmpty());
+		assertNull(late.getFetcherNode());
 	}
 
 	@Test
-	void theBroadcastStatusFollowsTheTransitions() throws Exception {
-		fixture.appSettings.setStreamFetcherRetryDelayMs(20);
-		manager.prepare = fetcher -> fetcher.script(FakeWorker.publishesThenEnds(), FakeWorker.holding());
+	void anOptOutNodeRefusesClaimsWhileAnOriginIsAliveAndLetsGoOfWhatItHolds() {
+		//an edge with streamSourceFetchEnabled=false next to an origin, whose lower address makes it the leader
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, OTHER_NODE);
+		ScriptedManager edge = fixture.newManager();
 
-		List<Boolean> registeredWhenClosed = new CopyOnWriteArrayList<>();
-		doAnswer(call -> {
-			registeredWhenClosed.add(manager.getStreamFetcherList().containsKey("status"));
-			return null;
-		}).when(fixture.app).closeBroadcast(eq("status"), any(), any());
+		Broadcast source = fixture.row("source", "fake://source");
+		Result refused = edge.claimAndStart("source", null, true);
+		assertEquals(StreamFetcherManager.START_REFUSED, refused.getErrorId(), "nothing was touched, so the origin may take it");
+		assertEquals("Stream source fetching is disabled on this node", refused.getMessage());
+		assertNull(source.getFetcherNode());
+		assertTrue(edge.fetchers.isEmpty());
 
-		manager.startStreaming(fixture.row("status", "fake://status"));
-		ScriptedFetcher fetcher = manager.fetchers.get(0);
+		//held from before a restart: let go for the leader to place on the origin, still wanted
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		Broadcast held = heldRow("held");
+		edge.getCoordinator().tick();
+		settle(edge.context());
+		assertNull(held.getFetcherNode());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, held.getFetcherDesiredAction());
+		assertTrue(edge.fetchers.isEmpty());
 
-		Awaitility.await("the second attempt is connecting")
-				.atMost(15, TimeUnit.SECONDS)
-				.until(() -> fetcher.workers.size() == 2 && fetcher.getState() == State.CONNECTING);
-		//the writes below belong to the transition that published that state, so they land after it
+		//no origin is alive anymore, so the edge takes it as the last resort
+		aliveNodes(cluster, HOST);
+		assertTrue(edge.claimAndStart("source", null, true).isSuccess());
+		assertEquals(HOST, source.getFetcherNode());
+	}
+
+	@Test
+	void aStandaloneServerFetchesWithTheSettingOff() {
+		//nobody else could ever take it, so a standalone server set like an edge still fetches
+		when(fixture.serverSettings.isStreamSourceFetchEnabled()).thenReturn(false);
+
+		Broadcast source = fixture.row("source", "fake://source");
+		assertTrue(manager.startStreaming(source).isSuccess());
+		assertEquals(HOST, source.getFetcherNode());
+
+		//and its own tick neither lets go of it nor tries to hand it over
+		ScriptedFetcher running = manager.fetchers.get(0);
+		manager.getCoordinator().tick();
 		settle(context);
-
-		//CONNECTING, RECONNECT_WAIT and CONNECTING again all claim the source as preparing
-		verify(fixture.app, times(3)).getFreshBroadcastUpdateForStatus(
-				IAntMediaStreamHandler.PUBLISH_TYPE_PULL, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-		verify(fixture.dataStore, times(3)).updateBroadcastFields(eq("status"), any());
-		verify(fixture.app, times(1)).startPublish("status", 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, null, null);
-
-		//the attempt that was on air ended, so the broadcast ends with it. Once, not once per transition
-		assertEquals(List.of(true), registeredWhenClosed);
-
-		CompletableFuture<Void> stopped = fetcher.stopStream();
-		fetcher.releaseAll();
-		stopped.get(15, TimeUnit.SECONDS);
-
-		//whoever polls for finished has to be able to start again, so the entry goes first
-		assertEquals(List.of(true, false), registeredWhenClosed);
+		assertSame(running, manager.getStreamFetcher("source"));
+		assertEquals(HOST, source.getFetcherNode());
+		assertEquals(1, manager.fetchers.size());
 	}
 
 	@Test
-	void aForcedReconnectEndsTheBroadcastThatWasOnAirAndClaimsTheSourceAgain() {
+	void theBroadcastFollowsTheTransitions() {
+		manager.prepare = fetcher -> fetcher.script(FakeWorker.publishesThenEnds());
+
+		List<Boolean> registeredWhenEnded = new CopyOnWriteArrayList<>();
+		doAnswer(call -> {
+			registeredWhenEnded.add(manager.getStreamFetcherList().containsKey("status"));
+			Predicate<BroadcastUpdate> end = call.getArgument(3);
+			end.test(new BroadcastUpdate());
+			return null;
+		}).when(fixture.app).closeBroadcast(eq("status"), any(), any(), any());
+
+		Broadcast row = fixture.row("status", "fake://status");
+		manager.startStreaming(row);
+		ScriptedFetcher fetcher = manager.fetchers.get(0);
+		awaitState(fetcher, State.STOPPED);
+
+		verify(fixture.app).startPublish("status", 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, null, null);
+		//the attempt was on air, so its broadcast is ended, once, and only after the entry is gone
+		assertEquals(List.of(false), registeredWhenEnded);
+
+		//it dropped, so it is let go to be tried again
+		assertNull(row.getFetcherNode());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, row.getFetcherDesiredAction());
+		assertEquals(1, row.getFetcherFailures());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, row.getStatus());
+		//written by startPublish once the source is on air, never on connect
+		assertNull(row.getOriginAdress());
+		assertTrue(row.getStartTime() > 0, "every attempt writes its start, the retry delay counts from it");
+	}
+
+	@Test
+	void aFailedAttemptIsCountedAndStopsTheSourceAtTheLimit() {
+		fixture.appSettings.setStreamFetcherMaxRetryAttempts(3);
+		manager.prepare = fetcher -> fetcher.script(FakeWorker.ending(Reason.OPEN_FAILED));
+
+		//one failure counted by another node already, the count goes on from there
+		Broadcast row = fixture.row("failing", "fake://failing");
+		row.setFetcherFailures(1);
+
+		assertTrue(manager.claimAndStart("failing", null, false).isSuccess());
+		awaitState(manager.fetchers.get(0), State.STOPPED);
+		assertNull(row.getFetcherNode());
+		assertEquals(2, row.getFetcherFailures());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, row.getFetcherDesiredAction());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, row.getStatus());
+		//it never got on air, so there is no broadcast to end
+		verify(fixture.app, never()).closeBroadcast(eq("failing"), any(), any(), any());
+
+		//the third failure in a row reaches the limit: not wanted anymore, so nothing starts it again
+		assertTrue(manager.claimAndStart("failing", null, false).isSuccess());
+		awaitState(manager.fetchers.get(1), State.STOPPED);
+		assertNull(row.getFetcherNode());
+		assertEquals(3, row.getFetcherFailures());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, row.getFetcherDesiredAction());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, row.getStatus());
+
+		//a source that gets on air counts from zero again
+		Broadcast flaky = fixture.row("flaky", "fake://flaky");
+		flaky.setFetcherFailures(2);
+		manager.prepare = fetcher -> fetcher.script(FakeWorker.publishesThenEnds());
+		assertTrue(manager.claimAndStart("flaky", null, false).isSuccess());
+		awaitState(manager.fetchers.get(2), State.STOPPED);
+		assertEquals(1, flaky.getFetcherFailures());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, flaky.getFetcherDesiredAction());
+	}
+
+	@Test
+	void aForcedReconnectEndsTheBroadcastThatWasOnAirAndKeepsTheSource() {
 		manager.prepare = fetcher -> fetcher.script(FakeWorker.publishing(), FakeWorker.holding());
-		manager.startStreaming(fixture.row("reconnect", "fake://reconnect"));
+		Broadcast row = fixture.row("reconnect", "fake://reconnect");
+		manager.startStreaming(row);
 		ScriptedFetcher fetcher = manager.fetchers.get(0);
 		awaitState(fetcher, State.STREAMING);
 
@@ -219,9 +316,10 @@ class StreamFetcherManagerTest {
 		fetcher.workers.get(0).release();
 		awaitState(fetcher, State.CONNECTING);
 
-		//straight from STOPPING to CONNECTING, no RECONNECT_WAIT in between to end it on
-		verify(fixture.app, times(1)).closeBroadcast(eq("reconnect"), any(), any());
-		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, fixture.rows.get("reconnect").getStatus());
+		verify(fixture.app, times(1)).closeBroadcast(eq("reconnect"), any(), any(), any());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, row.getStatus());
+		assertEquals(HOST, row.getFetcherNode(), "a reconnect is not a failure, the source stays here");
+		assertEquals(0, row.getFetcherFailures());
 		assertSame(fetcher, manager.getStreamFetcher("reconnect"), "reconnected in place, same fetcher and registration");
 	}
 
@@ -230,22 +328,21 @@ class StreamFetcherManagerTest {
 		fixture.appSettings.setRestartStreamFetcherPeriod(1);
 		manager.testSetStreamCheckerInterval(1000);
 
-		//the broadcast is gone, so nothing owns this source any more
-		StreamFetcher orphan = tickFetcher("deleted", State.STREAMING, LONG_AGO);
-		manager.onTick(orphan);
-		verify(orphan).stopStream();
-
 		//nobody is watching and the restart period is also up: stopping wins over reconnecting
-		Broadcast unwatched = fixture.row("unwatched", "fake://unwatched");
+		Broadcast unwatched = heldRow("unwatched");
 		unwatched.setAutoStartStopEnabled(true);
+		unwatched.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_START);
 		unwatched.setStartTime(System.currentTimeMillis() - LONG_AGO);
 
 		StreamFetcher idle = tickFetcher("unwatched", State.STREAMING, LONG_AGO);
 		manager.onTick(idle);
 		verify(idle).stopStream();
 		verify(idle, never()).restart();
+		//not wanted until a viewer starts it again, so nothing else may start it meanwhile
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, unwatched.getFetcherDesiredAction());
 
 		//one viewer of any kind is enough to keep the same source up
+		unwatched.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_START);
 		unwatched.setHlsViewerCount(1);
 		StreamFetcher watched = tickFetcher("unwatched", State.STREAMING, LONG_AGO);
 		manager.onTick(watched);
@@ -259,7 +356,7 @@ class StreamFetcherManagerTest {
 		verify(justStarted, never()).stopStream();
 
 		//up for longer than the forced restart period, so it reconnects in place
-		fixture.row("restarts", "fake://restarts");
+		heldRow("restarts");
 		StreamFetcher streaming = tickFetcher("restarts", State.STREAMING, LONG_AGO);
 		manager.onTick(streaming);
 		verify(streaming).restart();
@@ -276,9 +373,9 @@ class StreamFetcherManagerTest {
 		verify(connecting, never()).restart();
 
 		//a forced reconnect would restart the current item, not the playlist, so playlists sit it out
-		Broadcast playlist = fixture.row("playlist", "fake://playlist");
-		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		playlistRow("playlist");
 		StreamFetcher item = tickFetcher("playlist", State.STREAMING, LONG_AGO);
+		when(item.isPlaylistItem()).thenReturn(true);
 		manager.onTick(item);
 		verify(item, never()).restart();
 
@@ -294,6 +391,7 @@ class StreamFetcherManagerTest {
 				.until(() -> manager.getStreamFetcher("unwatched-playlist") != null);
 
 		StreamFetcher playlistItem = tickFetcher("unwatched-playlist", State.STREAMING, LONG_AGO);
+		when(playlistItem.isPlaylistItem()).thenReturn(true);
 		manager.onTick(playlistItem);
 		verify(playlistItem, never()).stopStream();
 
@@ -303,24 +401,103 @@ class StreamFetcherManagerTest {
 	}
 
 	@Test
-	void aSourceStillBeingReachedIsKeptFromDecaying() {
-		fixture.row("waiting", "fake://waiting");
+	void theTickStopsASourceThatIsNotThisNodesToFetch() {
+		//the broadcast is gone
+		StreamFetcher deleted = tickFetcher("deleted", State.STREAMING, LONG_AGO);
+		manager.onTick(deleted);
+		verify(deleted).stopStream();
 
-		StreamFetcher reconnecting = tickFetcher("waiting", State.RECONNECT_WAIT, LONG_AGO);
-		manager.onTick(reconnecting);
+		//another node took it over, or a stop let go of it while this node looked dead
+		for (String fetcherNode : Arrays.asList(OTHER_NODE, null)) {
+			heldRow("taken").setFetcherNode(fetcherNode);
+			StreamFetcher taken = tickFetcher("taken", State.STREAMING, LONG_AGO);
+			manager.onTick(taken);
+			verify(taken).stopStream();
+		}
+		//the row is not this node's anymore, so nothing is written to it
+		verify(fixture.dataStore, never()).compareAndSetFetcherNode(eq("taken"), any(), any(), anyBoolean(), any());
+		verify(fixture.dataStore, never()).updateBroadcastFields(eq("taken"), any());
+
+		//its user stopped it on a node that does not run it
+		heldRow("unwanted").setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_STOP);
+		StreamFetcher unwanted = tickFetcher("unwanted", State.STREAMING, LONG_AGO);
+		manager.onTick(unwanted);
+		verify(unwanted).stopStream();
+
+		//a playlist has no fetcher node, its item is left alone
+		playlistRow("playlist");
+		StreamFetcher item = tickFetcher("playlist", State.STREAMING, LONG_AGO);
+		when(item.isPlaylistItem()).thenReturn(true);
+		manager.onTick(item);
+		verify(item, never()).stopStream();
+	}
+
+	@Test
+	void aSourceAnotherNodeTookStopsWithoutATrace() {
+		manager.prepare = fetcher -> fetcher.script(FakeWorker.publishing());
+		Broadcast row = fixture.row("taken-over", "fake://taken-over");
+		manager.startStreaming(row);
+		ScriptedFetcher fetcher = manager.fetchers.get(0);
+		awaitState(fetcher, State.STREAMING);
+
+		//another node decided this one was dead and claimed the source
+		row.setFetcherNode(OTHER_NODE);
+		tick(fetcher);
+		fetcher.releaseAll();
+		awaitState(fetcher, State.STOPPED);
+
+		assertTrue(manager.getStreamFetcherList().isEmpty());
+		assertEquals(OTHER_NODE, row.getFetcherNode());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, row.getStatus(), "nothing is written over the other node's row");
+
+		//taken while it was still connecting: its first packet must not publish it here, startPublish is not fenced
+		Broadcast early = fixture.row("taken-early", "fake://taken-early");
+		manager.prepare = next -> next.script(new FakeWorker() {
+			{
+				publishes = true;
+				holds = true;
+			}
+
+			@Override
+			public Reason run(Broadcast broadcast) {
+				early.setFetcherNode(OTHER_NODE);
+				return super.run(broadcast);
+			}
+		});
+		manager.startStreaming(early);
+		ScriptedFetcher earlyFetcher = manager.fetchers.get(1);
+		awaitState(earlyFetcher, State.STOPPING);
+		earlyFetcher.releaseAll();
+		awaitState(earlyFetcher, State.STOPPED);
+
+		verify(fixture.app, never()).startPublish(eq("taken-early"), anyLong(), any(), any(), any());
+		assertEquals(OTHER_NODE, early.getFetcherNode());
+	}
+
+	@Test
+	void aSourceStillBeingReachedIsKeptFromDecaying() {
+		heldRow("waiting");
+		manager.onTick(tickFetcher("waiting", State.CONNECTING, LONG_AGO));
 
 		ArgumentCaptor<BroadcastUpdate> written = ArgumentCaptor.forClass(BroadcastUpdate.class);
-		verify(fixture.dataStore).updateBroadcastFields(eq("waiting"), written.capture());
+		verify(fixture.dataStore).compareAndSetFetcherNode(eq("waiting"), eq(HOST), eq(HOST), eq(false), written.capture());
 
 		BroadcastUpdate refresh = written.getValue();
 		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, refresh.getStatus());
 		assertNotNull(refresh.getUpdateTime());
-		assertNull(refresh.getStartTime(), "the auto stop timeout measures from the start time, it must not move");
+		assertNull(refresh.getStartTime(), "the auto stop timeout and the retry delay measure from the start time, it must not move");
 
 		//a source that is up needs no refresh, its packets already keep it fresh
-		fixture.row("live", "fake://live");
+		heldRow("live");
 		manager.onTick(tickFetcher("live", State.STREAMING, LONG_AGO));
-		verify(fixture.dataStore, never()).updateBroadcastFields(eq("live"), any());
+		verify(fixture.dataStore, never()).compareAndSetFetcherNode(eq("live"), any(), any(), anyBoolean(), any());
+
+		//the row named this node when it was read, the write finds another node there
+		heldRow("lost");
+		doReturn(false).when(fixture.dataStore).compareAndSetFetcherNode(eq("lost"), any(), any(), anyBoolean(), any());
+		StreamFetcher lost = tickFetcher("lost", State.CONNECTING, LONG_AGO);
+		manager.onTick(lost);
+		verify(lost).stopStream();
 	}
 
 	@Test
@@ -329,7 +506,7 @@ class StreamFetcherManagerTest {
 		assertFalse(manager.isStreamRunning(free));
 
 		manager.startStreaming(free);
-		assertTrue(manager.isStreamRunning(free), "a registry entry is this node owning it");
+		assertTrue(manager.isStreamRunning(free), "a registry entry is this node fetching it");
 
 		//a playlist between two items has no fetcher, but it is still running
 		Broadcast playlist = playlistRow("between-items");
@@ -337,50 +514,35 @@ class StreamFetcherManagerTest {
 		assertTrue(manager.getPlaylistController().startPlaylist(playlist).isSuccess());
 		assertTrue(manager.isStreamRunning(playlist));
 
-		//the database says it is live, on a host that answers
-		Broadcast owned = fixture.row("owned", "fake://owned");
-		owned.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-		owned.setOriginAdress("127.0.0.1");
-		assertTrue(manager.isStreamRunning(owned));
+		//held by an alive node, this one, though nothing runs it here yet
+		Broadcast held = heldRow("held");
+		assertTrue(manager.isStreamRunning(held));
 
-		//live on a node that cannot be reached, so this node is free to take it over
-		owned.setOriginAdress("10.255.255.1");
-		assertFalse(manager.isStreamRunning(owned));
+		//held by a node that is not alive, or by nobody, so it is free to take
+		held.setFetcherNode(OTHER_NODE);
+		assertFalse(manager.isStreamRunning(held));
+		held.setFetcherNode(null);
+		held.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		assertFalse(manager.isStreamRunning(held), "the fetcher node says who runs a source, not its status");
 
-		//a row that still says broadcasting but stopped being updated has decayed, nobody holds it
-		owned.setOriginAdress("127.0.0.1");
-		owned.setUpdateTime(System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 1000);
-		assertFalse(manager.isStreamRunning(owned), "a stale broadcasting row is the stuck source, it must not block a restart");
+		//a playlist has no fetcher node, it runs where its row is live, on a host that answers
+		Broadcast live = playlistRow("live-playlist");
+		live.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		live.setOriginAdress(HOST);
+		assertTrue(manager.isStreamRunning(live));
 
-		//a finished row is free whoever owned it
-		owned.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-		owned.setUpdateTime(System.currentTimeMillis());
-		assertFalse(manager.isStreamRunning(owned));
-	}
+		live.setOriginAdress("10.255.255.1");
+		assertFalse(manager.isStreamRunning(live));
 
-	@Test
-	void bootResumeOnlyTakesTheSourcesNobodyElseWill() {
-		Broadcast unattended = fixture.row("unattended", "fake://unattended");
-		//a row the last run left behind, which is exactly why the resume has to force past the check
-		unattended.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-
-		Broadcast onDemand = fixture.row("on-demand", "fake://on-demand");
-		onDemand.setAutoStartStopEnabled(true);
-
-		fixture.appSettings.setStartStreamFetcherAutomatically(false);
-		manager.resumeUnattendedSources();
-		assertTrue(manager.getStreamFetcherList().isEmpty(), "the setting is off, nothing may be resumed");
-
-		fixture.appSettings.setStartStreamFetcherAutomatically(true);
-		manager.resumeUnattendedSources();
-
-		assertTrue(manager.getStreamFetcherList().containsKey("unattended"));
-		assertFalse(manager.getStreamFetcherList().containsKey("on-demand"), "a source a viewer starts is not resumed at boot");
+		live.setOriginAdress(HOST);
+		live.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		assertFalse(manager.isStreamRunning(live));
 	}
 
 	@Test
 	void shutdownEndsThePlaylistsFirstAndThenEverythingElse() throws Exception {
-		manager.startStreaming(fixture.row("plain-source", "fake://plain-source"));
+		Broadcast plain = fixture.row("plain-source", "fake://plain-source");
+		manager.startStreaming(plain);
 		awaitState(manager.fetchers.get(0), State.CONNECTING);
 
 		Broadcast playlist = playlistRow("shutting-playlist");
@@ -400,42 +562,66 @@ class StreamFetcherManagerTest {
 		done.get(20, TimeUnit.SECONDS);
 
 		assertTrue(manager.getStreamFetcherList().isEmpty());
-		assertFalse(manager.startStreaming(fixture.row("too-late", "fake://too-late")).isSuccess(),
-				"the pool is gone, a fetcher started now would retry forever");
+		//let go and still wanted, so another node takes it over
+		assertNull(plain.getFetcherNode());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_START, plain.getFetcherDesiredAction());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, plain.getStatus());
+
+		assertFalse(manager.startStreaming(fixture.row("too-late", "fake://too-late")).isSuccess(), "the pool is gone");
 	}
 
 	@Test
-	void stopStreamingHandlesEveryKindOfId() {
+	void stopStreamingHandlesEveryKindOfId() throws Exception {
 		assertEquals("Undefined stream id", manager.stopStreaming("   ", false).getMessage());
 
 		Result unknown = manager.stopStreaming("nobody", false);
 		assertFalse(unknown.isSuccess());
 		assertTrue(unknown.getMessage().contains("No matching stream source"));
 
-		manager.startStreaming(fixture.row("stop-async", "fake://stop-async"));
-		ScriptedFetcher async = manager.fetchers.get(0);
-		awaitState(async, State.CONNECTING);
+		Broadcast async = fixture.row("stop-async", "fake://stop-async");
+		manager.startStreaming(async);
+		ScriptedFetcher asyncFetcher = manager.fetchers.get(0);
+		awaitState(asyncFetcher, State.CONNECTING);
 
 		assertTrue(manager.stopStreaming("stop-async", false).isSuccess());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, async.getFetcherDesiredAction(), "written first, so nothing starts it again");
 
 		//the entry goes on the STOPPED transition, not on the stop call, so a second one is still accepted
-		awaitState(async, State.STOPPING);
+		awaitState(asyncFetcher, State.STOPPING);
 		assertTrue(manager.stopStreaming("stop-async", false).isSuccess());
 
-		async.releaseAll();
-		awaitState(async, State.STOPPED);
+		asyncFetcher.releaseAll();
+		awaitState(asyncFetcher, State.STOPPED);
 		assertFalse(manager.getStreamFetcherList().containsKey("stop-async"));
-		assertFalse(manager.stopStreaming("stop-async", false).isSuccess(), "the id is free, there is nothing left to stop");
+		assertNull(async.getFetcherNode());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, async.getStatus());
 
 		//a blocking stop only returns once the database says finished
-		ScriptedManager quick = fixture.newManager();
-		quick.prepare = fetcher -> fetcher.workerSupplier = FakeWorker::new;
-		quick.startStreaming(fixture.row("stop-blocking", "fake://stop-blocking"));
-		awaitState(quick.fetchers.get(0), State.RECONNECT_WAIT);
+		Broadcast blocking = fixture.row("stop-blocking", "fake://stop-blocking");
+		manager.startStreaming(blocking);
+		ScriptedFetcher blockingFetcher = manager.fetchers.get(1);
+		awaitState(blockingFetcher, State.CONNECTING);
 
-		assertTrue(quick.stopStreaming("stop-blocking", true).isSuccess());
-		assertEquals(State.STOPPED, quick.fetchers.get(0).getState());
-		assertTrue(quick.getStreamFetcherList().isEmpty());
+		CompletableFuture<Result> stopped = CompletableFuture.supplyAsync(() -> manager.stopStreaming("stop-blocking", true));
+		awaitState(blockingFetcher, State.STOPPING);
+		blockingFetcher.releaseAll();
+		assertTrue(stopped.get(15, TimeUnit.SECONDS).isSuccess());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, blocking.getStatus());
+
+		//nothing runs it, it was let go after a failed attempt: the stop still sticks
+		Broadcast released = fixture.row("released", "fake://released");
+		released.setFetcherFailures(2);
+		released.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		assertTrue(manager.stopStreaming("released", false).isSuccess());
+		assertEquals(Broadcast.FETCHER_DESIRED_ACTION_STOP, released.getFetcherDesiredAction());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, released.getStatus());
+
+		//held by a node that is gone, nobody else will let go of it
+		Broadcast orphaned = fixture.row("orphaned", "fake://orphaned");
+		orphaned.setFetcherNode(OTHER_NODE);
+		assertTrue(manager.stopStreaming("orphaned", false).isSuccess());
+		assertNull(orphaned.getFetcherNode());
+		assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, orphaned.getStatus());
 
 		//a playlist id goes to the controller, stopping only its item would start the next one
 		Broadcast playlist = playlistRow("stop-playlist");
@@ -486,104 +672,7 @@ class StreamFetcherManagerTest {
 		assertTrue(playlist.getMessage().contains("Failed to stop the playlist with Blocking"));
 	}
 
-	/**
-	 * Cluster fallback: when a node leaves, the lowest live node takes over the sources it was
-	 * pulling. Only rows whose owner is really gone qualify, and only once per departure.
-	 */
-	@Test
-	void theSourcesOfANodeThatLeftAreAdoptedByTheLowestLiveNode() {
-		fixture.appSettings.setStartStreamFetcherAutomatically(true);
-		ScriptedManager cluster = clusterManager();
-
-		orphan("camera", AntMediaApplicationAdapter.IP_CAMERA, DEPARTED);
-		orphan("source", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED);
-		orphan("peers", AntMediaApplicationAdapter.STREAM_SOURCE, "127.0.0.5");
-		orphan("never-claimed", AntMediaApplicationAdapter.STREAM_SOURCE, "");
-		orphan("on-demand", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED).setAutoStartStopEnabled(true);
-		orphan("stopped", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED).setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-
-		//gone from the node list, but it still answers http, so it is still fetching
-		orphan("still-answers", AntMediaApplicationAdapter.STREAM_SOURCE, "192.168.1.8");
-		answering.add("192.168.1.8");
-
-		//the http check takes up to a second, and the owner can come back or the row can go meanwhile
-		Broadcast reclaimed = orphan("reclaimed", AntMediaApplicationAdapter.STREAM_SOURCE, "192.168.1.7");
-		whileAsking.put("192.168.1.7", () -> reclaimed.setUpdateTime(System.currentTimeMillis()));
-		orphan("deleted", AntMediaApplicationAdapter.STREAM_SOURCE, "192.168.1.6");
-		whileAsking.put("192.168.1.6", () -> fixture.rows.remove("deleted"));
-
-		//a node row with no address or no heartbeat must not count as alive, it would decide who adopts
-		clusterNodes(alive("127.0.0.1"), alive("127.0.0.5"), alive(""), dead(DEPARTED));
-
-		try (MockedStatic<AntMediaApplicationAdapter> statics = originsAnswerFromTheTest()) {
-			checkForOrphans(cluster);
-			assertEquals(Set.of("camera", "source"), cluster.getStreamFetcherList().keySet());
-
-			//nobody left since the last check, so a row that turns up now is not even looked at
-			orphan("late", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED);
-			checkForOrphans(cluster);
-			assertFalse(cluster.getStreamFetcherList().containsKey("late"));
-
-			//a peer leaves, so what it owned is free now too
-			clusterNodes(alive("127.0.0.1"));
-			checkForOrphans(cluster);
-			assertEquals(Set.of("camera", "source", "peers", "late"), cluster.getStreamFetcherList().keySet());
-		}
-
-		cluster.shutdown();
-		assertEquals(-1L, peek(cluster, "orphanCheckTimerId"), "the check dies with the application");
-	}
-
-	@Test
-	void noNodeAdoptsUnlessItCanTellItIsTheOneToDoIt() {
-		assertEquals(-1L, peek(manager, "orphanCheckTimerId"), "a single server has nobody to adopt from");
-
-		ScriptedManager cluster = clusterManager();
-		orphan("orphan", AntMediaApplicationAdapter.STREAM_SOURCE, DEPARTED);
-		orphan("peers", AntMediaApplicationAdapter.STREAM_SOURCE, "127.0.0.5");
-
-		try (MockedStatic<AntMediaApplicationAdapter> statics = originsAnswerFromTheTest()) {
-			//the setting that resumes sources at boot is also what lets a node take over another's
-			clusterNodes(alive("127.0.0.1"));
-			checkForOrphans(cluster);
-			assertTrue(cluster.getStreamFetcherList().isEmpty());
-			fixture.appSettings.setStartStreamFetcherAutomatically(true);
-
-			//a lower address is alive, it is that node's job and every node agrees on that
-			clusterNodes(alive("127.0.0.1"), alive("10.0.0.1"), alive("127.0.0.5"));
-			checkForOrphans(cluster);
-			assertTrue(cluster.getStreamFetcherList().isEmpty());
-
-			//10.0.0.1 left, so this node is the lowest now. The peer is still up and keeps its own source
-			clusterNodes(alive("127.0.0.1"), alive("127.0.0.5"));
-			checkForOrphans(cluster);
-			assertEquals(Set.of("orphan"), cluster.getStreamFetcherList().keySet());
-
-			//this node drops out of its own list, and the peer leaves while it is out
-			clusterNodes(alive("192.168.1.2"));
-			checkForOrphans(cluster);
-
-			//no cluster store, an empty answer, a store that is down. None of it may leave the guard taken
-			when(clusterNotifier.getClusterStore()).thenReturn(null);
-			checkForOrphans(cluster);
-			when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
-			doReturn(null).when(clusterStore).getClusterNodes(anyInt(), anyInt());
-			checkForOrphans(cluster);
-			doThrow(new IllegalStateException("cluster store is down")).when(clusterStore).getClusterNodes(anyInt(), anyInt());
-			checkForOrphans(cluster);
-			assertEquals(Set.of("orphan"), cluster.getStreamFetcherList().keySet());
-
-			//back in the list. Had it taken the list it was missing from as the last one seen, it would never
-			//notice the peer is gone
-			clusterNodes(alive("127.0.0.1"), alive("192.168.1.2"));
-			checkForOrphans(cluster);
-			assertEquals(Set.of("orphan", "peers"), cluster.getStreamFetcherList().keySet());
-		}
-
-		cluster.shutdown();
-	}
-
-	/** onTick only reads these three off a fetcher, so a mock says exactly what the test means. */
+	/** onTick only reads these off a fetcher, so a mock says exactly what the test means. */
 	private StreamFetcher tickFetcher(String streamId, State state, long inStateForMs) {
 		StreamFetcher fetcher = mock(StreamFetcher.class);
 		when(fetcher.getStreamId()).thenReturn(streamId);
@@ -592,84 +681,17 @@ class StreamFetcherManagerTest {
 		return fetcher;
 	}
 
+	/** A source this node holds. */
+	private Broadcast heldRow(String streamId) {
+		Broadcast row = fixture.row(streamId, "fake://" + streamId);
+		row.setFetcherNode(HOST);
+		return row;
+	}
+
 	private Broadcast playlistRow(String streamId) {
 		Broadcast playlist = fixture.row(streamId, "fake://" + streamId);
 		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
 		playlist.setPlayListItemList(List.of(new PlayListItem("fake://item", AntMediaApplicationAdapter.VOD)));
 		return playlist;
-	}
-
-	/** A manager in cluster mode. Its own 5s check is cancelled, the test runs every check by hand. */
-	private ScriptedManager clusterManager() {
-		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
-		IContext red5Context = fixture.scope.getContext();
-		when(red5Context.hasBean(IClusterNotifier.BEAN_NAME)).thenReturn(true);
-		when(red5Context.getBean(IClusterNotifier.BEAN_NAME)).thenReturn(clusterNotifier);
-
-		when(fixture.dataStore.getBroadcastList(anyInt(), anyInt(), anyString(), isNull(), isNull(), isNull())).thenAnswer(call -> {
-			int offset = call.getArgument(0);
-			int size = call.getArgument(1);
-			String type = call.getArgument(2);
-			return fixture.rows.values().stream()
-					.filter(row -> type.equals(row.getType()))
-					.sorted(Comparator.comparing(Broadcast::getStreamId))
-					.skip(offset)
-					.limit(size)
-					.toList();
-		});
-
-		ScriptedManager cluster = fixture.newManager();
-		//an adopted source fails its first attempt at once and then waits out a retry that never comes
-		cluster.prepare = fetcher -> fetcher.workerSupplier = FakeWorker::new;
-
-		assertTrue(fixture.vertx.cancelTimer((long) peek(cluster, "orphanCheckTimerId")), "cluster mode checks for orphans on a timer");
-		return cluster;
-	}
-
-	private void checkForOrphans(StreamFetcherManager cluster) {
-		try {
-			Method check = StreamFetcherManager.class.getDeclaredMethod("processOrphanedSources");
-			check.setAccessible(true);
-			check.invoke(cluster);
-		}
-		catch (Exception e) {
-			throw new IllegalStateException(e);
-		}
-	}
-
-	/** Answers the http reachability check for an origin, which really costs up to a second per row. */
-	private MockedStatic<AntMediaApplicationAdapter> originsAnswerFromTheTest() {
-		MockedStatic<AntMediaApplicationAdapter> statics = mockStatic(AntMediaApplicationAdapter.class, CALLS_REAL_METHODS);
-		statics.when(() -> AntMediaApplicationAdapter.isInstanceAlive(anyString(), anyString(), anyInt(), anyString())).thenAnswer(call -> {
-			String origin = call.getArgument(0);
-			whileAsking.getOrDefault(origin, () -> { }).run();
-			return answering.contains(origin);
-		});
-		return statics;
-	}
-
-	private void clusterNodes(ClusterNode... nodes) {
-		doReturn(List.of(nodes)).when(clusterStore).getClusterNodes(anyInt(), anyInt());
-	}
-
-	private static ClusterNode alive(String ip) {
-		return new ClusterNode(ip, "node-" + ip);
-	}
-
-	/** Still listed, but it stopped sending its heartbeat. */
-	private static ClusterNode dead(String ip) {
-		ClusterNode node = alive(ip);
-		node.setLastUpdateTime(0);
-		return node;
-	}
-
-	/** A source whose owner stopped refreshing it, so its status has decayed to terminated_unexpectedly. */
-	private Broadcast orphan(String streamId, String type, String origin) {
-		Broadcast row = fixture.row(streamId, "fake://" + streamId);
-		row.setType(type);
-		row.setOriginAdress(origin);
-		row.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-		row.setUpdateTime(System.currentTimeMillis() - AntMediaApplicationAdapter.STREAM_TIMEOUT_MS - 1000);
-		return row;
 	}
 }

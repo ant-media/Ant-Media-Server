@@ -9,10 +9,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -412,6 +415,71 @@ public abstract class MapBasedDataStore extends DataStore
 	}
 
 	@Override
+	public boolean compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update) {
+		long startTime = System.nanoTime();
+
+		boolean result = false;
+		synchronized (this) {
+			String json = map.get(streamId);
+			Broadcast broadcast = json != null ? gson.fromJson(json, Broadcast.class) : null;
+			if (broadcast != null && Objects.equals(expectedFetcherNode, broadcast.getFetcherNode())
+					&& (!onlyIfDesiredStart || Broadcast.FETCHER_DESIRED_ACTION_START.equals(broadcast.getFetcherDesiredAction()))) {
+				broadcast.setFetcherNode(newFetcherNode);
+				updateStreamInfo(broadcast, update);
+				//synchronized only covers this JVM, the conditional replace is what makes it atomic across nodes on one Redis
+				result = map.replace(streamId, json, gson.toJson(broadcast));
+			}
+		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "compareAndSetFetcherNode(String streamId, String expectedFetcherNode, String newFetcherNode, boolean onlyIfDesiredStart, BroadcastUpdate update)");
+		return result;
+	}
+
+	//the three reads below take no store lock: they only read a concurrent map, and a row is only ever acted on
+	//through compareAndSetFetcherNode, which checks it again
+
+	@Override
+	public List<Broadcast> getHeldStreamFetcherSources(String fetcherNode) {
+		long startTime = System.nanoTime();
+		List<Broadcast> streamsList = map.values().stream()
+				.map(json -> gson.fromJson(json, Broadcast.class))
+				.filter(broadcast -> fetcherNode.equals(broadcast.getFetcherNode()))
+				.toList();
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getHeldStreamFetcherSources(String fetcherNode)");
+		return streamsList;
+	}
+
+	@Override
+	public List<Broadcast> getOrphanStreamFetcherSources(Collection<String> aliveNodes) {
+		long startTime = System.nanoTime();
+		List<Broadcast> streamsList = map.values().stream()
+				.map(json -> gson.fromJson(json, Broadcast.class))
+				.filter(broadcast -> Broadcast.FETCHER_DESIRED_ACTION_START.equals(broadcast.getFetcherDesiredAction())
+						&& (broadcast.getFetcherNode() == null || !aliveNodes.contains(broadcast.getFetcherNode())))
+				.toList();
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getOrphanStreamFetcherSources(Collection<String> aliveNodes)");
+		return streamsList;
+	}
+
+	@Override
+	public Map<String, Long> getHeldStreamFetcherSourceCounts() {
+		long startTime = System.nanoTime();
+		Map<String, Long> counts = map.values().stream()
+				.map(json -> gson.fromJson(json, Broadcast.class).getFetcherNode())
+				.filter(Objects::nonNull)
+				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "getHeldStreamFetcherSourceCounts()");
+		return counts;
+	}
+
+	@Override
 	public boolean deleteVod(String id) {
 		long startTime = System.nanoTime();
 
@@ -680,6 +748,10 @@ public abstract class MapBasedDataStore extends DataStore
 	}
 
 	public void clearStreamInfoList(String streamId) {
+		//used in mongo for cluster mode. useless here.
+	}
+
+	public void clearStreamInfoList(String streamId, String host) {
 		//used in mongo for cluster mode. useless here.
 	}
 

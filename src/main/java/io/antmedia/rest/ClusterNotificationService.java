@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import io.antmedia.StreamIdValidator;
 import io.antmedia.rest.model.Result;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -72,6 +73,24 @@ public class ClusterNotificationService extends RestServiceBase {
 			@Parameter(description = "role of the stream", required = false) @QueryParam("role") String role,
 			@Parameter(description = "Main track of the stream", required = false) @QueryParam("mainTrackId") String mainTrackId) {
 		return new Result(getApplication().publishStopped(id, role, mainTrackId));
+	}
+
+	@Operation(summary = "Asks this node to claim a stream source and start fetching it. It is for internal communication between nodes. This is why it is hidden",
+			description = "The answer says whether this node took it. A refusal has errorId START_REFUSED, so the caller tries another node.", responses = {
+			@ApiResponse(responseCode = "200", description = "The result of the claim", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
+	})
+	@POST
+	@Path("/stream-source/{id}/claim-and-start")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
+	public Result claimAndStartStreamSource(@Parameter(description = "id of the broadcast", required = true) @PathParam("id") String id,
+			@Parameter(description = "Fetcher node the caller read, the claim only wins while the row still names it. None means no node", required = false) @QueryParam("expectedFetcherNode") String expectedFetcherNode,
+			@Parameter(description = "A user start, which also resets the failure count", required = false) @QueryParam("userStart") boolean userStart) {
+
+		if (!StreamIdValidator.isStreamIdValid(id) || !StreamIdValidator.isStreamIdValid(expectedFetcherNode)) {
+			return new Result(false, "Invalid stream id or fetcher node");
+		}
+		return getApplication().getStreamFetcherManager().claimAndStart(id, expectedFetcherNode, userStart);
 	}
 
 	@Operation(

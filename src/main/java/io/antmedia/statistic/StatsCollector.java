@@ -1744,6 +1744,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		this.webhookURL = webhookURL;
 	}
 
+	@Override
 	public int getMemoryLimit() {
 		return memoryLimit;
 	}

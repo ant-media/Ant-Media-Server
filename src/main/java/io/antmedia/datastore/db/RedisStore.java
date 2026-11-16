@@ -159,11 +159,30 @@ public class RedisStore extends MapBasedDataStore {
 	public void clearStreamInfoList(String streamId) {
 		long startTime = System.nanoTime();
 		synchronized (this) {
-			streamInfoMap.clear();
+			streamInfoMap.remove(streamId);
 		}
 		long elapsedNanos = System.nanoTime() - startTime;
 		addQueryTime(elapsedNanos);
 		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "clearStreamInfoList(String streamId)");
+	}
+
+	@Override
+	public void clearStreamInfoList(String streamId, String host) {
+		long startTime = System.nanoTime();
+		synchronized (this) {
+			List<StreamInfo> streamInfoList = (List<StreamInfo>) streamInfoMap.get(streamId);
+			if (streamInfoList != null && streamInfoList.removeIf(streamInfo -> host.equals(streamInfo.getHost()))) {
+				if (streamInfoList.isEmpty()) {
+					streamInfoMap.remove(streamId);
+				}
+				else {
+					streamInfoMap.put(streamId, streamInfoList);
+				}
+			}
+		}
+		long elapsedNanos = System.nanoTime() - startTime;
+		addQueryTime(elapsedNanos);
+		showWarningIfElapsedTimeIsMoreThanThreshold(elapsedNanos, "clearStreamInfoList(String streamId, String host)");
 	}
 	
 	
