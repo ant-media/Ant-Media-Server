@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -85,6 +86,9 @@ class StreamSourceFixture implements AutoCloseable {
 	/** The rows {@link #dataStore} serves. Remove one to delete a broadcast mid test. */
 	final Map<String, Broadcast> rows = new ConcurrentHashMap<>();
 
+	/** What the root scope lists by name: this application, and the ones a test adds with {@link #application}. */
+	private final Map<String, IScope> applications = new ConcurrentHashMap<>();
+
 	StreamSourceFixture() {
 		pool = Executors.newCachedThreadPool(runnable -> {
 			Thread thread = new Thread(runnable, "fixture-worker");
@@ -106,6 +110,16 @@ class StreamSourceFixture implements AutoCloseable {
 		when(red5Context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		when(springContext.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
 		when(springContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(springContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
+
+		//the coordinator counts the sources of every application on the node, which it finds through the root scope
+		IScope root = mock(IScope.class);
+		when(scope.hasParent()).thenReturn(true);
+		when(scope.getParent()).thenReturn(root);
+		when(root.getScopeNames()).thenAnswer(call -> Set.copyOf(applications.keySet()));
+		when(root.getScope(anyString())).thenAnswer(call -> applications.get((String) call.getArgument(0)));
+		applications.put("junit", scope);
+		when(app.getAppSettings()).thenReturn(appSettings);
 
 		when(licenceService.isLicenceSuspended()).thenReturn(false);
 		when(serverSettings.getHostAddress()).thenReturn(HOST);
@@ -228,7 +242,27 @@ class StreamSourceFixture implements AutoCloseable {
 	}
 
 	ScriptedManager newManager() {
-		return new ScriptedManager(vertx, dataStore, scope);
+		ScriptedManager manager = new ScriptedManager(vertx, dataStore, scope);
+		when(app.getStreamFetcherManager()).thenReturn(manager);
+		return manager;
+	}
+
+	/** Another application on this node, with its own data store, default settings and no manager. */
+	AntMediaApplicationAdapter application(String name, DataStore applicationDataStore) {
+		IScope applicationScope = mock(IScope.class);
+		IContext red5Context = mock(IContext.class);
+		ApplicationContext springContext = mock(ApplicationContext.class);
+		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
+
+		when(applicationScope.getContext()).thenReturn(red5Context);
+		when(red5Context.getApplicationContext()).thenReturn(springContext);
+		when(springContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
+		when(springContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(application.getDataStore()).thenReturn(applicationDataStore);
+		when(application.getAppSettings()).thenReturn(new AppSettings());
+
+		applications.put(name, applicationScope);
+		return application;
 	}
 
 	/** Managers made after this run in cluster mode, with these nodes alive and the lowest one leading. */

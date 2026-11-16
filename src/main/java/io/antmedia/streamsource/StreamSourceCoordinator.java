@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -25,11 +26,13 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
@@ -41,6 +44,7 @@ import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.StatsCollector;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 
@@ -49,8 +53,9 @@ import io.vertx.core.Vertx;
  * Runs on every node. Standalone mode is treated as cluster of one.
  * 
  * A start goes to the alive node that holds the source, or else to the alive node with room and the fewest
- * sources. Each tick this node starts or lets go of the sources it holds, and the leader (lowest alive
- * address) places every source nobody alive holds. Every take is a claim on the row, so only one node gets it.
+ * sources of every application. Each tick this node starts or lets go of the sources it holds, and the leader
+ * (lowest alive address) places every source nobody alive holds and, in its first application, runs the
+ * {@link StreamSourceRebalancer}. Every take is a claim on the row, so only one node gets it.
  *
  * Nodes with streamSourceFetchEnabled off (edges) take a source only while no node with it on is alive, and hand
  * it over once one with room is.
@@ -98,6 +103,9 @@ public class StreamSourceCoordinator {
 	private final ServerSettings serverSettings;
 	/** Null on a standalone server. */
 	private final IClusterNotifier clusterNotifier;
+	private final StreamSourceRebalancer rebalancer;
+	/** Claims placeAndStart has in flight by node, so starts that run at once spread. Guarded by itself. */
+	private final Map<String, Long> placing = new HashMap<>();
 
 	private long timerId;
 	private final AtomicBoolean tickRunning = new AtomicBoolean();
@@ -113,6 +121,7 @@ public class StreamSourceCoordinator {
 		this.appSettings = (AppSettings) red5Context.getBean(AppSettings.BEAN_NAME);
 		this.serverSettings = (ServerSettings) red5Context.getBean(ServerSettings.BEAN_NAME);
 		this.clusterNotifier = red5Context.hasBean(IClusterNotifier.BEAN_NAME) ? (IClusterNotifier) red5Context.getBean(IClusterNotifier.BEAN_NAME) : null;
+		this.rebalancer = new StreamSourceRebalancer(this, serverSettings);
 
 		if (!serverSettings.isStreamSourceFetchEnabled()) {
 			if (clusterNotifier == null) {
@@ -139,6 +148,10 @@ public class StreamSourceCoordinator {
 			handBack(held);
 			if (isLeader()) {
 				placeOrphans();
+				//one application on one node balances the whole cluster
+				if (applications().indexOf(manager.getApplication()) == 0) {
+					rebalancer.tick();
+				}
 			}
 		}
 		catch (Exception e) {
@@ -234,7 +247,7 @@ public class StreamSourceCoordinator {
 		//node that refuses let another node take its sources
 		Map<String, ClusterNode> mayFetch = nodesThatMayFetch(alive);
 		Set<String> refused = new HashSet<>();
-		Map<String, Long> held = new HashMap<>(manager.getDatastore().getHeldStreamFetcherSourceCounts());
+		Map<String, Long> held = heldCountsOfEveryApplication();
 		while (!pending.isEmpty() && !manager.isServerShuttingDown()) {
 			List<Placement> placements = new ArrayList<>();
 			while (placements.size() < MAX_PLACEMENTS_IN_FLIGHT && !pending.isEmpty()) {
@@ -281,8 +294,15 @@ public class StreamSourceCoordinator {
 		Result result = new Result(false, streamId, "No node can take the stream now");
 		result.setErrorId(StreamFetcherManager.START_REFUSED);
 
-		for (String node : candidates(row, nodesThatMayFetch(aliveNodes()), manager.getDatastore().getHeldStreamFetcherSourceCounts(), refused)) {
-			result = claimAndStartOn(node, streamId, row.getFetcherNode(), userStart);
+		for (String node = choose(row, refused); node != null; node = choose(row, refused)) {
+			try {
+				result = claimAndStartOn(node, streamId, row.getFetcherNode(), userStart);
+			}
+			finally {
+				synchronized (placing) {
+					placing.computeIfPresent(node, (key, count) -> count == 1 ? null : count - 1);
+				}
+			}
 			if (result.getErrorId() != StreamFetcherManager.START_REFUSED) {
 				return result;
 			}
@@ -294,11 +314,25 @@ public class StreamSourceCoordinator {
 		return result;
 	}
 
+	/** The first candidate with the claims in flight counted in, put in flight. Null when there is none. */
+	private String choose(Broadcast row, Set<String> refused) {
+		synchronized (placing) {
+			Map<String, Long> held = heldCountsOfEveryApplication();
+			placing.forEach((node, count) -> held.merge(node, count, Long::sum));
+			List<String> candidates = candidates(row, nodesThatMayFetch(aliveNodes()), held, refused);
+			if (candidates.isEmpty()) {
+				return null;
+			}
+			placing.merge(candidates.get(0), 1L, Long::sum);
+			return candidates.get(0);
+		}
+	}
+
 	/**
 	 * The holder while it may fetch, else the preferred node while it may fetch, alone even when full, and none once
-	 * it refused. Otherwise the nodes that may fetch, have room and did not refuse, by: fewest held sources, then this
-	 * node, then the lower address. An alive holder that may not fetch (an edge while an origin is alive) loses the
-	 * source to the one that claims it, its own tick then stops it.
+	 * it refused. Otherwise the nodes that may fetch, have room and did not refuse, by: fewest held sources of every
+	 * application, then this node, then the lower address. An alive holder that may not fetch (an edge while an
+	 * origin is alive) loses the source to the one that claims it, its own tick then stops it.
 	 **/
 	private List<String> candidates(Broadcast row, Map<String, ClusterNode> mayFetch, Map<String, Long> held, Set<String> refused) {
 		String pinned = mayFetch.containsKey(row.getFetcherNode()) ? row.getFetcherNode() : row.getPreferredFetcherNode();
@@ -316,8 +350,40 @@ public class StreamSourceCoordinator {
 				.toList();
 	}
 
+	/**
+	 * Held stream sources by node, summed over every application on this node, so a node busy with another
+	 * application does not look empty.
+	 */
+	Map<String, Long> heldCountsOfEveryApplication() {
+		Map<String, Long> held = new HashMap<>();
+		for (AntMediaApplicationAdapter application : applications()) {
+			try {
+				application.getDataStore().getHeldStreamFetcherSourceCounts().forEach((node, count) -> held.merge(node, count, Long::sum));
+			}
+			catch (RuntimeException e) {
+				//a Redis store throws when it is down, which must not stop the starts of the other applications
+				logger.warn("The stream sources of app:{} are left out of the count, its database did not answer: {}", application.getName(), e.toString());
+			}
+		}
+		return held;
+	}
+
+	/** The applications on this node by name, this one among them. Every node runs every application. */
+	List<AntMediaApplicationAdapter> applications() {
+		IScope root = ScopeUtils.findRoot(scope);
+		return root.getScopeNames().stream()
+				.sorted()
+				.map(root::getScope)
+				//gone when it went down since it was listed
+				.filter(Objects::nonNull)
+				.map(applicationScope -> StatsCollector.getAppAdaptor(applicationScope.getContext().getApplicationContext()))
+				//the root also holds web applications that are not Ant Media applications
+				.filter(Objects::nonNull)
+				.toList();
+	}
+
 	/** At or over this node's cpu or memory limit by its last heartbeat. A node without numbers is not full. */
-	private boolean isFull(ClusterNode node) {
+	boolean isFull(ClusterNode node) {
 		IStatsCollector stats = manager.getApplication().getStatsCollector();
 		try {
 			//a cpu limit of 100 switches the cpu check off, as in enoughResource
@@ -337,7 +403,7 @@ public class StreamSourceCoordinator {
 	}
 
 	/** {@link StreamFetcherManager#claimAndStart} on the given node, over the claim call for another one. No answer counts as a refusal. */
-	private Result claimAndStartOn(String node, String streamId, @Nullable String expectedFetcherNode, boolean userStart) {
+	Result claimAndStartOn(String node, String streamId, @Nullable String expectedFetcherNode, boolean userStart) {
 		if (manager.getHost().equals(node)) {
 			return manager.claimAndStart(streamId, expectedFetcherNode, userStart);
 		}
@@ -399,7 +465,7 @@ public class StreamSourceCoordinator {
 	 * The alive nodes with streamSourceFetchEnabled, or all of them as a last resort when none of those is alive.
 	 * One that is full still counts, so it keeps the others out.
 	 */
-	private static Map<String, ClusterNode> nodesThatMayFetch(Map<String, ClusterNode> alive) {
+	static Map<String, ClusterNode> nodesThatMayFetch(Map<String, ClusterNode> alive) {
 		Map<String, ClusterNode> mayFetch = new HashMap<>(alive);
 		mayFetch.values().removeIf(node -> !node.isStreamSourceFetchEnabled());
 		return mayFetch.isEmpty() ? new HashMap<>(alive) : mayFetch;

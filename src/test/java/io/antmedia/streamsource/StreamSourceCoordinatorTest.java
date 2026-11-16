@@ -4,6 +4,7 @@ import static io.antmedia.streamsource.StreamSourceFixture.HOST;
 import static io.antmedia.streamsource.StreamSourceFixture.aliveNodes;
 import static io.antmedia.streamsource.StreamSourceFixture.awaitState;
 import static io.antmedia.streamsource.StreamSourceFixture.peek;
+import static io.antmedia.streamsource.StreamSourceFixture.poke;
 import static io.antmedia.streamsource.StreamSourceFixture.settle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -14,16 +15,21 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -36,9 +42,11 @@ import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.UrlQueryUtils;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
@@ -57,6 +65,8 @@ class StreamSourceCoordinatorTest {
 	private static final String PEER = "127.0.0.5";
 
 	private static final String OTHER_PEER = "127.0.0.6";
+
+	private static final String THIRD_PEER = "127.0.0.7";
 
 	/** A node that is not alive. */
 	private static final String DEAD = "192.168.1.9";
@@ -618,6 +628,253 @@ class StreamSourceCoordinatorTest {
 	}
 
 	@Test
+	void aStartCountsTheSourcesOfEveryApplication() {
+		fixture.appSettings.setStartStreamFetcherAutomatically(true);
+		fixture.clusterMode(HOST, PEER);
+		ScriptedManager node = fixture.newManager();
+		//this node holds three sources of another application, the peer one of this one
+		DataStore otherApplicationStore = mock(DataStore.class);
+		when(otherApplicationStore.getHeldStreamFetcherSourceCounts()).thenReturn(Map.of(HOST, 3L));
+		fixture.application("other", otherApplicationStore);
+		row("peers", PEER);
+
+		assertTrue(node.startStreaming(fixture.row("one", "fake://one")).isSuccess());
+		assertEquals(PEER, fixture.rows.get("one").getFetcherNode());
+
+		//the leader counts the same way: two on the peer, three here
+		Broadcast orphan = row("orphan", DEAD);
+		tick(node);
+		assertEquals(PEER, orphan.getFetcherNode());
+
+		//an application whose database is down is left out of the count, it does not stop the starts of the others
+		when(otherApplicationStore.getHeldStreamFetcherSourceCounts()).thenThrow(new IllegalStateException("redis is down"));
+		assertTrue(node.startStreaming(fixture.row("two", "fake://two")).isSuccess());
+		assertEquals(HOST, fixture.rows.get("two").getFetcherNode());
+	}
+
+	@Test
+	void startsThatRunAtOnceSpreadOverTheNodes() {
+		fixture.clusterMode(HOST, PEER, OTHER_PEER);
+		ScriptedManager node = fixture.newManager();
+
+		//each start reads the counts before the others are claimed, the claims in flight are what spreads them
+		List<CompletableFuture<Result>> starts = new ArrayList<>();
+		for (int i = 0; i < 6; i++) {
+			Broadcast row = fixture.row("burst-" + i, "fake://burst-" + i);
+			starts.add(CompletableFuture.supplyAsync(() -> node.startStreaming(row), fixture.pool));
+		}
+		starts.forEach(start -> assertTrue(start.join().isSuccess()));
+		assertEquals(List.of(2L, 2L, 2L), List.of(held(HOST), held(PEER), held(OTHER_PEER)));
+	}
+
+	@Test
+	void theLeaderMovesRunningSourcesInBatchesUntilTheNodesAreBalanced() {
+		rebalance(3);
+		fixture.clusterMode(HOST, PEER, OTHER_PEER);
+		ScriptedManager node = fixture.newManager();
+		//this node is back after a failover, the peers run all of its sources
+		for (int i = 0; i < 15; i++) {
+			onAir("peers-" + i, PEER);
+			onAir("other-peers-" + i, OTHER_PEER);
+		}
+
+		//the first tick sees the nodes, a round waits for them to settle after they change
+		tick(node);
+		assertEquals(0, held(HOST));
+		assertNextRoundIn(node, StreamSourceRebalancer.SETTLE_MS);
+
+		//this node is the only one that needs sources, it takes three a round from the node that holds the most, and
+		//the next round comes on the next tick
+		rebalanceTick(node);
+		assertEquals(List.of(3L, 13L, 14L), List.of(held(HOST), held(PEER), held(OTHER_PEER)));
+		assertNextRoundIn(node, 0);
+		rebalanceTick(node);
+		assertEquals(List.of(6L, 12L, 12L), List.of(held(HOST), held(PEER), held(OTHER_PEER)));
+		rebalanceTick(node);
+		assertEquals(List.of(9L, 10L, 11L), List.of(held(HOST), held(PEER), held(OTHER_PEER)));
+
+		//9 of 11 is 82%, over the target: nothing moves and the next look is a period away
+		rebalanceTick(node);
+		assertEquals(List.of(9L, 10L, 11L), List.of(held(HOST), held(PEER), held(OTHER_PEER)));
+		assertNextRoundIn(node, 60000);
+		assertEquals(9, node.getStreamFetcherList().size());
+		assertTrue(claims.isEmpty(), "every move came to this node, no peer was asked");
+	}
+
+	@Test
+	void everyNodeThatNeedsSourcesTakesABatchInTheSameRound() {
+		rebalance(2);
+		fixture.clusterMode(HOST, PEER, OTHER_PEER, THIRD_PEER);
+		ScriptedManager node = fixture.newManager();
+		//the peer runs everything, this node and the two other peers are empty
+		for (int i = 0; i < 10; i++) {
+			onAir("peers-" + i, PEER);
+		}
+		tick(node);
+
+		//two to each empty node at once
+		rebalanceTick(node);
+		assertEquals(List.of(2L, 4L, 2L, 2L), List.of(held(HOST), held(PEER), held(OTHER_PEER), held(THIRD_PEER)));
+		assertEquals(4, claims.size());
+		assertNextRoundIn(node, 0);
+
+		//one more from the peer, then 3, 3, 2, 2 is as even as ten sources get on four nodes
+		rebalanceTick(node);
+		assertEquals(List.of(3L, 3L, 2L, 2L), List.of(held(HOST), held(PEER), held(OTHER_PEER), held(THIRD_PEER)));
+		rebalanceTick(node);
+		assertEquals(List.of(3L, 3L, 2L, 2L), List.of(held(HOST), held(PEER), held(OTHER_PEER), held(THIRD_PEER)));
+		assertNextRoundIn(node, 60000);
+	}
+
+	@Test
+	void onlySourcesOnAirOfApplicationsThatAllowItMoveTheLeastWatchedFirst() {
+		rebalance(1);
+		fixture.appSettings.setStreamFetcherRebalanceEnabled(false);
+		fixture.clusterMode(HOST, PEER);
+		ScriptedManager node = fixture.newManager();
+		//another application with rebalance off: its sources on the peer count, but never move
+		DataStore otherApplicationStore = mock(DataStore.class);
+		when(otherApplicationStore.getHeldStreamFetcherSourceCounts()).thenReturn(Map.of(PEER, 2L));
+		AntMediaApplicationAdapter otherApplication = fixture.application("other", otherApplicationStore);
+
+		//two WebRTC viewers, and an HLS count below zero from an earlier move, which must not make it look unwatched
+		Broadcast watched = onAir("watched", PEER);
+		watched.setWebRTCViewerCount(2);
+		watched.setHlsViewerCount(-3);
+		Broadcast unwatched = onAir("unwatched", PEER);
+		onAir("pinned", PEER).setPreferredFetcherNode(PEER);
+		row("connecting", PEER).setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+		Broadcast onDemand = onAir("on-demand", PEER);
+		onDemand.setAutoStartStopEnabled(true);
+		onDemand.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_START);
+		Broadcast vod = onAir("vod", PEER);
+		vod.setType(AntMediaApplicationAdapter.VOD);
+		vod.setFetcherDesiredAction(Broadcast.FETCHER_DESIRED_ACTION_START);
+		tick(node);
+
+		//off for this application too
+		rebalanceTick(node);
+		assertEquals(0, held(HOST));
+
+		fixture.appSettings.setStreamFetcherRebalanceEnabled(true);
+		rebalanceTick(node);
+		assertEquals(HOST, unwatched.getFetcherNode());
+		assertEquals(PEER, watched.getFetcherNode());
+		rebalanceTick(node);
+		assertEquals(HOST, watched.getFetcherNode());
+
+		//two here against six on the peer, but nothing left there may move
+		rebalanceTick(node);
+		assertEquals(2, held(HOST));
+		assertEquals(Set.of("pinned", "connecting", "on-demand", "vod"), fixture.rows.values().stream()
+				.filter(row -> PEER.equals(row.getFetcherNode())).map(Broadcast::getStreamId).collect(Collectors.toSet()));
+		assertNextRoundIn(node, 60000);
+		verify(otherApplication, never()).getStreamFetcherManager();
+		verify(otherApplicationStore, never()).getHeldStreamFetcherSources(any());
+	}
+
+	@Test
+	void sourcesMoveOnlyToNodesWithRoomAndNeverBackAndForth() {
+		rebalance(3);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER, OTHER_PEER);
+		//this node is over its cpu limit: it holds the fewest but takes nothing
+		when(cluster.getAliveNodes()).thenReturn(List.of(load(HOST, "90", "1000/8000"), load(PEER, "10", "1000/8000"), load(OTHER_PEER, "10", "1000/8000")));
+		ScriptedManager node = fixture.newManager();
+		for (int i = 0; i < 7; i++) {
+			onAir("peers-" + i, PEER);
+		}
+		tick(node);
+
+		//the other peer is still starting its applications: asked once, the source stays and the round ends
+		Result starting = new Result(false, "peers-0", "Not enough resource on server to start streaming.");
+		starting.setErrorId(StreamFetcherManager.START_REFUSED);
+		answers.put(OTHER_PEER, starting);
+		rebalanceTick(node);
+		assertEquals(7, held(PEER));
+		assertEquals(1, claims.size());
+		assertNextRoundIn(node, 60000);
+
+		answers.remove(OTHER_PEER);
+		rebalanceTick(node);
+		assertEquals(4, held(PEER));
+		assertEquals(3, held(OTHER_PEER));
+		assertTrue(claims.stream().allMatch(claim -> OTHER_PEER.equals(claim.node()) && PEER.equals(claim.expectedFetcherNode()) && !claim.userStart()));
+
+		//four against three is as close as they get. The empty full node keeps the factor at 0, still nothing moves
+		rebalanceTick(node);
+		rebalanceTick(node);
+		assertEquals(4, held(PEER));
+		assertEquals(3, held(OTHER_PEER));
+		assertEquals(0, held(HOST));
+		assertEquals(4, claims.size());
+	}
+
+	@Test
+	void theLeaderRebalancesOnceTheNodesHaveSettledAndNeverOntoAnEdge() {
+		rebalance(3);
+		IClusterNotifier cluster = fixture.clusterMode(HOST, PEER);
+		ScriptedManager node = fixture.newManager();
+		for (int i = 0; i < 6; i++) {
+			onAir("peers-" + i, PEER);
+		}
+		tick(node);
+
+		//another node joined: the nodes settle first, even with a round due
+		aliveNodes(cluster, HOST, PEER, OTHER_PEER);
+		rebalanceTick(node);
+		assertEquals(6, held(PEER));
+		assertNextRoundIn(node, StreamSourceRebalancer.SETTLE_MS);
+
+		//a node with a lower address leads, it balances the cluster, not this one
+		aliveNodes(cluster, "10.0.0.1", HOST, PEER, OTHER_PEER);
+		rebalanceTick(node);
+		rebalanceTick(node);
+		assertEquals(6, held(PEER));
+
+		//this node leads again, and the other peer is an edge: it gets nothing while an origin is alive
+		aliveNodes(cluster, HOST, PEER, OTHER_PEER);
+		when(cluster.getAliveNodes()).thenReturn(List.of(heartbeat(HOST, true), heartbeat(PEER, true), heartbeat(OTHER_PEER, false)));
+		tick(node);
+		rebalanceTick(node);
+		assertEquals(List.of(3L, 3L, 0L), List.of(held(HOST), held(PEER), held(OTHER_PEER)));
+		assertTrue(claims.isEmpty());
+
+		//an application that sorts first decides on this node, this one stays out of it
+		fixture.application("a-first", mock(DataStore.class));
+		for (int i = 0; i < 4; i++) {
+			onAir("more-" + i, PEER);
+		}
+		rebalanceTick(node);
+		assertEquals(7, held(PEER));
+	}
+
+	@Test
+	void aRoundIsNeverDueEarly() {
+		rebalance(3);
+		fixture.appSettings.setStreamFetcherRebalanceEnabled(false);
+		when(fixture.serverSettings.getStreamSourceRebalancePeriodMs()).thenReturn(Long.MAX_VALUE);
+		fixture.clusterMode(HOST, PEER);
+		ScriptedManager node = fixture.newManager();
+		for (int i = 0; i < 4; i++) {
+			onAir("peers-" + i, PEER);
+		}
+		tick(node);
+
+		//a round with nothing to do waits a period too long to add to the clock, which never comes round
+		rebalanceTick(node);
+		fixture.appSettings.setStreamFetcherRebalanceEnabled(true);
+		tick(node);
+		assertEquals(4, held(PEER));
+
+		//a round that fails half way waits a full period, not one tick
+		when(fixture.serverSettings.getStreamSourceRebalancePeriodMs()).thenReturn(60000L);
+		doThrow(new IllegalStateException("the database is down")).when(fixture.dataStore).getHeldStreamFetcherSources(PEER);
+		rebalanceTick(node);
+		assertEquals(4, held(PEER));
+		assertNextRoundIn(node, 60000);
+	}
+
+	@Test
 	void theCoordinatorTicksUntilTheApplicationGoesDown() {
 		StreamFetcherManager manager = new StreamFetcherManager(fixture.vertx, fixture.dataStore, fixture.scope);
 		assertNotEquals(-1L, peek(manager.getCoordinator(), "timerId"), "it ticks on a timer");
@@ -691,5 +948,36 @@ class StreamSourceCoordinatorTest {
 		Broadcast row = fixture.row(streamId, "fake://" + streamId);
 		row.setFetcherNode(fetcherNode);
 		return row;
+	}
+
+	/** A wanted source its node runs on air. */
+	private Broadcast onAir(String streamId, String fetcherNode) {
+		Broadcast row = row(streamId, fetcherNode);
+		row.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		return row;
+	}
+
+	/** The sources of this application the node holds. */
+	private long held(String node) {
+		return fixture.rows.values().stream().filter(row -> node.equals(row.getFetcherNode())).count();
+	}
+
+	/** The default server rebalance settings but the batch size, and rebalance on for this application. */
+	private void rebalance(int batchSize) {
+		when(fixture.serverSettings.getStreamSourceRebalancePeriodMs()).thenReturn(60000L);
+		when(fixture.serverSettings.getStreamSourceRebalanceBatchSize()).thenReturn(batchSize);
+		when(fixture.serverSettings.getStreamSourceBalanceFactorTarget()).thenReturn(80);
+		fixture.appSettings.setStreamFetcherRebalanceEnabled(true);
+	}
+
+	/** One tick with the next rebalance round due, instead of waiting for it. */
+	private void rebalanceTick(ScriptedManager node) {
+		poke(peek(node.getCoordinator(), "rebalancer"), "waitMs", 0L);
+		tick(node);
+	}
+
+	/** The last tick started a wait of this long for the next round. */
+	private void assertNextRoundIn(ScriptedManager node, long ms) {
+		assertEquals(ms, (long) peek(peek(node.getCoordinator(), "rebalancer"), "waitMs"));
 	}
 }

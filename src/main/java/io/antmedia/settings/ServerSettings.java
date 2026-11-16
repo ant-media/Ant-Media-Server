@@ -39,6 +39,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import io.antmedia.licence.ILicenceService;
+import lombok.Getter;
 
 @PropertySource("/conf/red5.properties")
 @JsonIgnoreProperties(ignoreUnknown=true)
@@ -57,6 +58,12 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
 
 	private static final String SETTINGS_STREAM_SOURCE_FETCH_ENABLED = "streamSourceFetchEnabled";
+
+	private static final String SETTINGS_STREAM_SOURCE_REBALANCE_PERIOD_MS = "streamSourceRebalancePeriodMs";
+
+	private static final String SETTINGS_STREAM_SOURCE_REBALANCE_BATCH_SIZE = "streamSourceRebalanceBatchSize";
+
+	private static final String SETTINGS_STREAM_SOURCE_BALANCE_FACTOR_TARGET = "streamSourceBalanceFactorTarget";
 
 	public static final String LOG_LEVEL_ALL = "ALL";
 	public static final String LOG_LEVEL_TRACE = "TRACE";
@@ -211,6 +218,31 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	 */
 	@Value( "${"+SETTINGS_STREAM_SOURCE_FETCH_ENABLED+":true}" )
 	private boolean streamSourceFetchEnabled = true;
+
+	/**
+	 * How often the cluster leader checks whether running stream sources should move to balance the nodes, in
+	 * milliseconds. Only sources of applications with streamFetcherRebalanceEnabled move. Used on the leader only.
+	 */
+	@Getter
+	@Value( "${"+SETTINGS_STREAM_SOURCE_REBALANCE_PERIOD_MS+":60000}" )
+	private long streamSourceRebalancePeriodMs = 60000;
+
+	/**
+	 * The most stream sources one node receives in one rebalance round, every node that needs sources gets up to this
+	 * many in the same round. Each move interrupts its source for a few seconds. 0 turns rebalancing off. Used on the
+	 * leader only.
+	 */
+	@Getter
+	@Value( "${"+SETTINGS_STREAM_SOURCE_REBALANCE_BATCH_SIZE+":3}" )
+	private int streamSourceRebalanceBatchSize = 3;
+
+	/**
+	 * Rebalancing stops once the node holding the fewest stream sources holds at least this percent of what the node
+	 * holding the most holds, 1 to 100. Used on the leader only.
+	 */
+	@Getter
+	@Value( "${"+SETTINGS_STREAM_SOURCE_BALANCE_FACTOR_TARGET+":80}" )
+	private int streamSourceBalanceFactorTarget = 80;
 
 	private Logging.Severity webrtcLogLevel = Logging.Severity.LS_WARNING;
 
