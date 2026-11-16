@@ -637,7 +637,6 @@ public class DBStoresUnitTest {
 	public void testGetActiveBroadcastCount(DataStore dataStore) {
 
 		//save random number of streams with status created
-		//long broadcastCountInDataStore = dataStore.getBroadcastCount();
 		clear(dataStore);
 
 		assertEquals(0, dataStore.getTotalBroadcastNumber());
@@ -646,13 +645,14 @@ public class DBStoresUnitTest {
 		long streamCount = 10 + (int)(Math.random()  * 500);
 
 
-		System.out.println("Stream count to be added: " + streamCount);
+		logger.info("Stream count to be added: {}", streamCount);
 
-		String streamId = null;
+		List<String> streamIds = new ArrayList<>();
 		for (int i = 0; i < streamCount; i++) {
 			Broadcast broadcast = new Broadcast(null, null);
 			broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
-			streamId = dataStore.save(broadcast);
+			String streamId = dataStore.save(broadcast);
+			streamIds.add(streamId);
 			logger.info("Saved streamId:{}", streamId);
 		}
 
@@ -667,32 +667,16 @@ public class DBStoresUnitTest {
 			numberOfStatusChangeStreams = streamCount;
 		}
 
-		int pageSize = 10;
-		numberOfStatusChangeStreams = (numberOfStatusChangeStreams / pageSize) * pageSize; //normalize
-		long pageCount = numberOfStatusChangeStreams / pageSize;
-		int numberOfCall = 0;
-		System.out.println("Number of status change stream count: " + numberOfStatusChangeStreams + 
-				" page Count: " + pageCount);
-		for (int i = 0; i < pageCount; i++) {
-
-			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
-			for (Broadcast broadcast : broadcastList) {
-				numberOfCall++;
-				logger.info("Updating streamId:{}", broadcast.getStreamId());  //log stream and check it if all of them different when this test fails
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-				broadcastUpdate.setUpdateTime(System.currentTimeMillis());
-;				assertTrue(dataStore.updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate));
-			}
-
+		// Use the saved IDs: unsorted Redis pages can reorder after updates and select a stream twice.
+		logger.info("Number of status change streams: {}", numberOfStatusChangeStreams);
+		for (int i = 0; i < numberOfStatusChangeStreams; i++) {
+			String streamId = streamIds.get(i);
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+			assertTrue(dataStore.updateBroadcastFields(streamId, broadcastUpdate));
 		}
 
-		assertTrue(numberOfCall > 0);
-		assertEquals(numberOfCall, numberOfStatusChangeStreams);
-		//check that active broadcast exactly the same as changed above
-
-		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
-		//yes the streamId is not unique, we need to improve  - mekya Aug 11, 2024
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
 
 		assertEquals(numberOfStatusChangeStreams, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
@@ -701,17 +685,12 @@ public class DBStoresUnitTest {
 		assertEquals(numberOfStatusChangeStreams, localLiveBroadcasts.size());
 
 		//change all streams to finished
-		streamCount = dataStore.getTotalBroadcastNumber();
-		pageCount = streamCount / pageSize + ((streamCount % pageSize) > 0 ? 1 : 0);
-		for (int i = 0; i < pageCount; i++) {
-
-			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
-			for (Broadcast broadcast : broadcastList) {
-				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
-				assertEquals(0, broadcast.getWebRTCViewerCount());
-				assertEquals(0, broadcast.getHlsViewerCount());
-				assertEquals(0, broadcast.getRtmpViewerCount());
-			}
+		for (String streamId : streamIds) {
+			assertTrue(dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+			Broadcast broadcast = dataStore.get(streamId);
+			assertEquals(0, broadcast.getWebRTCViewerCount());
+			assertEquals(0, broadcast.getHlsViewerCount());
+			assertEquals(0, broadcast.getRtmpViewerCount());
 		}
 
 		//check that no active broadcast
