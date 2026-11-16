@@ -26,8 +26,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -354,14 +356,18 @@ public class AppSettings implements Serializable {
 
 	/**
 	 * Enable low latency DASH, this setting is effective if DASH is enabled
+	 * Keep the JSON name used by the management console; accept the inferred bean name for compatibility.
 	 */
 	@Value ( "${dashEnableLowLatency:true}" )
+	@Setter(onMethod_ = {@JsonProperty("lLDashEnabled"), @JsonAlias("lldashEnabled")})
 	private boolean lLDashEnabled=true;
 
 	/**
 	 * Enable low latency HLS via DASH muxer, LL-HLS is effective if DASH is enabled.
+	 * Keep the JSON name used by the management console; accept the inferred bean name for compatibility.
 	 */
 	@Value ( "${hlsEnableLowLatency:false}" )
+	@Setter(onMethod_ = {@JsonProperty("lLHLSEnabled"), @JsonAlias("llhlsenabled")})
 	private boolean lLHLSEnabled=false;
 
 	/**
