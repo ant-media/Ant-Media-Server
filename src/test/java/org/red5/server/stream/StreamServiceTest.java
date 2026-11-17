@@ -319,7 +319,7 @@ public class StreamServiceTest {
 	}
 
 	private IConnection mockConnWithPath(String path, AppSettings appSettings) {
-		IConnection conn = mock(IConnection.class);
+		IConnection conn = mock(IStreamCapableConnection.class);
 		Map<String, Object> mockMap = mock(Map.class);
 		Mockito.doReturn(path).when(mockMap).get("path");
 		Mockito.doReturn(mockMap).when(conn).getConnectParams();
@@ -334,12 +334,24 @@ public class StreamServiceTest {
 
 	@Test
 	public void testRtmpSubfolderInAppPath() {
-		// server rtmp://ip/LiveApp/0 + stream key test -> streamId is test, not 0
+		// server rtmp://ip/LiveApp/0 + stream key test -> streamId is 0_test, so LiveApp/1/test doesn't collide
 		StreamService streamService = Mockito.spy(new StreamService());
+		Mockito.doReturn(false).when(streamService).verifySecurity(any(), any(), any(), any(), any(), any(), any());
 		Red5.setConnectionLocal(mockConnWithPath("LiveApp/0", new AppSettings()));
 
 		streamService.publish("test", "live");
 		Mockito.verify(streamService, never()).parsePathSegments(any());
+		Mockito.verify(streamService).verifySecurity(any(), any(), eq("0_test"), any(), any(), any(), any());
+
+		Red5.setConnectionLocal(mockConnWithPath("LiveApp/1", new AppSettings()));
+		streamService.publish("test", "live");
+		Mockito.verify(streamService).verifySecurity(any(), any(), eq("1_test"), any(), any(), any(), any());
+
+		// empty name is not prefixed, so it's still rejected as empty
+		Mockito.doNothing().when(streamService).sendNSFailed(any(), any(), any(), any(), any());
+		streamService.publish("", "live");
+		Mockito.verify(streamService).sendNSFailed(any(), eq(StatusCodes.NS_FAILED), eq("The stream name may not be empty."), eq(""), any());
+		Mockito.verify(streamService, never()).verifySecurity(any(), any(), eq("1_"), any(), any(), any(), any());
 
 		// token expected -> legacy ffmpeg form rtmp://ip/LiveApp/0/test, 0 is the streamId and test is the token
 		AppSettings tokenSettings = new AppSettings();

@@ -782,12 +782,17 @@ public class StreamService implements IStreamService {
          * FFmpeg interprets "/LiveApp/stream1" as the application name 
          * instead of just "LiveApp". This code addresses that issue by correctly 
          * extracting and handling the application name and streamid.
-         * It's only applied if a token is expected; otherwise "LiveApp/0" is a subfolder and name is the streamid
+         * It's only applied if a token is expected; otherwise "LiveApp/0" is a subfolder and streamId is "0_name",
+         * so multi-channel devices (rtmp://IP/LiveApp/0/id, rtmp://IP/LiveApp/1/id) don't collide
          */
-        if (path.contains("/") && isTokenInPathExpected(conn.getScope())) {
+        if (path.contains("/")) {
             String[] pathSplit = path.split("/");
-            if(pathSplit.length >=2) {
-                name = pathSplit[1] + "/" + name;
+            if (pathSplit.length >= 2) {
+                if (isTokenInPathExpected(conn.getScope())) {
+                    name = pathSplit[1] + "/" + name;
+                } else if (StringUtils.isNotEmpty(name)) {
+                    name = pathSplit[1] + "_" + name;
+                }
             }
         }
 
