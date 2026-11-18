@@ -42,6 +42,7 @@ import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.json.simple.JSONObject;
 import org.red5.codec.AVCVideo;
@@ -756,6 +757,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 			videoCodecParameters = new AVCodecParameters();
+			// JavaCPP zero-initializes this struct; zero denotes RGB rather than unspecified color metadata.
+			videoCodecParameters.color_space(avutil.AVCOL_SPC_UNSPECIFIED);
+			videoCodecParameters.color_primaries(avutil.AVCOL_PRI_UNSPECIFIED);
+			videoCodecParameters.color_trc(avutil.AVCOL_TRC_UNSPECIFIED);
 			width = parser.getWidth();
 			height = parser.getHeight();
 			videoCodecParameters.width(parser.getWidth());
