@@ -33,6 +33,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
+import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -669,19 +670,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				if (aacParser.getObjectType() == AudioObjectTypes.AAC_LC) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LOW);
+					audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_LOW);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_LTP) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LTP);
+					audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_LTP);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_MAIN) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_MAIN);
+					audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_MAIN);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_SSR) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_SSR);
+					audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_SSR);
 				}
 
 				audioCodecParameters.frame_size(aacParser.getFrameSize());
