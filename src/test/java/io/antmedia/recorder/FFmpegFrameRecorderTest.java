@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.antmedia.test.UnitTestBase;
+import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 @Tag("fast")
 class FFmpegFrameRecorderTest extends UnitTestBase<FFmpegFrameRecorder> {
@@ -46,6 +47,27 @@ class FFmpegFrameRecorderTest extends UnitTestBase<FFmpegFrameRecorder> {
         }
 
         assertRecordedStream(output, avcodec.AV_CODEC_ID_PCM_S16LE, false);
+    }
+
+    @Test
+    void recordsAudioOnlyWithCommunityWebRtcSettings() throws Exception {
+        Path output = directory.resolve("audio-only.flv");
+        classUnderTest = RTMPAdaptor.initRecorder(output.toString(), 0, 0, "flv", 1);
+        try {
+            classUnderTest.start();
+            short[] stereoSamples = new short[960];
+            for (int i = 0; i < stereoSamples.length; i++) {
+                stereoSamples[i] = (short) (10000 * Math.sin(i * 0.05));
+            }
+            for (int i = 0; i < 100; i++) {
+                classUnderTest.recordSamples(48000, 2, ShortBuffer.wrap(stereoSamples));
+            }
+            classUnderTest.recordSamples((Buffer[]) null);
+            classUnderTest.stop();
+        } finally {
+            classUnderTest.release();
+        }
+        assertRecordedStream(output, avcodec.AV_CODEC_ID_AAC, false);
     }
 
     @Test
