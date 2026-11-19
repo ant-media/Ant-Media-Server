@@ -69,15 +69,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null)
 			{
 				logger.debug("req ip {} viewer id {} stream id {} status {}", request.getRemoteHost(), viewerId, streamId, status);
-				IStreamStats stats = getStreamStats(getBeanName());
-				if (stats != null) {
-					//this viewer was first counted under its fingerprint, move that entry over to the
-					//cookie based id instead of registering the same client a second time
-					if (previousViewerId != null) {
-						stats.migrateViewerEntry(streamId, previousViewerId, viewerId);
-					}
-					stats.registerNewViewer(streamId, viewerId, subscriberId);
-				}
+				registerViewer(httpRequest, streamId, viewerId, previousViewerId, subscriberId);
 			}
 			startStreamingIfAutoStartStopEnabled(httpRequest, streamId);
 
@@ -94,6 +86,23 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			chain.doFilter(httpRequest, response);
 		}
 
+	}
+
+	private void registerViewer(HttpServletRequest httpRequest, String streamId, String viewerId, String previousViewerId, String subscriberId) {
+		IStreamStats stats = getStreamStats(getBeanName());
+		if (stats != null) {
+			//this viewer was first counted under its fingerprint, move that entry over to the
+			//cookie based id instead of registering the same client a second time
+			if (previousViewerId != null) {
+				stats.migrateViewerEntry(streamId, previousViewerId, viewerId);
+			}
+			stats.registerNewViewer(streamId, viewerId, subscriberId);
+			// an edge pulling segments for its own players: left out of this node's player count only.
+			// TokenFilterManager runs first and rejects an invalid header
+			if (httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION) != null) {
+				stats.registerEdgeSession(viewerId);
+			}
+		}
 	}
 
 	public void startStreamingIfAutoStartStopEnabled(HttpServletRequest request, String streamId) {
