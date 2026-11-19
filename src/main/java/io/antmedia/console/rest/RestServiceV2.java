@@ -570,7 +570,9 @@ public class RestServiceV2 extends CommonRestService {
 		logger.info("Application install request received for application {}", appName.replaceAll(RestServiceBase.REPLACE_CHARS, "_"));
 		Result result;
 		
-	    if (appName.matches(APP_NAME_REGEX)) {
+	    if (RESERVED_APP_NAMES.contains(appName)) {
+	        result = new Result(false, "Application name " + appName + " is reserved");
+	    } else if (appName.matches(APP_NAME_REGEX)) {
 	        boolean applicationAlreadyExist = isApplicationExists(appName);
 	        if (!applicationAlreadyExist) {
 	            result = super.createApplication(appName, inputStream);
