@@ -91,6 +91,8 @@ public class WebSocketConstants {
 
 	public static final String STUN_SERVER_URI = "stunServerUri";
 
+	public static final String ICE_SERVERS = "iceServers";
+
 	public static final String TURN_SERVER_USERNAME = "turnServerUsername";
 
 	public static final String TURN_SERVER_CREDENTIAL = "turnServerCredential";
