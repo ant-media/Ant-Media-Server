@@ -15,6 +15,8 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
@@ -46,6 +48,7 @@ import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
+import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -388,6 +391,99 @@ class FfmpegWorkerTest extends UnitTestBase<FfmpegWorker> {
 			poke(worker, "lastSyncCheckTime", 1L);
 			invoke(worker, "checkAndFixSync", new Class<?>[0]);
 			assertThat(sent).containsExactly(100L, 200L);
+		}
+		finally {
+			avformat_close_input(input);
+		}
+	}
+
+	@Test
+	void selectedTracksAreFilteredBeforeMuxerPreparation() throws Exception {
+		for (int bufferTime : new int[] { 0, 600000 }) {
+			for (String selection : new String[] { "?a=0&v=", "?a=&v=0" }) {
+				written.clear();
+				fixture.appSettings.setStreamFetcherBufferTime(bufferTime);
+				assertThat(run(worker(SHORT_FLV + selection, AntMediaApplicationAdapter.STREAM_SOURCE, 0)))
+						.isEqualTo(Reason.EOF);
+				assertThat(written).isNotEmpty();
+				int selectedIndex = selection.startsWith("?a=0") ? 1 : 0;
+				assertThat(written).allMatch(packet -> packet.stream() == selectedIndex);
+			}
+		}
+	}
+
+	@Test
+	void selectionsUseTheOrderWithinEachMediaType() {
+		try (AVFormatContext input = avformat_alloc_context(); AVDictionary options = new AVDictionary()) {
+			int[] types = { AVMEDIA_TYPE_AUDIO, AVMEDIA_TYPE_VIDEO, AVMEDIA_TYPE_AUDIO, AVMEDIA_TYPE_VIDEO, AVMEDIA_TYPE_AUDIO };
+			for (int type : types) {
+				org.bytedeco.ffmpeg.global.avformat.avformat_new_stream(input, null).codecpar().codec_type(type);
+			}
+			FfmpegWorker worker = worker("https://example.com/live?a=1%2C2&v=1&token=abc", AntMediaApplicationAdapter.STREAM_SOURCE, 0);
+			worker.parseUrlParam(options);
+			worker.initOnlySelectedStreams(input);
+
+			assertThat(peek(worker, "streamUrl")).isEqualTo("https://example.com/live?token=abc");
+			assertThat(input.streams(0).codecpar().codec_type()).isEqualTo(-1);
+			assertThat(input.streams(1).codecpar().codec_type()).isEqualTo(-1);
+			assertThat(input.streams(2).codecpar().codec_type()).isEqualTo(AVMEDIA_TYPE_AUDIO);
+			assertThat(input.streams(3).codecpar().codec_type()).isEqualTo(AVMEDIA_TYPE_VIDEO);
+			assertThat(input.streams(4).codecpar().codec_type()).isEqualTo(AVMEDIA_TYPE_AUDIO);
+			av_dict_free(options);
+			org.bytedeco.ffmpeg.global.avformat.avformat_free_context(input);
+		}
+	}
+
+	@Test
+	void discoveringAnotherStreamPreservesTheExistingTimeline() throws Exception {
+		AVFormatContext input = open(SHORT_FLV);
+		try {
+			FfmpegWorker worker = attachedTo(input);
+			poke(worker, "lastSentDTS", new long[] { 100 });
+			poke(worker, "lastReceivedDTS", new long[] { 90 });
+			AVPacket pkt = av_packet_alloc();
+			try {
+				pkt.stream_index(1).dts(20).pts(20);
+				invoke(worker, "writePacket", new Class<?>[] { AVStream.class, AVPacket.class }, input.streams(1), pkt);
+				assertThat((long[]) peek(worker, "lastSentDTS")).containsExactly(100L, 20L);
+				assertThat((long[]) peek(worker, "lastReceivedDTS")).containsExactly(90L, 20L);
+				assertThat(written).extracting(Written::dts).containsExactly(20L);
+			}
+			finally {
+				av_packet_free(pkt);
+			}
+		}
+		finally {
+			avformat_close_input(input);
+		}
+	}
+
+	@Test
+	void sourceTimeBasesAreSetBeforeTheRtmpProviderIsInitialized() throws Exception {
+		AtomicReference<List<Integer>> videoTimeBase = new AtomicReference<>();
+		AtomicReference<List<Integer>> audioTimeBase = new AtomicReference<>();
+		doAnswer(call -> {
+			AVRational tb = call.getArgument(0);
+			videoTimeBase.set(List.of(tb.num(), tb.den()));
+			return null;
+		}).when(adaptor).setVideoTimeBase(any());
+		doAnswer(call -> {
+			AVRational tb = call.getArgument(0);
+			audioTimeBase.set(List.of(tb.num(), tb.den()));
+			return null;
+		}).when(adaptor).setAudioTimeBase(any());
+
+		AVFormatContext input = open(MP4);
+		try {
+			List<Integer> expectedVideo = List.of(input.streams(0).time_base().num(), input.streams(0).time_base().den());
+			List<Integer> expectedAudio = List.of(input.streams(1).time_base().num(), input.streams(1).time_base().den());
+			assertThat(run(worker(MP4, AntMediaApplicationAdapter.STREAM_SOURCE, 0))).isEqualTo(Reason.EOF);
+			assertThat(videoTimeBase.get()).isEqualTo(expectedVideo);
+			assertThat(audioTimeBase.get()).isEqualTo(expectedAudio);
+			InOrder order = inOrder(adaptor);
+			order.verify(adaptor).setVideoTimeBase(any());
+			order.verify(adaptor).setAudioTimeBase(any());
+			order.verify(adaptor).init(fixture.scope, STREAM_ID, false);
 		}
 		finally {
 			avformat_close_input(input);
