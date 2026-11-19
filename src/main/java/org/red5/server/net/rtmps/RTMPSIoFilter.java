@@ -102,6 +102,7 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
                                 session.write(s1);
                             } else {
                                 log.warn("Client was rejected due to invalid handshake");
+                                session.suspendRead();
                                 conn.close();
                             }
                         }
@@ -138,6 +139,7 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
                                 }
                             } else {
                                 log.warn("Client was rejected due to invalid handshake");
+                                session.suspendRead();
                                 conn.close();
                             }
                         }
