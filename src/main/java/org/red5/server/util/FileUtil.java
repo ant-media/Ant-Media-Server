@@ -322,9 +322,14 @@ public class FileUtil {
         try {
             zf = new ZipFile(compressedFileName);
             Enumeration<?> e = zf.entries();
+            String canonicalDest = tmpDir.getCanonicalPath() + File.separator;
             while (e.hasMoreElements()) {
                 ZipEntry ze = (ZipEntry) e.nextElement();
                 log.debug("Unzipping {}", ze.getName());
+                File destFile = new File(tmpDir, ze.getName());
+                if (!destFile.getCanonicalPath().startsWith(canonicalDest)) {
+                    throw new IOException("Zip entry outside target directory: " + ze.getName());
+                }
                 if (ze.isDirectory()) {
                     log.debug("is a directory");
                     File dir = new File(tmpDir + "/" + ze.getName());
