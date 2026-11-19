@@ -190,6 +190,18 @@ public class TokenFilterManager extends AbstractFilter   {
 				requestURI = requestURI.substring(5);
 				return requestURI.substring(0, requestURI.indexOf("/"));
 			}
+
+			// Handle subdirectory-based transcoding for VoD files (e.g., streamid_720p/segment.ts)
+			// This pattern matches: /streamid_XXXp/filename.ts, /streamid_XXXpXXXkbps/filename.ts,
+			// /streamid_XXXkbps/filename.ts where files are in resolution/bitrate subdirectories
+			String subDirRegex = "^/([^/]+)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)/.*\\.(ts|m4s|m3u8)$";
+			Pattern subDirPattern = Pattern.compile(subDirRegex);
+			Matcher subDirMatcher = subDirPattern.matcher(requestURI);
+			if (subDirMatcher.matches()) {
+				// Extract the streamId before the _XXXp or _XXXkbps part
+				logger.debug("Subdirectory-based VoD transcoding detected. Extracted streamId: {}", subDirMatcher.group(1));
+				return subDirMatcher.group(1);
+			}
 		}
 
 		if(requestURI.contains("m4s") || requestURI.contains("mpd")) {
