@@ -1,5 +1,8 @@
 package io.antmedia.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import io.antmedia.FFmpegUtilities;
+
 import com.google.gson.JsonObject;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -67,7 +70,6 @@ import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
-import org.bytedeco.javacpp.SizeTPointer;
 import org.json.simple.JSONObject;
 import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
@@ -160,7 +162,6 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
-import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
@@ -1506,16 +1507,16 @@ public class MuxerUnitTest {
 
 		if (aacConfigParser.getObjectType() == AudioObjectTypes.AAC_LC) {
 
-			audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LOW);
+			audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_LOW);
 		} else if (aacConfigParser.getObjectType() == AudioObjectTypes.AAC_LTP) {
 
-			audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LTP);
+			audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_LTP);
 		} else if (aacConfigParser.getObjectType() == AudioObjectTypes.AAC_MAIN) {
 
-			audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_MAIN);
+			audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_MAIN);
 		} else if (aacConfigParser.getObjectType() == AudioObjectTypes.AAC_SSR) {
 
-			audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_SSR);
+			audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_SSR);
 		}
 
 		audioCodecParameters.frame_size(aacConfigParser.getFrameSize());
@@ -4822,12 +4823,12 @@ public class MuxerUnitTest {
 		for (int i = 0; i < streamCount; i++) {
 			AVCodecParameters codecpar = inputFormatContext.streams(i).codecpar();
 			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO) {
-				AVStream videoStream = inputFormatContext.streams(i);
-
-				SizeTPointer size = new SizeTPointer(1);
-				BytePointer displayMatrixBytePointer = av_stream_get_side_data(videoStream, avcodec.AV_PKT_DATA_DISPLAYMATRIX, size);
+				var displayMatrix = avcodec.av_packet_side_data_get(codecpar.coded_side_data(),
+						codecpar.nb_coded_side_data(), avcodec.AV_PKT_DATA_DISPLAYMATRIX);
+				assertThat(FFmpegUtilities.isNull(displayMatrix)).isFalse();
+				BytePointer displayMatrixBytePointer = displayMatrix.data();
 				//it should be 36 because it's a 3x3 integer(size=4). 
-				assertEquals(36, size.get());
+				assertThat(displayMatrix.size()).isEqualTo(36);
 
 				IntPointer displayPointerIntPointer = new IntPointer(displayMatrixBytePointer);
 				//it gets counter clockwise

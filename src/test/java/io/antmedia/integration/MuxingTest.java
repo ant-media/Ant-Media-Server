@@ -544,6 +544,8 @@ public class MuxingTest {
 		AVDictionary optionsDictionary = new AVDictionary();
 			
 		av_dict_set(optionsDictionary, "allowed_extensions", "ALL", 0);
+		// AMS uses .fmp4 segment names, which FFmpeg 8's format-extension check rejects.
+		av_dict_set(optionsDictionary, "extension_picky", "0", 0);
 
 		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) optionsDictionary)) < 0) {
 			System.out.println("cannot open input context: " + absolutePath);
