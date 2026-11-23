@@ -601,6 +601,15 @@ public class AppSettings implements Serializable {
 	@Value( "${streamFetcherMaxRetryAttempts:-1}" )
 	private int streamFetcherMaxRetryAttempts = -1;
 
+	/**
+	 * Whether the cluster leader may move this application's running stream sources to another node to balance the
+	 * nodes. How and how often is set server wide (streamSourceRebalancePeriodMs and the settings next to it in
+	 * red5.properties). Each move interrupts its source for a few seconds.
+	 * Default value is false
+	 */
+	@Value( "${streamFetcherRebalanceEnabled:false}" )
+	private boolean streamFetcherRebalanceEnabled = false;
+
 
 	/**
 	 * HLS Flags for FFmpeg HLS Muxer,
@@ -1857,6 +1866,7 @@ public class AppSettings implements Serializable {
 		restartStreamFetcherPeriod = 0;
 		streamFetcherRetryDelayMs = 3000;
 		streamFetcherMaxRetryAttempts = -1;
+		streamFetcherRebalanceEnabled = false;
 		webRTCFrameRate = 20;
 		hashControlPlayEnabled = false;
 		hashControlPublishEnabled = false;

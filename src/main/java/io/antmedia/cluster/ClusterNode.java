@@ -38,6 +38,9 @@ public class ClusterNode implements Serializable {
 	// fields (memory/cpu/lastUpdateTime) so periodic node updates never overwrite it.
 	private String note;
 	
+	/** The node's streamSourceFetchEnabled setting. Null, a row written before the field existed, means on. */
+	private Boolean streamSourceFetchEnabled;
+
 	@NotSaved
 	private String status;
 	
@@ -130,5 +133,13 @@ public class ClusterNode implements Serializable {
 
 	public void setNote(String note) {
 		this.note = note;
+	}
+
+	public boolean isStreamSourceFetchEnabled() {
+		return !Boolean.FALSE.equals(streamSourceFetchEnabled);
+	}
+
+	public void setStreamSourceFetchEnabled(Boolean streamSourceFetchEnabled) {
+		this.streamSourceFetchEnabled = streamSourceFetchEnabled;
 	}
 }

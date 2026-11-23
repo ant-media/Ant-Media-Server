@@ -316,6 +316,14 @@ public class ServerSettingsTest {
 		assertEquals(500, settings.getStreamMetricsHistorySize());
 	}
 
+	@Test
+	public void testStreamSourceRebalanceSettings() {
+		ServerSettings settings = new ServerSettings();
+		assertEquals(60000, settings.getStreamSourceRebalancePeriodMs());
+		assertEquals(3, settings.getStreamSourceRebalanceBatchSize());
+		assertEquals(80, settings.getStreamSourceBalanceFactorTarget());
+	}
+
 	private NetworkInterface mockNetworkInterface(boolean up, boolean loopback, InetAddress... addresses) throws Exception {
 		NetworkInterface networkInterface = Mockito.mock(NetworkInterface.class);
 		Mockito.when(networkInterface.isUp()).thenReturn(up);

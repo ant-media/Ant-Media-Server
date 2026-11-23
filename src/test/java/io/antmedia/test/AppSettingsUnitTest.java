@@ -728,13 +728,17 @@ public class AppSettingsUnitTest {
 		appSettings.setStreamFetcherMaxRetryAttempts(3);
 		assertEquals(3, appSettings.getStreamFetcherMaxRetryAttempts());
 
+		assertFalse(appSettings.isStreamFetcherRebalanceEnabled());
+		appSettings.setStreamFetcherRebalanceEnabled(true);
+		assertTrue(appSettings.isStreamFetcherRebalanceEnabled());
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value.
 
 		assertThat(numberOfFields)
 				.as("When an AppSettings field is added or removed, check its default value and update the field count")
-				.isEqualTo(189);
+				.isEqualTo(190);
 	}
 
 

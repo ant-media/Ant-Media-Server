@@ -10,12 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Arrays;
 import java.util.List;
 
+import jakarta.servlet.ServletContext;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.ClusterNode;
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
 import io.antmedia.console.rest.ClusterRestServiceV2;
 import io.antmedia.rest.BroadcastRestService.SimpleStat;
@@ -73,6 +78,27 @@ public class ClusterRestServiceV2Test {
 		Result deleteNode = restService.deleteNode("any_id");
 		assertTrue(deleteNode.isSuccess());
 
+	}
+
+	@Test
+	public void testClusterBeanOnlyInClusterMode()
+	{
+		ServletContext servletContext = Mockito.mock(ServletContext.class);
+		WebApplicationContext context = Mockito.mock(WebApplicationContext.class);
+		Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(context);
+		ReflectionTestUtils.setField(restService, "servletContext", servletContext);
+
+		//a standalone server has no cluster bean
+		assertNull(restService.getClusterNotifier());
+		assertNull(restService.getClusterStore());
+		assertNull(restService.getLeader());
+
+		IClusterNotifier clusterNotifier = Mockito.mock(IClusterNotifier.class);
+		Mockito.when(context.containsBean(IClusterNotifier.BEAN_NAME)).thenReturn(true);
+		Mockito.when(context.getBean(IClusterNotifier.BEAN_NAME)).thenReturn(clusterNotifier);
+		ClusterNode leader = new ClusterNode("10.0.0.1", "leader");
+		Mockito.when(clusterNotifier.getLeader()).thenReturn(leader);
+		assertEquals(leader, restService.getLeader());
 	}
 
 	@Test

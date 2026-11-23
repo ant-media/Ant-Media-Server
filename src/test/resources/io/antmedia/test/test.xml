@@ -186,6 +186,7 @@
 
 	<bean id="statsCollector" class="io.antmedia.statistic.StatsCollector" init-method="start">
    		<property name="cpuLimit" value="100"/>
+   		<property name="memoryLimit" value="100"/>
    		<property name="minFreeRamSize" value="20"/>
    	</bean>
    	
