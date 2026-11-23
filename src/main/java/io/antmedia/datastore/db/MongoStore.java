@@ -683,6 +683,10 @@ public class MongoStore extends DataStore {
 				if (vod.getVodId() == null) {
 					vod.setVodId(RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis());
 				}
+				else {
+					//replace the existing record with the same vodId (e.g. a processing placeholder) like map based stores do
+					vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID, vod.getVodId())).delete(new DeleteOptions().multi(true));
+				}
 
 				vodDatastore.save(vod);
 				result = true;
@@ -1002,6 +1006,10 @@ public class MongoStore extends DataStore {
 
 				if (broadcast.getSubFolder() != null) {
 					updates.add(set("subFolder", broadcast.getSubFolder()));
+				}
+
+				if (broadcast.getSrtPassphraseOverride() != null) {
+					updates.add(set("srtPassphraseOverride", broadcast.getSrtPassphraseOverride()));
 				}
 
 				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
