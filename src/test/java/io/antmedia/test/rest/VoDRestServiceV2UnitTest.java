@@ -18,6 +18,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
@@ -25,6 +26,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.Scope;
@@ -602,7 +604,7 @@ public class VoDRestServiceV2UnitTest {
 	}
 
 	@Test
-	public void testImportVoDs() {
+	public void testImportVoDs(@TempDir Path tempDir) throws IOException {
 		VoDRestService restService=new VoDRestService();
 		InMemoryDataStore dataStore = new InMemoryDataStore("test");
 		restService.setDataStore(dataStore);
@@ -621,7 +623,22 @@ public class VoDRestServiceV2UnitTest {
 		restService.setAppCtx(context);
 		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		assertEquals(0, vodList.size());
-		Result result = restService.importVoDs("src/test");
+
+		// The server directory (cwd), anything inside it and its parents must never be imported
+		assertFalse(restService.importVoDs("src/test").isSuccess());
+		assertFalse(restService.importVoDs(Path.of("").toAbsolutePath().getParent().toString()).isSuccess());
+		assertEquals(0, dataStore.getVodList(0, 50, null, null, null, null).size());
+
+		// So import a mirror of the media fixtures from outside the server directory
+		Path importDir = tempDir.resolve("test");
+		for (String subDir : new String[] {"resources", "resources/fixtures"}) {
+			Path mirrored = Files.createDirectories(importDir.resolve(subDir));
+			for (File file : new File("src/test/" + subDir).listFiles(File::isFile)) {
+				Files.createSymbolicLink(mirrored.resolve(file.getName()), file.getAbsoluteFile().toPath());
+			}
+		}
+
+		Result result = restService.importVoDs(importDir.toString());
 		assertTrue(result.isSuccess());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		//there are 9 files under src/test directory
@@ -679,7 +696,7 @@ public class VoDRestServiceV2UnitTest {
 		assertTrue(foundFixturesTest);
 
 
-		result = restService.importVoDs("src/test");
+		result = restService.importVoDs(importDir.toString());
 		assertFalse(result.isSuccess());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		//there are numberOfFiles files under src/test directory it should not increae
@@ -701,7 +718,7 @@ public class VoDRestServiceV2UnitTest {
 		result = restService.unlinksVoD(null);
 		assertFalse(result.isSuccess());
 
-		result = restService.unlinksVoD("src/test");
+		result = restService.unlinksVoD(importDir.toString());
 		assertTrue(result.isSuccess());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		assertEquals(0, vodList.size());
