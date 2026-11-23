@@ -971,7 +971,7 @@ public class MuxingTest {
 
 	@Test
 	public void testRTMPSubfolderInAppPath() throws Exception {
-		// OBS-style: server rtmp://localhost/live/0, stream key <streamId>. "0" is a subfolder, not the streamId
+		// OBS-style: server rtmp://localhost/live/0, stream key <streamId>. "0" is a subfolder, streamId is 0_<streamId>
 		ConsoleAppRestServiceTest.resetCookieStore();
 		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
 		if (result.isSuccess()) {
@@ -1001,7 +1001,7 @@ public class MuxingTest {
 
 		try {
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				Broadcast broadcast	= ConsoleAppRestServiceTest.callGetBroadcast(restUrl, streamId);
+				Broadcast broadcast	= ConsoleAppRestServiceTest.callGetBroadcast(restUrl, subfolder + "_" + streamId);
 				return broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus());
 			});
 
@@ -1011,8 +1011,63 @@ public class MuxingTest {
 		}
 		finally {
 			process.destroy();
-			ConsoleAppRestServiceTest.callDeleteBroadcast(streamId, appName);
+			ConsoleAppRestServiceTest.callDeleteBroadcast(subfolder + "_" + streamId, appName);
 			ConsoleAppRestServiceTest.callDeleteBroadcast(subfolder, appName);
+			appSettings.setIpFilterEnabled(true);
+			ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+		}
+	}
+
+	@Test
+	public void testRTMPDualChannelSameStreamId() throws Exception {
+		// Dual-channel DVR (Jimi JC261): rtmp://ip/live/0/<imei> and rtmp://ip/live/1/<imei> must both publish
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
+
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
+
+		String appName = "live";
+		String restUrl = "http://" + ServerSettings.getLocalHostAddress() +":5080/" + appName +"/rest";
+		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings(appName);
+
+		appSettings.setPublishTokenControlEnabled(false);
+		appSettings.setPublishJwtControlEnabled(false);
+		appSettings.setEnableTimeTokenForPublish(false);
+		appSettings.setIpFilterEnabled(false);
+		ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
+
+		String cameraId = "imei" + (int) (Math.random()*10000);
+		String channel0StreamId = "0_" + cameraId;
+		String channel1StreamId = "1_" + cameraId;
+
+		Process channel0 = execute(ffmpegPath + " -re -stream_loop -1 -i src/test/resources/test.flv -c copy -f flv"
+				+ " rtmp://localhost/" + appName + "/0/" + cameraId);
+		Process channel1 = execute(ffmpegPath + " -re -stream_loop -1 -i src/test/resources/test.flv -c copy -f flv"
+				+ " rtmp://localhost/" + appName + "/1/" + cameraId);
+
+		try {
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcast0 = ConsoleAppRestServiceTest.callGetBroadcast(restUrl, channel0StreamId);
+				Broadcast broadcast1 = ConsoleAppRestServiceTest.callGetBroadcast(restUrl, channel1StreamId);
+				return broadcast0 != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast0.getStatus())
+						&& broadcast1 != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast1.getStatus());
+			});
+
+			// the rejected channel's ffmpeg exits, so both must still be pushing
+			assertTrue(channel0.isAlive());
+			assertTrue(channel1.isAlive());
+		}
+		finally {
+			channel0.destroy();
+			channel1.destroy();
+			ConsoleAppRestServiceTest.callDeleteBroadcast(channel0StreamId, appName);
+			ConsoleAppRestServiceTest.callDeleteBroadcast(channel1StreamId, appName);
+			ConsoleAppRestServiceTest.callDeleteBroadcast(cameraId, appName);
 			appSettings.setIpFilterEnabled(true);
 			ConsoleAppRestServiceTest.callSetAppSettings(appName,appSettings);
 		}
