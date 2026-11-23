@@ -819,6 +819,9 @@ public class EndpointMuxerTests {
 		EndpointMuxer noContext = new EndpointMuxer("rtmp://test.antmedia.io/LiveApp/test", vertx);
 		noContext.setFormat("testing");
 		assertFalse(noContext.openIO());
+
+		assertFalse(new EndpointMuxer(null, vertx).openIO(), "a null url segfaults avio_open2");
+		assertFalse(new EndpointMuxer("any_url", vertx).openIO(), "a url with no scheme lands on the file protocol");
 	}
 
 	@Test
@@ -1190,7 +1193,7 @@ public class EndpointMuxerTests {
 	private EndpointMuxer newFileEndpoint(String name) {
 		File file = new File("target", name);
 		file.delete();
-		EndpointMuxer muxer = new EndpointMuxer(file.getAbsolutePath(), vertx);
+		EndpointMuxer muxer = new EndpointMuxer("file://" + file.getAbsolutePath(), vertx);
 		muxer.init(appScope, "test", 0, null, 0);
 		return muxer;
 	}

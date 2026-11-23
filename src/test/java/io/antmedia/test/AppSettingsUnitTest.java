@@ -125,6 +125,22 @@ public class AppSettingsUnitTest {
 	}
 
 	@Test
+	public void testSrtPassphraseValidation() {
+		assertThat(AppSettings.isSrtPassphraseValid(null)).isTrue();
+		assertThat(AppSettings.isSrtPassphraseValid("")).isTrue();
+		assertThat(AppSettings.isSrtPassphraseValid("   ")).isTrue();
+
+		assertThat(AppSettings.isSrtPassphraseValid("a".repeat(9))).isFalse();
+		assertThat(AppSettings.isSrtPassphraseValid("a".repeat(10))).isTrue();
+		assertThat(AppSettings.isSrtPassphraseValid("a".repeat(80))).isTrue();
+		assertThat(AppSettings.isSrtPassphraseValid("a".repeat(81))).isFalse();
+
+		//libsrt counts bytes, 41 two byte chars is 82 bytes
+		assertThat(AppSettings.isSrtPassphraseValid("\u00e7".repeat(41))).isFalse();
+		assertThat(AppSettings.isSrtPassphraseValid("\u00e7".repeat(5))).isTrue();
+	}
+
+	@Test
 	public void testUseAsSignalingSetting(){
 		AppSettings settings = new AppSettings();
 
@@ -635,6 +651,10 @@ public class AppSettingsUnitTest {
 		assertEquals(150, appSettings.getSrtReceiveLatencyInMs());
 		appSettings.setSrtReceiveLatencyInMs(200);
 		assertEquals(200, appSettings.getSrtReceiveLatencyInMs());
+
+		assertEquals("", appSettings.getSrtPassphrase());
+		appSettings.setSrtPassphrase("passphrase1234");
+		assertEquals("passphrase1234", appSettings.getSrtPassphrase());
 
 		assertEquals(-1, appSettings.getWebhookStreamStatusUpdatePeriodMs());
 

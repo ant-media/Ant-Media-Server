@@ -94,6 +94,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
+	private static final String SRT_PASSPHRASE_INVALID_MESSAGE = "SRT passphrase must be " + AppSettings.SRT_PASSPHRASE_MIN_LENGTH + " to " + AppSettings.SRT_PASSPHRASE_MAX_LENGTH + " characters";
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
 	private static final String CONTINUOUS_MOVE = "continuous";
@@ -212,6 +213,10 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 
 
+		}
+
+		if (broadcast != null && !AppSettings.isSrtPassphraseValid(broadcast.getSrtPassphraseOverride())) {
+			return Response.status(Status.BAD_REQUEST).entity(new Result(false, SRT_PASSPHRASE_INVALID_MESSAGE)).build();
 		}
 
 		Object returnObject = new Result(false, "unexpected parameters received");
@@ -416,6 +421,10 @@ public class BroadcastRestService extends RestServiceBase{
 		Result result = new Result(false);
 		if (id != null && broadcast != null) 
 		{
+			if (!AppSettings.isSrtPassphraseValid(broadcast.getSrtPassphraseOverride())) {
+				return new Result(false, SRT_PASSPHRASE_INVALID_MESSAGE);
+			}
+
 			Broadcast broadcastInDB = getDataStore().get(id);
 			if (broadcastInDB == null) {
 				String streamId = id.replaceAll(REPLACE_CHARS, "_");
@@ -537,7 +546,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		List<Endpoint> endpoints = broadcast.getEndPointList();
-		if (endpoints == null || endpoints.stream().noneMatch(o -> o.getEndpointUrl().equals(endpoint.getEndpointUrl())))
+		if (endpoints == null || endpoints.stream().noneMatch(o -> endpoint.getEndpointUrl().equals(o.getEndpointUrl())))
 		{
 			endpointUrl = endpoint.getEndpointUrl();
 
