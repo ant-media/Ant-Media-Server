@@ -1,6 +1,10 @@
 <?xml version="1.0" ?>
 <configuration scanPeriod="15 seconds">
     <property file="${red5.root}/conf/red5.properties"/>
+    <!-- Keep JUL filtering in sync with Logback, including runtime level changes. -->
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
     <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
         <encoder>
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
