@@ -10,6 +10,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import jakarta.servlet.AsyncContext;
@@ -23,6 +24,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.connector.ClientAbortException;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,8 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 	public static final String STREAMS = "/streams";
 	public static final String WEBAPPS = "webapps";
+	// Only what the DASH/CMAF muxer writes. Anything else (e.g. .jsp) must never land in a folder the server serves
+	private static final Set<String> ALLOWED_EXTENSIONS = Set.of("mpd", "m4s", "m3u8");
 	protected static Logger logger = LoggerFactory.getLogger(ChunkedTransferServlet.class);
 
 
@@ -139,50 +143,22 @@ public class ChunkedTransferServlet extends HttpServlet {
 			File firstParent = finalFile.getParentFile();
 			File grandParent = firstParent.getParentFile();
 
-			if (firstParent.equals(streamsDir) || grandParent.equals(streamsDir)) 
+			if ((firstParent.equals(streamsDir) || grandParent.equals(streamsDir))
+					&& ALLOWED_EXTENSIONS.contains(FilenameUtils.getExtension(finalFile.getName())))
 			{
 				mkdirIfRequired(req, applicationName);
 
-				try {
-					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
-
-					logger.debug("doPut key:{}", finalFile.getAbsolutePath());
-
-					cacheManager.addCache(finalFile.getAbsolutePath());
-					IParser atomparser;
-
-					if (filepath.endsWith(".mpd") || filepath.endsWith(".m3u8")) 
-					{
-						//don't parse atom for mpd files because they are text files
-						atomparser = new MockAtomParser();
-					}
-					else 
-					{
-						atomparser = new AtomParser(completeChunk -> 
-							cacheManager.append(finalFile.getAbsolutePath(), completeChunk));
-					}
-
-
-					AsyncContext asyncContext = req.startAsync();
-					StatusListener statusListener = new StatusListener(filepath);
-					asyncContext.addListener(statusListener);
-
-
-					InputStream inputStream = asyncContext.getRequest().getInputStream();
-					asyncContext.start(() -> 
-						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream, statusListener)
-					);
+				if (!isRealPathUnder(firstParent, streamsDir)) {
+					logger.warn("Rejecting chunked write outside of streams directory: {}", filepath);
+					writeInternalError(resp, HttpServletResponse.SC_FORBIDDEN, null);
+					return;
 				}
-				catch (BeansException | IllegalStateException | IOException e) 
-				{
-					logger.error("Exception in handleIncomingStream for the chunk:{} ",finalFile.getAbsolutePath());
-					logger.error(ExceptionUtils.getStackTrace(e));
-					writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
-				} 
 
+				startAsyncWrite(req, resp, appContext, filepath, finalFile, tmpFile);
 			}
 			else {
-				logger.warn("AppContext is not running for write request to {}", req.getRequestURI());
+				logger.warn("Rejecting chunked write to {}", filepath);
+				writeInternalError(resp, HttpServletResponse.SC_FORBIDDEN, null);
 			}
 
 		}
@@ -191,6 +167,47 @@ public class ChunkedTransferServlet extends HttpServlet {
 			logger.warn("AppContext is not running for write request to {}", req.getRequestURI());
 			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 
+		}
+	}
+
+	private void startAsyncWrite(HttpServletRequest req, HttpServletResponse resp, ConfigurableWebApplicationContext appContext,
+			String filepath, File finalFile, File tmpFile)
+	{
+		try {
+			IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
+
+			logger.debug("doPut key:{}", finalFile.getAbsolutePath());
+
+			cacheManager.addCache(finalFile.getAbsolutePath());
+			IParser atomparser;
+
+			if (filepath.endsWith(".mpd") || filepath.endsWith(".m3u8"))
+			{
+				//don't parse atom for mpd files because they are text files
+				atomparser = new MockAtomParser();
+			}
+			else
+			{
+				atomparser = new AtomParser(completeChunk ->
+					cacheManager.append(finalFile.getAbsolutePath(), completeChunk));
+			}
+
+
+			AsyncContext asyncContext = req.startAsync();
+			StatusListener statusListener = new StatusListener(filepath);
+			asyncContext.addListener(statusListener);
+
+
+			InputStream inputStream = asyncContext.getRequest().getInputStream();
+			asyncContext.start(() ->
+				readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream, statusListener)
+			);
+		}
+		catch (BeansException | IllegalStateException | IOException e)
+		{
+			logger.error("Exception in handleIncomingStream for the chunk:{} ",finalFile.getAbsolutePath());
+			logger.error(ExceptionUtils.getStackTrace(e));
+			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
 		}
 	}
 
@@ -277,7 +294,9 @@ public class ChunkedTransferServlet extends HttpServlet {
 					File firstParent = file.getParentFile();
 					File grandParent = firstParent.getParentFile();
 
-					if (firstParent.equals(streamsDir) || grandParent.equals(streamsDir)) 
+					if ((firstParent.equals(streamsDir) || grandParent.equals(streamsDir))
+							&& ALLOWED_EXTENSIONS.contains(FilenameUtils.getExtension(file.getName()))
+							&& isRealPathUnder(firstParent, streamsDir))
 					{
 						Files.deleteIfExists(file.toPath());
 						deleteFreeDir(req, applicationName, streamsDir);
@@ -285,7 +304,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 					}
 					else 
 					{
-						logger.error("Parent or grant parent is not streams directory for DELETE operation {}", filepath);
+						logger.warn("Rejecting chunked delete of {}", filepath);
 						writeInternalError(resp, HttpServletResponse.SC_CONFLICT, null);
 					}
 				}
@@ -306,6 +325,15 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 
+
+	private static boolean isRealPathUnder(File dir, File root) {
+		try {
+			return dir.toPath().toRealPath().startsWith(root.toPath().toRealPath());
+		}
+		catch (IOException e) {
+			return false;
+		}
+	}
 
 	private void deleteFreeDir(HttpServletRequest req, String applicationName, File streamsDir) throws IOException {
 		//delete the subdirectory if there is no file inside
