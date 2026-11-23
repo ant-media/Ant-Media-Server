@@ -175,7 +175,7 @@ public class RTMPAdaptor extends Adaptor {
 	public FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height, String format) {
         int audioChannels = 1;
 
-        if(this.webRtcAudioTrack != null){
+        if (this.webRtcAudioTrack != null && this.webRtcAudioTrack.getChannels() > 0) {
             audioChannels = webRtcAudioTrack.getChannels();
         }
         FFmpegFrameRecorder recorderLocal = initRecorder(outputURL, width, height, format, audioChannels);
@@ -438,8 +438,9 @@ public class RTMPAdaptor extends Adaptor {
 			}
 		}
 		// if there is no video, init the recorder
-		else if (!enableVideo)
+		else if (!enableVideo && !audioFrameQueue.isEmpty())
 		{
+			// The first queued frame guarantees WebRTC has initialized its audio format.
 			//get recorder with 0x0 resolution to start audio publish. 
 			//if we give resolution 0x0, it does not create video stream
 			logger.info("Initializing the recorder with audio only for stream:{}", outputURL);

@@ -33,7 +33,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
-import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -41,6 +41,7 @@ import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.json.simple.JSONObject;
 import org.red5.codec.AVCVideo;
@@ -669,19 +670,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				if (aacParser.getObjectType() == AudioObjectTypes.AAC_LC) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LOW);
+					audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_LOW);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_LTP) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_LTP);
+					audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_LTP);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_MAIN) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_MAIN);
+					audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_MAIN);
 				}
 				else if (aacParser.getObjectType() == AudioObjectTypes.AAC_SSR) {
 
-					audioCodecParameters.profile(AVCodecContext.FF_PROFILE_AAC_SSR);
+					audioCodecParameters.profile(avcodec.AV_PROFILE_AAC_SSR);
 				}
 
 				audioCodecParameters.frame_size(aacParser.getFrameSize());
@@ -755,6 +756,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 			videoCodecParameters = new AVCodecParameters();
+			// JavaCPP zero-initializes this struct; zero denotes RGB rather than unspecified color metadata.
+			videoCodecParameters.color_space(avutil.AVCOL_SPC_UNSPECIFIED);
+			videoCodecParameters.color_primaries(avutil.AVCOL_PRI_UNSPECIFIED);
+			videoCodecParameters.color_trc(avutil.AVCOL_TRC_UNSPECIFIED);
 			width = parser.getWidth();
 			height = parser.getHeight();
 			videoCodecParameters.width(parser.getWidth());

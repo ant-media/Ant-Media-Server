@@ -2123,17 +2123,8 @@ public class ConsoleAppRestServiceTest{
 			String ffmpegBuildConf = (String) jsObject.get(StatsCollector.FFMPEG_BUILD_INFO);
 
 			assertTrue(ffmpegBuildConf.contains("--enable-cuda"));
-			//	assertTrue(ffmpegBuildConf.contains("--enable-libnpp")); we no longer support libnpp by default.
-			//	assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
-			//	assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
-
-			//crystalhd is not supported in after 20.04 so remove them
-			assertTrue(ffmpegBuildConf.contains("--disable-decoder=h264_crystalhd"));
-			assertTrue(ffmpegBuildConf.contains("--disable-decoder=mpeg2_crystalhd"));
-			assertTrue(ffmpegBuildConf.contains("--disable-decoder=vc1_crystalhd"));
-			assertTrue(ffmpegBuildConf.contains("--disable-decoder=mpeg4_crystalhd"));
-			assertTrue(ffmpegBuildConf.contains("--disable-decoder=msmpeg4_crystalhd"));
-			assertTrue(ffmpegBuildConf.contains("--disable-decoder=wmv3_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--enable-libnpp"));
+			// CrystalHD was removed upstream; FFmpeg 8 no longer needs disable-decoder flags.
 
 
 			System.out.println("system resource info: " + systemResourcesInfo);
