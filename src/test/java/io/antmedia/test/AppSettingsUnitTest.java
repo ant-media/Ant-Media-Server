@@ -330,6 +330,12 @@ public class AppSettingsUnitTest {
 		appSettings.setSendAudioLevelToViewers(false);
 		assertFalse(appSettings.isSendAudioLevelToViewers());
 
+		appSettings.setSystemDataChannelMessagesEnabled(false);
+		assertFalse(appSettings.isSystemDataChannelMessagesEnabled());
+
+		appSettings.setSystemDataChannelMessagesEnabled(true);
+		assertTrue(appSettings.isSystemDataChannelMessagesEnabled());
+
 		appSettings.setTimeTokenSecretForPlay("secretplay");
 		assertEquals("secretplay", appSettings.getTimeTokenSecretForPlay());
 
@@ -582,6 +588,7 @@ public class AppSettingsUnitTest {
 		assertNotNull(appSettings.getClusterCommunicationKey());
         assertFalse(appSettings.isId3TagEnabled());
         assertFalse(appSettings.isSendAudioLevelToViewers());
+		assertTrue(appSettings.isSystemDataChannelMessagesEnabled());
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
 
@@ -727,6 +734,8 @@ public class AppSettingsUnitTest {
 		assertEquals(-1, appSettings.getStreamFetcherMaxRetryAttempts());
 		appSettings.setStreamFetcherMaxRetryAttempts(3);
 		assertEquals(3, appSettings.getStreamFetcherMaxRetryAttempts());
+
+		assertTrue(appSettings.isSystemDataChannelMessagesEnabled());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
