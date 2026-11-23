@@ -551,8 +551,14 @@ if is_docker_container; then
     echo "You are running Ant Media Server in a Docker container. Please restart the container to apply the changes."
     kill -HUP 1
 elif [ "$restart_service" == "true" ]; then 
-    echo "Restarting Ant Media Server..."
-    $SUDO service antmedia restart
+    if [ "$renew_flag" == "true" ]; then
+        # Renew certificates without starting a stopped server (including PAYG instances).
+        echo "Restarting Ant Media Server only if it is running..."
+        $SUDO systemctl try-restart antmedia.service
+    else
+        echo "Restarting Ant Media Server..."
+        $SUDO service antmedia restart
+    fi
 else
     echo "Ant Media Server is not restarted because script is called just to install the ssl. Please restart it manually to apply the changes."
 fi
