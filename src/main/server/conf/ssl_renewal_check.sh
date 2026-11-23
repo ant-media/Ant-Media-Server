@@ -55,6 +55,6 @@ CURRENT_DATE_EPOCH=$(date +%s)
 DAYS_LEFT=$(( (CERT_EXPIRY_EPOCH - CURRENT_DATE_EPOCH) / 86400 ))
 
 if [ "$DAYS_LEFT" -le "$DAYS_THRESHOLD" ]; then
-    $AMS_DIR/enable_ssl.sh -d $KEYSTORE_PASS
+    "$AMS_DIR/enable_ssl.sh" -d "$KEYSTORE_PASS" -r
     echo $DAYS_LEFT
 fi
