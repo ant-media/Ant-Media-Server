@@ -64,6 +64,11 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 	}
 
 	@Override
+	public int getNumberOfTotalViewersExcludingEdges() {
+		return 0;
+	}
+
+	@Override
 	public int getNumberOfViewers(String streamId) {
 		return -1;
 	}
