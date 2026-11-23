@@ -171,6 +171,10 @@ public class CommonRestService {
 	
 	public static final String APP_NAME_REGEX = "^[a-zA-Z0-9_-]*$";
 
+	// Application names that are forbidden to be created.
+	public static final Set<String> RESERVED_APP_NAMES = Set.of(
+			"root", "rest", "metrics", "assets", "images", "classic-panel");
+
 
 	public int getAllowedLoginAttempts() {
 		return ALLOWED_LOGIN_ATTEMPTS;
