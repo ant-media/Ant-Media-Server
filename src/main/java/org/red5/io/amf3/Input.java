@@ -134,10 +134,14 @@ public class Input extends org.red5.io.amf.Input implements org.red5.io.object.I
                     try {
                         prop.klass.getField(prop.name).set(prop.obj, result);
                     } catch (Exception e) {
-                        try {
-                            BeanUtils.setProperty(prop.obj, prop.name, result);
-                        } catch (Exception ex) {
-                            log.warn("Error mapping property: {} ({})", prop.name, result);
+                        if (isSimplePropertyName(prop.name)) {
+                            try {
+                                BeanUtils.setProperty(prop.obj, prop.name, result);
+                            } catch (Exception ex) {
+                                log.warn("Error mapping property: {} ({})", prop.name, result);
+                            }
+                        } else {
+                            log.warn("Skipping non-simple property name: {}", prop.name);
                         }
                     }
                 }
@@ -831,12 +835,16 @@ public class Input extends org.red5.io.amf.Input implements org.red5.io.object.I
                                 }
                                 field.set(result, value);
                             } catch (Exception e) {
-                                try {
-                                    BeanUtils.setProperty(result, key, value);
-                                } catch (IllegalAccessException ex) {
-                                    log.warn("Error mapping key: {} value: {}", key, value);
-                                } catch (InvocationTargetException ex) {
-                                    log.warn("Error mapping key: {} value: {}", key, value);
+                                if (isSimplePropertyName(key)) {
+                                    try {
+                                        BeanUtils.setProperty(result, key, value);
+                                    } catch (IllegalAccessException ex) {
+                                        log.warn("Error mapping key: {} value: {}", key, value);
+                                    } catch (InvocationTargetException ex) {
+                                        log.warn("Error mapping key: {} value: {}", key, value);
+                                    }
+                                } else {
+                                    log.warn("Skipping non-simple property name: {}", key);
                                 }
                             }
                         } else {

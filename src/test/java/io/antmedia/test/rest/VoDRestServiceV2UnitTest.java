@@ -440,7 +440,7 @@ public class VoDRestServiceV2UnitTest {
 		when(vod.getVodId()).thenReturn("vodId");
 
 		Process process = mock(Process.class);
-		doReturn(process).when(streamSourceRest2).getProcess(Mockito.anyString());
+		doReturn(process).when(streamSourceRest2).startProcess(Mockito.anyString());
 
 
 		when(process.waitFor()).thenReturn(0);
