@@ -1,5 +1,6 @@
 package io.antmedia.test.filter;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -235,12 +236,13 @@ public class IPFilterTest {
         Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
 
         MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
-        httpServletRequest.setRequestURI("http://127.0.0.1:5080/WebRTCAppEE/rest/v2/acm/msg");
+        httpServletRequest.setRequestURI("/WebRTCAppEE/rest/v2/acm/msg");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         MockFilterChain filterChain = new MockFilterChain();
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
-        assertEquals(HttpStatus.OK.value(), httpServletResponse.getStatus());
+        assertThat(httpServletResponse.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        assertThat(filterChain.getRequest()).isNull();
     }
     
 }

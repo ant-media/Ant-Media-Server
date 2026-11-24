@@ -35,10 +35,6 @@ public class IPFilter extends AbstractFilter {
 			return;
 		}
 		
-		if(((HttpServletRequest)request).getRequestURL().toString().contains("rest/v2/acm")) {
-			chain.doFilter(request, response);
-			return;
-		}
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed IP");
 	}
 
