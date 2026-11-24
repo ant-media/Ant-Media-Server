@@ -1,10 +1,12 @@
 package io.antmedia.console.rest;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.servlet.FilterChain;
@@ -15,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import com.auth0.jwk.Jwk;
@@ -27,6 +30,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
+import io.antmedia.UrlQueryUtils;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
@@ -43,6 +47,8 @@ public class AuthenticationFilter extends AbstractFilter {
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
 	public static final String PANEL_AUTHENTICATED_ATTRIBUTE = "io.antmedia.console.panelAuthenticated";
 	private static final Pattern BLOCKED_STATUS_PATH = Pattern.compile("^/rest/v2/users/[^/]+/blocked$");
+	private static final Pattern APP_SETTINGS_PATH = Pattern.compile("/rest/v2/applications/settings/([^/]+)/?");
+	private static final Pattern MATRIX_PARAMETERS = Pattern.compile(";[^/]*");
 
 	public AbstractConsoleDataStore getAbstractConsoleDataStore()
 	{
@@ -103,6 +109,7 @@ public class AuthenticationFilter extends AbstractFilter {
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		String pathInfo = httpRequest.getPathInfo();
 		String path = httpRequest.getServletPath() + (pathInfo != null ? pathInfo : "");
+		String method = httpRequest.getMethod();
 
 		ServerSettings serverSettings = getServerSettings();
 
@@ -140,20 +147,17 @@ public class AuthenticationFilter extends AbstractFilter {
 				path.equals("/rest/isFirstLogin") ||
 
 				path.equals("/rest/v2/authentication-status") ||
-				path.equals("/rest/v2/users/initial") ||
+				((HttpMethod.POST.equals(method) || HttpMethod.OPTIONS.equals(method))
+						&& (path.equals("/rest/v2/users/initial") || path.equals("/rest/v2/users/authenticate"))) ||
 				path.equals("/rest/v2/first-login-status") ||
-				path.equals("/rest/v2/users/authenticate") ||
 				path.equals("/rest/v2/liveness") ||
-				(HttpMethod.GET.equals(httpRequest.getMethod()) && BLOCKED_STATUS_PATH.matcher(path).matches())
+				(HttpMethod.GET.equals(method) && BLOCKED_STATUS_PATH.matcher(path).matches())
 				) 
 		{
 			chain.doFilter(request, response);
 		}
 		else if (CommonRestService.isAuthenticated(((HttpServletRequest)request).getSession()))
 		{
-			httpRequest.setAttribute(PANEL_AUTHENTICATED_ATTRIBUTE, Boolean.TRUE);
-			String method = httpRequest.getMethod();
-
 			String userEmail = (String)httpRequest.getSession().getAttribute(CommonRestService.USER_EMAIL);
 			AbstractConsoleDataStore store = getAbstractConsoleDataStore();
 			if (store != null) 
@@ -161,105 +165,12 @@ public class AuthenticationFilter extends AbstractFilter {
 				User currentUser = store.getUser(userEmail);
 				if (currentUser != null) 
 				{
-					String userScope = currentUser.getScope(); // should be null above 2.9.1
-					Map appNameUserType = currentUser.getAppNameUserType();
-
-					String dispatchURL = httpRequest.getParameter(DISPATCH_PATH_URL);
-					String appName = "";
-
-					if (StringUtils.isNotBlank(dispatchURL)) {
-						String[] parts = dispatchURL.split("/+");
-						if (parts.length > 0) {
-							appName = parts[0].isEmpty() && parts.length > 1 ? parts[1] : parts[0];
-						}
-					} else if (StringUtils.isNotEmpty(path)) {
-						List<String> parts = Arrays.asList(path.split("/"));
-						if (!parts.isEmpty()) {
-							appName = parts.get(parts.size() - 1);
-						}
+					if (isAuthorized(currentUser, httpRequest, path, method)) {
+						httpRequest.setAttribute(PANEL_AUTHENTICATED_ATTRIBUTE, Boolean.TRUE);
+						chain.doFilter(request, response);
 					}
-
-					boolean scopeAccess;
-					if(userScope != null){ // backwards comp
-						scopeAccess = scopeAccessGranted(userScope, dispatchURL);
-
-					}else{
-						scopeAccess =  checkScopeAccessForAppName(appNameUserType, dispatchURL) || isRequestingOneOfAppSettingsOfUsersApps(appNameUserType, null, path);
-					}
-
-					if(appNameUserType != null && appNameUserType.containsKey("system")){ // system means access to everything.  it can be everything -> read_only or user or admin
-						appName = "system"; // set appName to system because the appNameUserType map will hold system key.
-					}
-
-					if (HttpMethod.GET.equals(method))  
-					{
-						//This is the READ part. No need to check the user type because scope is critical
-						if (scopeAccess || isRequestingOneOfAppSettingsOfUsersApps(appNameUserType, userScope, path)
-								|| path.equals("/rest/v2/version") || path.equals("/rest/v2/enterprise-edition")
-								|| path.equals("/rest/v2/admin-status")) 
-						{
-							chain.doFilter(request, response);
-						}
-						else 
-						{
-							((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
-						}
-
-					}
-					else
-					{
-						//if it's not GET method, it should be PUT, DELETE or POST, check the authorization
-						if (path.equals("/rest/v2/users/password") || path.startsWith("/rest/v2/support/request")) 
-						{
-							//changing own password and sending support are allowed for all users
-							chain.doFilter(request, response);
-						}
-						else if (scopeAccess) 
-						{
-							//if it's an admin, provide access - backward compatible
-							if (UserType.ADMIN.equals(currentUser.getUserType())
-									||
-									currentUser.getAppNameUserType().isEmpty() && currentUser.getUserType() == null
-									||
-									(currentUser.getAppNameUserType() != null && UserType.ADMIN.toString().equals(currentUser.getAppNameUserType().get(appName)))
-							)
-							{
-								chain.doFilter(request, response);
-							}
-							//user scope already checked on scopeAccessGranted. No need to check it again
-							else if (
-									UserType.ADMIN.equals(currentUser.getUserType())
-									||
-									(currentUser.getAppNameUserType() != null && UserType.ADMIN.toString().equals(currentUser.getAppNameUserType().get(appName)))
-									||
-									(currentUser.getAppNameUserType() != null && UserType.USER.toString().equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts")))
-									||
-									(currentUser.getAppNameUserType() != null && UserType.USER.toString().equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods")))
-									||
-									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts"))) // backwards comp
-									||
-									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods"))) // backwards comp
-									)
-							{
-								//if user scope is system and granted, it cannot change anythings in the system scope server-settings, add/delete apps and users
-								//if user scope is application and granted, it can do anything in this scope
-								chain.doFilter(request, response);
-							}
-							else {
-								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
-							}
-						}
-						else {
-							if ((currentUser.getAppNameUserType() != null && UserType.ADMIN.toString().equals(currentUser.getAppNameUserType().get(appName))) ||
-									UserType.ADMIN.equals(currentUser.getUserType()) && (path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1))))
-							{
-								//only admin user can access to change the application settings out of its scope
-								chain.doFilter(request, response);
-							}
-							else {
-								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
-							}
-						}
+					else {
+						((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
 					}
 				}
 				else {
@@ -277,65 +188,93 @@ public class AuthenticationFilter extends AbstractFilter {
 
 	}
 
-	private boolean isRequestingOneOfAppSettingsOfUsersApps(Map appNameUserType, String userScope, String path){
-		if(userScope != null){ // backwards comp
-			return path.equals("/rest/v2/applications/settings/" + userScope);
+	private boolean isAuthorized(User user, HttpServletRequest request, String path, String method) {
+		boolean read = HttpMethod.GET.equals(method);
+		if ("/rest/v2/request".equals(request.getServletPath()) || "/rest/request".equals(request.getServletPath())) {
+			String targetPath = getProxyPath(request);
+			if (targetPath == null) {
+				return false;
+			}
+			int separator = targetPath.indexOf('/', 1);
+			String appName = separator < 0 ? targetPath.substring(1) : targetPath.substring(1, separator);
+			String appPath = separator < 0 ? "" : targetPath.substring(separator);
+			UserType role = getUserRole(user, appName.isEmpty() ? CommonRestService.SCOPE_SYSTEM : appName);
+			return role != null && (read || role == UserType.ADMIN
+					|| role == UserType.USER && (isPathOrChild(appPath, "/rest/v2/broadcasts")
+							|| isPathOrChild(appPath, "/rest/v2/vods")));
 		}
 
-		for (Object obj : appNameUserType.entrySet()) {
-			Map.Entry<String, String> entry = (Map.Entry<String, String>) obj;
-			String appName = entry.getKey();
-			if(path.equals("/rest/v2/applications/settings/" + appName)){
-				return true;
-			}
+		if (read && ("/rest/v2/version".equals(path) || "/rest/v2/enterprise-edition".equals(path)
+				|| "/rest/v2/admin-status".equals(path))) {
+			return true;
 		}
-		return false;
+		if (HttpMethod.POST.equals(method) && ("/rest/v2/users/password".equals(path)
+				|| "/rest/v2/support/request".equals(path) || "/rest/v2/support/request/".equals(path))) {
+			return true;
+		}
+
+		Matcher settings = APP_SETTINGS_PATH.matcher(path);
+		UserType role = getUserRole(user, settings.matches() ? settings.group(1) : CommonRestService.SCOPE_SYSTEM);
+		return role != null && (read || role == UserType.ADMIN);
 	}
 
-	private boolean scopeAccessGranted(String userScope, String dispatchUrl){
-
-		boolean granted = false;
-		if (userScope == null || userScope.equals(CommonRestService.SCOPE_SYSTEM)) 
-		{
-			//Allow system level access 
-			granted = true;
+	private UserType getUserRole(User user, String appName) {
+		Map<String, String> roles = user.getAppNameUserType();
+		if (roles != null) {
+			String role = roles.get(roles.containsKey(CommonRestService.SCOPE_SYSTEM) ? CommonRestService.SCOPE_SYSTEM : appName);
+			return role == null ? null : switch (role) {
+				case "ADMIN" -> UserType.ADMIN;
+				case "USER" -> UserType.USER;
+				case "READ_ONLY", "READ-ONLY" -> UserType.READ_ONLY;
+				default -> null;
+			};
 		}
-		else 
-		{
-			//Allow application level access
-			if ((dispatchUrl != null && (dispatchUrl.startsWith(userScope) || dispatchUrl.startsWith(userScope, 1)))) 
-			{
-				//second dispatch url is if the url starts with "/"
-				granted = true;
-			}
-
+		// Missing maps use the legacy scope/userType fields.
+		String scope = user.getScope();
+		if (scope != null && !CommonRestService.SCOPE_SYSTEM.equals(scope) && !scope.equals(appName)) {
+			return null;
 		}
-		return granted;
+		// Old records without a role had read access in their scope. A write requires an explicit role.
+		return user.getUserType() == null ? UserType.READ_ONLY : user.getUserType();
 	}
 
-	private boolean checkScopeAccessForAppName(Map appNameUserType, String dispatchUrl) {
-
-		boolean granted = false;
-		if(appNameUserType == null || appNameUserType.isEmpty() || appNameUserType.containsKey("system")){
-			granted = true;
-
-		}else{
-			if (dispatchUrl != null) {
-				for (Object obj : appNameUserType.entrySet()) {
-					Map.Entry<String, String> entry = (Map.Entry<String, String>) obj;
-					String appName = entry.getKey();
-
-					if (dispatchUrl.startsWith(appName) || dispatchUrl.startsWith("/" + appName)) {
-						// second dispatch url is if the url starts with "/"
-						granted = true;
-						break;
-					}
+	private String getProxyPath(HttpServletRequest request) {
+		try {
+			List<String> targets = UrlQueryUtils.getDecodedParamValues(request.getQueryString(), DISPATCH_PATH_URL);
+			if (targets.size() != 1 || targets.get(0) == null) {
+				return null;
+			}
+			String pathInfo = request.getPathInfo();
+			String suffix = pathInfo == null ? "" : new URI(null, "localhost", pathInfo, null, null).getRawPath();
+			URI target = new URI("http://localhost/" + targets.get(0) + suffix);
+			// HttpClient rewrites repeated separators, which can also re-encode path segments.
+			String rawPath = target.getRawPath();
+			if (rawPath.contains("//")) {
+				rawPath = URIUtils.rewriteURI(target, null, URIUtils.DROP_FRAGMENT_AND_NORMALIZE).getRawPath();
+			}
+			// Tomcat strips raw matrix parameters before percent decoding.
+			String targetPath = new URI("http://localhost" + MATRIX_PARAMETERS.matcher(rawPath).replaceAll("")).getPath();
+			StringBuilder path = new StringBuilder();
+			for (String part : targetPath.split("/+")) {
+				int parameter = part.indexOf(';');
+				String segment = parameter < 0 ? part : part.substring(0, parameter);
+				if (".".equals(segment) || "..".equals(segment) || part.indexOf('\\') >= 0
+						|| part.chars().anyMatch(Character::isISOControl)) {
+					return null;
+				}
+				if (!part.isEmpty()) {
+					path.append('/').append(part);
 				}
 			}
-
+			return path.isEmpty() ? "/" : path.toString();
 		}
+		catch (URISyntaxException | IllegalArgumentException e) {
+			return null;
+		}
+	}
 
-		return granted;
+	private boolean isPathOrChild(String path, String prefix) {
+		return path.equals(prefix) || path.startsWith(prefix + "/");
 	}
 
 	private boolean checkJWT( String jwtString) {

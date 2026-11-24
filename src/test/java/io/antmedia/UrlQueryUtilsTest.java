@@ -31,4 +31,20 @@ class UrlQueryUtilsTest extends UnitTestBase<UrlQueryUtils> {
 		//same as the loops it replaced: an empty param in front stays, a trailing '&' is dropped by split
 		assertThat(UrlQueryUtils.removeParam("&b=2&", "a")).isEqualTo("&b=2");
 	}
+
+	@Test
+	void shouldMatchProxyQueryDecodingAndPreserveDuplicateTargets() {
+		assertThat(UrlQueryUtils.getDecodedParamValues(null, "_path")).isEmpty();
+		assertThat(UrlQueryUtils.getDecodedParamValues("_path=LiveApp%2Frest%2Fv2%2Fbroadcasts", "_path"))
+				.containsExactly("LiveApp/rest/v2/broadcasts");
+		assertThat(UrlQueryUtils.getDecodedParamValues("_path=first&_path=second", "_path"))
+				.containsExactly("first", "second");
+		assertThat(UrlQueryUtils.getDecodedParamValues("_path=first;%5Fpath=second", "_path"))
+				.containsExactly("first", "second");
+		assertThat(UrlQueryUtils.getDecodedParamValues("_path=first%3B_path%3Dsecond", "_path"))
+				.containsExactly("first;_path=second");
+		assertThat(UrlQueryUtils.getDecodedParamValues("_path=first#&_path=second", "_path"))
+				.containsExactly("first");
+		assertThat(UrlQueryUtils.getDecodedParamValues("_path", "_path")).containsExactly((String) null);
+	}
 }
