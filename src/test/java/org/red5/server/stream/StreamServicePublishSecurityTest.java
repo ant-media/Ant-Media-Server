@@ -78,7 +78,8 @@ class StreamServicePublishSecurityTest extends UnitTestBase<StreamService> {
 		when(context.getBean(IProviderService.BEAN_NAME)).thenReturn(provider);
 		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
-		when(application.getDataStore()).thenReturn(mock(DataStore.class));
+		DataStore dataStore = mock(DataStore.class);
+		when(application.getDataStore()).thenReturn(dataStore);
 		when(securityService.getStreamPublishSecurity()).thenReturn(Set.of(publishSecurity));
 		when(publishSecurity.isPublishAllowed(any(IScope.class), anyString(), anyString(), any(),
 				isNull(), nullable(String.class), nullable(String.class), nullable(String.class))).thenReturn(true);
@@ -95,7 +96,7 @@ class StreamServicePublishSecurityTest extends UnitTestBase<StreamService> {
 
 	@ParameterizedTest
 	@MethodSource("unsafePublishes")
-	void shouldRejectUnsafeNamesBeforeSecurityRegistrationOrFileOperations(String name, String mode) throws Exception {
+	void shouldRejectUnsafeNamesBeforeSecurityRegistrationOrFileOperations(String name, String mode) {
 		service.publish(name, mode);
 
 		verify(service).sendNSFailed(eq(connection), eq(StatusCodes.NS_PUBLISH_BADNAME),
@@ -168,7 +169,7 @@ class StreamServicePublishSecurityTest extends UnitTestBase<StreamService> {
 	}
 
 	@Test
-	void shouldPreservePublishSecurityRejectionForValidNames() throws Exception {
+	void shouldPreservePublishSecurityRejectionForValidNames() {
 		when(publishSecurity.isPublishAllowed(any(IScope.class), anyString(), anyString(), any(),
 				isNull(), nullable(String.class), nullable(String.class), nullable(String.class))).thenReturn(false);
 

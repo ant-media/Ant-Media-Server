@@ -191,17 +191,7 @@ public class AuthenticationFilter extends AbstractFilter {
 	private boolean isAuthorized(User user, HttpServletRequest request, String path, String method) {
 		boolean read = HttpMethod.GET.equals(method);
 		if ("/rest/v2/request".equals(request.getServletPath()) || "/rest/request".equals(request.getServletPath())) {
-			String targetPath = getProxyPath(request);
-			if (targetPath == null) {
-				return false;
-			}
-			int separator = targetPath.indexOf('/', 1);
-			String appName = separator < 0 ? targetPath.substring(1) : targetPath.substring(1, separator);
-			String appPath = separator < 0 ? "" : targetPath.substring(separator);
-			UserType role = getUserRole(user, appName.isEmpty() ? CommonRestService.SCOPE_SYSTEM : appName);
-			return role != null && (read || role == UserType.ADMIN
-					|| role == UserType.USER && (isPathOrChild(appPath, "/rest/v2/broadcasts")
-							|| isPathOrChild(appPath, "/rest/v2/vods")));
+			return isProxyRequestAuthorized(user, request, read);
 		}
 
 		if (read && ("/rest/v2/version".equals(path) || "/rest/v2/enterprise-edition".equals(path)
@@ -216,6 +206,20 @@ public class AuthenticationFilter extends AbstractFilter {
 		Matcher settings = APP_SETTINGS_PATH.matcher(path);
 		UserType role = getUserRole(user, settings.matches() ? settings.group(1) : CommonRestService.SCOPE_SYSTEM);
 		return role != null && (read || role == UserType.ADMIN);
+	}
+
+	private boolean isProxyRequestAuthorized(User user, HttpServletRequest request, boolean read) {
+		String targetPath = getProxyPath(request);
+		if (targetPath == null) {
+			return false;
+		}
+		int separator = targetPath.indexOf('/', 1);
+		String appName = separator < 0 ? targetPath.substring(1) : targetPath.substring(1, separator);
+		String appPath = separator < 0 ? "" : targetPath.substring(separator);
+		UserType role = getUserRole(user, appName.isEmpty() ? CommonRestService.SCOPE_SYSTEM : appName);
+		return role != null && (read || role == UserType.ADMIN
+				|| role == UserType.USER && (isPathOrChild(appPath, "/rest/v2/broadcasts")
+						|| isPathOrChild(appPath, "/rest/v2/vods")));
 	}
 
 	private UserType getUserRole(User user, String appName) {

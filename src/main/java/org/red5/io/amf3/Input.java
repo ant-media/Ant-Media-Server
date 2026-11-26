@@ -129,27 +129,25 @@ public class Input extends org.red5.io.amf.Input implements org.red5.io.object.I
         }
 
         public void resolveProperties(Object result) {
-            if (properties != null) {
-                for (PendingProperty prop : properties) {
-                    try {
-                        prop.klass.getField(prop.name).set(prop.obj, result);
-                    } catch (Exception e) {
-                        if (isSimplePropertyName(prop.name)) {
-                            try {
-                                BeanUtils.setProperty(prop.obj, prop.name, result);
-                            } catch (Exception ex) {
-                                log.warn("Error mapping property: {} ({})", prop.name, result);
-                            }
-                        } else {
-                            log.warn("Skipping non-simple property name: {}", prop.name);
-                        }
-                    }
-                }
-                properties.clear();
-            } else {
-                // No pending properties
+            if (properties == null) {
                 return;
             }
+            for (PendingProperty prop : properties) {
+                try {
+                    prop.klass.getField(prop.name).set(prop.obj, result);
+                } catch (Exception e) {
+                    if (isSimplePropertyName(prop.name)) {
+                        try {
+                            BeanUtils.setProperty(prop.obj, prop.name, result);
+                        } catch (Exception ex) {
+                            log.warn("Error mapping property: {} ({})", prop.name, result);
+                        }
+                    } else {
+                        log.warn("Skipping non-simple property name: {}", prop.name);
+                    }
+                }
+            }
+            properties.clear();
         }
     }
 

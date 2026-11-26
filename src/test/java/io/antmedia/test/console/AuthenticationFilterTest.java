@@ -66,22 +66,22 @@ public class AuthenticationFilterTest {
 			Mockito.verify(chain).doFilter(request, response);
 
 			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/users/initial");
-			Mockito.when(request.getMethod()).thenReturn(HttpMethod.POST);
+			when(request.getMethod()).thenReturn(HttpMethod.POST);
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(2)).doFilter(request, response);
 
 			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/first-login-status");
-			Mockito.when(request.getMethod()).thenReturn(HttpMethod.GET);
+			when(request.getMethod()).thenReturn(HttpMethod.GET);
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(3)).doFilter(request, response);
 
 			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/users/authenticate");
-			Mockito.when(request.getMethod()).thenReturn(HttpMethod.POST);
+			when(request.getMethod()).thenReturn(HttpMethod.POST);
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(4)).doFilter(request, response);
 
 			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/users");
-			Mockito.when(request.getMethod()).thenReturn(HttpMethod.GET);
+			when(request.getMethod()).thenReturn(HttpMethod.GET);
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(4)).doFilter(request, response);
 			Mockito.verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not authenticated user");
@@ -140,10 +140,10 @@ public class AuthenticationFilterTest {
 			
 			User user = Mockito.mock(User.class);
 			Mockito.when(store.getUser(Mockito.any())).thenReturn(user);
-			Mockito.when(user.getAppNameUserType()).thenReturn(Map.of());
+			when(user.getAppNameUserType()).thenReturn(Map.of());
 			assertAccessForbidden(filter, request);
 
-			Mockito.when(user.getAppNameUserType()).thenReturn(null);
+			when(user.getAppNameUserType()).thenReturn(null);
 			filter.doFilter(request, response, chain);
 			//it should continue, because user scope is not defined and it's accepted as system
 			Mockito.verify(chain, Mockito.times(1)).doFilter(request, response);
@@ -241,7 +241,7 @@ public class AuthenticationFilterTest {
 		AbstractConsoleDataStore store = Mockito.mock(AbstractConsoleDataStore.class);
 		Mockito.doReturn(store).when(filter).getAbstractConsoleDataStore();
 		User user = Mockito.mock(User.class);
-		Mockito.when(user.getAppNameUserType()).thenReturn(Map.of());
+		when(user.getAppNameUserType()).thenReturn(Map.of());
 		Mockito.when(store.getUser(Mockito.any())).thenReturn(user);
 		
 		try {
@@ -257,14 +257,14 @@ public class AuthenticationFilterTest {
 			// An explicitly empty role map previously granted this write. It now has no assignments.
 			assertAccessForbidden(filter, request);
 
-			Mockito.when(user.getAppNameUserType()).thenReturn(Map.of("system", "ADMIN"));
+			when(user.getAppNameUserType()).thenReturn(Map.of("system", "ADMIN"));
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(3)).doFilter(request, response);
 			
 			// Change server settings requests 
 			// Type: Admin, Scope: null
 			// It should access
-			Mockito.when(user.getAppNameUserType()).thenReturn(null);
+			when(user.getAppNameUserType()).thenReturn(null);
 			Mockito.when(user.getUserType()).thenReturn(UserType.ADMIN);
 			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/server-settings");
 			filter.doFilter(request, response, chain);
@@ -290,7 +290,7 @@ public class AuthenticationFilterTest {
 			// It shouldn't access
 			Mockito.when(user.getUserType()).thenReturn(UserType.USER);
 			Mockito.when(user.getScope()).thenReturn("system");
-			Mockito.when(request.getQueryString()).thenReturn("_path=");
+			when(request.getQueryString()).thenReturn("_path=");
 			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/server-settings");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(3)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");			
@@ -302,7 +302,7 @@ public class AuthenticationFilterTest {
 			// It should access
 			Mockito.when(user.getUserType()).thenReturn(UserType.ADMIN);
 			Mockito.when(user.getScope()).thenReturn("system");
-			Mockito.when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/");
+			when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/");
 			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/request");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(5)).doFilter(request, response);
@@ -311,7 +311,7 @@ public class AuthenticationFilterTest {
 			// It shouldn't access
 			Mockito.when(user.getUserType()).thenReturn(UserType.ADMIN);
 			Mockito.when(user.getScope()).thenReturn("WebRTCAppEE");
-			Mockito.when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2");
+			when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(4)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 			
@@ -319,7 +319,7 @@ public class AuthenticationFilterTest {
 			// It should access
 			Mockito.when(user.getUserType()).thenReturn(UserType.ADMIN);
 			Mockito.when(user.getScope()).thenReturn("WebRTCAppEE");
-			Mockito.when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2");
+			when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(6)).doFilter(request, response);
 			
@@ -330,8 +330,8 @@ public class AuthenticationFilterTest {
 			// It should access
 			Mockito.when(user.getUserType()).thenReturn(UserType.USER);
 			Mockito.when(user.getScope()).thenReturn("system");
-			Mockito.when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/broadcasts");
-			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/request");
+			when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/broadcasts");
+			when(request.getServletPath()).thenReturn("/rest/v2/request");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(7)).doFilter(request, response);
 			
@@ -339,7 +339,7 @@ public class AuthenticationFilterTest {
 			// It shouldn't access
 			Mockito.when(user.getUserType()).thenReturn(UserType.USER);
 			Mockito.when(user.getScope()).thenReturn("WebRTCAppEE");
-			Mockito.when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2/broadcasts");
+			when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2/broadcasts");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(5)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 			
@@ -347,7 +347,7 @@ public class AuthenticationFilterTest {
 			// It should access
 			Mockito.when(user.getUserType()).thenReturn(UserType.USER);
 			Mockito.when(user.getScope()).thenReturn("WebRTCAppEE");
-			Mockito.when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2/vods");
+			when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2/vods");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(8)).doFilter(request, response);
 			
@@ -357,8 +357,8 @@ public class AuthenticationFilterTest {
 			// It shouldn't access
 			Mockito.when(user.getUserType()).thenReturn(UserType.READ_ONLY);
 			Mockito.when(user.getScope()).thenReturn("system");
-			Mockito.when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/broadcasts");
-			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/request");
+			when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/broadcasts");
+			when(request.getServletPath()).thenReturn("/rest/v2/request");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(6)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 			
@@ -366,7 +366,7 @@ public class AuthenticationFilterTest {
 			// It shouldn't access
 			Mockito.when(user.getUserType()).thenReturn(UserType.READ_ONLY);
 			Mockito.when(user.getScope()).thenReturn("WebRTCAppEE");
-			Mockito.when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2/broadcasts");
+			when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2/broadcasts");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(7)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 			
@@ -374,7 +374,7 @@ public class AuthenticationFilterTest {
 			// It shouldn't access
 			Mockito.when(user.getUserType()).thenReturn(UserType.READ_ONLY);
 			Mockito.when(user.getScope()).thenReturn("WebRTCAppEE");
-			Mockito.when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2/vods");
+			when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2/vods");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(8)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 			
@@ -751,12 +751,12 @@ public class AuthenticationFilterTest {
 			appNameUserTypeMap = new HashMap<>();
 			appNameUserTypeMap.put("WebRTCAppEE", UserType.ADMIN.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
-			Mockito.when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2");
+			when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(4)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 
 
-			Mockito.when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2");
+			when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(5)).doFilter(request, response);
 
@@ -766,18 +766,18 @@ public class AuthenticationFilterTest {
 			appNameUserTypeMap.put("WebRTCAppEE", UserType.USER.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 			Mockito.when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/broadcasts");
-			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/request");
+			when(request.getServletPath()).thenReturn("/rest/v2/request");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(6)).doFilter(request, response);
 
-			Mockito.when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2/broadcasts");
+			when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2/broadcasts");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(5)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 
 			// Type: User, Scope: WebRTCAppEE and requested application: WebRTCAppEE
 			// It should access
 
-			Mockito.when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2/vods");
+			when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2/vods");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(7)).doFilter(request, response);
 
@@ -788,21 +788,21 @@ public class AuthenticationFilterTest {
 			appNameUserTypeMap = new HashMap<>();
 			appNameUserTypeMap.put("system", UserType.READ_ONLY.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
-			Mockito.when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/broadcasts");
-			Mockito.when(request.getServletPath()).thenReturn("/rest/v2/request");
+			when(request.getQueryString()).thenReturn("_path=WebRTCAppEE/rest/v2/broadcasts");
+			when(request.getServletPath()).thenReturn("/rest/v2/request");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(6)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 
 			appNameUserTypeMap = new HashMap<>();
 			appNameUserTypeMap.put("WebRTCAppEE", UserType.READ_ONLY.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
-			Mockito.when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2/broadcasts");
+			when(request.getQueryString()).thenReturn("_path=/LiveApp/rest/v2/broadcasts");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(7)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 
 			// Type: Read-Only, Scope: WebRTCAppEE and requested application: WebRTCAppEE
 			// It shouldn't access
-			Mockito.when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2/vods");
+			when(request.getQueryString()).thenReturn("_path=/WebRTCAppEE/rest/v2/vods");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(8)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 

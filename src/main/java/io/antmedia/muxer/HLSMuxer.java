@@ -693,7 +693,11 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public static File[] getHLSFilesInDirectory(File localFile, String regularExpression) {
-		return localFile.getParentFile().listFiles((dir, name) -> 
+		File parent = localFile.getParentFile();
+		if (parent == null) {
+			return null;
+		}
+		return parent.listFiles((dir, name) ->
 		//matches m3u8 file or ts segment file
 		name.equals(localFile.getName()) || name.matches(regularExpression)
 				);
