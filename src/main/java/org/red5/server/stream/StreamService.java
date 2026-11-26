@@ -25,6 +25,7 @@ import java.util.Set;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
@@ -808,6 +809,12 @@ public class StreamService implements IStreamService {
             if (StringUtils.isEmpty(name)) {
                 sendNSFailed(streamConn, StatusCodes.NS_FAILED, "The stream name may not be empty.", name, streamId);
                 log.error("The stream name may not be empty.");
+                return;
+            }
+
+            if (!StreamIdValidator.isStreamIdValid(name)) {
+                sendNSFailed(streamConn, StatusCodes.NS_PUBLISH_BADNAME, "The stream name is invalid.", name, streamId);
+                log.warn("Rejecting invalid publish stream name");
                 return;
             }
 

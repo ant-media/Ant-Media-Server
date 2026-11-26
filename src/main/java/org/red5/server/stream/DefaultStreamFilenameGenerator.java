@@ -18,6 +18,8 @@
 
 package org.red5.server.stream;
 
+import java.nio.file.Path;
+
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamFilenameGenerator;
 import org.red5.server.util.ScopeUtils;
@@ -89,6 +91,18 @@ public class DefaultStreamFilenameGenerator implements IStreamFilenameGenerator 
 
         if (extension != null && !extension.equals("")) {
             result += extension;
+        }
+        if (type == GenerationType.RECORD || type == GenerationType.APPEND) {
+            Path generatedPath = Path.of(result);
+            // Parent components can escape symlinked streams folders.
+            for (Path component : generatedPath) {
+                if ("..".equals(component.toString())) {
+                    throw new IllegalArgumentException("Parent directories are not allowed in stream filenames");
+                }
+            }
+            if (!generatedPath.normalize().startsWith("streams")) {
+                throw new IllegalArgumentException("Stream filename must stay inside the streams directory");
+            }
         }
         return result;
     }

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonObject;
@@ -574,10 +575,15 @@ public class HLSMuxer extends Muxer  {
 	}
 	
 	public String getHLSFilesRegularExpression(int indexOfSuffix) {
-		String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
+		return buildHLSFilesRegularExpression(segmentFilename, indexOfSuffix, variantStreamMappingEnabled);
+	}
+
+	@VisibleForTesting
+	static String buildHLSFilesRegularExpression(String segmentFilename, int indexOfSuffix, boolean variantStreamMappingEnabled) {
+		String segmentFileWithoutSuffix = Pattern.quote(segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix));
 		String hlsFileExtensions = TS_EXTENSION + "|" + FMP4_EXTENSION;
 		if (variantStreamMappingEnabled) {
-			segmentFileWithoutSuffix = segmentFileWithoutSuffix.replace("%v", ".*");
+			segmentFileWithoutSuffix = segmentFileWithoutSuffix.replace("%v", "\\E.*\\Q");
 			hlsFileExtensions += "|m3u8";
 		}
 		return segmentFileWithoutSuffix + ".*\\.(?:" + hlsFileExtensions + ")$";
@@ -687,7 +693,11 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public static File[] getHLSFilesInDirectory(File localFile, String regularExpression) {
-		return localFile.getParentFile().listFiles((dir, name) -> 
+		File parent = localFile.getParentFile();
+		if (parent == null) {
+			return null;
+		}
+		return parent.listFiles((dir, name) ->
 		//matches m3u8 file or ts segment file
 		name.equals(localFile.getName()) || name.matches(regularExpression)
 				);

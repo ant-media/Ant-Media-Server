@@ -1180,7 +1180,7 @@ public abstract class RestServiceBase {
 
 				try {
 
-					Process exec = getProcess(command);
+					Process exec = startProcess(command);
 
 					int waitFor = exec.waitFor();
 
@@ -1215,7 +1215,8 @@ public abstract class RestServiceBase {
 
 
 
-	public Process getProcess(String command) throws IOException {
+	// not getX(String): beanutils resolves those as mapped getters
+	public Process startProcess(String command) throws IOException {
 		return Runtime.getRuntime().exec(command);
 	}
 

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -16,6 +17,9 @@ import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
@@ -27,6 +31,58 @@ class HLSMuxerTest extends UnitTestBase<HLSMuxer> {
 
 	@TempDir
 	Path tempDirectory;
+
+	@ParameterizedTest
+	@ValueSource(strings = {"camera.v1", "red5.properties|x", ".*|x", "camera\\E[1]+"})
+	void shouldOnlySelectLiteralStreamFilenamesForCleanup(String name) throws Exception {
+		Path manifest = Files.createFile(tempDirectory.resolve("manifest.m3u8"));
+		Path segment = Files.createFile(tempDirectory.resolve(name + "000000001.ts"));
+		Path fmp4 = Files.createFile(tempDirectory.resolve(name + "000000001.fmp4"));
+		Files.createFile(tempDirectory.resolve("red5.properties"));
+		Files.createFile(tempDirectory.resolve("server.db"));
+		Files.createFile(tempDirectory.resolve("cameraXv1000000001.ts"));
+		Files.createFile(tempDirectory.resolve("unrelated000000001.ts"));
+		String segmentFilename = tempDirectory.resolve(name + "%09d.ts").toString();
+		String regex = HLSMuxer.buildHLSFilesRegularExpression(segmentFilename, segmentFilename.indexOf("%09d"), false);
+
+		File[] selected = HLSMuxer.getHLSFilesInDirectory(manifest.toFile(), regex);
+
+		assertThat(selected).extracting(File::getName).containsExactlyInAnyOrder(
+				manifest.getFileName().toString(), segment.getFileName().toString(), fmp4.getFileName().toString());
+	}
+
+	@Test
+	void shouldPreserveVariantPlaylistAndSegmentCleanup() throws Exception {
+		Path manifest = Files.createFile(tempDirectory.resolve("camera.v1.m3u8"));
+		Files.createFile(tempDirectory.resolve("camera.v1_english.m3u8"));
+		Files.createFile(tempDirectory.resolve("camera.v1_english000000001.ts"));
+		Files.createFile(tempDirectory.resolve("camera.v1_french000000001.fmp4"));
+		Files.createFile(tempDirectory.resolve("cameraXv1_english000000001.ts"));
+		Files.createFile(tempDirectory.resolve("server.db"));
+		String segmentFilename = tempDirectory.resolve("camera.v1_%v%09d.ts").toString();
+		String regex = HLSMuxer.buildHLSFilesRegularExpression(segmentFilename, segmentFilename.indexOf("%09d"), true);
+
+		File[] selected = HLSMuxer.getHLSFilesInDirectory(manifest.toFile(), regex);
+
+		assertThat(selected).extracting(File::getName).containsExactlyInAnyOrder(
+				"camera.v1.m3u8", "camera.v1_english.m3u8",
+				"camera.v1_english000000001.ts", "camera.v1_french000000001.fmp4");
+	}
+
+	@ParameterizedTest
+	@CsvSource(value = {"%09d|000000001", "%Y%m%d-%s|20261124-1795520000", "%s-%%09d|1795520000-000000001"}, delimiter = '|')
+	void shouldPreserveConfiguredSegmentSuffixCleanup(String format, String suffix) throws Exception {
+		Path manifest = Files.createFile(tempDirectory.resolve("camera.m3u8"));
+		Path segment = Files.createFile(tempDirectory.resolve("camera" + suffix + ".ts"));
+		Files.createFile(tempDirectory.resolve("other" + suffix + ".ts"));
+		String segmentFilename = tempDirectory.resolve("camera" + format + ".ts").toString();
+		String regex = HLSMuxer.buildHLSFilesRegularExpression(segmentFilename, segmentFilename.indexOf(format), false);
+
+		File[] selected = HLSMuxer.getHLSFilesInDirectory(manifest.toFile(), regex);
+
+		assertThat(selected).extracting(File::getName).containsExactlyInAnyOrder(
+				manifest.getFileName().toString(), segment.getFileName().toString());
+	}
 
 	@Test
 	void shouldOnlyFinalizeFilesModifiedBeforeCleanupWasScheduled() throws Exception {

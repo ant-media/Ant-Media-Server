@@ -12,7 +12,7 @@ public class StreamIdValidator {
 	public static boolean isStreamIdValid(String id) {
 		if (id != null) {
 			Matcher m = namePattern.matcher(id);
-			return !m.find();
+			return !".".equals(id) && !"..".equals(id) && !m.find();
 		}
 		//return true if name is null, it means that stream id will be generated
 		return true;

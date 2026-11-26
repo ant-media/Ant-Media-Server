@@ -25,6 +25,7 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.PropertyUtilsBean;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.io.amf3.ByteArray;
@@ -54,7 +55,13 @@ public class Input extends BaseInput implements org.red5.io.object.Input {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     protected static Map<String, String> classAliases = new HashMap<String, String>(3);
-    
+
+    // class names come from the wire, only flex messaging DTOs may be instantiated
+    private static final String ALLOWED_CLASS_PREFIX = "org.red5.compatibility.flex.";
+
+    // beanutils evaluates these as nested / mapped / indexed expressions, which call arbitrary getters
+    private static final String BEAN_EXPRESSION_CHARS = ".()[]";
+
     
     static{
         
@@ -380,7 +387,7 @@ public class Input extends BaseInput implements org.red5.io.object.Input {
                 className = "org.red5.compatibility." + className;
                 log.debug("Modified classname: {}", className);
             }
-            if (!classAllowed(className)) {
+            if (!classAllowed(className) || !className.startsWith(ALLOWED_CLASS_PREFIX)) {
                 log.error("Class creation is not allowed {}", className);
             } else {
                 clazz = Thread.currentThread().getContextClassLoader().loadClass(className);
@@ -432,10 +439,14 @@ public class Input extends BaseInput implements org.red5.io.object.Input {
                     final Field field = theClass.getField(name);
                     field.set(bean, property);
                 } catch (Exception ex2) {
-                    try {
-                        BeanUtils.setProperty(bean, name, property);
-                    } catch (Exception ex) {
-                        log.error("Error mapping property: {} ({})", name, property);
+                    if (isSimplePropertyName(name)) {
+                        try {
+                            BeanUtils.setProperty(bean, name, property);
+                        } catch (Exception ex) {
+                            log.error("Error mapping property: {} ({})", name, property);
+                        }
+                    } else {
+                        log.warn("Skipping non-simple property name: {}", name);
                     }
                 }
             } else {
@@ -643,18 +654,24 @@ public class Input extends BaseInput implements org.red5.io.object.Input {
                 // instance is null for anonymous class, use default type
             }
         } catch (NoSuchFieldException e1) {
-            try {
-                BeanUtilsBean beanUtilsBean = BeanUtilsBean.getInstance();
-                PropertyUtilsBean propertyUtils = beanUtilsBean.getPropertyUtils();
-                PropertyDescriptor propertyDescriptor = propertyUtils.getPropertyDescriptor(instance, propertyName);
-                return propertyDescriptor.getReadMethod().getGenericReturnType();
-            } catch (Exception e2) {
-                // nothing
+            if (isSimplePropertyName(propertyName)) {
+                try {
+                    BeanUtilsBean beanUtilsBean = BeanUtilsBean.getInstance();
+                    PropertyUtilsBean propertyUtils = beanUtilsBean.getPropertyUtils();
+                    PropertyDescriptor propertyDescriptor = propertyUtils.getPropertyDescriptor(instance, propertyName);
+                    return propertyDescriptor.getReadMethod().getGenericReturnType();
+                } catch (Exception e2) {
+                    // nothing
+                }
             }
         } catch (Exception e) {
             // ignore other exceptions
         }
         // return Object class type by default
         return Object.class;
+    }
+
+    protected static boolean isSimplePropertyName(String propertyName) {
+        return !StringUtils.containsAny(propertyName, BEAN_EXPRESSION_CHARS);
     }
 }
