@@ -707,6 +707,13 @@ public class AppSettings implements Serializable {
 	private boolean webRTCTcpCandidatesEnabled;
 
 	/**
+	 * Packet burst budget in milliseconds for new WebRTC playback connections.
+	 * Zero (default) leaves the native pacer's burst interval unchanged.
+	 */
+	@Value("${webRTCPacerBurstIntervalMs:0}")
+	private int webRTCPacerBurstIntervalMs;
+
+	/**
 	 * WebRTC SDP Semantics
 	 * It can "planB" or "unifiedPlan"
 	 */
@@ -1858,6 +1865,7 @@ public class AppSettings implements Serializable {
 		streamFetcherRetryDelayMs = 3000;
 		streamFetcherMaxRetryAttempts = -1;
 		webRTCFrameRate = 20;
+		webRTCPacerBurstIntervalMs = 0;
 		hashControlPlayEnabled = false;
 		hashControlPublishEnabled = false;
 		tokenHashSecret = "";

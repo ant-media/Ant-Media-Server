@@ -545,6 +545,7 @@ public class AppSettingsUnitTest {
 		assertEquals(0, appSettings.getGopSize());
 		assertEquals("", appSettings.getJwksURL());
         assertFalse(appSettings.isWebRTCTcpCandidatesEnabled());
+        assertThat(appSettings.getWebRTCPacerBurstIntervalMs()).isZero();
         assertFalse(appSettings.isForceAspectRatioInTranscoding());
 		assertEquals(2000, appSettings.getEndpointHealthCheckPeriodMs());
         assertFalse(appSettings.isAcceptOnlyStreamsInDataStore());
@@ -734,7 +735,7 @@ public class AppSettingsUnitTest {
 
 		assertThat(numberOfFields)
 				.as("When an AppSettings field is added or removed, check its default value and update the field count")
-				.isEqualTo(189);
+				.isEqualTo(190);
 	}
 
 

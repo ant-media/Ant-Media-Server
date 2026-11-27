@@ -560,6 +560,9 @@ public class PeerConnection {
      * logs with backend logs
      */
     @Nullable public String turnLoggingId;
+
+    /** Positive values override the native pacer burst interval for this connection. */
+    public int pacerBurstIntervalMs;
     
     public int minPort;
     
@@ -848,6 +851,11 @@ public class PeerConnection {
       return turnLoggingId;
     }
     
+    @CalledByNative("RTCConfiguration")
+    int getPacerBurstIntervalMs() {
+      return pacerBurstIntervalMs;
+    }
+
     @CalledByNative("RTCConfiguration")
     int getMinPort() {
     	return minPort;
