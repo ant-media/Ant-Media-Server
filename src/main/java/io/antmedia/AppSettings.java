@@ -1865,6 +1865,7 @@ public class AppSettings implements Serializable {
 		streamFetcherRetryDelayMs = 3000;
 		streamFetcherMaxRetryAttempts = -1;
 		webRTCFrameRate = 20;
+		webRTCPacerBurstIntervalMs = 0;
 		hashControlPlayEnabled = false;
 		hashControlPublishEnabled = false;
 		tokenHashSecret = "";
